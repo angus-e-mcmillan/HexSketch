@@ -2,7 +2,7 @@
 
 A chemical structure editor that runs in the browser: https://hexsketch.com
 
-- Drawing tools, clicks and keyboard shortcuts that work like ChemDraw's.
+- Drawing tools, clicks and keyboard shortcuts that work like your favorite drawing tool.
 - Copy a structure into Word, PowerPoint, Google Docs or Slides, then copy it
   back into HexSketch to edit it. The structure travels inside the picture
   (alt text and a PNG text chunk), so plain copy and paste is enough.
@@ -12,8 +12,6 @@ A chemical structure editor that runs in the browser: https://hexsketch.com
 
 Everything runs locally in the browser. Drawings are never uploaded; the only
 thing sent anywhere is what someone types into File › Send Feedback.
-
-HexSketch is not affiliated with ChemDraw or Revvity.
 
 ## Development
 
