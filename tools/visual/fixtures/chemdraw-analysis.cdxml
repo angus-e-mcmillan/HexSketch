@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML
+ CreationProgram="ChemDraw 20.1.0.112"
+ BoundingBox="436 516.47 643.73 658.17"
+ WindowPosition="0 0"
+ WindowSize="0 0"
+ FractionalWidths="yes"
+ InterpretChemically="yes"
+ ShowAtomQuery="yes"
+ ShowAtomStereo="no"
+ ShowAtomEnhancedStereo="yes"
+ ShowAtomNumber="no"
+ ShowResidueID="no"
+ ShowBondQuery="yes"
+ ShowBondRxn="yes"
+ ShowBondStereo="no"
+ ShowTerminalCarbonLabels="no"
+ ShowNonTerminalCarbonLabels="no"
+ HideImplicitHydrogens="no"
+ Magnification="1333"
+ LabelFont="21"
+ LabelSize="11"
+ LabelFace="97"
+ CaptionFont="21"
+ CaptionSize="10"
+ HashSpacing="2.50"
+ MarginWidth="1.60"
+ LineWidth="1.53"
+ BoldWidth="2.41"
+ BondLength="18.43"
+ BondSpacing="18"
+ ChainAngle="120"
+ LabelJustification="Auto"
+ CaptionJustification="Left"
+ AminoAcidTermini="HOH"
+ ShowSequenceTermini="yes"
+ ShowSequenceBonds="yes"
+ ShowSequenceUnlinkedBranches="no"
+ ResidueWrapCount="40"
+ ResidueBlockCount="10"
+ ResidueZigZag="yes"
+ NumberResidueBlocks="no"
+ PrintMargins="36 36 36 36"
+ MacPrintInfo="0003000000480048000000000300024CFFF4FFF4030C02580367052803FC0002000000480048000000000300024C000100000064000000010001010100000001270F000100010000000000000000000000000002001901900000000000400000000000000000000100000000000000000000000000000000"
+ ChemPropName=""
+ ChemPropFormula="Chemical Formula: "
+ ChemPropExactMass="Exact Mass: "
+ ChemPropMolWt="Molecular Weight: "
+ ChemPropMOverZ="m/z: "
+ ChemPropAnalysis="Elemental Analysis: "
+ ChemPropBoilingPt="Boiling Point: "
+ ChemPropMeltingPt="Melting Point: "
+ ChemPropCritTemp="Critical Temp: "
+ ChemPropCritPres="Critical Pres: "
+ ChemPropCritVol="Critical Vol: "
+ ChemPropGibbs="Gibbs Energy: "
+ ChemPropLogP="Log P: "
+ ChemPropMR="MR: "
+ ChemPropHenry="Henry&apos;s Law: "
+ ChemPropEForm="Heat of Form: "
+ ChemProptPSA="tPSA: "
+ ChemPropID=""
+ ChemPropFragmentLabel=""
+ color="0"
+ bgcolor="1"
+ RxnAutonumberStart="1"
+ RxnAutonumberConditions="no"
+ RxnAutonumberStyle="Roman"
+ RxnAutonumberFormat="(#)"
+><colortable>
+<color r="1" g="1" b="1"/>
+<color r="0" g="0" b="0"/>
+<color r="0.0667" g="0.0627" b="0.1647"/>
+<color r="0.4941" g="0.1686" b="0.0549"/>
+<color r="0.8667" g="0.8627" b="0.9294"/>
+<color r="0.9294" g="0.9333" b="0.8275"/>
+<color r="0.2235" g="0.2196" b="0.3333"/>
+<color r="0.4078" g="0.4039" b="0.5137"/>
+<color r="0.6314" g="0.6275" b="0.7176"/>
+<color r="0.8588" g="0.8549" b="0.9216"/>
+<color r="0.5255" g="0.2235" b="0.1020"/>
+<color r="0.6745" g="0.3765" b="0.2353"/>
+<color r="0.7373" g="0.5059" b="0.3647"/>
+<color r="0.8431" g="0.7686" b="0.6392"/>
+<color r="0.2157" g="0.2157" b="0.3255"/>
+<color r="0.5255" g="0.2157" b="0.1020"/>
+</colortable><fonttable>
+<font id="21" charset="x-mac-roman" name="Helvetica"/>
+</fonttable><page
+ id="933023550"
+ BoundingBox="0 0 1080 1440"
+ HeaderPosition="36"
+ FooterPosition="36"
+ PrintTrimMarks="yes"
+ HeightPages="2"
+ WidthPages="2"
+><fragment
+ id="1001"
+ BoundingBox="494.04 516.47 585.69 585.92"
+ Z="1"
+><n
+ id="1002"
+ p="494.42 548.19"
+ Z="2"
+ AS="N"
+/><n
+ id="1003"
+ p="510.38 557.40"
+ Z="3"
+ AS="N"
+/><n
+ id="1004"
+ p="526.34 548.19"
+ Z="4"
+ Element="8"
+ NumHydrogens="0"
+ NeedsClean="yes"
+ AS="N"
+><t
+ p="522.06 552.27"
+ BoundingBox="522.60 544.11 530.19 552.49"
+ LabelJustification="Left"
+><s font="21" size="11" color="0" face="97">O</s></t></n><n
+ id="1005"
+ p="542.29 557.40"
+ Z="5"
+ AS="N"
+/><n
+ id="1006"
+ p="558.25 548.19"
+ Z="6"
+ AS="N"
+/><n
+ id="1007"
+ p="558.25 529.76"
+ Z="7"
+ AS="N"
+/><n
+ id="1008"
+ p="574.21 520.55"
+ Z="8"
+ Element="8"
+ NumHydrogens="1"
+ NeedsClean="yes"
+ AS="N"
+><t
+ p="569.93 524.63"
+ BoundingBox="570.47 516.47 585.69 524.85"
+ LabelJustification="Left"
+ LabelAlignment="Left"
+><s font="21" size="11" color="0" face="97">OH</s></t></n><n
+ id="1009"
+ p="542.29 520.55"
+ Z="9"
+ Element="8"
+ NumHydrogens="0"
+ NeedsClean="yes"
+ AS="N"
+><t
+ p="538.02 524.63"
+ BoundingBox="538.56 516.47 546.15 524.85"
+ LabelJustification="Left"
+><s font="21" size="11" color="0" face="97">O</s></t></n><n
+ id="1010"
+ p="574.21 557.40"
+ Z="10"
+ AS="N"
+/><n
+ id="1011"
+ p="574.21 575.83"
+ Z="11"
+ AS="N"
+/><n
+ id="1012"
+ p="558.25 585.04"
+ Z="12"
+ AS="N"
+/><n
+ id="1013"
+ p="542.29 575.83"
+ Z="13"
+ AS="N"
+/><n
+ id="1014"
+ p="510.38 575.83"
+ Z="14"
+ Element="8"
+ NumHydrogens="0"
+ NeedsClean="yes"
+ AS="N"
+><t
+ p="506.10 579.91"
+ BoundingBox="506.65 571.75 514.24 580.13"
+ LabelJustification="Left"
+><s font="21" size="11" color="0" face="97">O</s></t></n><b
+ id="1015"
+ Z="15"
+ B="1002"
+ E="1003"
+ BS="N"
+/><b
+ id="1016"
+ Z="16"
+ B="1003"
+ E="1014"
+ Order="2"
+ BS="N"
+/><b
+ id="1017"
+ Z="17"
+ B="1003"
+ E="1004"
+ BS="N"
+/><b
+ id="1018"
+ Z="18"
+ B="1004"
+ E="1005"
+ BS="N"
+/><b
+ id="1019"
+ Z="19"
+ B="1005"
+ E="1013"
+ Order="2"
+ BS="N"
+ BondCircularOrdering="1024 1018 0 1020"
+/><b
+ id="1020"
+ Z="20"
+ B="1013"
+ E="1012"
+ BS="N"
+/><b
+ id="1021"
+ Z="21"
+ B="1012"
+ E="1011"
+ Order="2"
+ BS="N"
+ BondCircularOrdering="1020 0 0 1022"
+/><b
+ id="1022"
+ Z="22"
+ B="1011"
+ E="1010"
+ BS="N"
+/><b
+ id="1023"
+ Z="23"
+ B="1010"
+ E="1006"
+ Order="2"
+ BS="N"
+ BondCircularOrdering="1022 0 1025 1024"
+/><b
+ id="1024"
+ Z="24"
+ B="1005"
+ E="1006"
+ BS="N"
+/><b
+ id="1025"
+ Z="25"
+ B="1006"
+ E="1007"
+ BS="N"
+/><b
+ id="1026"
+ Z="26"
+ B="1007"
+ E="1009"
+ Order="2"
+ BS="N"
+/><b
+ id="1027"
+ Z="27"
+ B="1007"
+ E="1008"
+ BS="N"
+/></fragment><t
+ id="933023547"
+ p="539.65 600.79"
+ BoundingBox="436 593.42 643.73 658.17"
+ Z="28"
+ InterpretChemically="no"
+ CaptionJustification="Center"
+ Justification="Center"
+ LineHeight="auto"
+ LineStarts="22 47 68 95 135 182"
+><s font="21" size="10" color="0">2-acetoxybenzoic acid
+Chemical Formula: </s><s font="21" size="10" color="0" face="96">C</s><s font="21" size="10" color="0" face="32">9</s><s font="21" size="10" color="0" face="96">H</s><s font="21" size="10" color="0" face="32">8</s><s font="21" size="10" color="0" face="96">O</s><s font="21" size="10" color="0" face="32">4</s><s font="21" size="10" color="0">
+Exact Mass: 180.0423
+Molecular Weight: 180.1590
+m/z: 180.0423 (100.0%), 181.0456 (9.7%)
+Elemental Analysis: C, 60.00; H, 4.48; O, 35.52</s></t><chemicalproperty
+ id="933023548"
+ ChemicalPropertyDisplayID="933023547"
+ ChemicalPropertyIsActive="yes"
+ ChemicalPropertyType="1 2 3 4 5 6"
+ BasisObjects="1001 1002 1003 1004 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020 1021 1022 1023 1024 1025 1026 1027"
+/></page></CDXML>

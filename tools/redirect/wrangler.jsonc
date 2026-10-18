@@ -1,0 +1,10 @@
+// Forwards www.hexsketch.com (and the old beta address) to https://hexsketch.com.
+// Deploy: cd tools/redirect && npx wrangler@4 deploy
+{
+  "name": "drawchem",
+  "main": "worker.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "routes": [{ "pattern": "www.hexsketch.com", "custom_domain": true }],
+  "vars": { "TARGET": "https://hexsketch.com" }
+}

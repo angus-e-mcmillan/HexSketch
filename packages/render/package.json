@@ -1,0 +1,8 @@
+{
+  "name": "@hexsketch/render",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@hexsketch/core": "0.1.0" }
+}

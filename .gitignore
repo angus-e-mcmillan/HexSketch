@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.DS_Store
+.venv/
+__pycache__/
+tools/opsin/opsin.jar
+apps/*/dist/
+.wrangler/
+.claude/
+.env*

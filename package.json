@@ -1,0 +1,24 @@
+{
+  "name": "hexsketch",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Chemical structure editor for the browser",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "node --test --experimental-strip-types packages/*/test/*.test.ts",
+    "dev": "npm run dev -w @hexsketch/web",
+    "build:web": "npm run build -w @hexsketch/web",
+    "serve:web": "node --experimental-strip-types tools/serve-dist.ts apps/web/dist 5180",
+    "deploy:web": "npm run build:web && cd apps/web && npx --yes wrangler@4 deploy",
+    "feedback": "node --experimental-strip-types --no-warnings tools/feedback.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.6.3"
+  }
+}
