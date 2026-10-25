@@ -23,7 +23,7 @@ import { mountApp, type AppApi } from '@hexsketch/web';
 /** As the server sends it (packages/hexsketch/src/mcp.ts). */
 interface SketchUpdate { version: number; structure?: string; highlights?: { smiles: string; color: string; name: string }[]; note?: string }
 
-const app = new App({ name: 'HexSketch', version: '0.1.4' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+const app = new App({ name: 'HexSketch', version: '0.1.5' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 
 const expand = { label: 'Full screen', run: () => toggleFullscreen() };
 const send = { label: 'Send to chat', run: (ui: AppApi) => sendToChat(ui) };
@@ -112,8 +112,8 @@ function highlight(highlights: NonNullable<SketchUpdate['highlights']>) {
 async function openStructure(input: string): Promise<boolean> {
   try {
     const s = await readStructure(input);
-    // SMILES and molfiles are laid out around the origin; drawings keep their place on the page.
-    ui.load(s.mol, s.style, s.objects, { centre: s.format === 'smiles' || s.format === 'mol' || (s.format === 'link' && s.smiles !== undefined) });
+    // Whatever its source (a SMILES laid out around the origin, a drawing from elsewhere), it goes in the middle of the sheet.
+    ui.load(s.mol, s.style, s.objects, { centre: true });
     aiMarks = { atoms: new Map(), bonds: new Map() };
     return true;
   } catch (err) {
@@ -123,9 +123,10 @@ async function openStructure(input: string): Promise<boolean> {
 }
 
 async function apply(u: SketchUpdate) {
+  // The notes panel opens first, so a new structure is centred in the room it leaves.
+  if (u.note || u.highlights?.length) addNote(u.note, u.highlights);
   if (u.structure) await openStructure(u.structure);
   if (u.highlights) highlight(u.highlights);
-  if (u.note || u.highlights?.length) addNote(u.note, u.highlights);
   ui.flash(u.structure ? 'The AI changed the drawing (Undo brings yours back)' : 'The AI pointed something out (see Notes)');
 }
 
