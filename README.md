@@ -21,6 +21,7 @@ Needs Node 22.
 npm install
 npm run dev          # http://localhost:5174
 npm test
+npm run typecheck
 npm run build:web    # static build in apps/web/dist
 ```
 

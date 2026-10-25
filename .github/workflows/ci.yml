@@ -1,0 +1,40 @@
+# Checks every pull request and every push to main: types, tests (including the
+# OPSIN round trip of generated names) and the hexsketch.com build.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+      # OPSIN parses generated names back to structures; without Java those tests skip.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/cache@v4
+        with:
+          path: tools/opsin/opsin.jar
+          key: opsin-${{ hashFiles('tools/opsin/fetch.sh') }}
+      - run: sh tools/opsin/fetch.sh
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:web
