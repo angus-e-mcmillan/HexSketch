@@ -70,9 +70,9 @@ test('the AI summary lists each structure with its SMILES, formula and masses', 
   assert.doesNotMatch(two, /Name:|Open and edit/);
 });
 
-test('the AI summary says when the SMILES leaves out drawn stereochemistry', () => {
+test('the AI summary carries drawn stereochemistry in its SMILES', () => {
   const alanine = parseSmiles('C[C@H](N)C(=O)O');
   layout2D(alanine);
-  assert.match(aiSummary(alanine), /^SMILES \(stereochemistry not included; see the name or the link\): /m);
-  assert.match(aiSummary(parseSmiles('CC(N)C(=O)O')), /^SMILES: /m);
+  for (const a of alanine.atoms()) a.chirality = null; // as drawn: wedges only
+  assert.match(aiSummary(alanine), /^SMILES: \S*@/m);
 });
