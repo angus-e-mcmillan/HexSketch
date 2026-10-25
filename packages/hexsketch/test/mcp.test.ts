@@ -162,6 +162,9 @@ test('the AI works in the open editor: show, read, and the editor fetches and re
   assert.equal((await call('show_in_sketcher', { note: 'hi' })).isError, true); // nothing open yet
   const opened = await call('open_sketcher', { structure: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O' });
   const id = (opened.structuredContent as { sketch: string }).sketch;
+  // Chats pass the model either the text or the structuredContent: both say to keep working in the editor.
+  assert.match((opened.structuredContent as { next: string }).next, /show_in_sketcher.*read_sketcher/s);
+  assert.match(textOf(opened), /show_in_sketcher/);
   assert.match(id, /^[0-9a-f-]{36}$/);
   assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, '2-(4-isobutylphenyl)propanoic acid');
 

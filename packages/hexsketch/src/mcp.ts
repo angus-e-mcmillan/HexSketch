@@ -166,13 +166,15 @@ export function createServer(opts: ServerOptions): McpServer {
     }, ({ structure: s }) => safely(async () => {
       const about = s ? await analyze(s) : null;
       sketch = { id: crypto.randomUUID(), version: 0, updates: [], drawing: s ?? '' };
-      // The editor reads structuredContent; the text is for the model, and for chats that cannot show the editor.
-      const shared = { structure: s ?? '', sketch: sketch.id };
-      if (!s || !about) return { content: [{ type: 'text', text: 'Opened the HexSketch editor with an empty canvas. In a chat that cannot show it, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }], structuredContent: shared };
+      // Models see the text or the structuredContent depending on the chat, so both say how to carry on.
+      const next = 'The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher with highlight (SMILES fragments, coloured yellow, blue, orange... in order) and a short note, or with a new structure. Call read_sketcher whenever the user refers to their drawing, since they may have edited it. Do not open another editor. Suggest Full screen to keep the editor beside the chat.';
+      const shared = { structure: s ?? '', sketch: sketch.id, next };
+      if (!s || !about) return { content: [{ type: 'text', text: JSON.stringify({ opened: 'an empty canvas', next, fallback: 'In a chat that cannot show the editor, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }, null, 2) }], structuredContent: shared };
       const url = await link(s);
+      const info = { opened: about.name ?? about.smiles, smiles: about.smiles, link: url };
       return {
-        content: [{ type: 'text', text: JSON.stringify({ opened: about.name ?? about.smiles, smiles: about.smiles, link: url, note: 'The editor is open in the chat where it is supported (suggest full screen to keep it beside the conversation); the link opens the same structure on hexsketch.com.' }, null, 2) }],
-        structuredContent: { ...shared, name: about.name, smiles: about.smiles, link: url },
+        content: [{ type: 'text', text: JSON.stringify({ ...info, next, fallback: 'If the chat cannot show the editor, the link opens the same structure on hexsketch.com.' }, null, 2) }],
+        structuredContent: { ...shared, ...info },
       };
     }));
 
@@ -192,7 +194,7 @@ export function createServer(opts: ServerOptions): McpServer {
 
     server.registerTool('show_in_sketcher', {
       title: 'Show in the HexSketch editor',
-      description: `Show something in the HexSketch editor that is already open, instead of opening another: replace the structure, highlight parts of it, and leave a short note beside it. Use it to explain while you talk: highlight the group you are describing, show the product of a change, point out a stereocentre. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each call replaces your earlier highlights; the user can undo anything you change.`,
+      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of only describing it in the chat: replace the structure, highlight parts of it, and leave a short note beside it. Use it every time you explain or change a structure while the editor is open: highlight the groups you are describing, draw the product of a change the user asks about, point out a stereocentre. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each call replaces your earlier highlights; the user can undo anything you change.`,
       inputSchema: {
         structure: structure.optional().describe('A new structure to draw in place of the current one (the user can undo it). Leave out to work on what is drawn.'),
         highlight: z.array(z.string().min(1)).max(HIGHLIGHTS.length).optional().describe('SMILES fragments to highlight, e.g. ["C(=O)O", "c1ccccc1"].'),

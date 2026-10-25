@@ -23,7 +23,7 @@ import { mountApp, type AppApi } from '@hexsketch/web';
 /** As the server sends it (packages/hexsketch/src/mcp.ts). */
 interface SketchUpdate { version: number; structure?: string; highlights?: { smiles: string; color: string; name: string }[]; note?: string }
 
-const app = new App({ name: 'HexSketch', version: '0.1.2' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+const app = new App({ name: 'HexSketch', version: '0.1.3' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 
 const expand = { label: 'Full screen', run: () => toggleFullscreen() };
 const send = { label: 'Send to chat', run: (ui: AppApi) => sendToChat(ui) };
@@ -48,6 +48,15 @@ try {
 }
 const expandButton = document.querySelector<HTMLButtonElement>('.host-action');
 expandButton?.classList.add('primary');
+
+/** Whether the AI can reach this editor, in the top bar: so a broken link shows, with its reason. */
+const linkState = Object.assign(document.createElement('span'), { className: 'link-state', textContent: 'Connecting…' });
+document.querySelector('.topbar .spacer')?.after(linkState);
+function setLink(state: 'live' | 'off' | 'wait', text: string, detail = '') {
+  linkState.dataset.state = state;
+  linkState.textContent = text;
+  linkState.title = detail || text;
+}
 
 // ------------------------------------------------------------------ notes
 
@@ -175,24 +184,34 @@ app.ontoolresult = (result) => {
   const sc = result.structuredContent as { structure?: unknown; sketch?: unknown } | undefined;
   void start(typeof sc?.structure === 'string' ? sc.structure.trim() : '');
   if (typeof sc?.sketch === 'string' && !sketchId) { sketchId = sc.sketch; startUpdates(); }
+  else if (!sketchId) setLink('off', 'Not linked to the AI', 'The chat gave the editor no sketch id (open_sketcher\'s structuredContent did not arrive).');
 };
 
 /** Fetch what the AI asked to show, every couple of seconds while this is the open editor. */
 function startUpdates() {
-  if (!app.getHostCapabilities()?.serverTools) return; // this chat can't reach the server from the editor
+  if (!app.getHostCapabilities()?.serverTools) {
+    setLink('off', 'Not linked to the AI', 'This chat does not let the editor reach HexSketch (no serverTools capability), so the AI cannot show things here. Your drawing still reaches the AI.');
+    return;
+  }
   let failures = 0;
   const poll = async () => {
     try {
       const r = await app.callServerTool({ name: 'sketch_updates', arguments: { sketch: sketchId, since } });
+      if (r.isError) throw new Error((r.content?.[0] as { text?: string } | undefined)?.text ?? 'the chat returned an error');
       const sc = r.structuredContent as { live?: boolean; updates?: SketchUpdate[] } | undefined;
+      if (!sc) throw new Error('the chat returned no structuredContent from sketch_updates');
       failures = 0;
-      if (sc?.live === false) {
+      if (sc.live === false) {
+        setLink('off', 'Not linked: a newer editor is open', 'A newer HexSketch editor is open in the chat; the AI shows things there now.');
         addNote('A newer HexSketch editor is open in the chat; the AI shows things there now.', []);
         return;
       }
-      for (const u of sc?.updates ?? []) { since = Math.max(since, u.version); await apply(u); }
-    } catch {
+      setLink('live', 'Linked to the AI', 'What the AI shows with show_in_sketcher appears here.');
+      for (const u of sc.updates ?? []) { since = Math.max(since, u.version); await apply(u); }
+    } catch (err) {
       failures += 1;
+      const why = (err as Error)?.message ?? String(err);
+      if (failures >= 2) setLink('off', `Not linked: ${why.slice(0, 60)}`, `The editor could not fetch the AI's updates: ${why}`);
     }
     // Slow down after errors, and while the editor is out of sight.
     window.setTimeout(poll, failures ? Math.min(30000, 2000 * 2 ** failures) : document.hidden ? 6000 : 1500);
@@ -221,4 +240,5 @@ app.connect().then(() => {
 }).catch((err) => {
   // Opened outside a chat (a preview, a test): the editor still works.
   console.warn('HexSketch: no MCP Apps host', err);
+  setLink('off', 'Not in a chat', String(err));
 });
