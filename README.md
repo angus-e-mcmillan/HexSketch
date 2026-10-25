@@ -1,34 +1,96 @@
 # HexSketch
 
-A chemical structure editor that runs in the browser: https://hexsketch.com
+**Chemists think in sketches. LLMs think in text. HexSketch lets chemists
+talk to LLMs with structures.**
 
-- Drawing tools, clicks and keyboard shortcuts that work like your favorite drawing tool.
-- Copy a structure into Word, PowerPoint, Google Docs or Slides, then copy it
-  back into HexSketch to edit it. The structure travels inside the picture
-  (alt text and a PNG text chunk), so plain copy and paste is enough.
-- IUPAC names, formula, exact mass, molecular weight, m/z and elemental
-  analysis, written under the structure.
-- Opens and saves CDXML and MOL; exports PNG, SVG and PDF.
-- Works with AI assistants: a link such as
-  `https://hexsketch.com/#smiles=CC(%3DO)Oc1ccccc1C(%3DO)O` opens a structure
-  ready to edit, and Edit › Copy for AI puts the name, SMILES, formula, masses
-  and a link back to the drawing on the clipboard for pasting into a chat.
-  Links carry the structure after the `#`, which browsers never send to a server.
+HexSketch puts a real structure editor inside your chat with Claude. You draw,
+Claude sees the drawing. Claude answers by drawing back: structures, reaction
+schemes with reagents and conditions, highlighted groups and notes, all in the
+same editor you're both working in.
 
-Everything runs locally in the browser. Drawings are never uploaded; the only
-thing sent anywhere is what someone types into File › Send Feedback.
+<p align="center">
+  <img src="docs/images/aspirin-scheme.png" alt="Reaction scheme drawn by Claude in HexSketch: salicylic acid plus acetic anhydride, cat. H2SO4, 85 °C, 15 min, gives aspirin" width="640">
+</p>
 
-## Development
+## Add it to Claude
 
-Needs Node 22.
+Takes a minute. Nothing to install, no account.
+
+1. In Claude, open **Settings › Connectors › Add custom connector**.
+2. Name: `HexSketch` · URL: `https://mcp.hexsketch.com/mcp` · click **Add**.
+3. Start a new chat and type: *Open HexSketch with ibuprofen*.
+
+Works on claude.ai and in the Claude desktop app. On a Team or Enterprise
+plan, an owner adds the connector first.
+
+**Claude Code:** run
+`claude mcp add --transport http hexsketch https://mcp.hexsketch.com/mcp`
+
+**Keep everything on your computer:** download
+[hexsketch.mcpb](https://github.com/angus-e-mcmillan/HexSketch/releases/latest/download/hexsketch.mcpb),
+double-click it and click **Install** in Claude Desktop. It works offline.
+Use either this or the connector, not both.
+
+## Things to ask
+
+- *Draw the synthesis of paracetamol from 4-aminophenol.*
+- *What is this?* (after drawing something)
+- *Highlight the stereocentres in this structure.*
+- *Suggest a protecting group for the amine and show the scheme.*
+- *Is this SMILES right? CC(=O)Oc1ccccc1C(=O)O*
+
+## What Claude can do with it
+
+- **Share one drawing.** Claude sees what you draw as you draw it. Press
+  **Full screen** to keep the editor open beside the chat. **Send to chat**
+  posts your drawing as a message.
+- **Answer in structures.** Claude draws in the editor, highlights parts of a
+  molecule in colour and leaves notes beside it. Undo brings your drawing back.
+- **Draw proper schemes.** Arrows, "+" signs, reagents above the arrow and
+  conditions below, with each compound drawn the same way round as the one
+  before.
+- **Get the chemistry right.** Offline IUPAC naming, formula, exact mass and
+  molecular weight, and a check of every SMILES before it's shown.
+- **Hand over the result.** Export PNG, SVG, PDF, CDXML or MOL, or open the
+  drawing on [hexsketch.com](https://hexsketch.com) to keep editing.
+
+## Privacy
+
+The connector stores only the editors open in your chats, and deletes each one
+a day after it was last used. It has no accounts and doesn't log what you
+draw. The desktop extension sends nothing anywhere. Details:
+[hexsketch.com/privacy](https://hexsketch.com/privacy).
+
+## The editor on its own
+
+[hexsketch.com](https://hexsketch.com) is a free structure editor in your
+browser:
+
+- shortcuts that work like the drawing tools you know;
+- copy into Word, PowerPoint or Google Docs and paste back to edit (the
+  structure travels inside the picture);
+- names, formula and masses under each structure;
+- opens and saves CDXML and MOL.
+
+What you draw stays in your browser.
+
+---
+
+## For developers
+
+Scripts, the command line and other AI tools (Codex, Cursor and any MCP
+client): see [packages/hexsketch](packages/hexsketch/README.md).
+
+Building it needs Node 22.
 
 ```sh
 npm install
-npm run dev          # http://localhost:5174
+npm run dev          # the editor at http://localhost:5174
 npm test
 npm run typecheck
 npm run build:web    # static build in apps/web/dist
 npm run build:pkg    # npm package in packages/hexsketch/dist
+npm run dev:mcp      # the connector at http://127.0.0.1:8787/mcp
 ```
 
 `tools/opsin/fetch.sh` downloads OPSIN (needs Java) so the naming tests can
@@ -39,26 +101,28 @@ packages/core      molecule model, SMILES, MOL, CDXML, formula and mass, payload
 packages/render    depiction to SVG and PDF
 packages/editor    tools, hotkeys, undo
 packages/naming    offline IUPAC naming
-packages/agent     for AI agents and scripts: render, name, analyze, convert, validate, compare, link
-packages/hexsketch the npm package and `hexsketch` command built from those (docs/releasing.md)
-apps/web           the app, plus worker.ts for the feedback endpoint
+packages/agent     for AI agents and scripts: render, name, analyze, convert, validate, compare, link, schemes
+packages/hexsketch the npm package, `hexsketch` command and local MCP server (docs/releasing.md)
+apps/web           hexsketch.com, plus worker.ts for the feedback endpoint
+apps/mcp-app       the editor as it appears inside the chat
+apps/mcp-worker    the Claude connector at mcp.hexsketch.com (docs/connector.md)
 ```
 
-## Deployment
+### Deployment
 
-The site is a Cloudflare Worker serving the static build (`apps/web/wrangler.jsonc`).
-Only `/api/feedback` runs code; feedback is stored in Workers KV.
+Both sites are Cloudflare Workers, deployed by hand.
 
 ```sh
 npx wrangler login
-npm run deploy:web
-npm run feedback     # print received feedback
+npm run deploy:web   # hexsketch.com
+npm run deploy:mcp   # mcp.hexsketch.com (docs/connector.md)
+npm run feedback     # print feedback sent from the editor
 ```
 
 ## Licence
 
 Business Source License 1.1 (`LICENSE`): free to use, at work too, directly or
-through AI assistants; a commercial licence is needed to distribute or host
+through AI assistants. You need a commercial licence to distribute or host
 HexSketch as part of a product or service for others. Each version becomes
 Apache-2.0 four years after its release. The link and picture-payload format
-(`docs/link-format.md`) and the code implementing it are MIT (`LICENSE-MIT`).
+(`docs/link-format.md`) and the code that implements it are MIT (`LICENSE-MIT`).
