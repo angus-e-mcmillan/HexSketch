@@ -7,9 +7,9 @@ import type { Sketch, SketchStore, SketchUpdate } from './sketch-store.ts';
  * Claude Desktop may start one for the model's tool calls and reach another
  * for the editor's. Each kind of write has its own file, so the processes
  * don't overwrite each other: <id>.updates.json (the AI's), <id>.drawing (the
- * latest drawing), <id>.seen (when its editor was last on screen), and
- * `latest`. Files are replaced whole (write, then rename). Sketches untouched
- * for a day are removed.
+ * latest drawing), <id>.created, <id>.seen (when its editor was last on
+ * screen), and `latest`. Files are replaced whole (write, then rename).
+ * Sketches untouched for a day are removed.
  */
 export function createSketchStore(dir: string): SketchStore & { dir: string } {
   mkdirSync(dir, { recursive: true });
@@ -35,7 +35,9 @@ export function createSketchStore(dir: string): SketchStore & { dir: string } {
   const get = async (id: string): Promise<Sketch | null> => {
     let drawing: string;
     try { drawing = readFileSync(file(id, 'drawing'), 'utf8'); } catch { return null; }
-    return { id, drawing, updates: readUpdates(id) };
+    let created = 0;
+    try { created = Number(readFileSync(file(id, 'created'), 'utf8')) || 0; } catch { /* opened by an older HexSketch */ }
+    return { id, drawing, updates: readUpdates(id), created };
   };
   const latest = async (): Promise<string | null> => {
     try { const id = readFileSync(join(dir, 'latest'), 'utf8').trim(); return existsSync(file(id, 'drawing')) ? id : null; } catch { return null; }
@@ -45,9 +47,11 @@ export function createSketchStore(dir: string): SketchStore & { dir: string } {
     async create(drawing) {
       prune();
       const id = crypto.randomUUID();
+      const created = Date.now();
+      write(file(id, 'created'), String(created));
       write(file(id, 'drawing'), drawing);
       write(join(dir, 'latest'), id);
-      return { id, drawing, updates: [] };
+      return { id, drawing, updates: [], created };
     },
     get,
     latest,
@@ -64,6 +68,9 @@ export function createSketchStore(dir: string): SketchStore & { dir: string } {
     },
     async seen(id) {
       if (existsSync(file(id, 'drawing'))) write(file(id, 'seen'), String(Date.now()));
+    },
+    async seenAt(id) {
+      try { return statSync(file(id, 'seen')).mtimeMs; } catch { return null; }
     },
     async live(withinMs) {
       const id = await latest();

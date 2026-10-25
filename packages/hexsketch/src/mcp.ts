@@ -90,6 +90,8 @@ const toBase64 = (bytes: Uint8Array) => {
 
 /** How recently an editor must have asked for updates to count as on screen (it asks every 1.5 s, or 6 s when hidden). */
 const ON_SCREEN_MS = 20_000;
+/** How long a newly opened editor may take to load before its silence means the chat cannot show it. */
+const OPENING_MS = 30_000;
 
 export function createServer(opts: ServerOptions): McpServer {
   const sketches = opts.sketcherHtml ? (opts.sketches ?? memorySketchStore()) : null;
@@ -281,8 +283,21 @@ export function createServer(opts: ServerOptions): McpServer {
         ...(note ? { note } : {}),
       });
       const missed = highlights.filter((h) => h.places === 0).map((h) => h.smiles);
+      // Chats that cannot show the editor (and editors closed since) never fetch this: say so, with a link instead.
+      const seen = await store.seenAt(sketch.id);
+      const onScreen = seen !== null && Date.now() - seen <= ON_SCREEN_MS;
+      const opening = seen === null && Date.now() - sketch.created < OPENING_MS;
+      if (!onScreen && !opening) {
+        return text({
+          shown: false,
+          sketch: sketch.id,
+          link: drawing ? await link(drawing) : null,
+          next: `The HexSketch editor is not on screen in this chat (${seen === null ? 'it never appeared: this chat may not be able to show it' : 'it was closed'}), so the user cannot see this. Describe it in your reply instead, and give the user the link, which opens it in HexSketch in their browser. Don't call show_in_sketcher again unless the user opens the editor (open_sketcher).`,
+        });
+      }
       return text({
         shown: true,
+        ...(opening ? { opening: 'The editor is still loading in the chat; this appears as soon as it has.' } : {}),
         sketch: sketch.id,
         highlights: highlights.map((h) => ({ smiles: h.smiles, colour: h.name, places: h.places })),
         ...(missed.length ? { warning: `Not found in the drawing: ${missed.join(', ')}. Check the fragment against read_sketcher's SMILES.` } : {}),
