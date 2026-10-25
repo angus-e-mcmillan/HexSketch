@@ -7,8 +7,9 @@ import type { Sketch, SketchStore, SketchUpdate } from './sketch-store.ts';
  * Claude Desktop may start one for the model's tool calls and reach another
  * for the editor's. Each kind of write has its own file, so the processes
  * don't overwrite each other: <id>.updates.json (the AI's), <id>.drawing (the
- * latest drawing), and `latest`. Files are replaced whole (write, then
- * rename). Sketches untouched for a day are removed.
+ * latest drawing), <id>.seen (when its editor was last on screen), and
+ * `latest`. Files are replaced whole (write, then rename). Sketches untouched
+ * for a day are removed.
  */
 export function createSketchStore(dir: string): SketchStore & { dir: string } {
   mkdirSync(dir, { recursive: true });
@@ -36,6 +37,9 @@ export function createSketchStore(dir: string): SketchStore & { dir: string } {
     try { drawing = readFileSync(file(id, 'drawing'), 'utf8'); } catch { return null; }
     return { id, drawing, updates: readUpdates(id) };
   };
+  const latest = async (): Promise<string | null> => {
+    try { const id = readFileSync(join(dir, 'latest'), 'utf8').trim(); return existsSync(file(id, 'drawing')) ? id : null; } catch { return null; }
+  };
   return {
     dir,
     async create(drawing) {
@@ -46,9 +50,7 @@ export function createSketchStore(dir: string): SketchStore & { dir: string } {
       return { id, drawing, updates: [] };
     },
     get,
-    async latest() {
-      try { const id = readFileSync(join(dir, 'latest'), 'utf8').trim(); return existsSync(file(id, 'drawing')) ? id : null; } catch { return null; }
-    },
+    latest,
     async addUpdate(id, update) {
       if (!(await get(id))) throw new Error('That HexSketch editor is no longer open: call open_sketcher.');
       const updates = readUpdates(id);
@@ -59,6 +61,14 @@ export function createSketchStore(dir: string): SketchStore & { dir: string } {
     },
     async setDrawing(id, drawing) {
       if (existsSync(file(id, 'drawing'))) write(file(id, 'drawing'), drawing);
+    },
+    async seen(id) {
+      if (existsSync(file(id, 'drawing'))) write(file(id, 'seen'), String(Date.now()));
+    },
+    async live(withinMs) {
+      const id = await latest();
+      if (!id) return null;
+      try { return Date.now() - statSync(file(id, 'seen')).mtimeMs <= withinMs ? id : null; } catch { return null; }
     },
   };
 }

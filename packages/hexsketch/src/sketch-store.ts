@@ -32,11 +32,16 @@ export interface SketchStore {
   /** Record an update (its version is assigned here) and, with a structure, the new drawing. */
   addUpdate(id: string, update: Omit<SketchUpdate, 'version'>): Promise<SketchUpdate>;
   setDrawing(id: string, drawing: string): Promise<void>;
+  /** The editor showing this sketch is on screen now (it asks for updates every few seconds). */
+  seen(id: string): Promise<void>;
+  /** The latest sketch, if its editor was on screen within the last `withinMs`. */
+  live(withinMs: number): Promise<string | null>;
 }
 
 /** A store in this process's memory: for tests, and servers that are one process with one connection. */
 export function memorySketchStore(): SketchStore {
   const sketches = new Map<string, Sketch>();
+  const seenAt = new Map<string, number>();
   let last: string | null = null;
   return {
     async create(drawing) {
@@ -56,5 +61,7 @@ export function memorySketchStore(): SketchStore {
       return u;
     },
     async setDrawing(id, drawing) { const s = sketches.get(id); if (s) s.drawing = drawing; },
+    async seen(id) { if (sketches.has(id)) seenAt.set(id, Date.now()); },
+    async live(withinMs) { return last && Date.now() - (seenAt.get(last) ?? 0) <= withinMs ? last : null; },
   };
 }

@@ -217,3 +217,30 @@ test('the AI and the editor may reach HexSketch through different connections', 
   assert.equal(JSON.parse(textOf(await model.call('read_sketcher', {}))).name, 'phenol');
   assert.equal(((await editor.call('sketch_updates', { sketch: 'no-such-sketch', since: 0 })).structuredContent as { live: boolean }).live, false);
 });
+
+test('while an editor is on screen, every tool result points the model to it', async () => {
+  const { createSketchStore } = await import('../src/sketches.ts');
+  const { mkdtempSync } = await import('node:fs');
+  const shared = createSketchStore(mkdtempSync(join(tmpdir(), 'hexsketch-sketches-')));
+  const html = async () => '<!doctype html>';
+  const model = await connect({ sketcherHtml: html, sketches: shared });
+  const editor = await connect({ sketcherHtml: html, sketches: createSketchStore(shared.dir) });
+  const reminds = (r: CallToolResult) => r.content.some((c) => c.type === 'text' && /HexSketch editor is open in this chat/.test(c.text));
+  const id = ((await model.call('open_sketcher', { structure: 'CCO' })).structuredContent as { sketch: string }).sketch;
+  assert.equal(reminds(await model.call('analyze_structure', { structure: 'CCO' })), false); // opened, but not (yet) on screen
+  await editor.call('sketch_updates', { sketch: id, since: 0 }); // the editor polls: it is on screen
+  for (const [name, args] of [['analyze_structure', { structure: 'CCO' }], ['render_structure', { structure: 'CCO' }], ['structure_link', { structure: 'CCO' }]] as const) {
+    const r = await model.call(name, args);
+    assert.ok(reminds(r), name);
+    assert.match(r.content.map((c) => (c.type === 'text' ? c.text : '')).join(' '), new RegExp(id));
+  }
+  assert.equal(reminds(await model.call('name_structure', { structure: 'C1CC' })), false); // errors stay plain
+  assert.match(JSON.parse(textOf(await model.call('show_in_sketcher', { note: 'hi' }))).next, /chat reply/);
+  assert.match(JSON.parse(textOf(await model.call('read_sketcher', {}))).next, /show_in_sketcher/);
+  // An editor another server opened (another chat or app) is not this model's.
+  const other = await connect({ sketcherHtml: html, sketches: createSketchStore(shared.dir) });
+  assert.equal(reminds(await other.call('analyze_structure', { structure: 'CCO' })), false);
+  // Without an editor, results are as before.
+  const plain = await connect();
+  assert.equal(reminds(await plain.call('analyze_structure', { structure: 'CCO' })), false);
+});

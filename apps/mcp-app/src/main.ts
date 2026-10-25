@@ -23,7 +23,7 @@ import { mountApp, type AppApi } from '@hexsketch/web';
 /** As the server sends it (packages/hexsketch/src/mcp.ts). */
 interface SketchUpdate { version: number; structure?: string; highlights?: { smiles: string; color: string; name: string }[]; note?: string }
 
-const app = new App({ name: 'HexSketch', version: '0.1.5' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+const app = new App({ name: 'HexSketch', version: '0.1.6' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 
 const expand = { label: 'Full screen', run: () => toggleFullscreen() };
 const send = { label: 'Send to chat', run: (ui: AppApi) => sendToChat(ui) };
@@ -76,10 +76,34 @@ function addNote(text: string | undefined, highlights: SketchUpdate['highlights'
     chip.style.background = h.color;
     li.append(chip);
   }
-  if (text) li.append(Object.assign(document.createElement('p'), { textContent: text }));
+  if (text) li.append(formatted(text));
   list.prepend(li);
   notes.classList.add('has-notes');
   showNotes(true);
+}
+
+/** A note's text, with the little Markdown models write (**bold**, *italic*, `code`, "- " lists) shown as such. */
+function formatted(text: string): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'note-text';
+  let ul: HTMLUListElement | null = null;
+  for (const line of text.split('\n')) {
+    const item = /^\s*[-*•]\s+(.*)$/.exec(line);
+    if (item) { ul ??= box.appendChild(document.createElement('ul')); ul.append(inline(document.createElement('li'), item[1]!)); continue; }
+    ul = null;
+    if (line.trim()) box.append(inline(document.createElement('p'), line));
+  }
+  return box;
+}
+function inline<T extends HTMLElement>(el: T, text: string): T {
+  // Text nodes only, so nothing the AI writes runs as HTML.
+  for (const part of text.split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`)/)) {
+    if (!part) continue;
+    const tag = part.startsWith('**') ? 'strong' : part.startsWith('*') ? 'em' : part.startsWith('`') ? 'code' : null;
+    const strip = tag === 'strong' ? 2 : tag ? 1 : 0;
+    el.append(tag ? Object.assign(document.createElement(tag), { textContent: part.slice(strip, -strip) }) : part);
+  }
+  return el;
 }
 
 // ----------------------------------------------------------- AI highlights
@@ -184,7 +208,7 @@ app.ontoolinput = ({ arguments: args }) => start(typeof args?.structure === 'str
 app.ontoolresult = (result) => {
   const sc = result.structuredContent as { structure?: unknown; sketch?: unknown } | undefined;
   void start(typeof sc?.structure === 'string' ? sc.structure.trim() : '');
-  if (typeof sc?.sketch === 'string' && !sketchId) { sketchId = sc.sketch; startUpdates(); }
+  if (typeof sc?.sketch === 'string' && !sketchId) { sketchId = sc.sketch; startUpdates(); void shareWithModel(); }
   else if (!sketchId) setLink('off', 'Not linked to the AI', 'The chat gave the editor no sketch id (open_sketcher\'s structuredContent did not arrive).');
 };
 
@@ -219,13 +243,23 @@ function startUpdates() {
   void poll();
 }
 
+/**
+ * What the chat tells the AI on every turn while the editor is open: that it
+ * is open and is where to work (models drift back to images and long chat
+ * answers otherwise), and what is drawn now.
+ */
+async function shareWithModel() {
+  const text = await describe();
+  const how = `The HexSketch editor is open in this chat${sketchId ? ` (sketch "${sketchId}")` : ''}, and the user is working in it. Work in it too: show every structure you discuss with show_in_sketcher, highlight the parts you mean and put your explanation in its note; keep your chat reply short and point to the editor. Do not show structures as images, pictures from the web or text drawings unless the user asks for one. Call read_sketcher when the user refers to their drawing.`;
+  await app.updateModelContext({ content: [{ type: 'text', text: text ? `${how}\n\nThe user's drawing, as it is now:\n\n${text}` : `${how}\n\nThe canvas is empty.` }] }).catch(() => {});
+}
+
 // Keep the AI's view of the drawing current, once editing pauses.
 let timer = 0;
 ui.editor.onChange(() => {
   clearTimeout(timer);
   timer = window.setTimeout(async () => {
-    const text = await describe();
-    if (text) app.updateModelContext({ content: [{ type: 'text', text: `The user's drawing in HexSketch, as it is now:\n\n${text}` }] }).catch(() => {});
+    await shareWithModel();
     if (sketchId && app.getHostCapabilities()?.serverTools) {
       const doc = ui.editor.doc;
       const cdxml = doc.mol.atomCount || doc.objects.length ? writeCdxml(doc.mol, doc.style, doc.objects, { groups: doc.groups }) : '';
