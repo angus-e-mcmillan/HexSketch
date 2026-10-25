@@ -249,6 +249,35 @@ export class Molecule {
     return Math.max(0, target - used);
   }
 
+  /**
+   * Bonds, radical electrons and pinned hydrogens beyond the most the element
+   * allows at its charge: 1 for a five-bond carbon. 0 when within valence, and
+   * for superatoms and elements without valence data.
+   */
+  excessValence(id: AtomId): number {
+    const atom = this.atom(id);
+    if (atom.label !== null) return 0;
+    const el = elementBySymbol(atom.element);
+    if (!el || el.valences.length === 0) return 0;
+    const used = this.bondOrderSum(id) + atom.radical + (atom.explicitHydrogens ?? 0);
+    return Math.max(0, used - pickValence(el, atom.charge, used));
+  }
+
+  /**
+   * For an atom with its hydrogen count pinned (a bracket atom in SMILES, a
+   * file's H count), how many bonds or hydrogens short of the element's
+   * valence it is: 1 for [CH2] in C[CH2]. 0 for atoms whose hydrogens follow
+   * from valence, radicals counted as filling it.
+   */
+  missingValence(id: AtomId): number {
+    const atom = this.atom(id);
+    if (atom.label !== null || atom.explicitHydrogens === null) return 0;
+    const el = elementBySymbol(atom.element);
+    if (!el || el.valences.length === 0) return 0;
+    const used = this.bondOrderSum(id) + atom.radical + atom.explicitHydrogens;
+    return Math.max(0, pickValence(el, atom.charge, used) - used);
+  }
+
   /** Connected components, as arrays of atom ids. */
   fragments(): AtomId[][] {
     const seen = new Set<AtomId>();

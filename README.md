@@ -38,6 +38,7 @@ packages/core      molecule model, SMILES, MOL, CDXML, formula and mass, payload
 packages/render    depiction to SVG and PDF
 packages/editor    tools, hotkeys, undo
 packages/naming    offline IUPAC naming
+packages/agent     for AI agents and scripts: render, name, analyze, convert, validate, compare, link
 apps/web           the app, plus worker.ts for the feedback endpoint
 ```
 

@@ -1,4 +1,5 @@
 import type { AtomId, Molecule } from './model.ts';
+import { ezLabel, perceiveStereoFromGeometry } from './stereo.ts';
 
 /**
  * Are two structures the same compound? Compares heavy-atom graphs labelled
@@ -69,4 +70,52 @@ export function* isomorphisms(a: Molecule, b: Molecule): Generator<Map<AtomId, A
     }
   }
   yield* solve(0);
+}
+
+/**
+ * Are two structures the same stereoisomer: the same compound, with the same
+ * configuration at every specified centre and stereogenic double bond (and
+ * the same ones specified)? Drawings are read from their wedges and geometry,
+ * parsed SMILES from their @/@@ and / \ marks. Compares configurations
+ * through the atom mapping, so ring cis/trans counts even where CIP gives no
+ * R/S.
+ */
+export function sameStereoisomer(a: Molecule, b: Molecule): boolean {
+  const prepare = (m: Molecule) => {
+    const c = m.clone();
+    if ([...c.atoms()].some((x) => x.x !== 0 || x.y !== 0)) perceiveStereoFromGeometry(c);
+    // Geometry gives every drawn double bond a configuration; keep the ones that matter.
+    for (const bd of c.bonds()) if (bd.ez && ezLabel(c, bd.id) === null) bd.ez = null;
+    return c;
+  };
+  const pa = prepare(a), pb = prepare(b);
+  const count = (m: Molecule) => `${[...m.atoms()].filter((x) => x.chirality).length}|${[...m.bonds()].filter((x) => x.ez).length}`;
+  if (count(pa) !== count(pb)) return false;
+  const parity = (from: AtomId[], to: AtomId[]) => {
+    const p = from.map((x) => to.indexOf(x));
+    let swaps = 0;
+    for (let i = 0; i < p.length; i++) while (p[i] !== i) { const j = p[i]!; [p[i], p[j]] = [p[j]!, p[i]!]; swaps++; }
+    return swaps % 2;
+  };
+  for (const map of isomorphisms(pa, pb)) {
+    const m = (id: AtomId) => (id === -1 ? -1 : map.get(id)!);
+    const chiralOk = [...pa.atoms()].every((x) => {
+      if (!x.chirality) return true;
+      const y = pb.atom(m(x.id)).chirality;
+      const mapped = x.chirality.order.map(m);
+      if (!y || !mapped.every((n) => y.order.includes(n))) return false;
+      return (x.chirality.anticlockwise !== (parity(mapped, y.order) === 1)) === y.anticlockwise;
+    });
+    if (!chiralOk) continue;
+    const ezOk = [...pa.bonds()].every((x) => {
+      if (!x.ez) return true;
+      const y = pb.bondBetween(m(x.begin), m(x.end));
+      if (!y?.ez) return false;
+      const [r0, r1] = y.begin === m(x.begin) ? [m(x.ez.ref[0]), m(x.ez.ref[1])] : [m(x.ez.ref[1]), m(x.ez.ref[0])];
+      // Each end where the mapped reference is the other substituent flips cis/trans.
+      return (x.ez.cis !== (r0 !== y.ez.ref[0]) !== (r1 !== y.ez.ref[1])) === y.ez.cis;
+    });
+    if (ezOk) return true;
+  }
+  return false;
 }

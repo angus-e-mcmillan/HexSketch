@@ -112,9 +112,7 @@ export function aiSummary(mol: Molecule, opts: { nameOf?: (m: Molecule) => strin
     const m = computeMass(part);
     if (parts.length > 1) lines.push('', `Structure ${i + 1}`);
     if (name) lines.push(`Name: ${name}`);
-    // writeSmiles leaves out stereochemistry; say so rather than hand over a SMILES that reads as racemic.
-    const wedged = [...part.bonds()].some((b) => /^(wedge|hash)(Begin|End)$/.test(b.display));
-    lines.push(`SMILES${wedged ? ' (stereochemistry not included; see the name or the link)' : ''}: ${writeSmiles(part)}`);
+    lines.push(`SMILES: ${writeSmiles(part)}`);
     lines.push(`Formula: ${m.formulaWithCharge}`);
     lines.push(`Exact mass: ${m.monoisotopicMass.toFixed(4)}`);
     if (!m.unweighable.length) lines.push(`Molecular weight: ${m.molecularWeight.toFixed(2)}`);

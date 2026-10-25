@@ -17,7 +17,9 @@ const z = (mol: Molecule, id: AtomId) => (id === H ? 1 : elementBySymbol(mol.ato
 interface Node { atom: AtomId; z: number; dup: boolean; from: AtomId; path: Set<AtomId> }
 
 function children(mol: Molecule, n: Node): Node[] {
-  if (n.dup) return [0, 0, 0].map(() => ({ atom: H, z: 0, dup: true, from: n.atom, path: n.path }));
+  // A duplicate atom carries phantom substituents (atomic number 0), which carry nothing:
+  // expanding phantoms too grew the front threefold per sphere on symmetric rings.
+  if (n.dup) return n.z === 0 ? [] : [0, 0, 0].map(() => ({ atom: H, z: 0, dup: true, from: n.atom, path: n.path }));
   if (n.atom === H) return [];
   const out: Node[] = [];
   for (const b of mol.incidentBonds(n.atom)) {

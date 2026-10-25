@@ -61,7 +61,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Typecheck step (`tsc --noEmit`) if the repo passes it today; otherwise note why not.
 - Why: every later item is reviewed against a green check, so the site cannot break silently.
 
-### [~] 1. Deep links and "Copy for AI" (web app)
+### [x] 1. Deep links and "Copy for AI" (web app)
 - `hexsketch.com/#smiles=<SMILES>` and `#cdxml=<payload>` open that structure on load.
   `#cdxml=` reuses the existing payload encoding (deflate + base64url, `HexSketch:1:`).
   Bad input shows a message and an empty canvas, never a broken page.
@@ -74,7 +74,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Why: works in every AI tool today (Claude, ChatGPT, Codex) with nothing installed.
   An agent writes a link; the chemist clicks and edits. The chemist draws; one copy puts it in the chat.
 
-### [ ] 2. Headless agent toolkit (`packages/agent`)
+### [~] 2. Headless agent toolkit (`packages/agent`)
 - Pure functions over `core`/`render`/`naming`, each taking SMILES, MOL or CDXML:
   `render` (svg, pdf, cdxml, mol; png where a rasterizer is available),
   `name`, `analyze` (formula, exact mass, MW, m/z, elemental analysis),

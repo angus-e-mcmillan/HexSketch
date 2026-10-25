@@ -1,12 +1,14 @@
 import { elementBySymbol } from './elements.ts';
-import { Molecule, type AtomId, type BondOrder } from './model.ts';
+import { Molecule, type AtomId, type BondId, type BondOrder } from './model.ts';
+import { ezLabel, perceiveStereoFromGeometry } from './stereo.ts';
 
 /**
  * SMILES reading and writing (Daylight/OpenSMILES subset): organic-subset and
  * bracket atoms, charges, isotopes, explicit H, branches, ring closures
  * (digits and %nn), bond symbols and dot-disconnected parts. Aromatic input is
- * kekulized so the result draws the way chemists draw. Stereo marks are
- * accepted and ignored for now.
+ * kekulized so the result draws the way chemists draw. Tetrahedral (@, @@)
+ * and double-bond (/, \) stereo is read into chirality and ez, and written
+ * back out.
  *
  * Atoms come out without coordinates (all at 0,0); run a layout before drawing.
  */
@@ -67,7 +69,10 @@ export function parseSmiles(smiles: string): Molecule {
   while (i < s.length) {
     const ch = s[i]!;
     if (ch === '(') { stack.push(prev); i++; continue; }
-    if (ch === ')') { prev = stack.pop() ?? -1; i++; continue; }
+    if (ch === ')') {
+      if (!stack.length) throw new Error(`unmatched ")" at ${i} in "${s}"`);
+      prev = stack.pop()!; i++; continue;
+    }
     if (ch === '.') { prev = -1; pendingOrder = null; i++; continue; }
     if (ch === '-') { pendingOrder = 1; i++; continue; }
     if (ch === '=') { pendingOrder = 2; i++; continue; }
@@ -117,6 +122,7 @@ export function parseSmiles(smiles: string): Molecule {
     throw new Error(`unexpected "${ch}" at ${i} in "${s}"`);
   }
   if (ringOpen.size) throw new Error(`unclosed ring bond in "${s}"`);
+  if (stack.length) throw new Error(`unclosed branch "(" in "${s}"`);
 
   // Implicit hydrogens for organic-subset atoms.
   const degreeOrder = atoms.map(() => 0);
@@ -235,11 +241,25 @@ function parseBracket(body: string): ParsedAtom {
   };
 }
 
-/** Write a (non-canonical) Kekulé SMILES. */
+/**
+ * Write a (non-canonical) Kekulé SMILES with its stereochemistry: from the
+ * wedges and 2D geometry when the structure has coordinates (as drawn), else
+ * as recorded (a parsed SMILES not yet laid out).
+ */
 export function writeSmiles(mol: Molecule): string {
+  const m = mol.clone();
+  if ([...m.atoms()].some((a) => a.x !== 0 || a.y !== 0)) perceiveStereoFromGeometry(m);
   const parts: string[] = [];
-  for (const fragment of mol.fragments()) parts.push(writeFragment(mol, fragment));
+  for (const fragment of m.fragments()) parts.push(writeFragment(m, fragment));
   return parts.join('.');
+}
+
+/** Parity of the permutation taking `from` to `to` (same members): 0 even, 1 odd. */
+function parity(from: readonly AtomId[], to: readonly AtomId[]): number {
+  const p = from.map((x) => to.indexOf(x));
+  let swaps = 0;
+  for (let i = 0; i < p.length; i++) while (p[i] !== i) { const j = p[i]!; [p[i], p[j]] = [p[j]!, p[i]!]; swaps++; }
+  return swaps % 2;
 }
 
 function writeFragment(mol: Molecule, fragment: AtomId[]): string {
@@ -275,21 +295,75 @@ function writeFragment(mol: Molecule, fragment: AtomId[]): string {
   };
   dfs(start);
 
+  const parentOf = (a: AtomId) => { const b = parentBond.get(a); return b === undefined ? null : mol.otherAtom(mol.bond(b), a); };
+  const childBonds = (a: AtomId) => mol.incidentBonds(a).filter((b) => !ringBonds.has(b) && parentBond.get(mol.otherAtom(mol.bond(b), a)) === b);
+  const hasH = (a: AtomId) => mol.implicitHydrogens(a) > 0;
+
+  // Neighbours in the order the SMILES lists them, as the parser reads @/@@:
+  // the preceding atom, a bracket H, ring closures, then branches. H is -1.
+  const writtenOrder = (a: AtomId): AtomId[] => {
+    const p = parentOf(a);
+    return [
+      ...(p === null ? [] : [p]),
+      ...(hasH(a) ? [-1] : []),
+      ...(closures.get(a) ?? []).map((c) => mol.otherAtom(mol.bond(c.bond), a)),
+      ...childBonds(a).map((b) => mol.otherAtom(mol.bond(b), a)),
+    ];
+  };
+  const chiralMark = (a: AtomId): '@' | '@@' | '' => {
+    const ch = mol.atom(a).chirality;
+    if (!ch) return '';
+    const written = writtenOrder(a);
+    if (written.length !== ch.order.length || !written.every((x) => ch.order.includes(x))) return '';
+    return ch.anticlockwise !== (parity(ch.order, written) === 1) ? '@' : '@@';
+  };
+
+  // Double-bond geometry as / and \ on tree single bonds (never ring closures).
+  // A mark read from the double-bond atom outward is "/" for a substituent
+  // above it; equal readings at both ends mean cis, as the parser takes them.
+  const dirs = new Map<BondId, '/' | '\\'>();
+  const readsFrom = (b: BondId, x: AtomId) => parentOf(x) !== null && parentBond.get(x) === b ? false : true; // x written first?
+  const upOf = (b: BondId, x: AtomId): boolean | null => {
+    const d = dirs.get(b);
+    if (!d) return null;
+    return readsFrom(b, x) ? d === '/' : d === '\\';
+  };
+  const setUp = (b: BondId, x: AtomId, up: boolean) => dirs.set(b, (readsFrom(b, x) ? up : !up) ? '/' : '\\');
+  for (const b of mol.bonds()) {
+    if (b.order !== 2 || !b.ez || !fragment.includes(b.begin) || ezLabel(mol, b.id) === null) continue;
+    const subs = (x: AtomId, other: AtomId) => mol.incidentBonds(x)
+      .filter((s) => !ringBonds.has(s) && mol.bond(s).order === 1 && mol.otherAtom(mol.bond(s), x) !== other)
+      // A bond already marked (for a neighbouring double bond) first, so conjugated marks agree.
+      .sort((p, q) => Number(dirs.has(q)) - Number(dirs.has(p)));
+    const sa = subs(b.begin, b.end), sb = subs(b.end, b.begin);
+    if (!sa.length || !sb.length) continue;
+    // ez.cis relates the ref atoms; flip for each end where the chosen substituent is the other one.
+    const viaA = sa[0]!;
+    let cis = b.ez.cis;
+    if (mol.otherAtom(mol.bond(viaA), b.begin) !== b.ez.ref[0]) cis = !cis;
+    const upA = upOf(viaA, b.begin) ?? true;
+    const pick = sb.find((s) => { const u = upOf(s, b.end); const c = mol.otherAtom(mol.bond(s), b.end) !== b.ez!.ref[1] ? !cis : cis; return u === null || u === (c ? upA : !upA); });
+    if (pick === undefined) continue; // conjugated marks already disagree: leave this bond unspecified
+    const cisB = mol.otherAtom(mol.bond(pick), b.end) !== b.ez.ref[1] ? !cis : cis;
+    if (upOf(viaA, b.begin) === null) setUp(viaA, b.begin, upA);
+    if (upOf(pick, b.end) === null) setUp(pick, b.end, cisB ? upA : !upA);
+  }
+
   const bondSym = (order: number) => (order === 2 ? '=' : order === 3 ? '#' : order === 4 ? '$' : '');
   const written = new Set<AtomId>();
   const emit = (a: AtomId): string => {
     written.add(a);
-    let out = atomToken(mol, a);
+    let out = atomToken(mol, a, chiralMark(a));
     for (const c of closures.get(a) ?? []) {
       const lab = c.label < 10 ? String(c.label) : `%${c.label}`;
       // Bond symbol goes on the opening occurrence only.
       const otherWritten = written.has(mol.otherAtom(mol.bond(c.bond), a));
       out += (otherWritten ? '' : bondSym(mol.bond(c.bond).order)) + lab;
     }
-    const children = mol.incidentBonds(a).filter((b) => !ringBonds.has(b) && parentBond.get(mol.otherAtom(mol.bond(b), a)) === b);
+    const children = childBonds(a);
     children.forEach((b, idx) => {
       const n = mol.otherAtom(mol.bond(b), a);
-      const branch = bondSym(mol.bond(b).order) + emit(n);
+      const branch = (dirs.get(b) ?? bondSym(mol.bond(b).order)) + emit(n);
       out += idx < children.length - 1 ? `(${branch})` : branch;
     });
     return out;
@@ -297,7 +371,7 @@ function writeFragment(mol: Molecule, fragment: AtomId[]): string {
   return emit(start);
 }
 
-function atomToken(mol: Molecule, id: AtomId): string {
+function atomToken(mol: Molecule, id: AtomId, chiral: '@' | '@@' | '' = ''): string {
   const a = mol.atom(id);
   const h = mol.implicitHydrogens(id);
   let organicH = -1;
@@ -307,10 +381,10 @@ function atomToken(mol: Molecule, id: AtomId): string {
     const v = (DEFAULT_VALENCE[a.element] ?? [0]).find((x) => x >= used) ?? used;
     organicH = v - used;
   }
-  if (organicH === h) return a.element;
+  if (organicH === h && !chiral) return a.element;
   let t = '[';
   if (a.isotope !== null) t += a.isotope;
-  t += a.element;
+  t += a.element + chiral;
   if (h > 0) t += h === 1 ? 'H' : `H${h}`;
   if (a.charge) t += (a.charge > 0 ? '+' : '-') + (Math.abs(a.charge) > 1 ? Math.abs(a.charge) : '');
   return t + ']';
