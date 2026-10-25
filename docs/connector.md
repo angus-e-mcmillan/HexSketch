@@ -12,8 +12,15 @@ to install.
   after it was last used.
 - **What it doesn't have:** accounts, secrets, or logging of what is drawn.
   `apps/web/public/privacy.html` (hexsketch.com/privacy) says this for users.
-- **Limits:** 300 requests a minute per conversation (an open editor uses
-  about 40), 2 MB per request, 1 MB per drawing.
+- **Limits:**
+  - 300 requests a minute per conversation, and 600 new conversations a
+    minute per address (generous, since Claude's servers share a few);
+  - 2 MB per request and 1 MB per drawing.
+- **What it costs:** mostly open editors, which ask for the AI's updates:
+  - every 2 s just after a change, every 5 s after 2 quiet minutes, every
+    30 s after 15 and once a minute after 30;
+  - every 30 s while out of sight, stopping after 10 minutes out of sight;
+  - one Worker request and one Durable Object call each time.
 
 ## Deploy (by hand)
 
@@ -31,6 +38,8 @@ You need:
    should start with `ok`, ending with `All good.`
 4. Deploy hexsketch.com too (`npm run deploy:web`), so the privacy page
    (hexsketch.com/privacy) is live.
+5. Add a spending alert: Cloudflare dashboard > Manage Account > Billing >
+   Notifications, for example at $20, so you hear early if usage climbs.
 
 ## Add it to Claude
 

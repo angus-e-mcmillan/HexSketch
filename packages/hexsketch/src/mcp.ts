@@ -306,6 +306,11 @@ export function createServer(opts: ServerOptions): McpServer {
       annotations: READ_ONLY,
       _meta: appOnly,
     }, ({ sketch: id, since }) => safely(async () => {
+      if (store.poll) {
+        // A plain object: one returned by a Durable Object call carries extra (symbol) keys.
+        const { live, updates } = await store.poll(id, since);
+        return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live, updates: [...updates] } };
+      }
       const sketch = await store.get(id);
       if (sketch && Date.now() - (lastSeen.get(id) ?? 0) > 5000) { lastSeen.set(id, Date.now()); await store.seen(id); }
       const updates = sketch ? sketch.updates.filter((u) => u.version > since) : [];

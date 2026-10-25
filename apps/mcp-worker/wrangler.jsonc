@@ -17,8 +17,12 @@
     ]
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Sketch", "Conversation"] }],
-  // Requests a minute per conversation: an open editor asks for updates about 40 times a minute.
-  "ratelimits": [{ "name": "LIMIT", "namespace_id": "1002", "simple": { "limit": 300, "period": 60 } }],
+  // LIMIT: requests a minute per conversation (an open editor asks for updates at most 30 times a minute).
+  // NEW_LIMIT: new conversations a minute per address; generous, since Claude's servers share a few.
+  "ratelimits": [
+    { "name": "LIMIT", "namespace_id": "1002", "simple": { "limit": 300, "period": 60 } },
+    { "name": "NEW_LIMIT", "namespace_id": "1003", "simple": { "limit": 600, "period": 60 } }
+  ],
   "rules": [
     { "type": "CompiledWasm", "globs": ["**/*.wasm"] },
     { "type": "Data", "globs": ["**/*.ttf"] },

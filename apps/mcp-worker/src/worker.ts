@@ -18,7 +18,7 @@ export { Conversation, Sketch } from './sketches.ts';
  */
 
 interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
-interface Env extends SketchEnv { LIMIT?: RateLimit }
+interface Env extends SketchEnv { LIMIT?: RateLimit; NEW_LIMIT?: RateLimit }
 
 const MAX_BODY = 2_000_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -55,7 +55,11 @@ async function mcp(req: Request, env: Env): Promise<Response> {
   // The conversation: a new one at initialize, then whatever the client sends back.
   const given = req.headers.get('Mcp-Session-Id');
   const conversation = initializing ? crypto.randomUUID() : given && UUID.test(given) ? given : null;
-  if (env.LIMIT && !(await env.LIMIT.limit({ key: conversation ?? 'no-session' })).success) return rpcError(429, 'Too many requests: try again in a minute');
+  // New conversations per address (Claude's traffic arrives from a few shared addresses, so this is generous);
+  // then requests per conversation, or per address for clients that keep no session.
+  const ip = req.headers.get('CF-Connecting-IP') ?? 'unknown';
+  if (initializing && env.NEW_LIMIT && !(await env.NEW_LIMIT.limit({ key: ip })).success) return rpcError(429, 'Too many new connections: try again in a minute');
+  if (env.LIMIT && !(await env.LIMIT.limit({ key: conversation ?? `no-session:${ip}` })).success) return rpcError(429, 'Too many requests: try again in a minute');
 
   const server = createServer({
     version: pkg.version,

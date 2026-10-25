@@ -47,6 +47,14 @@ export class Sketch extends DurableObject {
     await this.ctx.storage.setAlarm(Date.now() + DAY);
   }
 
+  /** An editor polling: one call per poll (each call to a Durable Object is billed), only the updates it hasn't had. */
+  async poll(since: number): Promise<{ live: boolean; updates: SketchUpdate[] }> {
+    if ((await this.ctx.storage.get<number>('count')) === undefined) return { live: false, updates: [] };
+    this.#seenAt = Date.now();
+    const start = `u:${String(Math.max(0, Math.floor(since)) + 1).padStart(6, '0')}`;
+    return { live: true, updates: [...(await this.ctx.storage.list<SketchUpdate>({ prefix: 'u:', start })).values()] };
+  }
+
   async seen(): Promise<void> { this.#seenAt = Date.now(); }
   async seenAt(): Promise<number> { return this.#seenAt; }
   async alarm(): Promise<void> { await this.ctx.storage.deleteAll(); }
@@ -64,7 +72,7 @@ export class Conversation extends DurableObject {
 /** A Durable Object namespace, as far as this Worker uses it. */
 interface Namespace<T> { idFromName(name: string): unknown; get(id: unknown): T }
 export interface SketchEnv {
-  SKETCHES: Namespace<Pick<Sketch, 'create' | 'read' | 'addUpdate' | 'setDrawing' | 'seen' | 'seenAt'>>;
+  SKETCHES: Namespace<Pick<Sketch, 'create' | 'read' | 'addUpdate' | 'setDrawing' | 'poll' | 'seen' | 'seenAt'>>;
   CONVERSATIONS: Namespace<Pick<Conversation, 'setLatest' | 'latest'>>;
 }
 
@@ -93,6 +101,7 @@ export function hostedSketchStore(env: SketchEnv, conversation: string | null): 
     },
     async setDrawing(id, drawing) { await sketch(id).setDrawing(drawing); },
     async seen(id) { await sketch(id).seen(); },
+    async poll(id, since) { return UUID.test(id) ? sketch(id).poll(since) : { live: false, updates: [] }; },
     async live(withinMs) {
       const id = await latest();
       if (!id) return null;

@@ -58,6 +58,8 @@ await step('a reaction shown by the model reaches the editor, through another se
   assert.equal(got.live, true);
   assert.equal(got.updates[0]?.note, 'Esterification');
   assert.match(got.updates[0]?.structure ?? '', /<arrow/);
+  const again = (await editor.call('sketch_updates', { sketch, since: 1 })).structuredContent as { live: boolean; updates: unknown[] };
+  assert.deepEqual(again, { live: true, updates: [] }); // only what it hasn't had
 });
 await step('while the editor polls, results point the model to it', async () => {
   const r = await model.call('analyze_structure', { structure: 'CCO' });

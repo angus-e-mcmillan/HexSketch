@@ -36,6 +36,12 @@ export interface SketchStore {
   seen(id: string): Promise<void>;
   /** The latest sketch, if its editor was on screen within the last `withinMs`. */
   live(withinMs: number): Promise<string | null>;
+  /**
+   * What an editor polling for updates needs, in one step: whether the
+   * sketch is still open, its updates after `since`, and a note that its
+   * editor is on screen. Optional: stores without it are asked with get and seen.
+   */
+  poll?(id: string, since: number): Promise<{ live: boolean; updates: SketchUpdate[] }>;
 }
 
 /** A store in this process's memory: for tests, and servers that are one process with one connection. */

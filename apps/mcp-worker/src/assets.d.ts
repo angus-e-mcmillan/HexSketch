@@ -10,7 +10,7 @@ declare module 'cloudflare:workers' {
     get<T>(keys: string[]): Promise<Map<string, T>>;
     put<T>(key: string, value: T): Promise<void>;
     put<T>(entries: Record<string, T>): Promise<void>;
-    list<T>(options: { prefix: string }): Promise<Map<string, T>>;
+    list<T>(options: { prefix: string; start?: string }): Promise<Map<string, T>>;
     deleteAll(): Promise<void>;
     setAlarm(when: number): Promise<void>;
   }
