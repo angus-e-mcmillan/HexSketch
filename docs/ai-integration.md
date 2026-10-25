@@ -56,7 +56,7 @@ notebooks, a hosted API); that is out of scope for this plan.
 
 Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 
-### [ ] 0. Foundations
+### [x] 0. Foundations
 - GitHub Actions workflow: install, `npm test`, `npm run build:web` on PRs.
 - Typecheck step (`tsc --noEmit`) if the repo passes it today; otherwise note why not.
 - Why: every later item is reviewed against a green check, so the site cannot break silently.
@@ -94,6 +94,9 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   and Claude artifacts can render structures.
 - Source-available licence (see Decisions): the PR compares two or three
   candidate licences against the goals there and adds none until the owner picks.
+- Publishing only from GitHub Actions with npm trusted publishing (provenance,
+  no long-lived npm token). The PR lists the owner's setup steps, including
+  two-factor auth on the npm account.
 - Why: Codex, Claude Code and scripts can use HexSketch with one command.
 
 ### [ ] 4. Local MCP server (`apps/mcp`)
@@ -105,7 +108,9 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Every result includes canonical SMILES and name so the agent can self-check.
 - Tested with the MCP Inspector or an SDK client in a test; setup instructions
   for Claude Desktop, Claude Code, Codex and Cursor.
-- Why: makes HexSketch a first-class tool in every MCP client.
+- A Claude Desktop extension (`.mcpb`) wrapping the same server: one-click
+  local install, nothing leaves the user's machine.
+- Why: makes HexSketch a first-class tool in every MCP client, with no server to run.
 
 ### [ ] 5. MCP App: the drawing interface
 - Tool `open_sketcher` (optional starting structure) returns an MCP Apps UI
@@ -117,17 +122,29 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Owner tests in Claude Desktop / Claude.ai and ChatGPT; the PR gives exact steps.
 - Why: this is the chemist-AI drawing loop, the core of the vision.
 
-### [ ] 6. Hosted MCP server (`apps/mcp-worker`)
-- The same tools over streamable HTTP on a separate Cloudflare Worker
-  (e.g. `mcp.hexsketch.com`). Stateless, stores nothing, rate limited.
-- Users add it as a connector by URL, with nothing to install.
+### [ ] 6. Claude connector (`apps/mcp-worker`)
+- The same tools and the MCP App over streamable HTTP on a separate
+  Cloudflare Worker (`mcp.hexsketch.com`), so it works as a connector in
+  Claude (web, mobile, desktop) and in ChatGPT.
+- Low risk by design: stateless, no accounts or login, no secrets, nothing
+  stored or logged beyond Cloudflare's defaults; rate limited; input size and
+  CPU bounded; separate from the hexsketch.com Worker.
+- Structures sent by the AI pass through the Worker (not stored); the privacy
+  page says so and points to the local options for users who need that.
+- A privacy policy page on hexsketch.com and a connector-directory submission
+  prepared for the owner to send.
 - Deploy is a manual step for the owner.
 
 ### [ ] 7. Docs and distribution
 - `hexsketch.com/llms.txt` and a short `/ai` page for people (static files, no code).
 - A Claude skill describing how to use HexSketch for chemistry.
-- README section; listing text prepared for the MCP registry, Glama and Smithery
-  (the owner submits).
+- README section with a demo GIF of the chemist-AI loop and one-line installs;
+  listing text prepared for the MCP registry, Glama, Smithery,
+  awesome-mcp-servers and awesome-cheminformatics (the owner submits).
+- GitHub repo linked from npm, the listings, the `/ai` page and the app's Help
+  menu ("Star on GitHub").
+- Launch notes for after item 5 works: Show HN, r/chemistry, chemistry
+  Bluesky/X, built around a short video of the in-chat editor.
 
 ### [ ] 8. Proof
 - Naming benchmark: a public set of structures, names round-tripped through
@@ -138,7 +155,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 ## Working notes for scheduled sessions
 
 - Work the first item whose status is `[ ]` and whose dependencies are merged
-  (3 needs 2; 4 needs 2; 5 needs 1 and 4; 6 needs 4; 7 needs 4). If the next
+  (3 needs 2; 4 needs 2; 5 needs 1 and 4; 6 needs 5; 7 needs 4). If the next
   item is blocked on an unmerged PR, take the next unblocked one or stop and say so.
 - Update this file's status line for the item in the same PR.
 - Follow the guardrails above. Keep each PR to one item.
