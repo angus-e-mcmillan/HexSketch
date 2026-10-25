@@ -1,0 +1,30 @@
+{
+  "manifest_version": "0.2",
+  "name": "hexsketch",
+  "display_name": "HexSketch",
+  "version": "0.0.0",
+  "description": "Draw, name and check chemical structures, with links that open them in HexSketch for editing.",
+  "long_description": "HexSketch gives Claude a chemical structure toolkit that runs entirely on your computer: publication-quality drawings (PNG, SVG, PDF, CDXML, MOL), offline IUPAC names, formula and masses, SMILES with stereochemistry, and checks that catch mistakes in SMILES before they reach you. Every result includes a hexsketch.com link that opens the structure ready to edit by drawing. Nothing you draw or ask about leaves your computer.",
+  "author": { "name": "Angus McMillan", "url": "https://github.com/angus-e-mcmillan" },
+  "homepage": "https://hexsketch.com",
+  "repository": { "type": "git", "url": "https://github.com/angus-e-mcmillan/HexSketch" },
+  "support": "https://github.com/angus-e-mcmillan/HexSketch/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "node",
+    "entry_point": "dist/cli.js",
+    "mcp_config": { "command": "node", "args": ["${__dirname}/dist/cli.js", "mcp"] }
+  },
+  "tools": [
+    { "name": "render_structure", "description": "Draw a structure as an image (PNG, SVG, PDF, CDXML or MOL), with its name, SMILES and an editing link" },
+    { "name": "name_structure", "description": "IUPAC name, generated offline" },
+    { "name": "analyze_structure", "description": "Formula, exact mass, molecular weight, elemental analysis and m/z" },
+    { "name": "validate_structure", "description": "Check a SMILES for mistakes: valence, kekulization, charges" },
+    { "name": "convert_structure", "description": "SMILES, molfile, CDXML or a HexSketch link" },
+    { "name": "compare_structures", "description": "Same compound, same stereoisomer?" },
+    { "name": "structure_link", "description": "A link that opens the structure in HexSketch for editing" }
+  ],
+  "keywords": ["chemistry", "smiles", "iupac", "molecule", "structure", "chemdraw"],
+  "license": "BUSL-1.1",
+  "compatibility": { "platforms": ["darwin", "win32", "linux"], "runtimes": { "node": ">=20.0.0" } }
+}

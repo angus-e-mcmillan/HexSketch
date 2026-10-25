@@ -1,10 +1,12 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
+import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { payloadFromPng } from '@hexsketch/core';
 import { analyze, compare, convert, link, name, render, validate, type Analysis, type ConvertFormat, type RenderFormat, type StyleName } from '@hexsketch/agent';
 import { rasterize } from './png.ts';
+import { createServer } from './mcp.ts';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 /**
  * The hexsketch command. Every command takes a structure as SMILES, a file
@@ -33,6 +35,7 @@ Commands:
   validate <structure>           Check it (exit 1 on errors): valence, charges, readable at all
   compare <a> <b>                Same compound and stereoisomer? (exit 1 if not)
   link <structure>               A link that opens it in HexSketch, ready to edit
+  mcp                            Run as an MCP server on stdio, for Claude, Codex, Cursor and other AI tools
 
 Options:
   -o, --output <file>    Output file for render (text formats print without it)
@@ -63,6 +66,15 @@ function readInput(arg: string | undefined): string {
     return bytes.toString('utf8');
   }
   return arg;
+}
+
+/** render_structure's save_to, for the local server: never replaces a file unless asked. */
+async function saveFile(path: string, data: string | Uint8Array, overwrite: boolean): Promise<string> {
+  const abs = resolve(path);
+  if (!overwrite && existsSync(abs)) throw new Error(`${abs} already exists: pass overwrite: true to replace it`);
+  if (!existsSync(dirname(abs))) throw new Error(`The folder ${dirname(abs)} does not exist`);
+  writeFileSync(abs, data);
+  return abs;
 }
 
 const fmt = (n: number, d: number) => n.toFixed(d);
@@ -162,6 +174,12 @@ export async function main(argv: string[], out: (s: string) => void = (s) => pro
         if (o.json) json(r);
         else out(`${r.same ? 'Same compound and stereoisomer' : r.sameConnectivity ? 'Same compound, different stereochemistry' : 'Different compounds'}\n${r.smiles[0]}\n${r.smiles[1]}\n`);
         return r.same ? 0 : 1;
+      }
+      case 'mcp': {
+        // stdout belongs to the protocol from here on: nothing else may be written to it.
+        const server = createServer({ version: VERSION, rasterize, saveFile });
+        await server.connect(new StdioServerTransport());
+        return 0;
       }
       case 'link': {
         const r = await link(readInput(rest[0]), { ...read, ...(o.base ? { base: o.base } : {}) });

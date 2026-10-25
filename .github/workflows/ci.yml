@@ -41,3 +41,10 @@ jobs:
       # The npm package: build it and run the built command once.
       - run: npm run build:pkg
       - run: node packages/hexsketch/dist/cli.js validate 'CC(=O)Oc1ccccc1C(=O)O'
+      # The Claude Desktop extension, downloadable from the run's summary page to try out.
+      - run: npm run build:mcpb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hexsketch-mcpb
+          path: packages/hexsketch/release/hexsketch.mcpb
+          retention-days: 14

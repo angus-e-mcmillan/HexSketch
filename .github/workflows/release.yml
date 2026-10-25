@@ -1,5 +1,6 @@
 # Publishes the hexsketch package to npm when a version tag (v0.1.0, ...) is
-# pushed, or when run by hand from the Actions tab. Uses npm trusted publishing:
+# pushed, or when run by hand from the Actions tab, and attaches the Claude
+# Desktop extension (hexsketch.mcpb) to a GitHub release for the tag. Uses npm trusted publishing:
 # GitHub proves to npm which workflow is publishing (OIDC), so no npm token is
 # stored anywhere, and npm shows a provenance link back to this commit.
 name: Release
@@ -10,7 +11,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  # contents: write attaches the Claude Desktop extension to the GitHub release.
+  contents: write
   id-token: write
 
 jobs:
@@ -41,3 +43,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: test "v$(node -p "require('./packages/hexsketch/package.json').version")" = "$GITHUB_REF_NAME"
       - run: npm publish -w hexsketch --access public
+      - run: npm run build:mcpb
+      - name: GitHub release with the Claude Desktop extension
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" packages/hexsketch/release/hexsketch.mcpb --generate-notes

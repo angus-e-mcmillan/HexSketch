@@ -87,7 +87,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Tests for each function, including bad input.
 - Why: one tested core that the CLI, the MCP server and the hosted server all call.
 
-### [~] 3. Packaging and CLI
+### [x] 3. Packaging and CLI
 - Build `core`, `render`, `naming`, `agent` to JS with type declarations,
   publishable to npm (packages export TS source today).
 - `hexsketch` CLI: `npx hexsketch render "<smiles>" -o out.svg --name`,
@@ -100,7 +100,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   two-factor auth on the npm account.
 - Why: Codex, Claude Code and scripts can use HexSketch with one command.
 
-### [ ] 4. Local MCP server (`apps/mcp`)
+### [~] 4. Local MCP server (`hexsketch mcp`, in packages/hexsketch)
 - stdio MCP server using the official TypeScript SDK, exposing tools
   `render_structure`, `name_structure`, `analyze_structure`,
   `convert_structure`, `validate_structure`, `structure_link`.
