@@ -9,3 +9,6 @@ apps/*/dist/
 .wrangler/
 .claude/
 .env*
+# Copied in by prepack for npm.
+packages/hexsketch/LICENSE
+packages/hexsketch/LICENSE-MIT

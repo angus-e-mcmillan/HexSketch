@@ -28,6 +28,7 @@ npm run dev          # http://localhost:5174
 npm test
 npm run typecheck
 npm run build:web    # static build in apps/web/dist
+npm run build:pkg    # npm package in packages/hexsketch/dist
 ```
 
 `tools/opsin/fetch.sh` downloads OPSIN (needs Java) so the naming tests can
@@ -39,6 +40,7 @@ packages/render    depiction to SVG and PDF
 packages/editor    tools, hotkeys, undo
 packages/naming    offline IUPAC naming
 packages/agent     for AI agents and scripts: render, name, analyze, convert, validate, compare, link
+packages/hexsketch the npm package and `hexsketch` command built from those (docs/releasing.md)
 apps/web           the app, plus worker.ts for the feedback endpoint
 ```
 
@@ -52,3 +54,11 @@ npx wrangler login
 npm run deploy:web
 npm run feedback     # print received feedback
 ```
+
+## Licence
+
+Business Source License 1.1 (`LICENSE`): free to use, at work too, directly or
+through AI assistants; a commercial licence is needed to distribute or host
+HexSketch as part of a product or service for others. Each version becomes
+Apache-2.0 four years after its release. The link and picture-payload format
+(`docs/link-format.md`) and the code implementing it are MIT (`LICENSE-MIT`).

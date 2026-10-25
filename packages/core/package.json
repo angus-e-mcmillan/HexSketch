@@ -1,6 +1,7 @@
 {
   "name": "@hexsketch/core",
   "version": "0.1.0",
+  "license": "BUSL-1.1 AND MIT",
   "type": "module",
   "main": "./src/index.ts",
   "exports": { ".": "./src/index.ts" }

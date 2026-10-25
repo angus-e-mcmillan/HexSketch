@@ -2,6 +2,7 @@
   "name": "hexsketch",
   "private": true,
   "version": "0.1.0",
+  "license": "BUSL-1.1",
   "description": "Chemical structure editor for the browser",
   "workspaces": [
     "packages/*",
@@ -14,6 +15,7 @@
     "test": "node --test --experimental-strip-types packages/*/test/*.test.ts",
     "dev": "npm run dev -w @hexsketch/web",
     "build:web": "npm run build -w @hexsketch/web",
+    "build:pkg": "npm run build -w hexsketch",
     "serve:web": "node --experimental-strip-types tools/serve-dist.ts apps/web/dist 5180",
     "deploy:web": "npm run build:web && cd apps/web && npx --yes wrangler@4 deploy",
     "feedback": "node --experimental-strip-types --no-warnings tools/feedback.ts"
