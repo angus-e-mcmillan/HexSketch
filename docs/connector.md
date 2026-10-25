@@ -24,10 +24,17 @@ to install.
 
 ## Deploy (by hand)
 
-You need:
-- the Cloudflare account that hosts hexsketch.com;
-- the **Workers Paid** plan ($5 a month), because naming and drawing take
-  more CPU time than the free plan allows per request.
+You need the Cloudflare account that hosts hexsketch.com.
+
+- **The free plan is enough to start.** It allows 10 ms of CPU time per
+  request. Most requests take far less, measured in Node:
+  - an editor's check, or a structure shown in the editor: 1 to 4 ms;
+  - naming a drug-sized molecule: about 5 ms.
+- **What may fail on it:** a PNG (about 45 ms), or naming a large molecule
+  or a whole scheme (about 20 ms). Claude then sees an error.
+- **Before others use it**, move to **Workers Paid** ($5 a month). In the
+  Cloudflare dashboard it is under Workers & Pages > Plans, not the
+  website's Pro plan, which isn't needed.
 
 1. In a terminal, in your HexSketch folder, get the latest code:
    `git checkout main && git pull`, then `npm ci`.
