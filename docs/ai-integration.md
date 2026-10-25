@@ -56,7 +56,7 @@ notebooks, a hosted API); that is out of scope for this plan.
 
 Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 
-### [ ] 0. Foundations
+### [x] 0. Foundations
 - GitHub Actions workflow: install, `npm test`, `npm run build:web` on PRs.
 - Typecheck step (`tsc --noEmit`) if the repo passes it today; otherwise note why not.
 - Why: every later item is reviewed against a green check, so the site cannot break silently.
