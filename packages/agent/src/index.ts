@@ -1,7 +1,7 @@
 import {
-  altTextFor, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, parseSmiles, pngWithPayload,
+  altTextFor, assignWedges, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
-  structureLink, writeCdxml, writeMolfile, writeSmiles, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
+  structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
 } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
@@ -105,6 +105,237 @@ export async function readStructure(input: string | Structure, opts: ReadOptions
       return { mol: got.mol, objects: got.objects, groups: got.groups, style: chosen ?? got.style, format };
     }
   }
+}
+
+// --------------------------------------------------------------- orientation
+
+/** The atoms `ids` of `mol` as a molecule of their own (ids kept). */
+function subMolecule(mol: Molecule, ids: readonly AtomId[]): Molecule {
+  const keep = new Set(ids);
+  const part = mol.clone();
+  for (const a of mol.atoms()) if (!keep.has(a.id)) part.removeAtom(a.id);
+  return part;
+}
+
+/**
+ * Atom mappings a → b of the largest part of `a` found in `b`, trimming `a`
+ * a chain end at a time until it fits; none under 4 atoms in common.
+ */
+function commonCore(a: Molecule, b: Molecule): Map<AtomId, AtomId>[] {
+  if (a.atomCount > 80 || b.atomCount > 80) return [];
+  let pattern = a;
+  while (pattern.atomCount >= 4) {
+    const maps = substructureMappings(pattern, b, 24, true);
+    if (maps.length) return maps.map((m) => m.map);
+    const leaves = [...pattern.atoms()].filter((x) => pattern.neighbours(x.id).length <= 1).map((x) => x.id);
+    if (!leaves.length) return [];
+    const without = (id: AtomId) => { const t = pattern.clone(); t.removeAtom(id); return t; };
+    // The chain end whose loss makes it fit, else the first.
+    pattern = leaves.map(without).find((t) => substructureMappings(t, b, 1).length) ?? without(leaves[0]!);
+  }
+  return [];
+}
+
+type Pt2 = { x: number; y: number };
+const WEDGE_FLIP: Record<string, string> = { wedgeBegin: 'hashBegin', hashBegin: 'wedgeBegin', wedgeEnd: 'hashEnd', hashEnd: 'wedgeEnd' };
+
+/**
+ * Turn, and flip if that fits better, the structure `ids` of `mol` so that
+ * the atoms paired with `ref` lie as they do there. Flipping swaps wedges and
+ * hashes, so the stereochemistry stays the same.
+ */
+function alignOnto(mol: Molecule, ids: readonly AtomId[], ref: Molecule, maps: Map<AtomId, AtomId>[], refSize: number): void {
+  if (maps[0] && maps[0].size === ids.length && ids.length === refSize) { copyDrawing(mol, ids, ref, maps[0]); return; }
+  let best: { err: number; flip: boolean; cos: number; sin: number; c: Pt2 } | null = null;
+  for (const map of maps) {
+    const pairs = [...map].map(([m, r]) => [mol.atom(m), ref.atom(r)] as const);
+    const n = pairs.length;
+    const c = { x: pairs.reduce((t, [p]) => t + p.x, 0) / n, y: pairs.reduce((t, [p]) => t + p.y, 0) / n };
+    const d = { x: pairs.reduce((t, [, q]) => t + q.x, 0) / n, y: pairs.reduce((t, [, q]) => t + q.y, 0) / n };
+    for (const flip of [false, true]) {
+      // Best rotation of the centred points (2D Procrustes), after an optional mirror in y.
+      let sxx = 0, sxy = 0;
+      for (const [p, q] of pairs) {
+        const px = p.x - c.x, py = (flip ? -1 : 1) * (p.y - c.y), qx = q.x - d.x, qy = q.y - d.y;
+        sxx += px * qx + py * qy; sxy += px * qy - py * qx;
+      }
+      const th = Math.atan2(sxy, sxx), cos = Math.cos(th), sin = Math.sin(th);
+      let err = 0;
+      for (const [p, q] of pairs) {
+        const px = p.x - c.x, py = (flip ? -1 : 1) * (p.y - c.y);
+        err += (px * cos - py * sin - (q.x - d.x)) ** 2 + (px * sin + py * cos - (q.y - d.y)) ** 2;
+      }
+      // Ties go to the unflipped drawing.
+      if (!best || err < best.err - 1e-6) best = { err, flip, cos, sin, c };
+    }
+  }
+  if (!best) return;
+  const { flip, cos, sin, c } = best;
+  const keep = new Set(ids);
+  for (const id of ids) {
+    const a = mol.atom(id);
+    const px = a.x - c.x, py = (flip ? -1 : 1) * (a.y - c.y);
+    a.x = c.x + px * cos - py * sin;
+    a.y = c.y + px * sin + py * cos;
+  }
+  if (flip) for (const b of mol.bonds()) if (keep.has(b.begin) && WEDGE_FLIP[b.display]) b.display = WEDGE_FLIP[b.display] as typeof b.display;
+}
+
+/**
+ * The same compound drawn again: take the reference's drawing atom for atom,
+ * then wedges for this structure's own stereocentres (it may be another
+ * stereoisomer).
+ */
+function copyDrawing(mol: Molecule, ids: readonly AtomId[], ref: Molecule, map: Map<AtomId, AtomId>): void {
+  const keep = new Set(ids);
+  for (const id of ids) { const r = ref.atom(map.get(id)!); const a = mol.atom(id); a.x = r.x; a.y = r.y; }
+  for (const b of mol.bonds()) if (keep.has(b.begin) && WEDGE_FLIP[b.display]) b.display = 'plain';
+  assignWedges(mol, new Map([...mol.atoms()].filter((a) => a.chirality).map((a) => [a.id, { ...a.chirality! }])));
+}
+
+/**
+ * Draw related structures the same way round: each structure in `targets`
+ * (in order) is turned to match the structure among `refs`, and the targets
+ * before it, with which it has the most in common (at least 4 atoms), so a
+ * product keeps its starting material's orientation.
+ */
+function orientLikeOthers(mol: Molecule, targets: readonly AtomId[][], refs: { mol: Molecule; ids: readonly AtomId[] }[] = []): void {
+  const known = [...refs];
+  for (const ids of targets) {
+    const mine = subMolecule(mol, ids);
+    let best: { ref: Molecule; maps: Map<AtomId, AtomId>[]; size: number; refSize: number } | null = null;
+    for (const r of known) {
+      const theirs = r.mol.atomCount === r.ids.length ? r.mol : subMolecule(r.mol, r.ids);
+      // The smaller one is the pattern; pairs always run from this structure to the reference.
+      const maps = mine.atomCount <= theirs.atomCount
+        ? commonCore(mine, theirs)
+        : commonCore(theirs, mine).map((m) => new Map([...m].map(([t, x]) => [x, t])));
+      const size = maps[0]?.size ?? 0;
+      if (size && (!best || size > best.size)) best = { ref: theirs, maps, size, refSize: theirs.atomCount };
+    }
+    if (best) alignOnto(mol, ids, best.ref, best.maps, best.refSize);
+    known.push({ mol, ids });
+  }
+}
+
+/**
+ * Turn a structure laid out from SMILES so that what it shares with
+ * `reference` (the drawing it replaces, say) lies the same way round.
+ */
+export function orientLike(s: Structure, reference: Molecule): void {
+  if (!reference.atomCount || !s.mol.atomCount) return;
+  orientLikeOthers(s.mol, s.mol.fragments(), reference.fragments().map((ids) => ({ mol: reference, ids })));
+}
+
+// ----------------------------------------------------------- reaction schemes
+
+/** One arrow of a scheme: what is written above and below it, as chemists do. */
+export interface SchemeArrow {
+  /** Above the arrow: reagents and catalysts, e.g. "MeOH, H2SO4 (cat.)". Digits after symbols are subscripted. */
+  reagents?: string;
+  /** Below the arrow: solvent, temperature, time, yield, e.g. "reflux, 4 h\n92%". Lines split at \n. */
+  conditions?: string;
+  type?: 'forward' | 'equilibrium' | 'retrosynthetic';
+}
+
+export interface Scheme {
+  /** SMILES of each stage, left to right: starting materials, intermediates, products. "A.B" in one stage is drawn A + B. */
+  stages: string[];
+  /** The arrows between consecutive stages (one fewer than the stages); missing ones are plain arrows. */
+  arrows?: SchemeArrow[];
+}
+
+/**
+ * A reaction scheme as one drawing: the stages left to right, "+" between the
+ * structures of a stage, and an arrow between stages with the reagents above
+ * it and the conditions below, long enough for its text. Rows wrap at
+ * `maxWidth` points (default 520, about the width of a page).
+ */
+export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecule; maxWidth?: number } = {}): Promise<Structure> {
+  const stages = input.stages.map((t) => t.trim());
+  if (stages.length < 2) throw new Error('A scheme needs at least two stages (starting material and product)');
+  const arrows = input.arrows ?? [];
+  if (arrows.length > stages.length - 1) throw new Error(`${arrows.length} arrows for ${stages.length} stages: give one fewer arrow than stages`);
+  // Each stage on its own first, so a mistake is reported against the stage it is in.
+  const counts: number[] = [];
+  for (const [i, t] of stages.entries()) {
+    if (detectFormat(t) !== 'smiles') throw new Error(`Stage ${i + 1}: give each stage as SMILES`);
+    try { counts.push((await readStructure(t, { ...opts, format: 'smiles' })).mol.fragments().length); } catch (err) { throw new Error(`Stage ${i + 1}: ${(err as Error).message}`); }
+  }
+  const s = await readStructure(stages.join('.'), { ...(opts.style ? { style: opts.style } : {}), format: 'smiles' });
+  const { mol, style } = s;
+  const L = style.bondLength, size = style.captionSize, line = size * 1.25;
+  const fragments = mol.fragments();
+  // Each structure the same way round as the first related one before it (or in `like`, the drawing it replaces).
+  const like = opts.like?.atomCount ? opts.like.fragments().map((ids) => ({ mol: opts.like!, ids })) : [];
+  orientLikeOthers(mol, fragments, like);
+  const objects: DocObject[] = [];
+  const lines = (t?: string) => (t?.trim() ? t.trim().split('\n') : []);
+  const textWidth = (t?: string) => Math.max(0, ...lines(t).map((l) => l.length * size * 0.55));
+  const caption = (x: number, y: number, text: string) => { objects.push(makeCaption(x, y, text, [{ text, script: 'formula' }], 'center')); };
+
+  // Each stage on its own, from x = 0 and centred on y = 0: its structures with "+" between them.
+  const blocks: { atoms: ReturnType<Molecule['atom']>[]; plus: number[]; w: number; h: number }[] = [];
+  let f = 0;
+  for (const n of counts) {
+    const block = { atoms: [] as ReturnType<Molecule['atom']>[], plus: [] as number[], w: 0, h: 0 };
+    let x = 0;
+    for (let k = 0; k < n; k++, f++) {
+      if (k > 0) { block.plus.push(x + L * 0.9); x += L * 1.8; }
+      const atoms = fragments[f]!.map((id) => mol.atom(id));
+      const xs = atoms.map((a) => a.x), ys = atoms.map((a) => a.y);
+      // Room for atom labels at the edges.
+      const pad = L * 0.5, x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad;
+      const dx = x - x0, dy = -(Math.min(...ys) + Math.max(...ys)) / 2;
+      for (const a of atoms) { a.x += dx; a.y += dy; }
+      block.atoms.push(...atoms);
+      block.h = Math.max(block.h, Math.max(...ys) - Math.min(...ys) + 2 * pad);
+      x += x1 - x0;
+    }
+    block.w = x;
+    blocks.push(block);
+  }
+  const steps = blocks.slice(1).map((_, i) => {
+    const a = arrows[i] ?? {};
+    const len = Math.max(3 * L, textWidth(a.reagents) + L, textWidth(a.conditions) + L);
+    return { a, len, w: len + L * 1.2, above: lines(a.reagents).length * line + size * 0.7, below: lines(a.conditions).length * line + size * 0.5 };
+  });
+
+  // Rows no wider than maxWidth: a row that breaks starts with the arrow into its first stage.
+  const maxWidth = opts.maxWidth ?? 520;
+  const rows: number[][] = [[0]];
+  let width = blocks[0]!.w;
+  for (let i = 1; i < blocks.length; i++) {
+    const need = steps[i - 1]!.w + blocks[i]!.w;
+    if (width + need > maxWidth && width > 0) { rows.push([]); width = 0; }
+    rows.at(-1)!.push(i);
+    width += need;
+  }
+  let y = 0;
+  for (const [r, row] of rows.entries()) {
+    const up = Math.max(...row.map((i) => Math.max(blocks[i]!.h / 2, i > 0 ? steps[i - 1]!.above : 0)));
+    const down = Math.max(...row.map((i) => Math.max(blocks[i]!.h / 2, i > 0 ? steps[i - 1]!.below : 0)));
+    if (r > 0) y += up;
+    let x = 0;
+    for (const i of row) {
+      if (i > 0) {
+        const { a, len } = steps[i - 1]!;
+        const tail = { x: x + L * 0.6, y }, head = { x: x + L * 0.6 + len, y };
+        objects.push(makeArrow(tail, head, a.type === 'equilibrium' ? 'equilibrium' : a.type === 'retrosynthetic' ? 'retro' : 'reaction'));
+        const mid = (tail.x + head.x) / 2;
+        const above = a.reagents?.trim(), below = a.conditions?.trim();
+        if (above) caption(mid, y - size * 0.7 - (lines(above).length - 1) * line, above);
+        if (below) caption(mid, y + size * 1.5, below);
+        x = head.x + L * 0.6;
+      }
+      const b = blocks[i]!;
+      for (const atom of b.atoms) { atom.x += x; atom.y += y; }
+      for (const px of b.plus) caption(x + px, y + size * 0.35, '+');
+      x += b.w;
+    }
+    y += down + 2 * L;
+  }
+  return { mol, objects, groups: [], style, format: 'smiles' };
 }
 
 /** The structure with abbreviations (Ph, OMe, Boc...) drawn out, for SMILES, names and comparisons. */

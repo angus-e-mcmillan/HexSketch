@@ -23,7 +23,7 @@ import { mountApp, type AppApi } from '@hexsketch/web';
 /** As the server sends it (packages/hexsketch/src/mcp.ts). */
 interface SketchUpdate { version: number; structure?: string; highlights?: { smiles: string; color: string; name: string }[]; note?: string }
 
-const app = new App({ name: 'HexSketch', version: '0.1.6' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+const app = new App({ name: 'HexSketch', version: '0.1.7' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 
 const expand = { label: 'Full screen', run: () => toggleFullscreen() };
 const send = { label: 'Send to chat', run: (ui: AppApi) => sendToChat(ui) };
@@ -250,7 +250,7 @@ function startUpdates() {
  */
 async function shareWithModel() {
   const text = await describe();
-  const how = `The HexSketch editor is open in this chat${sketchId ? ` (sketch "${sketchId}")` : ''}, and the user is working in it. Work in it too: show every structure you discuss with show_in_sketcher, highlight the parts you mean and put your explanation in its note; keep your chat reply short and point to the editor. Do not show structures as images, pictures from the web or text drawings unless the user asks for one. Call read_sketcher when the user refers to their drawing.`;
+  const how = `The HexSketch editor is open in this chat${sketchId ? ` (sketch "${sketchId}")` : ''}, and the user is working in it. Work in it too: show every structure you discuss with show_in_sketcher, highlight the parts you mean and put your explanation in its note; draw reactions with its reaction input (an arrow, reagents above it, solvent and conditions below); keep your chat reply short and point to the editor. Do not show structures as images, pictures from the web or text drawings unless the user asks for one. Call read_sketcher when the user refers to their drawing.`;
   await app.updateModelContext({ content: [{ type: 'text', text: text ? `${how}\n\nThe user's drawing, as it is now:\n\n${text}` : `${how}\n\nThe canvas is empty.` }] }).catch(() => {});
 }
 

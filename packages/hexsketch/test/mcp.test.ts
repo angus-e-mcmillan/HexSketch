@@ -244,3 +244,19 @@ test('while an editor is on screen, every tool result points the model to it', a
   const plain = await connect();
   assert.equal(reminds(await plain.call('analyze_structure', { structure: 'CCO' })), false);
 });
+
+test('reactions are drawn as schemes: arrows with reagents above and conditions below', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const reaction = { stages: ['CC(C)Cc1ccc(cc1)C(C)C(=O)O.CO', 'CC(C)Cc1ccc(cc1)C(C)C(=O)OC.O'], arrows: [{ reagents: 'H2SO4 (cat.)', conditions: 'reflux, 4 h' }] };
+  const drawn = await call('render_structure', { reaction, format: 'svg' });
+  assert.match(textOf(drawn), />SO<\/text>.*>reflux, 4 h</);
+  assert.equal((await call('render_structure', { structure: 'CCO', reaction })).isError, true);
+  const id = ((await call('open_sketcher', { structure: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O' })).structuredContent as { sketch: string }).sketch;
+  await call('show_in_sketcher', { reaction, note: 'Fischer esterification' });
+  const { updates } = (await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: { structure?: string }[] };
+  const { readStructure } = await import('@hexsketch/agent');
+  const got = await readStructure(updates[0]!.structure!);
+  assert.equal(got.objects.filter((o) => o.kind === 'arrow').length, 1);
+  assert.deepEqual(got.objects.filter((o) => o.kind === 'text').map((o) => o.text), ['+', 'H2SO4 (cat.)', 'reflux, 4 h', '+']);
+  assert.ok(JSON.parse(textOf(await call('read_sketcher', {}))).structures.some((x: { name: string }) => x.name === 'methyl 2-(4-isobutylphenyl)propanoate'));
+});

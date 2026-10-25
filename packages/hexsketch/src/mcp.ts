@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { analyze, compare, convert, link, name, readStructure, render, validate, type Rasterizer, type RenderFormat } from '@hexsketch/agent';
+import { analyze, compare, convert, detectFormat, link, name, orientLike, readStructure, render, scheme, validate, type Rasterizer, type RenderFormat, type Scheme, type Structure } from '@hexsketch/agent';
 import { parseSmiles, substructureMatches, type Molecule } from '@hexsketch/core';
 import { memorySketchStore, type Sketch, type SketchStore } from './sketch-store.ts';
 
@@ -46,9 +46,20 @@ const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 - To show a structure, call render_structure. Every result includes a link that opens the structure in HexSketch, where the user can edit it by drawing: always give the user that link.
 - When the user wants to draw, sketch, edit or correct a structure, or a structure is easier to show than to describe, call open_sketcher: it opens HexSketch's editor in the chat (where the chat supports it). It works best full screen, where it stays open beside the conversation.
 - Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher, and explain it there: highlight the parts you mean and put the explanation in its note. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").
+- Draw every reaction as a scheme, with the reaction input (render_structure, open_sketcher, show_in_sketcher): starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.
+- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.
 - Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user's current drawing is also given to you in the same form.`;
 
 const structure = z.string().min(1).describe('The structure: SMILES (e.g. "CC(=O)Oc1ccccc1C(=O)O"), molfile or CDXML text, or a HexSketch link (https://hexsketch.com/#smiles=... or #cdxml=...). Not a name.');
+const reaction = z.object({
+  stages: z.array(z.string().min(1)).min(2).max(8).describe('SMILES of each stage, left to right: starting materials, any intermediates, products. Join the structures of one stage with "." and they are drawn with "+" between them, e.g. ["CC(=O)O.OCC", "CC(=O)OCC.O"].'),
+  arrows: z.array(z.object({
+    reagents: z.string().max(200).optional().describe('Written above the arrow: reagents and catalysts, e.g. "MeOH, H2SO4 (cat.)" or "1. LDA  2. MeI". Digits in formulas are subscripted.'),
+    conditions: z.string().max(200).optional().describe('Written below the arrow: solvent, temperature, time and yield, e.g. "THF, −78 °C to rt, 2 h" (a second line after \\n, e.g. "85%").'),
+    type: z.enum(['forward', 'equilibrium', 'retrosynthetic']).optional().describe('forward (default), equilibrium or retrosynthetic.'),
+  })).optional().describe('One per step, between consecutive stages (one fewer than the stages).'),
+}).describe('A reaction scheme instead of a single structure: starting materials, an arrow with the reagents above it and the solvent and conditions below, and the products. Use it for every reaction or synthetic step.');
+
 const style = z.enum(['hexsketch', 'acs']).optional().describe('Drawing style: hexsketch (default) or acs (ACS 1996 journal style).');
 const READ_ONLY = { readOnlyHint: true, openWorldHint: false } as const;
 
@@ -56,6 +67,20 @@ const text = (value: unknown): CallToolResult => ({ content: [{ type: 'text', te
 const failure = (err: unknown): CallToolResult => ({ isError: true, content: [{ type: 'text', text: (err as Error).message }] });
 /** Run a tool body, turning a bad structure into a tool error the assistant can read and fix. */
 const safely = (fn: () => Promise<CallToolResult>) => fn().catch(failure);
+
+/** A tool's structure or reaction scheme (exactly one), ready for the agent functions. */
+async function given(structureText: string | undefined, reactionScheme: Scheme | undefined, opts: { style?: 'hexsketch' | 'acs'; like?: Molecule } = {}): Promise<string | Structure> {
+  if (structureText && reactionScheme) throw new Error('Give a structure or a reaction, not both');
+  if (reactionScheme) return scheme(reactionScheme, opts);
+  // A SMILES replacing a drawing is turned to match it (laid-out files keep their own coordinates).
+  if (structureText && opts.like?.atomCount && detectFormat(structureText) === 'smiles') {
+    const s = await readStructure(structureText);
+    orientLike(s, opts.like);
+    return s;
+  }
+  if (!structureText) throw new Error('Give a structure (SMILES, molfile, CDXML or a HexSketch link) or a reaction');
+  return structureText;
+}
 
 const toBase64 = (bytes: Uint8Array) => {
   let bin = '';
@@ -87,9 +112,10 @@ export function createServer(opts: ServerOptions): McpServer {
 
   server.registerTool('render_structure', {
     title: 'Draw a structure',
-    description: `Draw a chemical structure as a publication-quality image${opts.rasterize ? ' (PNG by default)' : ' (SVG)'}, with its name, SMILES and a link that opens it in HexSketch for editing. Show the user the image and the link.${opts.saveFile ? ' With save_to, also writes the file (format from the extension: .png .svg .pdf .cdxml .mol).' : ''}`,
+    description: `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${opts.rasterize ? ' (PNG by default)' : ' (SVG)'}, with its name, SMILES and a link that opens it in HexSketch for editing. Show the user the image and the link.${opts.saveFile ? ' With save_to, also writes the file (format from the extension: .png .svg .pdf .cdxml .mol).' : ''}`,
     inputSchema: {
-      structure,
+      structure: structure.optional(),
+      reaction: reaction.optional(),
       format: z.enum(formats as [RenderFormat, ...RenderFormat[]]).optional().describe(`Output format; default ${formats[0]}. PDF needs save_to.`),
       style,
       ...(opts.saveFile ? {
@@ -99,15 +125,16 @@ export function createServer(opts: ServerOptions): McpServer {
     },
     annotations: { title: 'Draw a structure', readOnlyHint: !opts.saveFile, destructiveHint: false, openWorldHint: false },
   }, (args) => tool(async () => {
-    const a = args as { structure: string; format?: RenderFormat; style?: 'hexsketch' | 'acs'; save_to?: string; overwrite?: boolean };
+    const a = args as { structure?: string; reaction?: Scheme; format?: RenderFormat; style?: 'hexsketch' | 'acs'; save_to?: string; overwrite?: boolean };
     const fromPath = a.save_to ? (/\.([a-z]+)$/i.exec(a.save_to)?.[1]?.toLowerCase() as RenderFormat | undefined) : undefined;
     if (a.save_to && (!fromPath || !formats.includes(fromPath))) throw new Error(`save_to needs one of these extensions: ${formats.map((f) => `.${f}`).join(' ')}`);
     const to = fromPath ?? a.format ?? formats[0]!;
     if (to === 'pdf' && !a.save_to) throw new Error('PDF is a file: give save_to, e.g. /path/to/structure.pdf');
-    const r = await render(a.structure, { ...read(a.style), to, ...(opts.rasterize ? { rasterize: opts.rasterize } : {}) });
-    const about = await analyze(a.structure, read(a.style));
+    const input = await given(a.structure, a.reaction, read(a.style));
+    const r = await render(input, { ...read(a.style), to, ...(opts.rasterize ? { rasterize: opts.rasterize } : {}) });
+    const about = await analyze(input, read(a.style));
     const saved = a.save_to && opts.saveFile ? await opts.saveFile(a.save_to, r.data, a.overwrite ?? false) : undefined;
-    const info = { name: about.name, smiles: about.smiles, formula: about.formula, link: await link(a.structure, read(a.style)), ...(saved ? { saved } : {}) };
+    const info = { name: about.name, smiles: about.smiles, formula: about.formula, link: await link(input, read(a.style)), ...(saved ? { saved } : {}) };
     const content: CallToolResult['content'] = [];
     if (to === 'png') content.push({ type: 'image', data: toBase64(r.data as Uint8Array), mimeType: 'image/png' });
     else if (typeof r.data === 'string' && !saved) content.push({ type: 'text', text: r.data });
@@ -172,6 +199,11 @@ export function createServer(opts: ServerOptions): McpServer {
       if (!s) throw new Error(id ? 'That HexSketch editor is no longer open: call open_sketcher.' : 'No HexSketch editor is open: call open_sketcher first.');
       return s;
     };
+    /** What the editor is sent to draw: the structure as given, or as CDXML when laid out here (a scheme, or turned to match `like`). */
+    const toDraw = async (t?: string, r?: Scheme, like?: Molecule): Promise<string> => {
+      const g = await given(t, r, like ? { like } : {});
+      return typeof g === 'string' ? g : convert(g, 'cdxml');
+    };
     const appOnly = { ui: { resourceUri: SKETCHER_URI, visibility: ['app'] as ('app' | 'model')[] } };
 
     registerAppResource(server, 'HexSketch editor', SKETCHER_URI, {
@@ -184,15 +216,19 @@ export function createServer(opts: ServerOptions): McpServer {
     registerAppTool(server, 'open_sketcher', {
       title: 'Open the HexSketch editor',
       description: 'Open HexSketch\'s drawing editor in the chat, so the user can draw a structure by hand or edit one you give. Use it whenever the user asks to draw, sketch, open, edit or correct a structure in HexSketch, or when a structure is easier to draw than describe; prefer it to render_structure and structure_link when the user may want to change the structure. Then keep working in that editor: read_sketcher shows what the user drew, and show_in_sketcher changes, highlights and annotates it. The user\'s drawing also comes back as a message starting "Structure from HexSketch" when they press Send to chat. In chats that cannot show the editor, give the user the link in the result instead.',
-      inputSchema: { structure: structure.optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.') },
+      inputSchema: {
+        structure: structure.optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.'),
+        reaction: reaction.optional(),
+      },
       annotations: { title: 'Open the HexSketch editor', ...READ_ONLY },
       _meta: { ui: { resourceUri: SKETCHER_URI } },
-    }, ({ structure: s }) => safely(async () => {
+    }, ({ structure: text0, reaction: r }) => safely(async () => {
+      const s = r || text0 ? await toDraw(text0, r) : undefined;
       const about = s ? await analyze(s) : null;
       const sketch = await store.create(s ?? '');
       opened.add(sketch.id);
       // Models see the text or the structuredContent depending on the chat, so both say how to carry on.
-      const next = `The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher (with sketch "${sketch.id}") with highlight (SMILES fragments, coloured yellow, blue, orange... in order) and a short note, or with a new structure. Put your explanation in the note and keep the chat reply short, pointing to the editor. Call read_sketcher (with the same sketch) whenever the user refers to their drawing, since they may have edited it. While it is open, do not show structures as images, pictures from the web or text drawings, and do not open another editor. Suggest Full screen to keep the editor beside the chat.`;
+      const next = `The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher (with sketch "${sketch.id}") with highlight (SMILES fragments, coloured yellow, blue, orange... in order) and a short note, or with a new structure. Draw reactions with reaction (an arrow between starting materials and products, reagents above it, solvent and conditions below), never as structures side by side. Put your explanation in the note and keep the chat reply short, pointing to the editor. Call read_sketcher (with the same sketch) whenever the user refers to their drawing, since they may have edited it. While it is open, do not show structures as images, pictures from the web or text drawings, and do not open another editor. Suggest Full screen to keep the editor beside the chat.`;
       const shared = { structure: s ?? '', sketch: sketch.id, next };
       if (!s || !about) return { content: [{ type: 'text', text: JSON.stringify({ opened: 'an empty canvas', next, fallback: 'In a chat that cannot show the editor, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }, null, 2) }], structuredContent: shared };
       const url = await link(s);
@@ -216,17 +252,21 @@ export function createServer(opts: ServerOptions): McpServer {
 
     server.registerTool('show_in_sketcher', {
       title: 'Show in the HexSketch editor',
-      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, and explain it in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point or step: highlight the groups you are describing, draw the product of a change the user asks about, point out a stereocentre. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each call replaces your earlier highlights; the user can undo anything you change.`,
+      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, and explain it in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point or step: highlight the groups you are describing, draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), point out a stereocentre. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each call replaces your earlier highlights; the user can undo anything you change.`,
       inputSchema: {
         sketch: sketchId,
-        structure: structure.optional().describe('A new structure to draw in place of the current one (the user can undo it). To show several side by side (both enantiomers, a reactant and its product, compounds you compare), join their SMILES with "." in one structure. Leave out to work on what is drawn.'),
+        structure: structure.optional().describe('A new structure to draw in place of the current one (the user can undo it). To show several side by side (both enantiomers, compounds you compare), join their SMILES with "." in one structure; for a reaction, use reaction instead, so it gets an arrow, reagents and conditions. Leave out to work on what is drawn.'),
+        reaction: reaction.optional(),
         highlight: z.array(z.string().min(1)).max(HIGHLIGHTS.length).optional().describe('SMILES fragments to highlight, e.g. ["C(=O)O", "c1ccccc1"].'),
         note: z.string().max(4000).optional().describe('Your explanation, shown in the editor\'s notes panel beside the drawing: a few sentences, referring to the highlights by colour; **bold** and "- " lists are shown as such. E.g. "**Yellow**: the ester you made from the acid."'),
       },
       annotations: { title: 'Show in the HexSketch editor', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-    }, ({ sketch: id, structure: s, highlight, note }) => safely(async () => {
+    }, ({ sketch: id, structure: text0, reaction: r, highlight, note }) => safely(async () => {
       const sketch = await target(id);
-      if (!s && !highlight?.length && !note) throw new Error('Give a structure, a highlight or a note to show.');
+      // A scheme reaches the editor as CDXML, arrows and text included, the same way round as what it replaces.
+      const before = sketch.drawing ? await readStructure(sketch.drawing).then((x) => x.mol, () => undefined) : undefined;
+      const s = r || text0 ? await toDraw(text0, r, before) : undefined;
+      if (!s && !highlight?.length && !note) throw new Error('Give a structure, a reaction, a highlight or a note to show.');
       const drawing = s ?? sketch.drawing;
       const mol: Molecule | null = drawing ? (await readStructure(drawing)).mol : null;
       const highlights = (highlight ?? []).map((frag, i) => {

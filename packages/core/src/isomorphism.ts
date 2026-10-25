@@ -152,6 +152,15 @@ function aromaticAtoms(mol: Molecule): Set<AtomId> {
  * compared. Distinct atom sets only, at most `limit`.
  */
 export function substructureMatches(pattern: Molecule, target: Molecule, limit = 50): { atoms: AtomId[]; bonds: BondId[] }[] {
+  return substructureMappings(pattern, target, limit).map(({ atoms, bonds }) => ({ atoms, bonds }));
+}
+
+/**
+ * As substructureMatches, with each place's atom mapping (pattern atom to
+ * target atom); `everyMapping` also keeps the other mappings onto the same
+ * atoms (a ring matched turned or flipped), at most `limit` in all.
+ */
+export function substructureMappings(pattern: Molecule, target: Molecule, limit = 50, everyMapping = false): { atoms: AtomId[]; bonds: BondId[]; map: Map<AtomId, AtomId> }[] {
   if (!pattern.atomCount || pattern.atomCount > target.atomCount) return [];
   const sym = (m: Molecule, id: AtomId) => { const a = m.atom(id); return a.label ?? a.element; };
   // Each pattern atom after the first of its fragment is adjacent to an earlier one.
@@ -167,7 +176,7 @@ export function substructureMatches(pattern: Molecule, target: Molecule, limit =
   }
   const map = new Map<AtomId, AtomId>();
   const used = new Set<AtomId>();
-  const found = new Map<string, { atoms: AtomId[]; bonds: BondId[] }>();
+  const found = new Map<string, { atoms: AtomId[]; bonds: BondId[]; map: Map<AtomId, AtomId> }>();
   const aroP = aromaticAtoms(pattern), aroT = aromaticAtoms(target);
   const targetIds = [...target.atoms()].map((a) => a.id);
 
@@ -191,10 +200,10 @@ export function substructureMatches(pattern: Molecule, target: Molecule, limit =
     if (found.size >= limit) return;
     if (k === ordered.length) {
       const atoms = [...map.values()].sort((p, q) => p - q);
-      const key = atoms.join(',');
+      const key = everyMapping ? ordered.map((x) => map.get(x)).join(',') : atoms.join(',');
       if (!found.has(key)) {
         const bonds = [...pattern.bonds()].map((b) => target.bondBetween(map.get(b.begin)!, map.get(b.end)!)!.id);
-        found.set(key, { atoms, bonds });
+        found.set(key, { atoms, bonds, map: new Map(map) });
       }
       return;
     }
