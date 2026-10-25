@@ -15,10 +15,13 @@ links back to the commit that built it.
    Settings > Trusted Publisher > GitHub Actions, and enter: owner
    `angus-e-mcmillan`, repository `HexSketch`, workflow `release.yml`,
    environment `npm`.
-   If npm won't add a trusted publisher before the package exists, publish
+   npm adds a trusted publisher only to a package it already has, so publish
    the first version from your own machine (`npm login`, then from the repo
    root `npm run build:pkg && npm publish -w hexsketch --access public`), then
-   add the trusted publisher and use the workflow from then on.
+   add the trusted publisher and use the workflow from then on. Until then,
+   the workflow makes the GitHub release and skips npm with a warning; it
+   also skips a version that is already on npm, so a version published by
+   hand can still be tagged.
 4. **Optional approval gate.** GitHub > Settings > Environments > `npm` >
    Required reviewers: a release then waits for your click before publishing.
 
@@ -26,5 +29,6 @@ links back to the commit that built it.
 
 1. Set `"version"` in `packages/hexsketch/package.json` and merge to `main`.
 2. Tag and push: `git tag v0.1.0 && git push origin v0.1.0`.
-3. The Release workflow tests, builds and publishes. It refuses a tag that
-   doesn't match the package version.
+3. The Release workflow tests, builds, makes the GitHub release (with the
+   Claude Desktop extension and installer) and publishes to npm. It refuses
+   a tag that doesn't match the package version.
