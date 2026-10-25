@@ -54,3 +54,11 @@ npx wrangler login
 npm run deploy:web
 npm run feedback     # print received feedback
 ```
+
+## Licence
+
+Business Source License 1.1 (`LICENSE`): free to use, at work too, directly or
+through AI assistants; a commercial licence is needed to distribute or host
+HexSketch as part of a product or service for others. Each version becomes
+Apache-2.0 four years after its release. The link and picture-payload format
+(`docs/link-format.md`) and the code implementing it are MIT (`LICENSE-MIT`).

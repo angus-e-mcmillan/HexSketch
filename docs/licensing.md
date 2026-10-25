@@ -1,9 +1,20 @@
-# Licence for the published package: options
+# Licensing
 
-Nothing is published until the owner picks one; `packages/hexsketch` stays
-`"private": true` until then. This is a comparison to decide from, not legal
-advice: have whichever licence is chosen read by a lawyer before the first
-release.
+**Decided:** Business Source License 1.1 for the whole repository (`LICENSE`),
+with each version changing to Apache-2.0 four years after it is first
+published. The link and picture-payload format, its spec and the code that
+reads and writes it are MIT (`LICENSE-MIT`), so any tool can make and read
+HexSketch links and pictures. Fonts keep their own licence (SIL OFL 1.1).
+
+The Additional Use Grant in `LICENSE` makes everyday use free, commercial and
+inside companies included. Distributing HexSketch, or hosting it, as part of a
+product or service offered to others needs a commercial licence. This is not
+legal advice: have a lawyer read `LICENSE` before the first npm release.
+
+Still open: a contributor licence agreement (CLA), needed before accepting
+outside contributions so they can be included in commercial licences.
+
+The comparison the decision was made from follows.
 
 ## What the licence has to do (from the plan)
 
@@ -47,11 +58,3 @@ Trade-offs to accept:
 - Contributions: outside contributors would need to agree that their code can
   be sold under the commercial licence, usually through a short contributor
   licence agreement (CLA). Decide before accepting the first outside PR.
-
-## After choosing
-
-1. Add `LICENSE` at the repo root (and in `packages/hexsketch`) with the
-   chosen text and parameters.
-2. In `packages/hexsketch/package.json`: set `"license"` (`"BUSL-1.1"` for
-   BSL) and remove `"private": true`.
-3. Follow `docs/releasing.md`.

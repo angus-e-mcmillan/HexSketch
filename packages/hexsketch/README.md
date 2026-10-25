@@ -61,7 +61,14 @@ instead of SMILES, aromatic rings that can't be kekulized, atoms over or
 under their valence, unusual charges and abbreviations it can't draw out.
 Every other function throws an `Error` whose message says what is wrong.
 
-## Licences
+## Licence
+
+Business Source License 1.1 (`LICENSE`): free to use, including at work and
+through AI assistants; distributing or hosting HexSketch as part of a product
+or service for others needs a commercial licence. Each version becomes
+Apache-2.0 four years after release. The link and picture-payload format
+([spec](https://github.com/angus-e-mcmillan/HexSketch/blob/main/docs/link-format.md))
+is MIT (`LICENSE-MIT`).
 
 PNG text uses Liberation Sans (SIL Open Font License 1.1, see `fonts/LICENSE`),
 which shares Helvetica's and Arial's metrics. PNG rendering uses

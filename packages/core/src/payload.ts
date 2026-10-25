@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// The HexSketch link and payload format (docs/link-format.md): MIT, see LICENSE-MIT.
+
 import { readCdxmlDocument, readCdxmlStyle, writeCdxml } from './cdxml.ts';
 import type { DocObject, ObjectGroup } from './objects.ts';
 import type { Molecule } from './model.ts';

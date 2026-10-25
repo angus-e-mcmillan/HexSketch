@@ -6,8 +6,8 @@ links back to the commit that built it.
 
 ## Once
 
-1. **Licence.** Pick one (`docs/licensing.md`), add `LICENSE`, set `"license"`
-   in `packages/hexsketch/package.json` and remove `"private": true`.
+1. **Legal review.** Have a lawyer read `LICENSE` (BSL 1.1 and its Additional
+   Use Grant) before the first release.
 2. **npm account.** Create one at npmjs.com if needed and turn on two-factor
    authentication (Account > Two-Factor Authentication, "Authorization and
    writes").

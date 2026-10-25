@@ -47,10 +47,10 @@ notebooks, a hosted API); that is out of scope for this plan.
 
 - Delivery: one branch and pull request per item; the owner reviews and merges.
 - Cadence: a scheduled session picks up the next item each weekday morning (Europe/Berlin).
-- Licence: source-available. Free for people and AI agents to use, including
-  at work; a paid licence for embedding HexSketch in commercial products.
-  Item 3 proposes the exact licence text (e.g. PolyForm Shield, BSL, or a
-  custom licence) and the owner chooses before anything is published.
+- Licence: Business Source License 1.1 for the whole repository, each version
+  becoming Apache-2.0 after four years; the link and payload format is MIT
+  (docs/licensing.md). Free for people and AI agents to use, including at
+  work; a paid licence for embedding HexSketch in commercial products.
 
 ## Items
 
@@ -94,8 +94,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   plus `name`, `analyze`, `convert`, `validate`, `link`.
 - A browser bundle usable from a CDN (jsdelivr/unpkg) so AI-built web pages
   and Claude artifacts can render structures.
-- Source-available licence (see Decisions): the PR compares two or three
-  candidate licences against the goals there and adds none until the owner picks.
+- Licence: BSL 1.1, link format MIT (see Decisions and docs/licensing.md).
 - Publishing only from GitHub Actions with npm trusted publishing (provenance,
   no long-lived npm token). The PR lists the owner's setup steps, including
   two-factor auth on the npm account.

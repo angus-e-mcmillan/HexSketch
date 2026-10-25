@@ -1,21 +1,22 @@
 {
   "name": "hexsketch",
   "version": "0.1.0",
+  "license": "BUSL-1.1 AND MIT AND OFL-1.1",
   "description": "Chemical structures for AI agents and scripts: render, name, analyse, convert and check SMILES, molfiles and CDXML",
-  "private": true,
   "type": "module",
   "bin": { "hexsketch": "./dist/cli.js" },
   "exports": {
     ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
     "./png": { "types": "./dist/png.d.ts", "default": "./dist/png.js" }
   },
-  "files": ["dist", "fonts", "README.md"],
+  "files": ["dist", "fonts", "README.md", "LICENSE", "LICENSE-MIT"],
   "engines": { "node": ">=20" },
   "homepage": "https://hexsketch.com",
   "repository": { "type": "git", "url": "git+https://github.com/angus-e-mcmillan/HexSketch.git", "directory": "packages/hexsketch" },
   "bugs": "https://github.com/angus-e-mcmillan/HexSketch/issues",
   "keywords": ["chemistry", "smiles", "molfile", "cdxml", "iupac", "structure", "depiction", "ai", "agent", "mcp"],
   "scripts": {
+    "prepack": "cp ../../LICENSE ../../LICENSE-MIT .",
     "build": "vite build && rollup -c rollup.dts.config.js"
   },
   "dependencies": {

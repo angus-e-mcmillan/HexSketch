@@ -2,9 +2,6 @@
 # pushed, or when run by hand from the Actions tab. Uses npm trusted publishing:
 # GitHub proves to npm which workflow is publishing (OIDC), so no npm token is
 # stored anywhere, and npm shows a provenance link back to this commit.
-#
-# Blocked on purpose until a licence is chosen: packages/hexsketch/package.json
-# is "private": true, which npm refuses to publish. See docs/licensing.md.
 name: Release
 
 on:
