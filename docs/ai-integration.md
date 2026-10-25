@@ -74,7 +74,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Why: works in every AI tool today (Claude, ChatGPT, Codex) with nothing installed.
   An agent writes a link; the chemist clicks and edits. The chemist draws; one copy puts it in the chat.
 
-### [~] 2. Headless agent toolkit (`packages/agent`)
+### [x] 2. Headless agent toolkit (`packages/agent`)
 - Pure functions over `core`/`render`/`naming`, each taking SMILES, MOL or CDXML:
   `render` (svg, pdf, cdxml, mol; png where a rasterizer is available),
   `name`, `analyze` (formula, exact mass, MW, m/z, elemental analysis),
@@ -87,7 +87,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Tests for each function, including bad input.
 - Why: one tested core that the CLI, the MCP server and the hosted server all call.
 
-### [ ] 3. Packaging and CLI
+### [~] 3. Packaging and CLI
 - Build `core`, `render`, `naming`, `agent` to JS with type declarations,
   publishable to npm (packages export TS source today).
 - `hexsketch` CLI: `npx hexsketch render "<smiles>" -o out.svg --name`,

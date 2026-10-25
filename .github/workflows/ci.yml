@@ -1,5 +1,5 @@
 # Checks every pull request and every push to main: types, tests (including the
-# OPSIN round trip of generated names) and the hexsketch.com build.
+# OPSIN round trip of generated names), the hexsketch.com build and the npm package.
 name: CI
 
 on:
@@ -38,3 +38,6 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build:web
+      # The npm package: build it and run the built command once.
+      - run: npm run build:pkg
+      - run: node packages/hexsketch/dist/cli.js validate 'CC(=O)Oc1ccccc1C(=O)O'

@@ -1,0 +1,46 @@
+# Publishes the hexsketch package to npm when a version tag (v0.1.0, ...) is
+# pushed, or when run by hand from the Actions tab. Uses npm trusted publishing:
+# GitHub proves to npm which workflow is publishing (OIDC), so no npm token is
+# stored anywhere, and npm shows a provenance link back to this commit.
+#
+# Blocked on purpose until a licence is chosen: packages/hexsketch/package.json
+# is "private": true, which npm refuses to publish. See docs/licensing.md.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Settings > Environments > npm can require an approval before anything is published.
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install -g 'npm@^11.5.1'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: sh tools/opsin/fetch.sh
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build:pkg
+      - name: Tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: test "v$(node -p "require('./packages/hexsketch/package.json').version")" = "$GITHUB_REF_NAME"
+      - run: npm publish -w hexsketch --access public

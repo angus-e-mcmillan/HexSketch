@@ -28,6 +28,7 @@ npm run dev          # http://localhost:5174
 npm test
 npm run typecheck
 npm run build:web    # static build in apps/web/dist
+npm run build:pkg    # npm package in packages/hexsketch/dist
 ```
 
 `tools/opsin/fetch.sh` downloads OPSIN (needs Java) so the naming tests can
@@ -39,6 +40,7 @@ packages/render    depiction to SVG and PDF
 packages/editor    tools, hotkeys, undo
 packages/naming    offline IUPAC naming
 packages/agent     for AI agents and scripts: render, name, analyze, convert, validate, compare, link
+packages/hexsketch the npm package and `hexsketch` command built from those (docs/releasing.md)
 apps/web           the app, plus worker.ts for the feedback endpoint
 ```
 
