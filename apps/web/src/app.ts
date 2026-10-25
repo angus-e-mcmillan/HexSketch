@@ -1,4 +1,4 @@
-import { altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle } from '@hexsketch/core';
+import { altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument, type Tool } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
@@ -33,6 +33,8 @@ export interface AppOptions {
   zoom?: number;
   /** Show the getting-started guide the first time HexSketch opens in this browser (the standalone app). */
   firstRunGuide?: boolean;
+  /** Open the structure in the page address (hexsketch.com/#smiles=… or #cdxml=…), on load and when it changes (the standalone app). */
+  openLinks?: boolean;
 }
 export interface AppApi {
   editor: Editor;
@@ -248,6 +250,8 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       { label: 'Redo', shortcut: '⇧⌘Z', run: () => editor.doc.redo(), enabled: editor.doc.canRedo },
       'sep',
       { label: 'Copy As', submenu: copyAsItems, enabled: hasDrawing() },
+      { label: 'Copy for AI', run: copyForAI, enabled: editor.doc.mol.atomCount > 0 },
+      { label: 'Copy Link', run: copyLink, enabled: hasDrawing() },
       { label: 'Select All', shortcut: '⌘A', run: () => editor.selectAll() },
       { label: 'Delete', shortcut: '⌫', run: () => editor.key('Delete', {}), enabled: hasSelection() },
     ] },
@@ -303,6 +307,60 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     const text = kind === 'cdxml' ? writeCdxml(src.mol, editor.doc.style, src.objects, { groups: src.groups }) : kind === 'smiles' ? writeSmiles(src.mol) : writeMolfile(src.mol, editor.doc.style.bondLength);
     navigator.clipboard.writeText(text).then(() => flash(`Copied as ${kind === 'cdxml' ? 'CDXML' : kind === 'smiles' ? 'SMILES' : 'MOL text'}`))
       .catch(() => flash('Copy failed: the browser blocked clipboard access'));
+  }
+
+  /**
+   * Copy text that takes a moment to make (a link compresses the drawing). The
+   * ClipboardItem goes in at once with a promise for the text, as Safari
+   * requires; browsers without ClipboardItem get the text when it is ready.
+   */
+  function copyWhenReady(text: Promise<string>, done: string) {
+    const write = typeof ClipboardItem === 'undefined'
+      ? text.then((t) => navigator.clipboard.writeText(t))
+      : navigator.clipboard.write([new ClipboardItem({ 'text/plain': text.then((t) => new Blob([t], { type: 'text/plain' })) })]);
+    write.then(() => flash(done)).catch(() => flash('Copy failed: the browser blocked clipboard access'));
+  }
+
+  /** Links open in this same app: hexsketch.com, or the dev server. */
+  const linkBase = () => `${location.origin}${location.pathname}`;
+
+  /** Edit > Copy Link: a link that opens the selection (or the whole drawing) in HexSketch. */
+  function copyLink() {
+    const src = copySource();
+    if (!src.mol.atomCount && !src.objects.length) { flash('Draw a structure first'); return; }
+    copyWhenReady(structureLink(src.mol, editor.doc.style, src.objects, src.groups, linkBase()), 'Copied a link that opens this drawing in HexSketch');
+  }
+
+  /** Edit > Copy for AI: name, SMILES, formula and masses as text, with a link back to the drawing. */
+  function copyForAI() {
+    const src = copySource();
+    if (!src.mol.atomCount) { flash('Draw a structure first'); return; }
+    const text = structureLink(src.mol, editor.doc.style, src.objects, src.groups, linkBase())
+      .then((link) => aiSummary(src.mol, { nameOf: (m) => nameMolecule(m).name, link }));
+    copyWhenReady(text, 'Copied for AI: paste it into your chat with Claude, ChatGPT or another assistant');
+  }
+
+  /** Open the structure a link carries (#smiles=… or #cdxml=…, see core/link.ts) as one undoable step. */
+  async function openFromLink() {
+    let got;
+    try { got = await readStructureLink(location.hash, editor.doc.style.bondLength); }
+    catch (err) { flash((err as Error).message); return; }
+    if (!got) return;
+    const replacing = hasDrawing();
+    // Once edited, the drawing no longer matches the address, so drop it there (Copy Link makes a fresh one).
+    history.replaceState(null, '', location.pathname + location.search);
+    if (got.kind === 'drawing') {
+      if (got.page) editor.doc.page = got.page;
+      editor.doc.replace(got.mol, got.objects, got.groups, got.style);
+    } else {
+      // In the middle of the view, as a pasted SMILES lands.
+      const xs = [...got.mol.atoms()].map((a) => a.x), ys = [...got.mol.atoms()].map((a) => a.y);
+      const c = viewCentre();
+      const dx = c.x - (Math.min(...xs) + Math.max(...xs)) / 2, dy = c.y - (Math.min(...ys) + Math.max(...ys)) / 2;
+      for (const a of got.mol.atoms()) { a.x += dx; a.y += dy; a.chirality = null; }
+      editor.doc.replace(got.mol);
+    }
+    flash(replacing ? 'Opened the structure from the link (Undo brings back the drawing it replaced)' : 'Opened the structure from the link');
   }
 
   /** Export the selection (or the whole drawing) as an image or a file. */
@@ -818,6 +876,10 @@ export function mountApp(opts: AppOptions = {}): AppApi {
 
   setZoom(zoom);
   wrapEl.focus();
+  if (opts.openLinks) {
+    void openFromLink();
+    window.addEventListener('hashchange', () => void openFromLink());
+  }
   if (opts.firstRunGuide && !guideSeen()) void openGuide().then(() => wrapEl.focus());
   return api;
 

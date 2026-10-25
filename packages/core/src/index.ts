@@ -15,3 +15,4 @@ export * from './peptides.ts';
 export * from './cleanup.ts';
 export * from './analysis.ts';
 export * from './page.ts';
+export * from './link.ts';
