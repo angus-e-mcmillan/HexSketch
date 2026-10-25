@@ -1,0 +1,11 @@
+{
+  "name": "@hexsketch/mcp-worker",
+  "version": "0.1.0",
+  "license": "BUSL-1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build -w @hexsketch/mcp-app && npx --yes wrangler@4 dev",
+    "check": "npm run build -w @hexsketch/mcp-app && npx --yes wrangler@4 deploy --dry-run --outdir dist"
+  }
+}

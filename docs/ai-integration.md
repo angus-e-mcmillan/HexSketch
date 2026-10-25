@@ -123,18 +123,21 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Owner tests in Claude Desktop / Claude.ai and ChatGPT; the PR gives exact steps.
 - Why: this is the chemist-AI drawing loop, the core of the vision.
 
-### [ ] 6. Claude connector (`apps/mcp-worker`)
+### [~] 6. Claude connector (`apps/mcp-worker`)
 - The same tools and the MCP App over streamable HTTP on a separate
-  Cloudflare Worker (`mcp.hexsketch.com`), so it works as a connector in
-  Claude (web, mobile, desktop) and in ChatGPT.
-- Low risk by design: stateless, no accounts or login, no secrets, nothing
-  stored or logged beyond Cloudflare's defaults; rate limited; input size and
-  CPU bounded; separate from the hexsketch.com Worker.
-- Structures sent by the AI pass through the Worker (not stored); the privacy
-  page says so and points to the local options for users who need that.
-- A privacy policy page on hexsketch.com and a connector-directory submission
-  prepared for the owner to send.
-- Deploy is a manual step for the owner.
+  Cloudflare Worker (`mcp.hexsketch.com/mcp`), so it works as a connector in
+  Claude (web, desktop, and mobile where the editor can show) and later in ChatGPT.
+- Low risk by design: no accounts or login, no secrets; a new server for
+  every request; separate from the hexsketch.com Worker.
+- Only open editors are kept (Durable Objects, deleted a day after last
+  use), so the chemist and the AI share a drawing. Other structures are
+  answered, not stored, and nothing is logged.
+- Rate limited per conversation; request and drawing sizes bounded.
+- Privacy page at hexsketch.com/privacy. How to deploy, check and add it is
+  in `docs/connector.md`.
+- Deploy is a manual step for the owner (`npm run deploy:mcp`; needs the
+  Workers Paid plan). Then: a connector-directory submission, prepared for
+  the owner to send.
 
 ### [ ] 7. Docs and distribution
 - `hexsketch.com/llms.txt` and a short `/ai` page for people (static files, no code).

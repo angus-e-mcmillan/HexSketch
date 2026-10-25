@@ -3,6 +3,7 @@
   "include": [
     "apps/*/bridge/**/*.ts",
     "apps/*/src/**/*.ts",
+    "apps/*/test/**/*.ts",
     "apps/web/worker.ts",
     "packages/*/src/**/*.ts",
     "packages/*/test/**/*.ts"

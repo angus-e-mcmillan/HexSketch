@@ -1,0 +1,27 @@
+// HexSketch as a remote MCP server (a Claude connector) at
+// https://mcp.hexsketch.com/mcp: the same tools and in-chat editor as
+// `hexsketch mcp`, over streamable HTTP. Separate from the hexsketch.com
+// Worker, so a problem here cannot affect the editor people use.
+// Deploy from the repo root: npm run deploy:mcp
+{
+  "name": "hexsketch-mcp",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-01",
+  "routes": [{ "pattern": "mcp.hexsketch.com", "custom_domain": true }],
+  // Open editors: one Sketch per editor, one Conversation per MCP session
+  // (which editor it opened last). Both delete themselves a day after last use.
+  "durable_objects": {
+    "bindings": [
+      { "name": "SKETCHES", "class_name": "Sketch" },
+      { "name": "CONVERSATIONS", "class_name": "Conversation" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Sketch", "Conversation"] }],
+  // Requests a minute per conversation: an open editor asks for updates about 40 times a minute.
+  "ratelimits": [{ "name": "LIMIT", "namespace_id": "1002", "simple": { "limit": 300, "period": 60 } }],
+  "rules": [
+    { "type": "CompiledWasm", "globs": ["**/*.wasm"] },
+    { "type": "Data", "globs": ["**/*.ttf"] },
+    { "type": "Text", "globs": ["**/*.html"] }
+  ]
+}
