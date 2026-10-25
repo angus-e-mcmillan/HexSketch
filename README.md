@@ -9,8 +9,10 @@ schemes with reagents and conditions, highlighted groups and notes, all in the
 same editor you're both working in.
 
 <p align="center">
-  <img src="docs/images/aspirin-scheme.png" alt="Reaction scheme drawn by Claude in HexSketch: salicylic acid plus acetic anhydride, cat. H2SO4, 85 °C, 15 min, gives aspirin" width="640">
+  <img src="docs/images/sitagliptin-scheme.png" alt="Reaction scheme drawn by HexSketch: the prositagliptin ketone, with transaminase ATA-117, PLP and iPrNH2 in DMSO/water at 40 °C, gives (R)-sitagliptin" width="820">
 </p>
+<p align="center"><sub>The enzymatic step in Merck's sitagliptin (Januvia) process, drawn by HexSketch.
+Both compounds are drawn the same way round, and the new stereocentre has its wedge.</sub></p>
 
 ## Add it to Claude
 
