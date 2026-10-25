@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HexSketch</title>
+</head>
+<body class="embedded">
+  <header class="topbar">
+    <span class="brand">HexSketch</span>
+    <nav class="menu" id="menu"></nav>
+    <span class="spacer"></span>
+    <span class="zoom" id="zoom">100%</span>
+  </header>
+  <main class="workspace">
+    <aside class="palette" id="palette" aria-label="Tools"></aside>
+    <section class="canvas-wrap" id="canvasWrap" tabindex="0" aria-label="Drawing canvas">
+      <div class="page" id="page"><div id="drawing"></div></div>
+      <input id="labelEditor" class="label-editor" type="text" spellcheck="false" autocomplete="off" hidden />
+    </section>
+  </main>
+  <footer class="status" id="status"></footer>
+  <input type="file" id="fileInput" accept=".cdxml,.xml,.mol,.sdf,.png" hidden />
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

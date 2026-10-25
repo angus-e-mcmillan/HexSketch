@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
-import { payloadFromPng, decodePayload, parseSmiles, sameStructure, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
-import { analyze, compare, convert, detectFormat, link, name, readStructure, render, validate } from '../src/index.ts';
+import { payloadFromPng, decodePayload, parseSmiles, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
+import { analyze, compare, convert, detectFormat, link, name, orientLike, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
 
@@ -133,4 +133,63 @@ test('compare tells stereoisomers apart across formats', async () => {
   assert.equal((await compare('CCO', 'COC')).sameConnectivity, false);
   // Different Kekulé forms are the same compound.
   assert.equal((await compare('C1=CC=CC=C1', 'C1C=CC=CC=1')).same, true);
+});
+
+test('scheme draws a reaction: structures, arrows, reagents above and conditions below', async () => {
+  const s = await scheme({
+    stages: ['c1ccccc1', 'c1ccccc1[N+](=O)[O-]', 'Nc1ccccc1'],
+    arrows: [{ reagents: 'HNO3, H2SO4', conditions: '50 °C' }, { reagents: 'H2, Pd/C', conditions: 'EtOH, rt, 16 h\n95%' }],
+  });
+  const arrows = s.objects.filter((o) => o.kind === 'arrow');
+  const texts = s.objects.filter((o) => o.kind === 'text');
+  assert.equal(arrows.length, 2);
+  assert.deepEqual(texts.map((t) => t.text), ['HNO3, H2SO4', '50 °C', 'H2, Pd/C', 'EtOH, rt, 16 h\n95%']);
+  // Left to right: each stage clear of the arrows beside it, reagents above (screen y down) and conditions below.
+  const xs = s.mol.fragments().map((ids) => ids.map((id) => s.mol.atom(id).x));
+  const [a1, a2] = arrows as { tail: { x: number; y: number }; head: { x: number; y: number } }[];
+  assert.ok(Math.max(...xs[0]!) < a1!.tail.x && a1!.head.x < Math.min(...xs[1]!) && Math.max(...xs[1]!) < a2!.tail.x && a2!.head.x < Math.min(...xs[2]!));
+  assert.ok(texts[0]!.y < a1!.tail.y && texts[1]!.y > a1!.tail.y);
+  // It reads back as the three compounds, and keeps its arrows through CDXML.
+  assert.deepEqual((await analyze(s)).structures.map((x) => x.name), ['benzene', 'nitrobenzene', 'aniline']);
+  const back = await readStructure(await convert(s, 'cdxml'));
+  assert.equal(back.objects.filter((o) => o.kind === 'arrow').length, 2);
+  // Two structures in a stage get a plus between them.
+  const ester = await scheme({ stages: ['CC(=O)O.OCC', 'CC(=O)OCC.O'], arrows: [{ reagents: 'H2SO4' }] });
+  assert.equal(ester.objects.filter((o) => o.kind === 'text' && o.text === '+').length, 2);
+  // A long scheme wraps onto rows no wider than a page.
+  const long = await scheme({ stages: ['CC(C)Cc1ccc(cc1)C(C)C(=O)O', 'CC(C)Cc1ccc(cc1)C(C)C(=O)OC', 'CC(C)Cc1ccc(cc1)C(C)CO', 'CC(C)Cc1ccc(cc1)C(C)C=O'], arrows: [{ reagents: 'MeOH, H2SO4 (cat.)' }, { reagents: 'LiAlH4' }, { reagents: 'DMP' }] });
+  const xs2 = [...long.mol.atoms()].map((a) => a.x);
+  assert.ok(Math.max(...xs2) - Math.min(...xs2) <= 520);
+  assert.equal(new Set(long.objects.filter((o) => o.kind === 'arrow').map((o) => Math.round((o as { tail: { y: number } }).tail.y))).size, 2);
+  await assert.rejects(scheme({ stages: ['CCO'] }), /at least two stages/);
+  await assert.rejects(scheme({ stages: ['CCO', 'ethanal'] }), /Stage 2: .*looks like a name/);
+});
+
+test('related structures are drawn the same way round', async () => {
+  // The same compound written two ways: drawn identically (up to where it sits).
+  const s = await scheme({ stages: ['OC(=O)c1ccccc1OC(C)=O', 'CC(=O)Oc1ccccc1C(=O)O'] });
+  const [a, b] = s.mol.fragments();
+  const shape = (ids: number[]) => {
+    const atoms = ids.map((id) => s.mol.atom(id));
+    const cx = atoms.reduce((t, x) => t + x.x, 0) / atoms.length, cy = atoms.reduce((t, x) => t + x.y, 0) / atoms.length;
+    return atoms.map((x) => `${x.element}${Math.round(x.x - cx)},${Math.round(x.y - cy)}`).sort();
+  };
+  assert.deepEqual(shape(a!), shape(b!));
+  // A product keeps its starting material's orientation, and its stereochemistry.
+  const r = await scheme({ stages: ['CC(C)Cc1ccc(cc1)[C@H](C)C(=O)O', 'O=C(OC)[C@@H](C)c1ccc(CC(C)C)cc1'] });
+  assert.deepEqual((await analyze(r)).structures.map((x) => x.name), ['(S)-2-(4-isobutylphenyl)propanoic acid', 'methyl (S)-2-(4-isobutylphenyl)propanoate']);
+  // Enantiomers drawn alike keep their own configurations.
+  const e = await scheme({ stages: ['C[C@H](N)C(=O)O', 'OC(=O)[C@@H](C)N'] });
+  assert.deepEqual((await analyze(e)).structures.map((x) => x.name), ['(S)-2-aminopropanoic acid', '(R)-2-aminopropanoic acid']);
+  // A SMILES shown in place of a drawing turns to match it.
+  const before = await readStructure('CC(C)Cc1ccc(cc1)C(C)C(=O)O');
+  const after = await readStructure('O=C(OC)C(C)c1ccc(CC(C)C)cc1');
+  const map = substructureMappings(before.mol, after.mol, 1)[0]!.map; // the acid's atoms in the ester
+  const atoms = [...before.mol.atoms()];
+  // From the CH2 of the isobutyl group to the CH by the carbonyl.
+  const angle = (m: typeof before.mol, p: number, q: number) => Math.atan2(m.atom(q).y - m.atom(p).y, m.atom(q).x - m.atom(p).x);
+  const [ch2, ch] = [atoms[3]!.id, atoms[10]!.id];
+  const turned = (m: typeof before.mol) => Math.abs(Math.atan2(Math.sin(angle(m, map.get(ch2)!, map.get(ch)!) - angle(before.mol, ch2, ch)), Math.cos(angle(m, map.get(ch2)!, map.get(ch)!) - angle(before.mol, ch2, ch))));
+  orientLike(after, before.mol);
+  assert.ok(turned(after.mol) < 0.2, `turned by ${turned(after.mol)} rad`);
 });

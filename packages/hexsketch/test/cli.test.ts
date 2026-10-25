@@ -82,8 +82,9 @@ test('usage errors exit 2', async () => {
   assert.equal((await run('convert', 'CCO')).code, 2);
   assert.equal((await run('render', 'CCO', '--style', 'nature')).code, 2);
   assert.equal(JSON.parse((await run('name', 'C1CC', '--json')).out).error.includes('unclosed ring'), true);
-  assert.equal((await run('--version')).out, '0.1.0\n');
-  assert.match((await run('--help')).out, /^hexsketch 0\.1\.0/);
+  const { version } = JSON.parse(readFileSync(fileURLToPath(new URL('../package.json', import.meta.url)), 'utf8'));
+  assert.equal((await run('--version')).out, `${version}\n`);
+  assert.ok((await run('--help')).out.startsWith(`hexsketch ${version}:`));
 });
 
 test('runs as a command, reading standard input', () => {

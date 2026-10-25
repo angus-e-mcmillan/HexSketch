@@ -39,7 +39,11 @@ export interface AppOptions {
 export interface AppApi {
   editor: Editor;
   flash: (msg: string) => void;
-  load: (mol: Molecule, style?: DrawingStyle, objects?: DocObject[]) => void;
+  /**
+   * Replace the drawing. `centre` moves it (atoms, arrows and captions) to the
+   * middle of the sheet as far as it is in view, and zooms out if it doesn't fit.
+   */
+  load: (mol: Molecule, style?: DrawingStyle, objects?: DocObject[], opts?: { centre?: boolean }) => void;
   image: () => ReturnType<typeof structureImage>;
 }
 
@@ -353,14 +357,52 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       if (got.page) editor.doc.page = got.page;
       editor.doc.replace(got.mol, got.objects, got.groups, got.style);
     } else {
-      // In the middle of the view, as a pasted SMILES lands.
-      const xs = [...got.mol.atoms()].map((a) => a.x), ys = [...got.mol.atoms()].map((a) => a.y);
-      const c = viewCentre();
-      const dx = c.x - (Math.min(...xs) + Math.max(...xs)) / 2, dy = c.y - (Math.min(...ys) + Math.max(...ys)) / 2;
-      for (const a of got.mol.atoms()) { a.x += dx; a.y += dy; a.chirality = null; }
+      placeOnPage(got.mol, []);
       editor.doc.replace(got.mol);
+      revealDrawing();
     }
     flash(replacing ? 'Opened the structure from the link (Undo brings back the drawing it replaced)' : 'Opened the structure from the link');
+  }
+
+  /** The part of the sheet in view, in page points; the whole sheet when hardly any of it shows. */
+  function visibleSheet() {
+    const doc = documentSize(editor.doc.page);
+    const w = wrapEl.getBoundingClientRect();
+    const a = toPage({ clientX: w.left, clientY: w.top }), b = toPage({ clientX: w.right, clientY: w.bottom });
+    const r = { x0: Math.max(0, a.x), y0: Math.max(0, a.y), x1: Math.min(doc.w, b.x), y1: Math.min(doc.h, b.y) };
+    return r.x1 - r.x0 < 4 * editor.L || r.y1 - r.y0 < 4 * editor.L ? { x0: 0, y0: 0, x1: doc.w, y1: doc.h } : r;
+  }
+
+  /**
+   * Move a drawing (atoms, arrows, captions) to the middle of the sheet as far
+   * as it is in view: a wide window shows more desk than sheet, so the middle
+   * of the window can be off the sheet. Wedges keep the stereo, so recorded
+   * chirality is dropped.
+   */
+  function placeOnPage(mol: Molecule, objects: readonly DocObject[]) {
+    const pts = [...mol.atoms(), ...objects.flatMap(objectPoints)];
+    if (!pts.length) return;
+    const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+    const v = visibleSheet(), doc = documentSize(editor.doc.page);
+    // The middle of what shows, but never so near an edge that part of the drawing falls off the sheet.
+    const centre = (lo: number, hi: number, half: number, size: number) =>
+      2 * (half + editor.L) > size ? size / 2 : Math.min(size - half - editor.L, Math.max(half + editor.L, (lo + hi) / 2));
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const dx = centre(v.x0, v.x1, (x1 - x0) / 2, doc.w) - (x0 + x1) / 2;
+    const dy = centre(v.y0, v.y1, (y1 - y0) / 2, doc.h) - (y0 + y1) / 2;
+    for (const a of mol.atoms()) { a.x += dx; a.y += dy; a.chirality = null; }
+    for (const o of objects) for (const q of objectPoints(o)) { q.x += dx; q.y += dy; }
+  }
+
+  /** Zoom out (never in) until the whole drawing is in view, and scroll it to the middle. */
+  function revealDrawing() {
+    const b = editor.depiction.bounds;
+    if (!Number.isFinite(b.x0)) return;
+    const pad = 40, w = wrapEl.clientWidth - 2 * pad, h = wrapEl.clientHeight - 2 * pad;
+    const fit = Math.min(w / Math.max(1, b.x1 - b.x0), h / Math.max(1, b.y1 - b.y0));
+    if (fit < zoom) setZoom(fit);
+    wrapEl.scrollLeft = (b.x0 + b.x1) / 2 * zoom + 32 - wrapEl.clientWidth / 2;
+    wrapEl.scrollTop = (b.y0 + b.y1) / 2 * zoom + 32 - wrapEl.clientHeight / 2;
   }
 
   /** Export the selection (or the whole drawing) as an image or a file. */
@@ -868,8 +910,10 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     editor,
     flash,
     /** Replace the drawing (when editing an existing structure from a document). */
-    load(mol: Molecule, style?: DrawingStyle, objects: DocObject[] = []) {
+    load(mol: Molecule, style?: DrawingStyle, objects: DocObject[] = [], opts: { centre?: boolean } = {}) {
+      if (opts.centre) placeOnPage(mol, objects);
       editor.doc.replace(mol, objects, [], style);
+      if (opts.centre) revealDrawing();
     },
     image: () => structureImage(editor.doc.mol, editor.doc.style, editor.doc.objects),
   };

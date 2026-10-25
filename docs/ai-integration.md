@@ -100,7 +100,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   two-factor auth on the npm account.
 - Why: Codex, Claude Code and scripts can use HexSketch with one command.
 
-### [~] 4. Local MCP server (`hexsketch mcp`, in packages/hexsketch)
+### [x] 4. Local MCP server (`hexsketch mcp`, in packages/hexsketch)
 - stdio MCP server using the official TypeScript SDK, exposing tools
   `render_structure`, `name_structure`, `analyze_structure`,
   `convert_structure`, `validate_structure`, `structure_link`.
@@ -113,7 +113,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   local install, nothing leaves the user's machine.
 - Why: makes HexSketch a first-class tool in every MCP client, with no server to run.
 
-### [ ] 5. MCP App: the drawing interface
+### [~] 5. MCP App: the drawing interface
 - Tool `open_sketcher` (optional starting structure) returns an MCP Apps UI
   resource: the HexSketch editor bundled into a single self-contained HTML
   file (no CDN, so host CSPs do not block it), mounted with `mountApp`.

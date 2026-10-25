@@ -3,7 +3,7 @@
   "name": "hexsketch",
   "display_name": "HexSketch",
   "version": "0.0.0",
-  "description": "Draw, name and check chemical structures, with links that open them in HexSketch for editing.",
+  "description": "Draw and edit chemical structures in the chat, and have Claude name, check and render them.",
   "long_description": "HexSketch gives Claude a chemical structure toolkit that runs entirely on your computer: publication-quality drawings (PNG, SVG, PDF, CDXML, MOL), offline IUPAC names, formula and masses, SMILES with stereochemistry, and checks that catch mistakes in SMILES before they reach you. Every result includes a hexsketch.com link that opens the structure ready to edit by drawing. Nothing you draw or ask about leaves your computer.",
   "author": { "name": "Angus McMillan", "url": "https://github.com/angus-e-mcmillan" },
   "homepage": "https://hexsketch.com",
@@ -16,6 +16,9 @@
     "mcp_config": { "command": "node", "args": ["${__dirname}/dist/cli.js", "mcp"] }
   },
   "tools": [
+    { "name": "open_sketcher", "description": "Open the HexSketch editor in the chat, to draw or edit a structure by hand and send it back" },
+    { "name": "read_sketcher", "description": "Read what the user has drawn in the open editor" },
+    { "name": "show_in_sketcher", "description": "Change, highlight and annotate the structure in the open editor" },
     { "name": "render_structure", "description": "Draw a structure as an image (PNG, SVG, PDF, CDXML or MOL), with its name, SMILES and an editing link" },
     { "name": "name_structure", "description": "IUPAC name, generated offline" },
     { "name": "analyze_structure", "description": "Formula, exact mass, molecular weight, elemental analysis and m/z" },

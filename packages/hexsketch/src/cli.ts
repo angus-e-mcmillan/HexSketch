@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -6,6 +7,7 @@ import { payloadFromPng } from '@hexsketch/core';
 import { analyze, compare, convert, link, name, render, validate, type Analysis, type ConvertFormat, type RenderFormat, type StyleName } from '@hexsketch/agent';
 import { rasterize } from './png.ts';
 import { createServer } from './mcp.ts';
+import { createSketchStore } from './sketches.ts';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 /**
@@ -177,7 +179,13 @@ export async function main(argv: string[], out: (s: string) => void = (s) => pro
       }
       case 'mcp': {
         // stdout belongs to the protocol from here on: nothing else may be written to it.
-        const server = createServer({ version: VERSION, rasterize, saveFile });
+        // The in-chat editor is built next to the command (dist/sketcher.html); from source, after npm run build:pkg.
+        const sketcher = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'sketcher.html');
+        const sketcherHtml = existsSync(sketcher) ? async () => readFileSync(sketcher, 'utf8') : undefined;
+        // Open editors live in a folder every HexSketch process shares: Claude Desktop may
+        // send the editor's calls to another process than the model's.
+        const sketches = createSketchStore(join(tmpdir(), 'hexsketch-sketches'));
+        const server = createServer({ version: VERSION, rasterize, saveFile, sketches, ...(sketcherHtml ? { sketcherHtml } : {}) });
         await server.connect(new StdioServerTransport());
         return 0;
       }

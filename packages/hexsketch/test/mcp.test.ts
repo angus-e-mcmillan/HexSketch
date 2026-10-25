@@ -9,7 +9,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { payloadFromPng } from '@hexsketch/core';
-import { createServer, type ServerOptions } from '../src/mcp.ts';
+import { createServer, SKETCHER_URI, type ServerOptions } from '../src/mcp.ts';
 import { rasterize } from '../src/png.ts';
 
 const dir = mkdtempSync(join(tmpdir(), 'hexsketch-mcp-'));
@@ -114,4 +114,149 @@ test('hexsketch mcp serves over stdio', async () => {
   } finally {
     await client.close();
   }
+});
+
+test('open_sketcher appears with the editor, linked to its ui:// resource', async () => {
+  const { client } = await connect();
+  assert.equal((await client.listTools()).tools.some((t) => t.name === 'open_sketcher'), false);
+
+  const html = '<!doctype html><title>editor</title>';
+  const app = await connect({ sketcherHtml: async () => html });
+  const tool = (await app.client.listTools()).tools.find((t) => t.name === 'open_sketcher')!;
+  assert.equal((tool._meta as { ui: { resourceUri: string } }).ui.resourceUri, SKETCHER_URI);
+  assert.equal((tool._meta as Record<string, string>)['ui/resourceUri'], SKETCHER_URI);
+  const resource = (await app.client.readResource({ uri: SKETCHER_URI })).contents[0] as { mimeType: string; text: string };
+  assert.equal(resource.mimeType, 'text/html;profile=mcp-app');
+  assert.equal(resource.text, html);
+  assert.match(app.client.getInstructions() ?? '', /open_sketcher/);
+});
+
+test('open_sketcher answers with the structure and a link, for chats that cannot show the editor', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const result = await call('open_sketcher', { structure: 'CC(=O)Nc1ccc(O)cc1' });
+  // The editor can also load the structure from the result, for chats that send only that.
+  assert.equal((result.structuredContent as { structure: string }).structure, 'CC(=O)Nc1ccc(O)cc1');
+  const r = JSON.parse(textOf(result));
+  assert.equal(r.opened, 'N-(4-hydroxyphenyl)acetamide');
+  assert.match(r.link, /^https:\/\/hexsketch\.com\/#smiles=/);
+  assert.match(textOf(await call('open_sketcher', {})), /empty canvas/);
+  assert.equal((await call('open_sketcher', { structure: 'aspirin' })).isError, true);
+});
+
+test('the built package serves the real editor', { skip: !existsSync(fileURLToPath(new URL('../dist/sketcher.html', import.meta.url))) && 'run npm run build:pkg first' }, () => {
+  const html = readFileSync(fileURLToPath(new URL('../dist/sketcher.html', import.meta.url)), 'utf8');
+  assert.match(html, /^<!doctype html>/i);
+  // Self-contained: chats load nothing from elsewhere.
+  assert.doesNotMatch(html, /<script[^>]*\ssrc=|<link[^>]*stylesheet/);
+  assert.match(html, /Business Source License 1\.1/);
+  assert.match(html, /@modelcontextprotocol\/ext-apps \d/);
+});
+
+test('the AI works in the open editor: show, read, and the editor fetches and reports', async () => {
+  const { client, call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const names = (await client.listTools()).tools.map((t) => t.name);
+  assert.ok(['read_sketcher', 'show_in_sketcher', 'sketch_updates', 'sketch_sync'].every((n) => names.includes(n)));
+  const appOnly = (await client.listTools()).tools.filter((t) => (t._meta as { ui?: { visibility?: string[] } } | undefined)?.ui?.visibility?.join() === 'app').map((t) => t.name).sort();
+  assert.deepEqual(appOnly, ['sketch_sync', 'sketch_updates']);
+
+  assert.equal((await call('show_in_sketcher', { note: 'hi' })).isError, true); // nothing open yet
+  const opened = await call('open_sketcher', { structure: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O' });
+  const id = (opened.structuredContent as { sketch: string }).sketch;
+  // Chats pass the model either the text or the structuredContent: both say to keep working in the editor.
+  assert.match((opened.structuredContent as { next: string }).next, /show_in_sketcher.*read_sketcher/s);
+  assert.match(textOf(opened), /show_in_sketcher/);
+  assert.match(id, /^[0-9a-f-]{36}$/);
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, '2-(4-isobutylphenyl)propanoic acid');
+
+  const shown = JSON.parse(textOf(await call('show_in_sketcher', { highlight: ['C(=O)O', 'CC(C)C', 'N'], note: 'Yellow: the acid.' })));
+  assert.deepEqual(shown.highlights.map((h: { colour: string; places: number }) => [h.colour, h.places]), [['yellow', 1], ['blue', 1], ['orange', 0]]);
+  assert.match(shown.warning, /Not found in the drawing: N/);
+
+  const fetch = async (since: number) => (await call('sketch_updates', { sketch: id, since })).structuredContent as { live: boolean; updates: { version: number; note?: string; highlights?: { smiles: string; color: string }[] }[] };
+  const first = await fetch(0);
+  assert.equal(first.live, true);
+  assert.equal(first.updates.length, 1);
+  assert.equal(first.updates[0]!.note, 'Yellow: the acid.');
+  assert.equal(first.updates[0]!.highlights![0]!.color, '#ffe066');
+  assert.deepEqual((await fetch(1)).updates, []);
+
+  // The user's drawing, reported by the editor, is what read_sketcher sees.
+  const { convert } = await import('@hexsketch/agent');
+  await call('sketch_sync', { sketch: id, cdxml: await convert('CC(C)Cc1ccc(cc1)C(C)C(=O)OC', 'cdxml') });
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, 'methyl 2-(4-isobutylphenyl)propanoate');
+
+  // A new structure from the AI replaces the drawing; a newer editor makes this one stale.
+  await call('show_in_sketcher', { structure: 'c1ccccc1O' });
+  assert.equal((await fetch(1)).updates[0]!.version, 2);
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, 'phenol');
+  // Another editor: the model's calls without an id now mean it, and the first stays reachable by its id.
+  await call('open_sketcher', {});
+  assert.equal((await fetch(0)).live, true);
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).empty, true);
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', { sketch: id }))).name, 'phenol');
+});
+
+test('the AI and the editor may reach HexSketch through different connections', async () => {
+  // Claude Desktop can route the editor's calls through another connection (or process) than the model's.
+  const { createSketchStore } = await import('../src/sketches.ts');
+  const { mkdtempSync } = await import('node:fs');
+  const shared = createSketchStore(mkdtempSync(join(tmpdir(), 'hexsketch-sketches-')));
+  const html = async () => '<!doctype html>';
+  const model = await connect({ sketcherHtml: html, sketches: shared });
+  const editor = await connect({ sketcherHtml: html, sketches: createSketchStore(shared.dir) }); // another process, same folder
+  const id = ((await model.call('open_sketcher', { structure: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O' })).structuredContent as { sketch: string }).sketch;
+  await model.call('show_in_sketcher', { sketch: id, highlight: ['C(=O)O'], note: 'Yellow: the acid.' });
+  const got = (await editor.call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { live: boolean; updates: { note?: string }[] };
+  assert.equal(got.live, true);
+  assert.equal(got.updates[0]?.note, 'Yellow: the acid.');
+  // And the editor's report of the drawing reaches the model's read_sketcher.
+  const { convert } = await import('@hexsketch/agent');
+  await editor.call('sketch_sync', { sketch: id, cdxml: await convert('c1ccccc1O', 'cdxml') });
+  assert.equal(JSON.parse(textOf(await model.call('read_sketcher', { sketch: id }))).name, 'phenol');
+  // Without an id, the model works on the editor opened last.
+  assert.equal(JSON.parse(textOf(await model.call('read_sketcher', {}))).name, 'phenol');
+  assert.equal(((await editor.call('sketch_updates', { sketch: 'no-such-sketch', since: 0 })).structuredContent as { live: boolean }).live, false);
+});
+
+test('while an editor is on screen, every tool result points the model to it', async () => {
+  const { createSketchStore } = await import('../src/sketches.ts');
+  const { mkdtempSync } = await import('node:fs');
+  const shared = createSketchStore(mkdtempSync(join(tmpdir(), 'hexsketch-sketches-')));
+  const html = async () => '<!doctype html>';
+  const model = await connect({ sketcherHtml: html, sketches: shared });
+  const editor = await connect({ sketcherHtml: html, sketches: createSketchStore(shared.dir) });
+  const reminds = (r: CallToolResult) => r.content.some((c) => c.type === 'text' && /HexSketch editor is open in this chat/.test(c.text));
+  const id = ((await model.call('open_sketcher', { structure: 'CCO' })).structuredContent as { sketch: string }).sketch;
+  assert.equal(reminds(await model.call('analyze_structure', { structure: 'CCO' })), false); // opened, but not (yet) on screen
+  await editor.call('sketch_updates', { sketch: id, since: 0 }); // the editor polls: it is on screen
+  for (const [name, args] of [['analyze_structure', { structure: 'CCO' }], ['render_structure', { structure: 'CCO' }], ['structure_link', { structure: 'CCO' }]] as const) {
+    const r = await model.call(name, args);
+    assert.ok(reminds(r), name);
+    assert.match(r.content.map((c) => (c.type === 'text' ? c.text : '')).join(' '), new RegExp(id));
+  }
+  assert.equal(reminds(await model.call('name_structure', { structure: 'C1CC' })), false); // errors stay plain
+  assert.match(JSON.parse(textOf(await model.call('show_in_sketcher', { note: 'hi' }))).next, /chat reply/);
+  assert.match(JSON.parse(textOf(await model.call('read_sketcher', {}))).next, /show_in_sketcher/);
+  // An editor another server opened (another chat or app) is not this model's.
+  const other = await connect({ sketcherHtml: html, sketches: createSketchStore(shared.dir) });
+  assert.equal(reminds(await other.call('analyze_structure', { structure: 'CCO' })), false);
+  // Without an editor, results are as before.
+  const plain = await connect();
+  assert.equal(reminds(await plain.call('analyze_structure', { structure: 'CCO' })), false);
+});
+
+test('reactions are drawn as schemes: arrows with reagents above and conditions below', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const reaction = { stages: ['CC(C)Cc1ccc(cc1)C(C)C(=O)O.CO', 'CC(C)Cc1ccc(cc1)C(C)C(=O)OC.O'], arrows: [{ reagents: 'H2SO4 (cat.)', conditions: 'reflux, 4 h' }] };
+  const drawn = await call('render_structure', { reaction, format: 'svg' });
+  assert.match(textOf(drawn), />SO<\/text>.*>reflux, 4 h</);
+  assert.equal((await call('render_structure', { structure: 'CCO', reaction })).isError, true);
+  const id = ((await call('open_sketcher', { structure: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O' })).structuredContent as { sketch: string }).sketch;
+  await call('show_in_sketcher', { reaction, note: 'Fischer esterification' });
+  const { updates } = (await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: { structure?: string }[] };
+  const { readStructure } = await import('@hexsketch/agent');
+  const got = await readStructure(updates[0]!.structure!);
+  assert.equal(got.objects.filter((o) => o.kind === 'arrow').length, 1);
+  assert.deepEqual(got.objects.filter((o) => o.kind === 'text').map((o) => o.text), ['+', 'H2SO4 (cat.)', 'reflux, 4 h', '+']);
+  assert.ok(JSON.parse(textOf(await call('read_sketcher', {}))).structures.some((x: { name: string }) => x.name === 'methyl 2-(4-isobutylphenyl)propanoate'));
 });

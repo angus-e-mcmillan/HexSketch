@@ -36,15 +36,17 @@ jobs:
       - run: sh tools/opsin/fetch.sh
       - run: npm ci
       - run: npm run typecheck
+      # The npm package (with the in-chat editor) first, so the tests check what was built.
+      - run: npm run build:pkg
       - run: npm test
       - run: npm run build:web
-      # The npm package: build it and run the built command once.
-      - run: npm run build:pkg
       - run: node packages/hexsketch/dist/cli.js validate 'CC(=O)Oc1ccccc1C(=O)O'
       # The Claude Desktop extension, downloadable from the run's summary page to try out.
       - run: npm run build:mcpb
       - uses: actions/upload-artifact@v4
         with:
           name: hexsketch-mcpb
-          path: packages/hexsketch/release/hexsketch.mcpb
+          path: |
+            packages/hexsketch/release/hexsketch.mcpb
+            packages/hexsketch/release/hexsketch-mcp.zip
           retention-days: 14
