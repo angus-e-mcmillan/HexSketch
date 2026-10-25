@@ -9,6 +9,11 @@ A chemical structure editor that runs in the browser: https://hexsketch.com
 - IUPAC names, formula, exact mass, molecular weight, m/z and elemental
   analysis, written under the structure.
 - Opens and saves CDXML and MOL; exports PNG, SVG and PDF.
+- Works with AI assistants: a link such as
+  `https://hexsketch.com/#smiles=CC(%3DO)Oc1ccccc1C(%3DO)O` opens a structure
+  ready to edit, and Edit › Copy for AI puts the name, SMILES, formula, masses
+  and a link back to the drawing on the clipboard for pasting into a chat.
+  Links carry the structure after the `#`, which browsers never send to a server.
 
 Everything runs locally in the browser. Drawings are never uploaded; the only
 thing sent anywhere is what someone types into File › Send Feedback.
