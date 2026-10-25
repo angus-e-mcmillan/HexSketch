@@ -26,12 +26,33 @@ npx hexsketch validate "C(C)(C)(C)(C)C"                                 # exit 1
 npx hexsketch compare "C[C@H](N)C(=O)O" "N[C@@H](C)C(=O)O"              # same stereoisomer: exit 0
 npx hexsketch convert structure.mol --to smiles                         # SMILES with stereochemistry
 npx hexsketch link "CC#N"                                               # https://hexsketch.com/#smiles=CC%23N
+npx hexsketch mcp                                                       # MCP server on stdio (below)
 ```
 
 A structure is SMILES, a file (molfile, CDXML, or a PNG exported from
 HexSketch), a HexSketch link, or `-` for standard input. `--json` gives
 machine-readable output for every command. Exit codes: 0 done; 1 `validate`
 found errors or `compare` found a difference; 2 bad usage or unreadable input.
+
+## With Claude, Codex, Cursor and other AI tools (MCP)
+
+`hexsketch mcp` runs HexSketch as an MCP server, so an AI assistant can draw,
+name and check structures itself, and hand you a link to edit each one in
+HexSketch. Everything runs on your computer.
+
+| App | Setup |
+|---|---|
+| Claude Desktop | Download `hexsketch.mcpb` from the [latest release](https://github.com/angus-e-mcmillan/HexSketch/releases) and open it (Settings > Extensions) |
+| Claude Code | `claude mcp add hexsketch -- npx -y hexsketch mcp` |
+| Codex | `codex mcp add hexsketch -- npx -y hexsketch mcp` |
+| Cursor, and apps with an `mcpServers` JSON config | `"hexsketch": { "command": "npx", "args": ["-y", "hexsketch", "mcp"] }` |
+
+Tools: `render_structure` (PNG shown in the chat, or SVG, PDF, CDXML, MOL, and
+`save_to` a file), `name_structure`, `analyze_structure`, `validate_structure`,
+`convert_structure`, `compare_structures`, `structure_link`. The server tells
+the assistant to check the SMILES it writes and always to give you the
+editing link. `render_structure` writes a file only when asked, and never
+replaces one unless told to.
 
 ## Library
 
@@ -70,6 +91,7 @@ Apache-2.0 four years after release. The link and picture-payload format
 ([spec](https://github.com/angus-e-mcmillan/HexSketch/blob/main/docs/link-format.md))
 is MIT (`LICENSE-MIT`).
 
-PNG text uses Liberation Sans (SIL Open Font License 1.1, see `fonts/LICENSE`),
+The MCP SDK and the libraries it uses are bundled in, under their own
+licences (`dist/THIRD_PARTY_LICENSES.txt`). PNG text uses Liberation Sans (SIL Open Font License 1.1, see `fonts/LICENSE`),
 which shares Helvetica's and Arial's metrics. PNG rendering uses
 [resvg](https://github.com/linebender/resvg) (MPL-2.0).

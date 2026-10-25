@@ -12,3 +12,5 @@ apps/*/dist/
 # Copied in by prepack for npm.
 packages/hexsketch/LICENSE
 packages/hexsketch/LICENSE-MIT
+packages/hexsketch/mcpb-build/
+packages/hexsketch/release/
