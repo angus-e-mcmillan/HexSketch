@@ -17,6 +17,8 @@
   },
   "tools": [
     { "name": "open_sketcher", "description": "Open the HexSketch editor in the chat, to draw or edit a structure by hand and send it back" },
+    { "name": "read_sketcher", "description": "Read what the user has drawn in the open editor" },
+    { "name": "show_in_sketcher", "description": "Change, highlight and annotate the structure in the open editor" },
     { "name": "render_structure", "description": "Draw a structure as an image (PNG, SVG, PDF, CDXML or MOL), with its name, SMILES and an editing link" },
     { "name": "name_structure", "description": "IUPAC name, generated offline" },
     { "name": "analyze_structure", "description": "Formula, exact mass, molecular weight, elemental analysis and m/z" },

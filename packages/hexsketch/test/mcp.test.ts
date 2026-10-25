@@ -151,3 +151,42 @@ test('the built package serves the real editor', { skip: !existsSync(fileURLToPa
   assert.match(html, /Business Source License 1\.1/);
   assert.match(html, /@modelcontextprotocol\/ext-apps \d/);
 });
+
+test('the AI works in the open editor: show, read, and the editor fetches and reports', async () => {
+  const { client, call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const names = (await client.listTools()).tools.map((t) => t.name);
+  assert.ok(['read_sketcher', 'show_in_sketcher', 'sketch_updates', 'sketch_sync'].every((n) => names.includes(n)));
+  const appOnly = (await client.listTools()).tools.filter((t) => (t._meta as { ui?: { visibility?: string[] } } | undefined)?.ui?.visibility?.join() === 'app').map((t) => t.name).sort();
+  assert.deepEqual(appOnly, ['sketch_sync', 'sketch_updates']);
+
+  assert.equal((await call('show_in_sketcher', { note: 'hi' })).isError, true); // nothing open yet
+  const opened = await call('open_sketcher', { structure: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O' });
+  const id = (opened.structuredContent as { sketch: string }).sketch;
+  assert.match(id, /^[0-9a-f-]{36}$/);
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, '2-(4-isobutylphenyl)propanoic acid');
+
+  const shown = JSON.parse(textOf(await call('show_in_sketcher', { highlight: ['C(=O)O', 'CC(C)C', 'N'], note: 'Yellow: the acid.' })));
+  assert.deepEqual(shown.highlights.map((h: { colour: string; places: number }) => [h.colour, h.places]), [['yellow', 1], ['blue', 1], ['orange', 0]]);
+  assert.match(shown.warning, /Not found in the drawing: N/);
+
+  const fetch = async (since: number) => (await call('sketch_updates', { sketch: id, since })).structuredContent as { live: boolean; updates: { version: number; note?: string; highlights?: { smiles: string; color: string }[] }[] };
+  const first = await fetch(0);
+  assert.equal(first.live, true);
+  assert.equal(first.updates.length, 1);
+  assert.equal(first.updates[0]!.note, 'Yellow: the acid.');
+  assert.equal(first.updates[0]!.highlights![0]!.color, '#ffe066');
+  assert.deepEqual((await fetch(1)).updates, []);
+
+  // The user's drawing, reported by the editor, is what read_sketcher sees.
+  const { convert } = await import('@hexsketch/agent');
+  await call('sketch_sync', { sketch: id, cdxml: await convert('CC(C)Cc1ccc(cc1)C(C)C(=O)OC', 'cdxml') });
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, 'methyl 2-(4-isobutylphenyl)propanoate');
+
+  // A new structure from the AI replaces the drawing; a newer editor makes this one stale.
+  await call('show_in_sketcher', { structure: 'c1ccccc1O' });
+  assert.equal((await fetch(1)).updates[0]!.version, 2);
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, 'phenol');
+  await call('open_sketcher', {});
+  assert.equal((await fetch(0)).live, false);
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).empty, true);
+});

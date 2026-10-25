@@ -144,3 +144,31 @@ test('non-stereogenic double bonds get no marks', async () => {
     assert.doesNotMatch(writeSmiles(mol), /\/|\\/, smi);
   }
 });
+
+test('substructures are found whichever way the double bonds are drawn', async () => {
+  const { substructureMatches } = await import('../src/isomorphism.ts');
+  const aspirin = parseSmiles('CC(=O)Oc1ccccc1C(=O)O');
+  // The acid and the ester both have C(=O)O.
+  assert.equal(substructureMatches(parseSmiles('C(=O)O'), aspirin).length, 2);
+  // Only the acid's carbon sits on the ring (the ester joins it through O).
+  assert.equal(substructureMatches(parseSmiles('OC(=O)c1ccccc1'), aspirin).length, 1);
+  assert.equal(substructureMatches(parseSmiles('C1=CC=CC=C1'), aspirin).length, 1);
+  assert.equal(substructureMatches(parseSmiles('N'), aspirin).length, 0);
+  const m = substructureMatches(parseSmiles('CC(=O)O'), aspirin);
+  assert.ok(m.every((x) => x.atoms.length === 4 && x.bonds.length === 3));
+  // Chains stay out of aromatic rings; the isobutyl group is found once in ibuprofen.
+  const ibuprofen = parseSmiles('CC(C)Cc1ccc(cc1)C(C)C(=O)O');
+  assert.equal(substructureMatches(parseSmiles('CC(C)C'), ibuprofen).length, 1);
+  assert.equal(substructureMatches(parseSmiles('CC(C)C'), ibuprofen)[0]!.atoms.length, 4);
+  // Bond orders count outside rings: the ester's C(=O)OC is not in the acid.
+  assert.equal(substructureMatches(parseSmiles('C(=O)OC'), ibuprofen).length, 0);
+  // Aspirin's ester oxygen sits on the ring: an aryl ester, not C(=O)OC (aliphatic C).
+  assert.equal(substructureMatches(parseSmiles('C(=O)OC'), aspirin).length, 0);
+  assert.equal(substructureMatches(parseSmiles('CC(=O)Oc1ccccc1'), aspirin).length, 1);
+  // Five-membered heteroaromatics, and fused rings whichever bond the drawing makes double.
+  assert.equal(substructureMatches(parseSmiles('c1cc[nH]c1'), parseSmiles('c1ccc2[nH]ccc2c1')).length, 1);
+  assert.equal(substructureMatches(parseSmiles('c1ccccc1'), parseSmiles('C1=CC2=CC=CC=C2C=C1')).length, 2);
+  // Charges count where the fragment has one.
+  assert.equal(substructureMatches(parseSmiles('[O-]'), parseSmiles('CC(=O)[O-]')).length, 1);
+  assert.equal(substructureMatches(parseSmiles('[O-]'), parseSmiles('CC(=O)O')).length, 0);
+});

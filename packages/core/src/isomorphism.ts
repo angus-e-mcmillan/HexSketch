@@ -1,4 +1,5 @@
-import type { AtomId, Molecule } from './model.ts';
+import type { AtomId, BondId, Molecule } from './model.ts';
+import { perceiveRings } from './rings.ts';
 import { ezLabel, perceiveStereoFromGeometry } from './stereo.ts';
 
 /**
@@ -118,4 +119,95 @@ export function sameStereoisomer(a: Molecule, b: Molecule): boolean {
     if (ezOk) return true;
   }
   return false;
+}
+
+/**
+ * Atoms of aromatic rings, as drawn in Kekulé form: rings whose every atom has
+ * a double bond to a ring atom (fused rings included), or five-membered rings
+ * where one N, O or S without one completes the pi system (pyrrole, furan).
+ */
+function aromaticAtoms(mol: Molecule): Set<AtomId> {
+  const rings = perceiveRings(mol);
+  const inRing = new Set(rings.flatMap((r) => r.atoms));
+  const ringDouble = (a: AtomId) => mol.incidentBonds(a).some((b) => {
+    const bd = mol.bond(b);
+    return bd.order === 2 && inRing.has(mol.otherAtom(bd, a));
+  });
+  const out = new Set<AtomId>();
+  for (const r of rings) {
+    const missing = r.atoms.filter((a) => !ringDouble(a));
+    const ok = missing.length === 0 || (r.atoms.length === 5 && missing.length === 1 && ['N', 'O', 'S'].includes(mol.atom(missing[0]!).element));
+    if (ok) for (const a of r.atoms) out.add(a);
+  }
+  return out;
+}
+
+/**
+ * Every place `pattern` occurs in `target`, as the target atoms and bonds it
+ * covers: how "highlight the ester" finds the ester in a drawing. Atoms match
+ * by element (abbreviation labels by label), by charge where the pattern has
+ * one, and by being aromatic or not; bond orders must agree except between
+ * aromatic atoms, so a ring fragment matches whichever Kekulé form the drawing
+ * has while "CC(C)C" stays out of the benzene ring. Hydrogen counts are not
+ * compared. Distinct atom sets only, at most `limit`.
+ */
+export function substructureMatches(pattern: Molecule, target: Molecule, limit = 50): { atoms: AtomId[]; bonds: BondId[] }[] {
+  if (!pattern.atomCount || pattern.atomCount > target.atomCount) return [];
+  const sym = (m: Molecule, id: AtomId) => { const a = m.atom(id); return a.label ?? a.element; };
+  // Each pattern atom after the first of its fragment is adjacent to an earlier one.
+  const ordered: AtomId[] = [];
+  const seen = new Set<AtomId>();
+  for (const s of pattern.atoms()) {
+    if (seen.has(s.id)) continue;
+    const queue = [s.id]; seen.add(s.id);
+    while (queue.length) {
+      const x = queue.shift()!; ordered.push(x);
+      for (const n of pattern.neighbours(x)) if (!seen.has(n)) { seen.add(n); queue.push(n); }
+    }
+  }
+  const map = new Map<AtomId, AtomId>();
+  const used = new Set<AtomId>();
+  const found = new Map<string, { atoms: AtomId[]; bonds: BondId[] }>();
+  const aroP = aromaticAtoms(pattern), aroT = aromaticAtoms(target);
+  const targetIds = [...target.atoms()].map((a) => a.id);
+
+  const fits = (x: AtomId, y: AtomId) => {
+    if (sym(pattern, x) !== sym(target, y)) return false;
+    const charge = pattern.atom(x).charge;
+    if (charge !== 0 && target.atom(y).charge !== charge) return false;
+    if (aroP.has(x) !== aroT.has(y)) return false;
+    if (target.neighbours(y).length < pattern.neighbours(x).length) return false;
+    for (const nx of pattern.neighbours(x)) {
+      const ny = map.get(nx);
+      if (ny === undefined) continue;
+      const tb = target.bondBetween(y, ny);
+      if (!tb) return false;
+      const aromatic = aroP.has(x) && aroP.has(nx);
+      if (!aromatic && tb.order !== pattern.bondBetween(x, nx)!.order) return false;
+    }
+    return true;
+  };
+  const solve = (k: number): void => {
+    if (found.size >= limit) return;
+    if (k === ordered.length) {
+      const atoms = [...map.values()].sort((p, q) => p - q);
+      const key = atoms.join(',');
+      if (!found.has(key)) {
+        const bonds = [...pattern.bonds()].map((b) => target.bondBetween(map.get(b.begin)!, map.get(b.end)!)!.id);
+        found.set(key, { atoms, bonds });
+      }
+      return;
+    }
+    const x = ordered[k]!;
+    const anchor = pattern.neighbours(x).find((n) => map.has(n));
+    const candidates = anchor !== undefined ? target.neighbours(map.get(anchor)!) : targetIds;
+    for (const y of candidates) {
+      if (used.has(y) || !fits(x, y)) continue;
+      map.set(x, y); used.add(y);
+      solve(k + 1);
+      map.delete(x); used.delete(y);
+    }
+  };
+  solve(0);
+  return [...found.values()];
 }

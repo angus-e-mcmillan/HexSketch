@@ -47,15 +47,23 @@ HexSketch. Everything runs on your computer.
 | Codex | `codex mcp add hexsketch -- npx -y hexsketch mcp` |
 | Cursor, and apps with an `mcpServers` JSON config | `"hexsketch": { "command": "npx", "args": ["-y", "hexsketch", "mcp"] }` |
 
-**Draw in the chat.** `open_sketcher` opens the HexSketch editor inside the
-conversation (in chats that support MCP Apps, such as Claude and ChatGPT), with
-the AI's structure or an empty canvas. Edit it by drawing, then press **Send to
-chat**: the AI gets the name, SMILES, formula and a link, and answers. While
-the editor is open, the AI also sees the drawing as it changes, so a question
-typed next is about what is drawn now. Elsewhere the tool answers with a link
-that opens the structure on hexsketch.com.
+**Draw in the chat, together.** `open_sketcher` opens the HexSketch editor
+inside the conversation (in chats that support MCP Apps, such as Claude and
+ChatGPT), with the AI's structure or an empty canvas. Press **Full screen** and
+it stays open beside the chat while you talk. Both of you work in it:
 
-Tools: `open_sketcher`, `render_structure` (PNG shown in the chat, or SVG, PDF, CDXML, MOL, and
+- You draw; the AI sees the drawing as it changes (and reads it with
+  `read_sketcher`), so the next question is about what is drawn now. **Send to
+  chat** posts it as a message.
+- The AI shows and explains in the editor with `show_in_sketcher`: it replaces
+  the structure, highlights parts of it in named colours (by SMILES fragment,
+  e.g. `C(=O)O`) and leaves notes in a Notes panel. Undo brings your drawing
+  back.
+
+Elsewhere the tool answers with a link that opens the structure on
+hexsketch.com.
+
+Tools: `open_sketcher`, `read_sketcher`, `show_in_sketcher`, `render_structure` (PNG shown in the chat, or SVG, PDF, CDXML, MOL, and
 `save_to` a file), `name_structure`, `analyze_structure`, `validate_structure`,
 `convert_structure`, `compare_structures`, `structure_link`. The server tells
 the assistant to check the SMILES it writes and always to give you the
