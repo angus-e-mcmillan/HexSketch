@@ -49,8 +49,10 @@ export function toSvg(dep: Depiction, opts: SvgOptions = {}): string {
 
   body.push(`<g stroke="${color}" stroke-linecap="butt" fill="none">${strokes.join('')}</g>`);
   body.push(`<g fill="${color}">${fills.join('')}</g>`);
-  body.push(`<g fill="${color}" font-family="${escapeXml(font)}" font-weight="${weight}">${texts.join('')}</g>`);
-  if (captions.length) body.push(`<g fill="${color}" font-family="${escapeXml(fontStack(dep.style.captionFont))}" font-weight="normal" xml:space="preserve">${captions.join('')}</g>`);
+  // Text is placed by the AFM advance widths, so the font must not kern: a
+  // kerned "ATA" ends short of where its subscript or the next run starts.
+  body.push(`<g fill="${color}" font-family="${escapeXml(font)}" font-weight="${weight}" style="font-kerning:none">${texts.join('')}</g>`);
+  if (captions.length) body.push(`<g fill="${color}" font-family="${escapeXml(fontStack(dep.style.captionFont))}" font-weight="normal" style="font-kerning:none" xml:space="preserve">${captions.join('')}</g>`);
 
   const meta = opts.metadata ? `<metadata>${opts.metadata}</metadata>` : '';
   return (
