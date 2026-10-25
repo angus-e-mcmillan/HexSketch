@@ -39,7 +39,8 @@ export interface AppOptions {
 export interface AppApi {
   editor: Editor;
   flash: (msg: string) => void;
-  load: (mol: Molecule, style?: DrawingStyle, objects?: DocObject[]) => void;
+  /** Replace the drawing. `centre` moves a freshly laid-out structure (from SMILES, say) to the middle of the view. */
+  load: (mol: Molecule, style?: DrawingStyle, objects?: DocObject[], opts?: { centre?: boolean }) => void;
   image: () => ReturnType<typeof structureImage>;
 }
 
@@ -353,14 +354,19 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       if (got.page) editor.doc.page = got.page;
       editor.doc.replace(got.mol, got.objects, got.groups, got.style);
     } else {
-      // In the middle of the view, as a pasted SMILES lands.
-      const xs = [...got.mol.atoms()].map((a) => a.x), ys = [...got.mol.atoms()].map((a) => a.y);
-      const c = viewCentre();
-      const dx = c.x - (Math.min(...xs) + Math.max(...xs)) / 2, dy = c.y - (Math.min(...ys) + Math.max(...ys)) / 2;
-      for (const a of got.mol.atoms()) { a.x += dx; a.y += dy; a.chirality = null; }
+      centreInView(got.mol);
       editor.doc.replace(got.mol);
     }
     flash(replacing ? 'Opened the structure from the link (Undo brings back the drawing it replaced)' : 'Opened the structure from the link');
+  }
+
+  /** Move a freshly laid-out structure to the middle of the view, as a pasted SMILES lands; wedges keep its stereo. */
+  function centreInView(mol: Molecule) {
+    if (!mol.atomCount) return;
+    const xs = [...mol.atoms()].map((a) => a.x), ys = [...mol.atoms()].map((a) => a.y);
+    const c = viewCentre();
+    const dx = c.x - (Math.min(...xs) + Math.max(...xs)) / 2, dy = c.y - (Math.min(...ys) + Math.max(...ys)) / 2;
+    for (const a of mol.atoms()) { a.x += dx; a.y += dy; a.chirality = null; }
   }
 
   /** Export the selection (or the whole drawing) as an image or a file. */
@@ -868,7 +874,8 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     editor,
     flash,
     /** Replace the drawing (when editing an existing structure from a document). */
-    load(mol: Molecule, style?: DrawingStyle, objects: DocObject[] = []) {
+    load(mol: Molecule, style?: DrawingStyle, objects: DocObject[] = [], opts: { centre?: boolean } = {}) {
+      if (opts.centre) centreInView(mol);
       editor.doc.replace(mol, objects, [], style);
     },
     image: () => structureImage(editor.doc.mol, editor.doc.style, editor.doc.objects),

@@ -17,7 +17,7 @@
   "keywords": ["chemistry", "smiles", "molfile", "cdxml", "iupac", "structure", "depiction", "ai", "agent", "mcp"],
   "scripts": {
     "prepack": "cp ../../LICENSE ../../LICENSE-MIT .",
-    "build": "vite build && rollup -c rollup.dts.config.js",
+    "build": "npm run build -w @hexsketch/mcp-app && vite build && cp ../../apps/mcp-app/dist/index.html dist/sketcher.html && rollup -c rollup.dts.config.js",
     "build:mcpb": "node scripts/build-mcpb.mjs"
   },
   "dependencies": {
@@ -26,7 +26,9 @@
   "devDependencies": {
     "@hexsketch/agent": "0.1.0",
     "@hexsketch/core": "0.1.0",
+    "@hexsketch/mcp-app": "0.1.0",
     "@anthropic-ai/mcpb": "2.1.2",
+    "@modelcontextprotocol/ext-apps": "1.7.5",
     "@modelcontextprotocol/sdk": "1.32.1",
     "rollup-plugin-dts": "6.1.1",
     "vite": "^6.3.5",

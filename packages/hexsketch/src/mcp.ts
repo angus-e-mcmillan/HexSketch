@@ -1,4 +1,5 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { analyze, compare, convert, link, name, render, validate, type Rasterizer, type RenderFormat } from '@hexsketch/agent';
@@ -15,14 +16,20 @@ export interface ServerOptions {
   rasterize?: Rasterizer;
   /** Writes a rendered file where the assistant asks (local servers only). Returns the absolute path. */
   saveFile?: (path: string, data: string | Uint8Array, overwrite: boolean) => Promise<string>;
+  /** The in-chat editor (MCP Apps), as one HTML file; without it there is no open_sketcher tool. */
+  sketcherHtml?: () => Promise<string>;
 }
+
+/** Where the in-chat editor is served from. */
+export const SKETCHER_URI = 'ui://hexsketch/sketcher.html';
 
 const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 
 - Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.
 - Before presenting a SMILES you wrote, call validate_structure and compare its name and formula with what you meant.
 - To show a structure, call render_structure. Every result includes a link that opens the structure in HexSketch, where the user can edit it by drawing: always give the user that link.
-- When the user pastes text that starts "Structure from HexSketch" or a hexsketch.com link, that is a structure they drew: read the SMILES from it, or pass the link to these tools.`;
+- When the user wants to draw, sketch, edit or correct a structure, or a structure is easier to show than to describe, call open_sketcher: it opens HexSketch's editor in the chat (where the chat supports it).
+- Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user's current drawing is also given to you in the same form.`;
 
 const structure = z.string().min(1).describe('The structure: SMILES (e.g. "CC(=O)Oc1ccccc1C(=O)O"), molfile or CDXML text, or a HexSketch link (https://hexsketch.com/#smiles=... or #cdxml=...). Not a name.');
 const style = z.enum(['hexsketch', 'acs']).optional().describe('Drawing style: hexsketch (default) or acs (ACS 1996 journal style).');
@@ -118,6 +125,29 @@ export function createServer(opts: ServerOptions): McpServer {
     inputSchema: { structure, style },
     annotations: { title: 'Link to edit in HexSketch', ...READ_ONLY },
   }, ({ structure: s, style: st }) => safely(async () => ({ content: [{ type: 'text', text: await link(s, read(st)) }] })));
+
+  if (opts.sketcherHtml) {
+    const html = opts.sketcherHtml;
+    registerAppResource(server, 'HexSketch editor', SKETCHER_URI, {
+      description: 'The HexSketch structure editor, for drawing and editing structures in the chat.',
+      _meta: { ui: { prefersBorder: true } },
+    }, async () => ({
+      contents: [{ uri: SKETCHER_URI, mimeType: RESOURCE_MIME_TYPE, text: await html(), _meta: { ui: { prefersBorder: true, permissions: { clipboardWrite: {} } } } }],
+    }));
+
+    registerAppTool(server, 'open_sketcher', {
+      title: 'Open the HexSketch editor',
+      description: 'Open HexSketch\'s drawing editor in the chat, so the user can draw a structure by hand or edit one you give. Use it when the user wants to draw, sketch, edit or correct a structure, or when a structure is easier to draw than describe. The user\'s drawing comes back as a message starting "Structure from HexSketch" (with name, SMILES, formula and a link) when they press Send to chat, and your context is kept up to date with it while they edit. In chats that cannot show the editor, give the user the link in the result instead.',
+      inputSchema: { structure: structure.optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.') },
+      annotations: { title: 'Open the HexSketch editor', ...READ_ONLY },
+      _meta: { ui: { resourceUri: SKETCHER_URI } },
+    }, ({ structure: s }) => safely(async () => {
+      if (!s) return { content: [{ type: 'text', text: 'Opened the HexSketch editor with an empty canvas. If it is not shown, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }] };
+      const about = await analyze(s);
+      const url = await link(s);
+      return { content: [{ type: 'text', text: JSON.stringify({ opened: about.name ?? about.smiles, smiles: about.smiles, link: url, note: 'If the editor is not shown, give the user the link to edit the structure in HexSketch.' }, null, 2) }] };
+    }));
+  }
 
   return server;
 }

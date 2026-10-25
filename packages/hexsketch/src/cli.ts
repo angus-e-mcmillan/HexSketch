@@ -177,7 +177,10 @@ export async function main(argv: string[], out: (s: string) => void = (s) => pro
       }
       case 'mcp': {
         // stdout belongs to the protocol from here on: nothing else may be written to it.
-        const server = createServer({ version: VERSION, rasterize, saveFile });
+        // The in-chat editor is built next to the command (dist/sketcher.html); from source, after npm run build:pkg.
+        const sketcher = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist', 'sketcher.html');
+        const sketcherHtml = existsSync(sketcher) ? async () => readFileSync(sketcher, 'utf8') : undefined;
+        const server = createServer({ version: VERSION, rasterize, saveFile, ...(sketcherHtml ? { sketcherHtml } : {}) });
         await server.connect(new StdioServerTransport());
         return 0;
       }

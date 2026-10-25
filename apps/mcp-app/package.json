@@ -1,0 +1,20 @@
+{
+  "name": "@hexsketch/mcp-app",
+  "version": "0.1.0",
+  "license": "BUSL-1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@hexsketch/agent": "0.1.0",
+    "@hexsketch/core": "0.1.0",
+    "@hexsketch/naming": "0.1.0",
+    "@hexsketch/web": "0.1.0"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "vite": "^6.3.5"
+  }
+}

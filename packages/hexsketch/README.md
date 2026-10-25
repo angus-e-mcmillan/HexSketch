@@ -47,7 +47,15 @@ HexSketch. Everything runs on your computer.
 | Codex | `codex mcp add hexsketch -- npx -y hexsketch mcp` |
 | Cursor, and apps with an `mcpServers` JSON config | `"hexsketch": { "command": "npx", "args": ["-y", "hexsketch", "mcp"] }` |
 
-Tools: `render_structure` (PNG shown in the chat, or SVG, PDF, CDXML, MOL, and
+**Draw in the chat.** `open_sketcher` opens the HexSketch editor inside the
+conversation (in chats that support MCP Apps, such as Claude and ChatGPT), with
+the AI's structure or an empty canvas. Edit it by drawing, then press **Send to
+chat**: the AI gets the name, SMILES, formula and a link, and answers. While
+the editor is open, the AI also sees the drawing as it changes, so a question
+typed next is about what is drawn now. Elsewhere the tool answers with a link
+that opens the structure on hexsketch.com.
+
+Tools: `open_sketcher`, `render_structure` (PNG shown in the chat, or SVG, PDF, CDXML, MOL, and
 `save_to` a file), `name_structure`, `analyze_structure`, `validate_structure`,
 `convert_structure`, `compare_structures`, `structure_link`. The server tells
 the assistant to check the SMILES it writes and always to give you the

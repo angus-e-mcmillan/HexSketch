@@ -9,7 +9,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { payloadFromPng } from '@hexsketch/core';
-import { createServer, type ServerOptions } from '../src/mcp.ts';
+import { createServer, SKETCHER_URI, type ServerOptions } from '../src/mcp.ts';
 import { rasterize } from '../src/png.ts';
 
 const dir = mkdtempSync(join(tmpdir(), 'hexsketch-mcp-'));
@@ -114,4 +114,37 @@ test('hexsketch mcp serves over stdio', async () => {
   } finally {
     await client.close();
   }
+});
+
+test('open_sketcher appears with the editor, linked to its ui:// resource', async () => {
+  const { client } = await connect();
+  assert.equal((await client.listTools()).tools.some((t) => t.name === 'open_sketcher'), false);
+
+  const html = '<!doctype html><title>editor</title>';
+  const app = await connect({ sketcherHtml: async () => html });
+  const tool = (await app.client.listTools()).tools.find((t) => t.name === 'open_sketcher')!;
+  assert.equal((tool._meta as { ui: { resourceUri: string } }).ui.resourceUri, SKETCHER_URI);
+  assert.equal((tool._meta as Record<string, string>)['ui/resourceUri'], SKETCHER_URI);
+  const resource = (await app.client.readResource({ uri: SKETCHER_URI })).contents[0] as { mimeType: string; text: string };
+  assert.equal(resource.mimeType, 'text/html;profile=mcp-app');
+  assert.equal(resource.text, html);
+  assert.match(app.client.getInstructions() ?? '', /open_sketcher/);
+});
+
+test('open_sketcher answers with the structure and a link, for chats that cannot show the editor', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const r = JSON.parse(textOf(await call('open_sketcher', { structure: 'CC(=O)Nc1ccc(O)cc1' })));
+  assert.equal(r.opened, 'N-(4-hydroxyphenyl)acetamide');
+  assert.match(r.link, /^https:\/\/hexsketch\.com\/#smiles=/);
+  assert.match(textOf(await call('open_sketcher', {})), /empty canvas/);
+  assert.equal((await call('open_sketcher', { structure: 'aspirin' })).isError, true);
+});
+
+test('the built package serves the real editor', { skip: !existsSync(fileURLToPath(new URL('../dist/sketcher.html', import.meta.url))) && 'run npm run build:pkg first' }, () => {
+  const html = readFileSync(fileURLToPath(new URL('../dist/sketcher.html', import.meta.url)), 'utf8');
+  assert.match(html, /^<!doctype html>/i);
+  // Self-contained: chats load nothing from elsewhere.
+  assert.doesNotMatch(html, /<script[^>]*\ssrc=|<link[^>]*stylesheet/);
+  assert.match(html, /Business Source License 1\.1/);
+  assert.match(html, /@modelcontextprotocol\/ext-apps \d/);
 });

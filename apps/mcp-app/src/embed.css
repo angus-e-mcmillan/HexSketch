@@ -1,0 +1,6 @@
+/* Inside a chat: a fixed-height panel, since the chat sizes its frame to the content. */
+body.embedded { height: 560px; }
+body.embedded.fullscreen { height: 100vh; }
+.menu button.host-action { margin-left: 6px; border: 1px solid var(--line); background: #fff; }
+.menu button.host-action.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+.menu button.host-action.primary:hover { background: #2559b8; }
