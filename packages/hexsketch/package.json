@@ -1,6 +1,6 @@
 {
   "name": "hexsketch",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "license": "BUSL-1.1 AND MIT AND OFL-1.1",
   "description": "Chemical structures for AI agents and scripts: render, name, analyse, convert and check SMILES, molfiles and CDXML",
   "type": "module",

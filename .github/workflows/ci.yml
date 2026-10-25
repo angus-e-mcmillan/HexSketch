@@ -1,5 +1,6 @@
 # Checks every pull request and every push to main: types, tests (including the
-# OPSIN round trip of generated names), the hexsketch.com build and the npm package.
+# OPSIN round trip of generated names), the hexsketch.com build, the npm package
+# and the Claude connector.
 name: CI
 
 on:
@@ -41,6 +42,16 @@ jobs:
       - run: npm test
       - run: npm run build:web
       - run: node packages/hexsketch/dist/cli.js validate 'CC(=O)Oc1ccccc1C(=O)O'
+      # The Claude connector (apps/mcp-worker): it bundles for Cloudflare, and answers the
+      # smoke test (both sides of the in-chat editor) under wrangler dev.
+      - run: cd apps/mcp-worker && npx --yes wrangler@4 deploy --dry-run --outdir /tmp/mcp-worker
+      - name: Connector smoke test
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          (cd apps/mcp-worker && npx --yes wrangler@4 dev --port 8787 --ip 127.0.0.1 > /tmp/wrangler.log 2>&1 &)
+          for i in $(seq 1 60); do grep -q "Ready on" /tmp/wrangler.log && break; sleep 2; done
+          npm run smoke:mcp || { cat /tmp/wrangler.log; exit 1; }
       # The Claude Desktop extension, downloadable from the run's summary page to try out.
       - run: npm run build:mcpb
       - uses: actions/upload-artifact@v4

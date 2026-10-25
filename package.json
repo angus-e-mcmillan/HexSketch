@@ -19,6 +19,9 @@
     "build:mcpb": "npm run build:mcpb -w hexsketch",
     "serve:web": "node --experimental-strip-types tools/serve-dist.ts apps/web/dist 5180",
     "deploy:web": "npm run build:web && cd apps/web && npx --yes wrangler@4 deploy",
+    "dev:mcp": "npm run dev -w @hexsketch/mcp-worker",
+    "deploy:mcp": "npm run build -w @hexsketch/mcp-app && cd apps/mcp-worker && npx --yes wrangler@4 deploy",
+    "smoke:mcp": "node --experimental-strip-types --no-warnings apps/mcp-worker/test/smoke.ts",
     "feedback": "node --experimental-strip-types --no-warnings tools/feedback.ts"
   },
   "devDependencies": {

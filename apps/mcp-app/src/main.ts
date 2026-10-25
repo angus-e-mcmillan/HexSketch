@@ -23,7 +23,7 @@ import { mountApp, type AppApi } from '@hexsketch/web';
 /** As the server sends it (packages/hexsketch/src/mcp.ts). */
 interface SketchUpdate { version: number; structure?: string; highlights?: { smiles: string; color: string; name: string }[]; note?: string }
 
-const app = new App({ name: 'HexSketch', version: '0.1.7' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+const app = new App({ name: 'HexSketch', version: '0.1.8' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 
 const expand = { label: 'Full screen', run: () => toggleFullscreen() };
 const send = { label: 'Send to chat', run: (ui: AppApi) => sendToChat(ui) };
@@ -212,14 +212,57 @@ app.ontoolresult = (result) => {
   else if (!sketchId) setLink('off', 'Not linked to the AI', 'The chat gave the editor no sketch id (open_sketcher\'s structuredContent did not arrive).');
 };
 
-/** Fetch what the AI asked to show, every couple of seconds while this is the open editor. */
+/**
+ * How often the editor asks for what the AI showed: often right after
+ * anything changed, less often as the drawing sits unchanged (every request
+ * costs the hosted server something), and not at all once it has been out of
+ * sight for a while. A visible editor never stops, so what the AI shows
+ * still arrives, at worst a minute later. Using the editor, or looking at it
+ * again, brings it straight back to the quick pace.
+ */
+const POLL = { active: 2000, quiet: 5000, idle: 30000, asleep: 60000, hidden: 30000 };
+const QUIET_AFTER = 2 * 60e3, IDLE_AFTER = 15 * 60e3, ASLEEP_AFTER = 30 * 60e3, HIDDEN_STOP_AFTER = 10 * 60e3;
+let lastActivity = Date.now();
+let hiddenSince = document.hidden ? Date.now() : 0;
+let pollTimer = 0, pollDue = 0, paused = false, polling = false;
+let pollNow: () => void = () => {};
+
+function schedulePoll(ms: number) {
+  clearTimeout(pollTimer);
+  pollDue = Date.now() + ms;
+  pollTimer = window.setTimeout(() => pollNow(), ms);
+}
+
+/** The next poll's delay, or null to pause until the editor is seen again. */
+function pollDelay(): number | null {
+  const now = Date.now();
+  if (document.hidden) return now - hiddenSince > HIDDEN_STOP_AFTER ? null : POLL.hidden;
+  const idle = now - lastActivity;
+  return idle > ASLEEP_AFTER ? POLL.asleep : idle > IDLE_AFTER ? POLL.idle : idle > QUIET_AFTER ? POLL.quiet : POLL.active;
+}
+
+/** Someone used the editor (or the AI changed it): check again soon. */
+function activity() {
+  lastActivity = Date.now();
+  if (!polling) return;
+  if (paused) { paused = false; setLink('wait', 'Reconnecting…'); schedulePoll(0); }
+  else if (pollDue - Date.now() > POLL.active) schedulePoll(POLL.active);
+}
+for (const type of ['pointerdown', 'keydown', 'wheel']) document.addEventListener(type, activity, { passive: true });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) hiddenSince = Date.now();
+  else { hiddenSince = 0; activity(); }
+});
+
+/** Fetch what the AI asked to show, while this is the open editor. */
 function startUpdates() {
   if (!app.getHostCapabilities()?.serverTools) {
     setLink('off', 'Not linked to the AI', 'This chat does not let the editor reach HexSketch (no serverTools capability), so the AI cannot show things here. Your drawing still reaches the AI.');
     return;
   }
   let failures = 0;
-  const poll = async () => {
+  polling = true;
+  pollNow = async () => {
     try {
       const r = await app.callServerTool({ name: 'sketch_updates', arguments: { sketch: sketchId, since } });
       if (r.isError) throw new Error((r.content?.[0] as { text?: string } | undefined)?.text ?? 'the chat returned an error');
@@ -227,20 +270,27 @@ function startUpdates() {
       if (!sc) throw new Error('the chat returned no structuredContent from sketch_updates');
       failures = 0;
       if (sc.live === false) {
+        polling = false;
         setLink('off', 'Not linked: HexSketch has lost this editor', 'HexSketch no longer knows this editor (it was opened more than a day ago, or by another computer). Ask the AI to open the sketcher again.');
         return;
       }
       setLink('live', 'Linked to the AI', 'What the AI shows with show_in_sketcher appears here.');
-      for (const u of sc.updates ?? []) { since = Math.max(since, u.version); await apply(u); }
+      for (const u of sc.updates ?? []) { since = Math.max(since, u.version); await apply(u); lastActivity = Date.now(); }
     } catch (err) {
       failures += 1;
       const why = (err as Error)?.message ?? String(err);
       if (failures >= 2) setLink('off', `Not linked: ${why.slice(0, 60)}`, `The editor could not fetch the AI's updates: ${why}`);
     }
-    // Slow down after errors, and while the editor is out of sight.
-    window.setTimeout(poll, failures ? Math.min(30000, 2000 * 2 ** failures) : document.hidden ? 6000 : 1500);
+    if (failures) { schedulePoll(Math.min(30000, 2000 * 2 ** failures)); return; }
+    const next = pollDelay();
+    if (next === null) {
+      paused = true;
+      setLink('wait', 'Paused while out of sight', 'The editor stopped checking for the AI\'s changes while it was out of sight. It reconnects as soon as it is on screen again.');
+      return;
+    }
+    schedulePoll(next);
   };
-  void poll();
+  pollNow();
 }
 
 /**
@@ -257,6 +307,7 @@ async function shareWithModel() {
 // Keep the AI's view of the drawing current, once editing pauses.
 let timer = 0;
 ui.editor.onChange(() => {
+  activity();
   clearTimeout(timer);
   timer = window.setTimeout(async () => {
     await shareWithModel();

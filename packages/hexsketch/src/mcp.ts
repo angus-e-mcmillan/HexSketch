@@ -28,6 +28,15 @@ export interface ServerOptions {
    * uses a folder); defaults to this server's memory.
    */
   sketches?: SketchStore;
+  /**
+   * The store's latest sketch is this conversation's own (a hosted server
+   * keeps one per conversation), so an editor it reports as on screen is
+   * this model's even when this server did not open it (a hosted server may
+   * be a new instance for every request).
+   */
+  sketchesPerConversation?: boolean;
+  /** The largest drawing (CDXML) an editor may report, in characters. */
+  maxDrawing?: number;
 }
 
 /** Where the in-chat editor is served from. */
@@ -50,7 +59,7 @@ const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 - Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.
 - Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user's current drawing is also given to you in the same form.`;
 
-const structure = z.string().min(1).describe('The structure: SMILES (e.g. "CC(=O)Oc1ccccc1C(=O)O"), molfile or CDXML text, or a HexSketch link (https://hexsketch.com/#smiles=... or #cdxml=...). Not a name.');
+const structure = z.string().min(1).max(1_000_000).describe('The structure: SMILES (e.g. "CC(=O)Oc1ccccc1C(=O)O"), molfile or CDXML text, or a HexSketch link (https://hexsketch.com/#smiles=... or #cdxml=...). Not a name.');
 const reaction = z.object({
   stages: z.array(z.string().min(1)).min(2).max(8).describe('SMILES of each stage, left to right: starting materials, any intermediates, products. Join the structures of one stage with "." and they are drawn with "+" between them, e.g. ["CC(=O)O.OCC", "CC(=O)OCC.O"].'),
   arrows: z.array(z.object({
@@ -101,7 +110,7 @@ export function createServer(opts: ServerOptions): McpServer {
    */
   const inEditor = async (r: CallToolResult): Promise<CallToolResult> => {
     const id = !r.isError && sketches ? await sketches.live(ON_SCREEN_MS) : null;
-    if (!id || !opened.has(id)) return r;
+    if (!id || (!opts.sketchesPerConversation && !opened.has(id))) return r;
     return { ...r, content: [...r.content, { type: 'text', text: `The HexSketch editor is open in this chat (sketch "${id}"): show this there with show_in_sketcher (a structure, highlights and a note explaining it) rather than as an image, a picture from the web or a text drawing, and keep your chat reply short.` }] };
   };
   /** A model tool's body: a bad structure becomes a tool error the assistant can read and fix; results point to an open editor. */
@@ -297,6 +306,11 @@ export function createServer(opts: ServerOptions): McpServer {
       annotations: READ_ONLY,
       _meta: appOnly,
     }, ({ sketch: id, since }) => safely(async () => {
+      if (store.poll) {
+        // A plain object: one returned by a Durable Object call carries extra (symbol) keys.
+        const { live, updates } = await store.poll(id, since);
+        return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live, updates: [...updates] } };
+      }
       const sketch = await store.get(id);
       if (sketch && Date.now() - (lastSeen.get(id) ?? 0) > 5000) { lastSeen.set(id, Date.now()); await store.seen(id); }
       const updates = sketch ? sketch.updates.filter((u) => u.version > since) : [];
@@ -305,7 +319,7 @@ export function createServer(opts: ServerOptions): McpServer {
 
     registerAppTool(server, 'sketch_sync', {
       description: 'Used by the HexSketch editor to report the user\'s drawing, so read_sketcher can see it. Not for the model.',
-      inputSchema: { sketch: z.string(), cdxml: z.string().max(4_000_000) },
+      inputSchema: { sketch: z.string(), cdxml: z.string().max(opts.maxDrawing ?? 4_000_000) },
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       _meta: appOnly,
     }, ({ sketch: id, cdxml }) => safely(async () => {

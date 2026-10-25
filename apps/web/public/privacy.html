@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HexSketch privacy</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root { color-scheme: light dark; --text: #1d1d1f; --muted: #5f6368; --bg: #ffffff; --line: #e3e3e6; }
+  @media (prefers-color-scheme: dark) { :root { --text: #ececf0; --muted: #a0a3a8; --bg: #17181a; --line: #34363a; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  h2 { font-size: 19px; margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+  p, li { margin: 8px 0; }
+  .muted { color: var(--muted); font-size: 14px; }
+  a { color: inherit; }
+  code { font: 14px ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy</h1>
+<p class="muted">HexSketch · last updated 25 October 2026</p>
+
+<p>HexSketch has no accounts, no advertising and no tracking. This page says
+what reaches our servers, and for how long.</p>
+
+<h2>hexsketch.com, the editor</h2>
+<ul>
+  <li>The editor runs in your browser. What you draw stays on your computer:
+    the page is not allowed to send it anywhere (its security policy blocks
+    connections to other servers).</li>
+  <li>Your settings, saved styles and recent structures are kept in your
+    browser's local storage, never sent to us.</li>
+  <li>A HexSketch link carries the structure after the <code>#</code>, which
+    browsers do not send to the server.</li>
+  <li><strong>Send Feedback</strong> (File menu) is the one thing that reaches us
+    from the editor: your message, the email address if you give one, and your
+    browser's name and version. We keep it to read and answer, and delete it
+    on request. Your IP address is used only to limit how many messages can be
+    sent a minute, and is not stored.</li>
+</ul>
+
+<h2>The HexSketch connector for AI assistants</h2>
+<p>When you add HexSketch to an AI assistant such as Claude as a connector
+(<code>https://mcp.hexsketch.com/mcp</code>), the assistant sends structures to
+our server to be drawn, named or checked, and the in-chat editor sends what you
+draw in it.</p>
+<ul>
+  <li>Structures sent to draw, name, analyze, convert or check are processed and
+    answered, not stored.</li>
+  <li>An editor opened in a chat is kept on the server while you use it, so that
+    you and the assistant work on the same drawing: the drawing, what the
+    assistant showed in it, and a random id for the conversation. It is deleted
+    automatically a day after it was last used. It is not linked to who you are.</li>
+  <li>We do not log what is drawn. Our host, Cloudflare, processes requests on
+    our behalf and keeps its standard operational records (such as IP
+    addresses and times) under
+    <a href="https://www.cloudflare.com/privacypolicy/">its privacy policy</a>.</li>
+  <li>What the assistant does with your conversation is covered by that
+    assistant's own privacy policy.</li>
+</ul>
+<p>If your structures must not leave your computer, run HexSketch locally
+instead: the <code>hexsketch</code> command and its local MCP server
+(<code>hexsketch mcp</code>) work offline and send nothing anywhere.</p>
+
+<h2>Contact</h2>
+<p>Questions or requests: open an issue at
+<a href="https://github.com/angus-e-mcmillan/HexSketch">github.com/angus-e-mcmillan/HexSketch</a>,
+or use Send Feedback in the editor.</p>
+</main>
+</body>
+</html>
