@@ -46,5 +46,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: hexsketch-mcpb
-          path: packages/hexsketch/release/hexsketch.mcpb
+          path: |
+            packages/hexsketch/release/hexsketch.mcpb
+            packages/hexsketch/release/hexsketch-mcp.zip
           retention-days: 14

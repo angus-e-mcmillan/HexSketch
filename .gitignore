@@ -13,4 +13,5 @@ apps/*/dist/
 packages/hexsketch/LICENSE
 packages/hexsketch/LICENSE-MIT
 packages/hexsketch/mcpb-build/
+packages/hexsketch/installer-build/
 packages/hexsketch/release/

@@ -1,4 +1,8 @@
-// Builds the Claude Desktop extension, release/hexsketch.mcpb: the built package
+// Builds the Claude Desktop extension, release/hexsketch.mcpb, and
+// release/hexsketch-mcp.zip, the same server with a one-line installer that
+// adds it through Claude Desktop's config file (where chats show MCP Apps).
+//
+// The extension: the built package
 // (dist, fonts, package.json) plus resvg, laid out as npm would install it, so
 // the server finds its fonts and version the same way. Run after `npm run build`.
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -35,3 +39,14 @@ const mcpb = join(root, 'node_modules', '.bin', 'mcpb');
 execFileSync(mcpb, ['validate', join(out, 'manifest.json')], { stdio: 'inherit' });
 mkdirSync(join(pkgDir, 'release'), { recursive: true });
 execFileSync(mcpb, ['pack', out, join(pkgDir, 'release', 'hexsketch.mcpb')], { stdio: 'inherit' });
+
+// The installer zip: flat, so unzipping hexsketch-mcp.zip gives a hexsketch-mcp folder on Mac and Windows.
+const inst = join(pkgDir, 'installer-build');
+rmSync(inst, { recursive: true, force: true });
+mkdirSync(inst, { recursive: true });
+cpSync(join(pkgDir, 'installer'), inst, { recursive: true });
+cpSync(out, join(inst, 'server'), { recursive: true, filter: (f) => !/manifest\.json$|icon\.png$/.test(f) });
+const zipPath = join(pkgDir, 'release', 'hexsketch-mcp.zip');
+rmSync(zipPath, { force: true });
+execFileSync('zip', ['-qr', zipPath, '.'], { cwd: inst, stdio: 'inherit' });
+console.log(`Installer: ${zipPath}`);
