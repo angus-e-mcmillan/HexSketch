@@ -189,7 +189,31 @@ test('the AI works in the open editor: show, read, and the editor fetches and re
   await call('show_in_sketcher', { structure: 'c1ccccc1O' });
   assert.equal((await fetch(1)).updates[0]!.version, 2);
   assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, 'phenol');
+  // Another editor: the model's calls without an id now mean it, and the first stays reachable by its id.
   await call('open_sketcher', {});
-  assert.equal((await fetch(0)).live, false);
+  assert.equal((await fetch(0)).live, true);
   assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).empty, true);
+  assert.equal(JSON.parse(textOf(await call('read_sketcher', { sketch: id }))).name, 'phenol');
+});
+
+test('the AI and the editor may reach HexSketch through different connections', async () => {
+  // Claude Desktop can route the editor's calls through another connection (or process) than the model's.
+  const { createSketchStore } = await import('../src/sketches.ts');
+  const { mkdtempSync } = await import('node:fs');
+  const shared = createSketchStore(mkdtempSync(join(tmpdir(), 'hexsketch-sketches-')));
+  const html = async () => '<!doctype html>';
+  const model = await connect({ sketcherHtml: html, sketches: shared });
+  const editor = await connect({ sketcherHtml: html, sketches: createSketchStore(shared.dir) }); // another process, same folder
+  const id = ((await model.call('open_sketcher', { structure: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O' })).structuredContent as { sketch: string }).sketch;
+  await model.call('show_in_sketcher', { sketch: id, highlight: ['C(=O)O'], note: 'Yellow: the acid.' });
+  const got = (await editor.call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { live: boolean; updates: { note?: string }[] };
+  assert.equal(got.live, true);
+  assert.equal(got.updates[0]?.note, 'Yellow: the acid.');
+  // And the editor's report of the drawing reaches the model's read_sketcher.
+  const { convert } = await import('@hexsketch/agent');
+  await editor.call('sketch_sync', { sketch: id, cdxml: await convert('c1ccccc1O', 'cdxml') });
+  assert.equal(JSON.parse(textOf(await model.call('read_sketcher', { sketch: id }))).name, 'phenol');
+  // Without an id, the model works on the editor opened last.
+  assert.equal(JSON.parse(textOf(await model.call('read_sketcher', {}))).name, 'phenol');
+  assert.equal(((await editor.call('sketch_updates', { sketch: 'no-such-sketch', since: 0 })).structuredContent as { live: boolean }).live, false);
 });

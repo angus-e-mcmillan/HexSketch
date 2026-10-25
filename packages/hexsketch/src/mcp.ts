@@ -4,6 +4,9 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { analyze, compare, convert, link, name, readStructure, render, validate, type Rasterizer, type RenderFormat } from '@hexsketch/agent';
 import { parseSmiles, substructureMatches, type Molecule } from '@hexsketch/core';
+import { memorySketchStore, type Sketch, type SketchStore } from './sketch-store.ts';
+
+export type { SketchUpdate } from './sketch-store.ts';
 
 /**
  * HexSketch as an MCP server: the agent toolkit as tools an AI assistant can
@@ -19,6 +22,12 @@ export interface ServerOptions {
   saveFile?: (path: string, data: string | Uint8Array, overwrite: boolean) => Promise<string>;
   /** The in-chat editor (MCP Apps), as one HTML file; without it there is no open_sketcher tool. */
   sketcherHtml?: () => Promise<string>;
+  /**
+   * Where open editors are kept. The model's and the editor's calls may come
+   * through different connections or processes, which must share it (the CLI
+   * uses a folder); defaults to this server's memory.
+   */
+  sketches?: SketchStore;
 }
 
 /** Where the in-chat editor is served from. */
@@ -29,16 +38,6 @@ export const HIGHLIGHTS = [
   { name: 'yellow', color: '#ffe066' }, { name: 'blue', color: '#8fd3ff' }, { name: 'orange', color: '#ffb07a' },
   { name: 'green', color: '#a6e3a1' }, { name: 'purple', color: '#d4b0ff' },
 ] as const;
-
-/** What the AI asked the open editor to show; the editor fetches these with sketch_updates. */
-export interface SketchUpdate {
-  version: number;
-  /** Replaces the drawing. */
-  structure?: string;
-  /** Atoms and bonds to highlight in the drawing (after any new structure), replacing earlier AI highlights. */
-  highlights?: { smiles: string; color: string; name: string }[];
-  note?: string;
-}
 
 const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 
@@ -146,8 +145,14 @@ export function createServer(opts: ServerOptions): McpServer {
 
   if (opts.sketcherHtml) {
     const html = opts.sketcherHtml;
-    // The editor open now: one per connection (a chat), the latest open_sketcher wins.
-    let sketch: { id: string; version: number; updates: SketchUpdate[]; drawing: string } | null = null;
+    const sketches = opts.sketches ?? memorySketchStore();
+    const sketchId = z.string().optional().describe('The sketch id open_sketcher returned; leave out for the editor opened last.');
+    /** The sketch a model call means: the one named, else the one opened last. */
+    const target = async (id?: string): Promise<Sketch> => {
+      const s = await sketches.get(id ?? (await sketches.latest()) ?? '');
+      if (!s) throw new Error(id ? 'That HexSketch editor is no longer open: call open_sketcher.' : 'No HexSketch editor is open: call open_sketcher first.');
+      return s;
+    };
     const appOnly = { ui: { resourceUri: SKETCHER_URI, visibility: ['app'] as ('app' | 'model')[] } };
 
     registerAppResource(server, 'HexSketch editor', SKETCHER_URI, {
@@ -165,9 +170,9 @@ export function createServer(opts: ServerOptions): McpServer {
       _meta: { ui: { resourceUri: SKETCHER_URI } },
     }, ({ structure: s }) => safely(async () => {
       const about = s ? await analyze(s) : null;
-      sketch = { id: crypto.randomUUID(), version: 0, updates: [], drawing: s ?? '' };
+      const sketch = await sketches.create(s ?? '');
       // Models see the text or the structuredContent depending on the chat, so both say how to carry on.
-      const next = 'The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher with highlight (SMILES fragments, coloured yellow, blue, orange... in order) and a short note, or with a new structure. Call read_sketcher whenever the user refers to their drawing, since they may have edited it. Do not open another editor. Suggest Full screen to keep the editor beside the chat.';
+      const next = `The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher (with sketch "${sketch.id}") with highlight (SMILES fragments, coloured yellow, blue, orange... in order) and a short note, or with a new structure. Call read_sketcher (with the same sketch) whenever the user refers to their drawing, since they may have edited it. Do not open another editor. Suggest Full screen to keep the editor beside the chat.`;
       const shared = { structure: s ?? '', sketch: sketch.id, next };
       if (!s || !about) return { content: [{ type: 'text', text: JSON.stringify({ opened: 'an empty canvas', next, fallback: 'In a chat that cannot show the editor, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }, null, 2) }], structuredContent: shared };
       const url = await link(s);
@@ -178,50 +183,47 @@ export function createServer(opts: ServerOptions): McpServer {
       };
     }));
 
-    /** The molecule the editor shows now, as far as the server knows. */
-    const current = async (): Promise<Molecule | null> => (sketch?.drawing ? (await readStructure(sketch.drawing)).mol : null);
-
     server.registerTool('read_sketcher', {
       title: 'Read the HexSketch editor',
       description: 'What the user has drawn in the open HexSketch editor: name, SMILES (with stereochemistry), formula, masses and a link. Call it whenever the user refers to their drawing ("this", "what I drew", "my structure").',
-      inputSchema: {},
+      inputSchema: { sketch: sketchId },
       annotations: { title: 'Read the HexSketch editor', ...READ_ONLY },
-    }, () => safely(async () => {
-      if (!sketch) throw new Error('No HexSketch editor is open: call open_sketcher first.');
-      if (!sketch.drawing) return text({ empty: true, note: 'The canvas is empty.' });
-      return text({ ...(await analyze(sketch.drawing)), link: await link(sketch.drawing) });
+    }, ({ sketch: id }) => safely(async () => {
+      const sketch = await target(id);
+      if (!sketch.drawing) return text({ sketch: sketch.id, empty: true, note: 'The canvas is empty.' });
+      return text({ sketch: sketch.id, ...(await analyze(sketch.drawing)), link: await link(sketch.drawing) });
     }));
 
     server.registerTool('show_in_sketcher', {
       title: 'Show in the HexSketch editor',
       description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of only describing it in the chat: replace the structure, highlight parts of it, and leave a short note beside it. Use it every time you explain or change a structure while the editor is open: highlight the groups you are describing, draw the product of a change the user asks about, point out a stereocentre. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each call replaces your earlier highlights; the user can undo anything you change.`,
       inputSchema: {
+        sketch: sketchId,
         structure: structure.optional().describe('A new structure to draw in place of the current one (the user can undo it). Leave out to work on what is drawn.'),
         highlight: z.array(z.string().min(1)).max(HIGHLIGHTS.length).optional().describe('SMILES fragments to highlight, e.g. ["C(=O)O", "c1ccccc1"].'),
         note: z.string().max(2000).optional().describe('A short explanation shown in the editor\'s notes panel, e.g. "Yellow: the ester you made from the acid."'),
       },
       annotations: { title: 'Show in the HexSketch editor', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-    }, ({ structure: s, highlight, note }) => safely(async () => {
-      if (!sketch) throw new Error('No HexSketch editor is open: call open_sketcher first.');
+    }, ({ sketch: id, structure: s, highlight, note }) => safely(async () => {
+      const sketch = await target(id);
       if (!s && !highlight?.length && !note) throw new Error('Give a structure, a highlight or a note to show.');
-      const target = s ? (await readStructure(s)).mol : await current();
+      const drawing = s ?? sketch.drawing;
+      const mol: Molecule | null = drawing ? (await readStructure(drawing)).mol : null;
       const highlights = (highlight ?? []).map((frag, i) => {
         let pattern: Molecule;
         try { pattern = parseSmiles(frag); } catch (err) { throw new Error(`Highlight "${frag}" is not a SMILES fragment: ${(err as Error).message}`); }
-        const places = target ? substructureMatches(pattern, target).length : 0;
+        const places = mol ? substructureMatches(pattern, mol).length : 0;
         return { smiles: frag, ...HIGHLIGHTS[i]!, places };
       });
-      sketch.version += 1;
-      sketch.updates = [...sketch.updates, {
-        version: sketch.version,
+      await sketches.addUpdate(sketch.id, {
         ...(s ? { structure: s } : {}),
         ...(highlight ? { highlights: highlights.map(({ smiles, color, name: n }) => ({ smiles, color, name: n })) } : {}),
         ...(note ? { note } : {}),
-      }].slice(-50);
-      if (s) sketch.drawing = s;
+      });
       const missed = highlights.filter((h) => h.places === 0).map((h) => h.smiles);
       return text({
         shown: true,
+        sketch: sketch.id,
         highlights: highlights.map((h) => ({ smiles: h.smiles, colour: h.name, places: h.places })),
         ...(missed.length ? { warning: `Not found in the drawing: ${missed.join(', ')}. Check the fragment against read_sketcher's SMILES.` } : {}),
       });
@@ -234,9 +236,9 @@ export function createServer(opts: ServerOptions): McpServer {
       annotations: READ_ONLY,
       _meta: appOnly,
     }, ({ sketch: id, since }) => safely(async () => {
-      const live = sketch?.id === id;
-      const updates = live ? sketch!.updates.filter((u) => u.version > since) : [];
-      return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live, updates } };
+      const sketch = await sketches.get(id);
+      const updates = sketch ? sketch.updates.filter((u) => u.version > since) : [];
+      return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live: !!sketch, updates } };
     }));
 
     registerAppTool(server, 'sketch_sync', {
@@ -245,7 +247,7 @@ export function createServer(opts: ServerOptions): McpServer {
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       _meta: appOnly,
     }, ({ sketch: id, cdxml }) => safely(async () => {
-      if (sketch?.id === id) sketch.drawing = cdxml;
+      await sketches.setDrawing(id, cdxml);
       return { content: [{ type: 'text', text: 'ok' }] };
     }));
   }

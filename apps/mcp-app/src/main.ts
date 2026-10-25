@@ -23,7 +23,7 @@ import { mountApp, type AppApi } from '@hexsketch/web';
 /** As the server sends it (packages/hexsketch/src/mcp.ts). */
 interface SketchUpdate { version: number; structure?: string; highlights?: { smiles: string; color: string; name: string }[]; note?: string }
 
-const app = new App({ name: 'HexSketch', version: '0.1.3' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+const app = new App({ name: 'HexSketch', version: '0.1.4' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 
 const expand = { label: 'Full screen', run: () => toggleFullscreen() };
 const send = { label: 'Send to chat', run: (ui: AppApi) => sendToChat(ui) };
@@ -202,8 +202,7 @@ function startUpdates() {
       if (!sc) throw new Error('the chat returned no structuredContent from sketch_updates');
       failures = 0;
       if (sc.live === false) {
-        setLink('off', 'Not linked: a newer editor is open', 'A newer HexSketch editor is open in the chat; the AI shows things there now.');
-        addNote('A newer HexSketch editor is open in the chat; the AI shows things there now.', []);
+        setLink('off', 'Not linked: HexSketch has lost this editor', 'HexSketch no longer knows this editor (it was opened more than a day ago, or by another computer). Ask the AI to open the sketcher again.');
         return;
       }
       setLink('live', 'Linked to the AI', 'What the AI shows with show_in_sketcher appears here.');
