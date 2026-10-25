@@ -10,6 +10,7 @@
   "type": "module",
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc --noEmit",
     "test": "node --test --experimental-strip-types packages/*/test/*.test.ts",
     "dev": "npm run dev -w @hexsketch/web",
     "build:web": "npm run build -w @hexsketch/web",
