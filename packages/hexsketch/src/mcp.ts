@@ -137,15 +137,19 @@ export function createServer(opts: ServerOptions): McpServer {
 
     registerAppTool(server, 'open_sketcher', {
       title: 'Open the HexSketch editor',
-      description: 'Open HexSketch\'s drawing editor in the chat, so the user can draw a structure by hand or edit one you give. Use it when the user wants to draw, sketch, edit or correct a structure, or when a structure is easier to draw than describe. The user\'s drawing comes back as a message starting "Structure from HexSketch" (with name, SMILES, formula and a link) when they press Send to chat, and your context is kept up to date with it while they edit. In chats that cannot show the editor, give the user the link in the result instead.',
+      description: 'Open HexSketch\'s drawing editor in the chat, so the user can draw a structure by hand or edit one you give. Use it whenever the user asks to draw, sketch, open, edit or correct a structure in HexSketch, or when a structure is easier to draw than describe; prefer it to render_structure and structure_link when the user may want to change the structure. The user\'s drawing comes back as a message starting "Structure from HexSketch" (with name, SMILES, formula and a link) when they press Send to chat, and your context is kept up to date with it while they edit. In chats that cannot show the editor, give the user the link in the result instead.',
       inputSchema: { structure: structure.optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.') },
       annotations: { title: 'Open the HexSketch editor', ...READ_ONLY },
       _meta: { ui: { resourceUri: SKETCHER_URI } },
     }, ({ structure: s }) => safely(async () => {
-      if (!s) return { content: [{ type: 'text', text: 'Opened the HexSketch editor with an empty canvas. If it is not shown, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }] };
+      // The editor reads structuredContent; the text is for chats that cannot show it.
+      if (!s) return { content: [{ type: 'text', text: 'Opened the HexSketch editor with an empty canvas. In a chat that cannot show it, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }], structuredContent: { structure: '' } };
       const about = await analyze(s);
       const url = await link(s);
-      return { content: [{ type: 'text', text: JSON.stringify({ opened: about.name ?? about.smiles, smiles: about.smiles, link: url, note: 'If the editor is not shown, give the user the link to edit the structure in HexSketch.' }, null, 2) }] };
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ opened: about.name ?? about.smiles, smiles: about.smiles, link: url, note: 'The editor is open in the chat where it is supported; the link opens the same structure on hexsketch.com.' }, null, 2) }],
+        structuredContent: { structure: s, name: about.name, smiles: about.smiles, link: url },
+      };
     }));
   }
 

@@ -22,8 +22,24 @@ const app = new App({ name: 'HexSketch', version: '0.1.0' });
 const send = { label: 'Send to chat', run: (ui: AppApi) => sendToChat(ui) };
 const open = { label: 'Open in HexSketch', run: (ui: AppApi) => openInBrowser(ui) };
 const expand = { label: 'Full screen', run: (ui: AppApi) => toggleFullscreen(ui) };
-const ui = mountApp({ zoom: 1.25, actions: [send, open, expand] });
-document.querySelector('.host-action')?.classList.add('primary');
+/** A failure while starting shows in the frame, so it reads as an error rather than an empty box. */
+function showError(err: unknown) {
+  const box = document.createElement('pre');
+  box.style.cssText = 'margin:12px;padding:12px;border:1px solid #d33;border-radius:6px;background:#fff5f5;color:#900;font:12px/1.4 ui-monospace,monospace;white-space:pre-wrap';
+  box.textContent = `HexSketch could not start here:\n${(err as Error)?.stack ?? String(err)}`;
+  document.body.prepend(box);
+}
+window.addEventListener('error', (e) => showError(e.error ?? e.message));
+window.addEventListener('unhandledrejection', (e) => showError(e.reason));
+
+let ui: AppApi;
+try {
+  ui = mountApp({ zoom: 1.25, actions: [send, open, expand] });
+  document.querySelector('.host-action')?.classList.add('primary');
+} catch (err) {
+  showError(err);
+  throw err;
+}
 
 /** The drawing as text for the AI, or null when nothing is drawn. */
 async function describe(): Promise<string | null> {
@@ -56,9 +72,11 @@ async function toggleFullscreen(u: AppApi) {
   document.body.classList.toggle('fullscreen', r.mode === 'fullscreen');
 }
 
-// What the AI asked to open.
-app.ontoolinput = async ({ arguments: args }) => {
-  const input = typeof args?.structure === 'string' ? args.structure.trim() : '';
+// What the AI asked to open: from the tool's input, or from its result where a chat sends only that.
+let opened = false;
+async function openStructure(input: string) {
+  if (opened) return;
+  opened = true;
   if (!input) { ui.flash('Draw your structure, then Send to chat'); return; }
   try {
     const s = await readStructure(input);
@@ -68,6 +86,11 @@ app.ontoolinput = async ({ arguments: args }) => {
   } catch (err) {
     ui.flash(`Could not open the structure: ${(err as Error).message}`);
   }
+}
+app.ontoolinput = ({ arguments: args }) => openStructure(typeof args?.structure === 'string' ? args.structure.trim() : '');
+app.ontoolresult = (result) => {
+  const s = (result.structuredContent as { structure?: unknown } | undefined)?.structure;
+  void openStructure(typeof s === 'string' ? s.trim() : '');
 };
 app.onhostcontextchanged = (ctx) => {
   if (ctx.displayMode) document.body.classList.toggle('fullscreen', ctx.displayMode === 'fullscreen');

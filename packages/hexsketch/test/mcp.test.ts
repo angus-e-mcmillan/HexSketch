@@ -133,7 +133,10 @@ test('open_sketcher appears with the editor, linked to its ui:// resource', asyn
 
 test('open_sketcher answers with the structure and a link, for chats that cannot show the editor', async () => {
   const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
-  const r = JSON.parse(textOf(await call('open_sketcher', { structure: 'CC(=O)Nc1ccc(O)cc1' })));
+  const result = await call('open_sketcher', { structure: 'CC(=O)Nc1ccc(O)cc1' });
+  // The editor can also load the structure from the result, for chats that send only that.
+  assert.equal((result.structuredContent as { structure: string }).structure, 'CC(=O)Nc1ccc(O)cc1');
+  const r = JSON.parse(textOf(result));
   assert.equal(r.opened, 'N-(4-hydroxyphenyl)acetamide');
   assert.match(r.link, /^https:\/\/hexsketch\.com\/#smiles=/);
   assert.match(textOf(await call('open_sketcher', {})), /empty canvas/);
