@@ -154,7 +154,9 @@ export function parseSmiles(smiles: string): Molecule {
     const needs = atoms.map((a, idx) => {
       if (!a.aromatic) return false;
       const valence = (DEFAULT_VALENCE[a.element] ?? [4])[0]!;
-      const sigma = degreeOrder[idx]! + a.hCount - a.charge * (a.element === 'C' ? -1 : 1);
+      // A charged carbon has three bonds and no pi bond to give ([c-] in a cyclopentadienide,
+      // [c+] in tropylium); a charged heteroatom gains or loses one bond (pyridinium, [n-]).
+      const sigma = degreeOrder[idx]! + a.hCount + (a.element === 'C' ? Math.abs(a.charge) : -a.charge);
       return valence - sigma >= 1;
     });
     const matched = new Set<number>();

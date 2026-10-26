@@ -1,7 +1,7 @@
 # Benchmark
 
 How well HexSketch names and draws structures it has never seen, measured on
-1,782 public structures. Reproduce it with `tools/bench/run.sh`
+2,282 public structures. Reproduce it with `tools/bench/run.sh`
 (needs Java and RDKit; see `tools/bench/README.md`).
 
 ## Naming
@@ -17,18 +17,18 @@ a structure it says so rather than guess ("declined").
 
 | Set | Structures | Named | Correct (of named) | E/Z added | Wrong stereo | Wrong structure | Name OPSIN can't read | Declined | Error |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Small organics (Huuskonen solubility set) | 1282 | 1252 (97.7%) | 1250 (99.8%) | 0 | 0 | 2 | 0 | 30 | 0 |
-| Lead-like molecules (ZINC) | 500 | 427 (85.4%) | 424 (99.3%) | 1 | 0 | 1 | 1 | 72 | 1 |
-| **All** | 1782 | 1679 (94.2%) | 1674 (99.7%) | 1 | 0 | 3 | 1 | 102 | 1 |
+| Small organics (Huuskonen solubility set) | 1282 | 1278 (99.7%) | 1276 (99.8%) | 0 | 0 | 2 | 0 | 4 | 0 |
+| Lead-like molecules (ZINC) | 500 | 482 (96.4%) | 479 (99.4%) | 1 | 0 | 1 | 1 | 18 | 0 |
+| Fragment-like molecules (ZINC), held out | 500 | 480 (96.0%) | 473 (98.5%) | 0 | 3 | 2 | 2 | 20 | 0 |
+| **All** | 2282 | 2240 (98.2%) | 2228 (99.5%) | 1 | 3 | 5 | 3 | 42 | 0 |
 
-Median time to name a structure: 0.7 ms.
+Median time to name a structure: 0.8 ms.
 
 Why structures were declined:
 
-- ring system without a supported parent name: 86
-- charged species: 8
-- no parent hydride: 5
-- ring substituent without a supported name: 2
+- charged species: 21
+- ring system without a supported parent name: 18
+- ring entered from inside itself: 2
 - esters with different alkyl groups: 1
 
 Every wrong name, unreadable name and error is listed in
@@ -47,9 +47,9 @@ depiction and CoordGen), scored by the same code:
 
 | Layout | Clean | Atoms overlapping | Crossing bonds | Bond length spread |
 |---|---:|---:|---:|---:|
-| HexSketch | 96.3% | 3.5% | 2.2% | 0.012 |
-| RDKit | 98.5% | 1.4% | 1.3% | 0.003 |
-| RDKit CoordGen | 99.0% | 0.9% | 0.4% | 0.006 |
+| HexSketch | 96.4% | 3.3% | 2.1% | 0.012 |
+| RDKit | 98.6% | 1.2% | 1.2% | 0.003 |
+| RDKit CoordGen | 99.0% | 0.7% | 0.5% | 0.005 |
 
 HexSketch's drawings with overlaps or crossings are listed in
 `tools/bench/layout-failures.tsv`. A side-by-side gallery is at

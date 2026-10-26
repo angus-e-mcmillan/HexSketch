@@ -29,6 +29,7 @@ OPSIN = ROOT / 'tools' / 'opsin' / 'opsin.jar'
 SETS = {
     'solubility': 'Small organics (Huuskonen solubility set)',
     'zinc-leads': 'Lead-like molecules (ZINC)',
+    'zinc-frags': 'Fragment-like molecules (ZINC), held out',
 }
 
 structures = list(csv.DictReader(open(BENCH / 'structures.tsv', encoding='utf-8'), delimiter='\t'))

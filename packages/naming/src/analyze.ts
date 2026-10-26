@@ -163,7 +163,7 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       continue;
     }
     // Cationic ring nitrogen (piperidin-1-ium, pyridin-1-ium): named on its ring.
-    if (x.charge === 1 && x.element === 'N' && ringAtoms.has(x.id) && isRingCation(mol, x.id)) {
+    if (x.charge === 1 && ringAtoms.has(x.id) && isRingCation(mol, x.id)) {
       groups.push({ kind: 'ium', anchor: x.id, ownCarbon: false, consumed: [] });
       continue;
     }
@@ -187,6 +187,10 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
 /** A ring N+ named with -ium: bonded to ring atoms, carbon, hydrogen or an oxido O-, and not nitro. */
 export function isRingCation(mol: Molecule, n: AtomId): boolean {
   const a = mol.atom(n);
+  // Pyrylium-type O+ and S+: two ring bonds, one of them double.
+  if ((a.element === 'O' || a.element === 'S') && a.charge === 1) {
+    return mol.neighbours(n).length === 2 && mol.incidentBonds(n).some((b) => mol.bond(b).order === 2);
+  }
   if (a.element !== 'N' || a.charge !== 1) return false;
   return mol.neighbours(n).every((m) => el(mol, m) === 'C' || el(mol, m) === 'N' || (el(mol, m) === 'O' && mol.atom(m).charge === -1 && mol.neighbours(m).length === 1))
     && mol.neighbours(n).filter((m) => el(mol, m) === 'O').length <= 1;

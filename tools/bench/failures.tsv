@@ -2,6 +2,12 @@ set	id	outcome	smiles	hexsketch_name	opsin_smiles_or_reason
 solubility	train-852	wrong	CNC(=O)ON=C(CSC)C(C)(C)C	(((3,3-dimethyl-1-(methylthio)butan-2-ylidene)amino)oxy)-N-methylformamide	CC(C(CSC)=NON(C=O)C)(C)C
 solubility	train-865	wrong	CNC(=O)ON=C1C(Cl)C2CC(C#N)C1C2	(((3-chloro-6-cyanobicyclo[2.2.1]heptan-2-ylidene)amino)oxy)-N-methylformamide	ClC1C(C2C(CC1C2)C#N)=NON(C=O)C
 zinc-leads	ZINC00387689	wrong	Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12	2,5,7-trimethyl-9-(phenylamino)-1,4,7,8-tetraazabicyclo[4.3.0]nona-1(6),2,4,8-tetraen-1-ium	CC=1[N+]=2C(=NN(C2C(=NC1)C)C)NC1=CC=CC=C1
-zinc-leads	ZINC04594478	error	Cc1nn2[c-](C(=O)NCc3ccco3)c(C)n[n+]2c1[N+](=O)[O-]		"error: Not a valid SMILES: cannot kekulize ""Cc1nn2[c-](C(=O)NCc3ccco3)c(C)n[n+]2c1[N+](=O)[O-]"". Check the aromatic rings: pyrrole-type N needs [nH], and a ring written in lowercase must be able to take alternating double bonds"
 zinc-leads	ZINC08651825	stereo-added	CC1=NC(C)=C2C(=[NH2+])Nc3ccccc3[C@@H]2C1C#N	(S)-1-cyano-2,4-dimethyl-1,5,6,10b-tetrahydropyrido[3,4-c]quinolin-5-iminium	C(#N)[C@@H]1C(=NC(=C2C(NC=3C=CC=CC3C21)=[NH2+])C)C
 zinc-leads	ZINC17223734	unparsed	CCOC(=O)CNC1=[NH+]N=[S@@](=O)(O)c2ccccc21	(S)-5-((2-ethoxy-2-oxoethyl)amino)-2-hydroxy-2-oxo-2-thia-3,4-diazabicyclo[4.4.0]deca-1(10),2,4,6,8-pentaen-4-ium	
+zinc-frags	ZINC00382897	unparsed	NC(=O)N/N=C1/CCCCCSC1	1-(((Z)-3,4,5,6,7,8-hexahydro-2H-1-thiocin-3-ylidene)amino)urea	
+zinc-frags	ZINC20389909	wrong	N#CCc1ccc([N-]C=N/C(C#N)=C(\N)C#N)cc1	(Z)-2-amino-3-((1-((4-(1-cyanomethyl)phenyl)amino)methylidene)amino)but-2-enedinitrile	N\C(\C#N)=C(\C#N)/N=CNC1=CC=C(C=C1)CC#N
+zinc-frags	ZINC06437899	stereo	CSC(=O)N1C[C@H]1C	((R)-2-methylaziridin-1-yl)(methylthio)oxomethane	CC1[N@@](C1)C(=O)SC
+zinc-frags	ZINC03844333	unparsed	CCO[P@@]1(=O)CCC[C@H](C)C1	(1S,3S)-1-ethoxy-3-methyl-1-oxo-3,4,5,6-tetrahydro-2H-1-phosphinine	
+zinc-frags	ZINC03895453	stereo	Nc1nonc1N/N=C/c1ccccc1	4-((benzylideneamino)amino)-1,2,5-oxadiazol-3-amine	C(C1=CC=CC=C1)=NNC=1C(=NON1)N
+zinc-frags	ZINC00391932	wrong	CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C	1-(1,1-bis(dimethylamino)methyloxy)pyrrolidine-2,5-dione	CN(C(ON1C(CCC1=O)=O)N(C)C)C
+zinc-frags	ZINC16451015	stereo	O=c1occn1/N=C/c1ccccc1	3-(benzylideneamino)oxazol-2(3H)-one	C(C1=CC=CC=C1)=NN1C(OC=C1)=O

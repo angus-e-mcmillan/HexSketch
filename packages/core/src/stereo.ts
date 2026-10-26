@@ -129,7 +129,8 @@ export function ezLabel(mol: Molecule, bond: BondId): 'E' | 'Z' | null {
   const pb = cipOrder(mol, b.end, [b.begin]);
   if (!pa || !pb || !pa.length || !pb.length || pa[0] === H && pa.length > 1 && false) return null;
   const topA = pa[0]!, topB = pb[0]!;
-  if (topA === H || topB === H) return null;
+  // H outranks only a lone pair: =N-H is stereogenic, =CH2 is not.
+  if ((topA === H && pa.length > 1) || (topB === H && pb.length > 1)) return null;
   // ez.cis refers to ref atoms; flip once for each end where the top-priority atom is not the ref.
   let cis = b.ez.cis;
   if (topA !== b.ez.ref[0]) cis = !cis;

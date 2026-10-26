@@ -7,6 +7,9 @@ always runs on the same structures. Needs RDKit and network access to GitHub.
   2000, 40, 773), as shipped in RDKit's Docs/Book/data: 1,282 small organics,
   each with a common or trivial name.
 - zinc-leads: 500 lead-like molecules from ZINC, RDKit's Regress/Data.
+- zinc-frags: 500 fragment-like molecules from ZINC, from the same place. The
+  namer was not tuned on these: they show how it does on structures it has
+  never been shown.
 """
 import csv
 import io
@@ -34,11 +37,12 @@ for part in ('train', 'test'):
             continue
         rows.append(('solubility', f'{part}-{i + 1}', mol.GetProp('_Name'), Chem.MolToSmiles(mol)))
 
-for line in fetch('Regress/Data/zinc.leads.500.q.smi').splitlines():
-    smiles, zid = line.split('\t')
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is not None:
-        rows.append(('zinc-leads', zid, '', Chem.MolToSmiles(mol)))
+for name, path in (('zinc-leads', 'Regress/Data/zinc.leads.500.q.smi'), ('zinc-frags', 'Regress/Data/zinc.frags.500.q.smi')):
+    for line in fetch(path).splitlines():
+        smiles, zid = line.split('\t')
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is not None:
+            rows.append((name, zid, '', Chem.MolToSmiles(mol)))
 
 out = io.StringIO()
 w = csv.writer(out, delimiter='\t', lineterminator='\n')

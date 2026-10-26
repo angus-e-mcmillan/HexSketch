@@ -205,25 +205,44 @@ function matchSkeleton(an: Analysis, system: AtomId[], ct: CompiledTemplate): Nu
   return out;
 }
 
-/** Size of a maximum matching on `atoms` using ring bonds among them. */
+/**
+ * Size of a maximum matching on `atoms` using ring bonds among them. Atoms are
+ * taken in breadth-first order and subproblems memoised by the set left, so a
+ * ring system (narrow, whatever its size) is quick.
+ */
 function maxMatching(an: Analysis, atoms: AtomId[]): number {
   const mol = an.mol;
+  if (atoms.length > 52) return 0;
   const set = new Set(atoms);
-  const nb = (a: AtomId) => mol.neighbours(a).filter((n) => set.has(n) && an.ringBonds.has(mol.bondBetween(a, n)!.id));
-  let best = 0;
-  const used = new Set<AtomId>();
-  const go = (i: number, size: number) => {
-    if (size + Math.floor((atoms.length - i) / 2) <= best && i < atoms.length) { /* cannot beat best */ }
-    if (i === atoms.length) { best = Math.max(best, size); return; }
-    const a = atoms[i]!;
-    if (used.has(a)) { go(i + 1, size); return; }
-    used.add(a);
-    for (const n of nb(a)) if (!used.has(n)) { used.add(n); go(i + 1, size + 1); used.delete(n); }
-    used.delete(a);
-    go(i + 1, size);
+  // Breadth-first order keeps the frontier, and so the memo, small.
+  const order: AtomId[] = [];
+  const seen = new Set<AtomId>();
+  for (const s0 of atoms) {
+    if (seen.has(s0)) continue;
+    const q = [s0]; seen.add(s0);
+    while (q.length) {
+      const x = q.shift()!; order.push(x);
+      for (const y of mol.neighbours(x)) if (set.has(y) && !seen.has(y) && an.ringBonds.has(mol.bondBetween(x, y)!.id)) { seen.add(y); q.push(y); }
+    }
+  }
+  const pos = new Map(order.map((a, i) => [a, i]));
+  const nbrs = order.map((a) => mol.neighbours(a).filter((y) => set.has(y) && an.ringBonds.has(mol.bondBetween(a, y)!.id)).map((y) => pos.get(y)!).filter((j) => j > pos.get(a)!));
+  const bit = (i: number) => 2 ** i;
+  const has = (mask: number, i: number) => Math.floor(mask / bit(i)) % 2 === 1;
+  const memo = new Map<string, number>();
+  // f(i, used): best matching among atoms i.. given which later atoms are already used.
+  const f = (i: number, used: number): number => {
+    if (i >= order.length) return 0;
+    if (has(used, i)) return f(i + 1, used - bit(i));
+    const key = `${i}:${used}`;
+    const hit = memo.get(key);
+    if (hit !== undefined) return hit;
+    let best = f(i + 1, used);
+    for (const j of nbrs[i]!) if (!has(used, j)) best = Math.max(best, 1 + f(i + 1, used + bit(j)));
+    memo.set(key, best);
+    return best;
   };
-  go(0, 0);
-  return best;
+  return f(0, 0);
 }
 
 /**
@@ -242,7 +261,9 @@ function hydroParent(an: Analysis, system: AtomId[]): { info: RingInfo; numberin
     if (b.order === 2) double.push([b.begin, b.end]);
   }
   // Atoms that can carry a ring double bond in the mancude parent.
-  const capable = system.filter((a) => (el(mol, a) === 'C' && ringNb(a).length <= 3) || (el(mol, a) === 'N' && ringNb(a).length === 2));
+  // (A pyrylium-type O+ or S+ takes a double bond too.)
+  const capable = system.filter((a) => (el(mol, a) === 'C' && ringNb(a).length <= 3) || (el(mol, a) === 'N' && ringNb(a).length === 2)
+    || ((el(mol, a) === 'O' || el(mol, a) === 'S') && mol.atom(a).charge === 1 && ringNb(a).length === 2));
   const capSet = new Set(capable);
   if (double.some(([x, y]) => !capSet.has(x) || !capSet.has(y))) return null;
   const inDouble = new Set(double.flat());
@@ -268,7 +289,9 @@ function hydroParent(an: Analysis, system: AtomId[]): { info: RingInfo; numberin
   if (!choices.length) return null;
   const hetero = (e: string) => system.some((a) => el(mol, a) === e);
   const base = { heteroN: hetero('N'), heteroO: hetero('O'), heteroS: hetero('S') };
-  for (const ct of parentsFor(system.map((a) => el(mol, a)))) {
+  const monocyclic = system.every((a) => ringNb(a).length === 2);
+  const hw = monocyclic ? hantzschWidman(an, system) : null;
+  for (const ct of [...parentsFor(system.map((a) => el(mol, a))), ...(hw ? [hw] : [])]) {
     const maps = matchSkeleton(an, system, ct);
     if (!maps.length) continue;
     const numberings: Numbering[] = [];
@@ -284,6 +307,59 @@ function hydroParent(an: Analysis, system: AtomId[]): { info: RingInfo; numberin
 }
 
 /** `addedH`: the ring's C=O is the principal ketone, so pyridin-2(1H)-one style names may be used. */
+const HW_PRIORITY = ['O', 'S', 'Se', 'N', 'P', 'Si', 'B'];
+const HW_PREFIX: Record<string, string> = { O: 'oxa', S: 'thia', Se: 'selena', N: 'aza', P: 'phospha', Si: 'sila', B: 'bora' };
+const hwCache = new Map<string, CompiledTemplate>();
+
+/**
+ * The mancude Hantzsch-Widman parent of a heteromonocycle of 3 to 10 atoms
+ * (P-22.2.2): 1,3,2-dioxathiole, 1,4-dithiepine. Numbered from the senior
+ * heteroatom (O > S > Se > N > P > Si > B), heteroatoms as low as possible.
+ */
+function hantzschWidman(an: Analysis, system: AtomId[]): CompiledTemplate | null {
+  const mol = an.mol;
+  const n = system.length;
+  if (n < 3 || n > 10) return null;
+  const els = system.map((a) => el(mol, a));
+  if (els.some((e) => e !== 'C' && !HW_PREFIX[e]) || els.every((e) => e === 'C')) return null;
+  // Cyclic order.
+  const inSys = new Set(system);
+  const cyc: AtomId[] = [system[0]!];
+  while (cyc.length < n) {
+    const last = cyc[cyc.length - 1]!;
+    const next = mol.neighbours(last).find((x) => inSys.has(x) && !cyc.includes(x));
+    if (next === undefined) return null;
+    cyc.push(next);
+  }
+  const senior = HW_PRIORITY.find((e) => els.includes(e))!;
+  let best: { order: string[]; key: number[] } | null = null;
+  for (let s0 = 0; s0 < n; s0++) for (const dir of [1, -1]) {
+    const order = cyc.map((_, i) => el(mol, cyc[(s0 + dir * i + 2 * n) % n]!));
+    if (order[0] !== senior) continue;
+    const hetero = order.map((e, i) => (e === 'C' ? 0 : i + 1)).filter(Boolean);
+    const byPriority = HW_PRIORITY.flatMap((p) => order.map((e, i) => (e === p ? i + 1 : 0)).filter(Boolean));
+    const key = [...hetero, ...byPriority];
+    if (!best || cmpVec(key, best.key) < 0) best = { order, key };
+  }
+  const order = best!.order;
+  const name = (() => {
+    const cited = HW_PRIORITY.filter((e) => order.includes(e));
+    const locs = cited.flatMap((e) => order.map((x, i) => (x === e ? String(i + 1) : '')).filter(Boolean));
+    const prefix = cited.map((e) => `${multiplier(order.filter((x) => x === e).length)}${HW_PREFIX[e]}`).join('');
+    const last = cited[cited.length - 1]!;
+    const stem = n === 3 ? (last === 'N' ? 'irine' : 'irene') : n === 4 ? 'ete' : n === 5 ? 'ole'
+      : n === 6 ? (['B', 'P'].includes(last) ? 'inine' : 'ine') : n === 7 ? 'epine' : n === 8 ? 'ocine' : n === 9 ? 'onine' : 'ecine';
+    const body = /[aeiou]$/.test(prefix) && /^[aeiou]/.test(stem) ? prefix.slice(0, -1) + stem : prefix + stem;
+    return `${locs.join(',')}-${body}`;
+  })();
+  const hit = hwCache.get(name);
+  if (hit) return hit;
+  const bonds: [number, number][] = order.map((_, i) => [i, (i + 1) % n] as [number, number]);
+  const ct = compile({ name, yl: name.replace(/e$/, ''), smiles: '', aromatic: true, mancude: true, skeleton: { elements: order, bonds }, locants: order.map((_, i) => String(i + 1)) });
+  hwCache.set(name, ct);
+  return ct;
+}
+
 function recognizeRing(an: Analysis, system: AtomId[], addedH = false): { info: RingInfo; numberings: Numbering[] } | null {
   const mol = an.mol;
   const hetero = (e: string) => system.some((a) => el(mol, a) === e);
@@ -343,7 +419,8 @@ function vonBaeyer(an: Analysis, system: AtomId[], base: { heteroN: boolean; het
   const inSys = new Set(system);
   const nb = (a: AtomId) => mol.neighbours(a).filter((n) => inSys.has(n) && an.ringBonds.has(mol.bondBetween(a, n)!.id));
   const edges = system.reduce((s2, a) => s2 + nb(a).length, 0) / 2;
-  if (edges - system.length + 1 !== 2) return null; // only bicyclic systems
+  if (edges - system.length + 1 > 2) return polycyclic(an, system, base);
+  if (edges - system.length + 1 !== 2) return null;
   if (system.some((a) => !['C', 'N', 'O', 'S'].includes(el(mol, a)))) return null;
   const deg = new Map(system.map((a) => [a, nb(a).length]));
   const numberings: Numbering[] = [];
@@ -406,9 +483,154 @@ function vonBaeyer(an: Analysis, system: AtomId[], base: { heteroN: boolean; het
   return { info: { kind: 'vonbaeyer' as const, bracket, size: system.length, ringCount: 2, ...base }, numberings };
 }
 
+/**
+ * Polycyclic von Baeyer names (P-23.2): tricyclo[5.2.1.0^{2,6}]decane. The main
+ * ring is as large as possible, then the main bridge, the main ring is divided
+ * as symmetrically as possible, and the superscript locants are as low as
+ * possible; secondary bridges are numbered in decreasing size, each from the
+ * end nearer the higher-numbered bridgehead. Spiro unions are not covered.
+ */
+function polycyclic(an: Analysis, system: AtomId[], base: { heteroN: boolean; heteroO: boolean; heteroS: boolean }) {
+  const mol = an.mol;
+  const inSys = new Set(system);
+  const nb = (a: AtomId) => mol.neighbours(a).filter((n) => inSys.has(n) && an.ringBonds.has(mol.bondBetween(a, n)!.id));
+  const n = system.length;
+  if (n > 32 || system.some((a) => !['C', 'N', 'O', 'S', 'P', 'Si', 'B'].includes(el(mol, a)))) return null;
+  const edgeKey = (x: AtomId, y: AtomId) => (x < y ? `${x}-${y}` : `${y}-${x}`);
+  const allEdges = new Set<string>();
+  for (const a of system) for (const b of nb(a)) allEdges.add(edgeKey(a, b));
+  const rings = allEdges.size - n + 1;
+
+  // Simple cycles of maximum length (the main ring candidates).
+  const idx = new Map(system.map((a, i) => [a, i]));
+  let best = 0;
+  const mains: AtomId[][] = [];
+  let budget = 200000;
+  const dfs = (start: AtomId, path: AtomId[], seen: Set<AtomId>) => {
+    if (--budget < 0) return;
+    const cur = path[path.length - 1]!;
+    for (const y of nb(cur)) {
+      if (y === start && path.length >= 3) {
+        if (idx.get(path[1]!)! > idx.get(cur)!) continue; // each cycle once
+        if (path.length > best) { best = path.length; mains.length = 0; }
+        if (path.length === best) mains.push([...path]);
+        continue;
+      }
+      if (seen.has(y) || idx.get(y)! < idx.get(start)!) continue;
+      seen.add(y); path.push(y);
+      dfs(start, path, seen);
+      path.pop(); seen.delete(y);
+    }
+  };
+  for (const s0 of system) dfs(s0, [s0], new Set([s0]));
+  if (budget < 0 || !mains.length) return null;
+
+  interface Cand { order: AtomId[]; sizes: number[]; sups: [number, number][] }
+  const cands: Cand[] = [];
+  for (const main of mains) {
+    const onRing = new Set(main);
+    const pos = new Map(main.map((a, i) => [a, i]));
+    const L = main.length;
+    // Main bridge candidates: paths between two main-ring atoms through atoms off it.
+    const bridges: { u: AtomId; v: AtomId; inner: AtomId[] }[] = [];
+    for (const u of main) for (const x of nb(u)) {
+      if (onRing.has(x)) {
+        const d = Math.abs(pos.get(u)! - pos.get(x)!);
+        if (d !== 1 && d !== L - 1 && pos.get(u)! < pos.get(x)!) bridges.push({ u, v: x, inner: [] });
+        continue;
+      }
+      const walk = (path: AtomId[], seen: Set<AtomId>) => {
+        const cur = path[path.length - 1]!;
+        for (const y of nb(cur)) {
+          if (seen.has(y)) continue;
+          if (onRing.has(y)) { if (y !== u && path.length >= 1 && pos.get(u)! < pos.get(y)!) bridges.push({ u, v: y, inner: [...path] }); continue; }
+          seen.add(y); path.push(y); walk(path, seen); path.pop(); seen.delete(y);
+        }
+      };
+      walk([x], new Set([u, x]));
+    }
+    if (!bridges.length) continue;
+    const maxB = Math.max(...bridges.map((b) => b.inner.length));
+    for (const br of bridges.filter((b) => b.inner.length === maxB)) {
+      const iu = pos.get(br.u)!, iv = pos.get(br.v)!;
+      const segUp: AtomId[] = [], segDown: AtomId[] = [];
+      for (let i = (iu + 1) % L; i !== iv; i = (i + 1) % L) segUp.push(main[i]!);
+      for (let i = (iu - 1 + L) % L; i !== iv; i = (i - 1 + L) % L) segDown.push(main[i]!);
+      for (const [b1, b2] of [[br.u, br.v], [br.v, br.u]] as const) {
+        // From b1: the larger segment to b2, then the smaller one back.
+        const fromB1Up = b1 === br.u ? segUp : [...segDown].reverse();
+        const fromB1Down = b1 === br.u ? segDown : [...segUp].reverse();
+        const options = fromB1Up.length === fromB1Down.length ? [[fromB1Up, fromB1Down], [fromB1Down, fromB1Up]] : fromB1Up.length > fromB1Down.length ? [[fromB1Up, fromB1Down]] : [[fromB1Down, fromB1Up]];
+        for (const [big, small] of options) {
+          const inner = b1 === br.u ? br.inner : [...br.inner].reverse();
+          // small runs from b1 outward; walking back from b2 to b1 is its reverse.
+          const order: AtomId[] = [b1, ...big!, b2, ...[...small!].reverse(), ...inner];
+          const used = new Set<string>();
+          for (let i = 0; i < L; i++) used.add(edgeKey(main[i]!, main[(i + 1) % L]!));
+          const chain = [br.u, ...br.inner, br.v];
+          for (let i = 0; i + 1 < chain.length; i++) used.add(edgeKey(chain[i]!, chain[i + 1]!));
+          const sups: [number, number][] = [];
+          const sizes = [big!.length, small!.length, inner.length];
+          const numbered = new Map(order.map((a, i) => [a, i + 1]));
+          let ok = true;
+          while (used.size < allEdges.size) {
+            // Secondary bridges: paths between numbered atoms through unnumbered ones.
+            let pick: { x: AtomId; y: AtomId; inner: AtomId[] } | null = null;
+            for (const x of numbered.keys()) for (const z0 of nb(x)) {
+              if (used.has(edgeKey(x, z0))) continue;
+              if (numbered.has(z0)) {
+                if (numbered.get(x)! < numbered.get(z0)! && (!pick || pick.inner.length < 0)) pick = pick ?? { x, y: z0, inner: [] };
+                continue;
+              }
+              const walk = (path: AtomId[], seen: Set<AtomId>) => {
+                const cur = path[path.length - 1]!;
+                for (const y of nb(cur)) {
+                  if (seen.has(y) || used.has(edgeKey(cur, y))) continue;
+                  if (numbered.has(y)) { if (y !== x && (!pick || path.length > pick.inner.length)) pick = { x, y, inner: [...path] }; continue; }
+                  seen.add(y); path.push(y); walk(path, seen); path.pop(); seen.delete(y);
+                }
+              };
+              walk([z0], new Set([x, z0]));
+            }
+            if (!pick) { ok = false; break; }
+            const { x, y, inner: pin } = pick as { x: AtomId; y: AtomId; inner: AtomId[] };
+            // Number from the end nearer the higher-numbered bridgehead.
+            const fromHigh = numbered.get(x)! > numbered.get(y)! ? pin : [...pin].reverse();
+            for (const a of fromHigh) numbered.set(a, numbered.size + 1);
+            const path = [x, ...pin, y];
+            for (let i = 0; i + 1 < path.length; i++) used.add(edgeKey(path[i]!, path[i + 1]!));
+            const lx = numbered.get(x)!, ly = numbered.get(y)!;
+            sups.push([Math.min(lx, ly), Math.max(lx, ly)]);
+            sizes.push(pin.length);
+          }
+          if (!ok || numbered.size !== n) continue;
+          cands.push({ order: [...numbered.entries()].sort((p, q) => p[1] - q[1]).map(([a]) => a), sizes, sups });
+        }
+      }
+    }
+  }
+  if (!cands.length) return null;
+  // Most symmetric division of the main ring, then the lowest superscripts.
+  const asym = (c: Cand) => c.sizes[0]! - c.sizes[1]!;
+  const minAsym = Math.min(...cands.map(asym));
+  const sym = cands.filter((c) => asym(c) === minAsym);
+  const supKey = (c: Cand) => c.sups.flat().sort((p, q) => p - q);
+  sym.sort((p, q) => cmpVec(supKey(p), supKey(q)));
+  const top = supKey(sym[0]!);
+  const chosen = sym.filter((c) => cmpVec(supKey(c), top) === 0);
+  const desc = (c: Cand) => {
+    const parts = c.sizes.slice(0, 3).map(String);
+    c.sups.forEach((sp, i) => parts.push(`${c.sizes[3 + i]}^{${sp[0]},${sp[1]}}`));
+    return `${multiplier(rings)}cyclo[${parts.join('.')}]`;
+  };
+  const bracket = desc(chosen[0]!);
+  const numberings = chosen.filter((c) => desc(c) === bracket).map((c) => new Map(c.order.map((a, i) => [a, String(i + 1)])));
+  return { info: { kind: 'vonbaeyer' as const, bracket, size: n, ringCount: rings, ...base }, numberings };
+}
+
 /** Replacement prefixes for heteroatoms in a von Baeyer/spiro parent: "1-oxa-8-aza". */
 function heteroPrefix(mol: Molecule, atoms: AtomId[], numbering: Numbering): string {
-  const groups: [string, string][] = [['O', 'oxa'], ['S', 'thia'], ['N', 'aza']];
+  const groups: [string, string][] = [['O', 'oxa'], ['S', 'thia'], ['Se', 'selena'], ['N', 'aza'], ['P', 'phospha'], ['Si', 'sila'], ['B', 'bora']];
   const parts: string[] = [];
   for (const [e, word] of groups) {
     const locs = atoms.filter((a) => el(mol, a) === e).map((a) => numbering.get(a)!).sort(compareLocant);
@@ -558,8 +780,26 @@ function nameOne(input: Molecule): string {
   return nameOneSystematic(input);
 }
 
+/** Explicit hydrogen atoms ([H] in SMILES) folded into their atom's hydrogen count, keeping stereo that refers to them. */
+function foldHydrogens(mol: Molecule): void {
+  for (const h of [...mol.atoms()]) {
+    if (h.element !== 'H' || h.isotope !== null || h.charge !== 0) continue;
+    const nb = mol.neighbours(h.id);
+    if (nb.length !== 1) continue;
+    const heavy = mol.atom(nb[0]!);
+    for (const b of mol.bonds()) {
+      if (b.ez) b.ez = { ref: [b.ez.ref[0] === h.id ? -1 : b.ez.ref[0], b.ez.ref[1] === h.id ? -1 : b.ez.ref[1]], cis: b.ez.cis };
+    }
+    for (const a of mol.atoms()) if (a.chirality?.order.includes(h.id)) a.chirality = { ...a.chirality, order: a.chirality.order.map((x) => (x === h.id ? -1 : x)) };
+    const hs = mol.implicitHydrogens(heavy.id);
+    mol.removeAtom(h.id);
+    heavy.explicitHydrogens = hs + 1;
+  }
+}
+
 function nameOneSystematic(input: Molecule): string {
   const mol = expandNicknames(input);
+  foldHydrogens(mol);
   for (const a of mol.atoms()) {
     if (!SUPPORTED.has(a.element)) throw new OutOfScope(`element ${a.element}`);
     if (a.isotope !== null) throw new OutOfScope('isotopic labelling');
@@ -578,6 +818,7 @@ function nameOneSystematic(input: Molecule): string {
 function isNamedIon(mol: Molecule, id: AtomId): boolean {
   const a = mol.atom(id);
   const nb = mol.neighbours(id);
+  if ((a.element === 'O' || a.element === 'S') && a.charge === 1 && isRingCation(mol, id)) return true;
   if (a.element === 'N' && a.charge === 1 && isRingCation(mol, id) && mol.atom(id).element === 'N') {
     // In a ring (-ium), or open-chain with only single bonds (azanium).
     if (perceiveRingMember(mol, id)) return true;
