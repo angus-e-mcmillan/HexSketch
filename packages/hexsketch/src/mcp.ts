@@ -303,7 +303,7 @@ export function createServer(opts: ServerOptions): McpServer {
     registerAppTool(server, 'sketch_updates', {
       description: 'Used by the HexSketch editor to fetch what show_in_sketcher asked it to show. Not for the model.',
       inputSchema: { sketch: z.string(), since: z.number().int() },
-      annotations: READ_ONLY,
+      annotations: { title: 'Fetch editor updates', ...READ_ONLY },
       _meta: appOnly,
     }, ({ sketch: id, since }) => safely(async () => {
       if (store.poll) {
@@ -320,7 +320,7 @@ export function createServer(opts: ServerOptions): McpServer {
     registerAppTool(server, 'sketch_sync', {
       description: 'Used by the HexSketch editor to report the user\'s drawing, so read_sketcher can see it. Not for the model.',
       inputSchema: { sketch: z.string(), cdxml: z.string().max(opts.maxDrawing ?? 4_000_000) },
-      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+      annotations: { title: 'Report the drawing', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
       _meta: appOnly,
     }, ({ sketch: id, cdxml }) => safely(async () => {
       await store.setDrawing(id, cdxml);
