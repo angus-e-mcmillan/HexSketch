@@ -319,3 +319,27 @@ test('a mechanism in one call: steps the editor steps through, checked before an
   const [c1, c2] = [await carbon(updates[0]!), await carbon(updates[1]!)];
   assert.ok(Math.hypot(c1.x - c2.x, c1.y - c2.y) < 1, `the carbon moved by ${Math.hypot(c1.x - c2.x, c1.y - c2.y).toFixed(1)}`);
 });
+
+test('retrosynthesis and balance: disconnections drawn, a step from nowhere reported', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const svg = await call('render_structure', { structure: 'c1ccccc1[C:1](=O)[NH:2]C', disconnect: [[1, 2]], format: 'svg' });
+  assert.equal(svg.isError, undefined);
+  const forgot = JSON.parse(textOf(await call('render_structure', { reaction: { stages: ['CC(=O)O.OC', 'CC(=O)OC'] }, format: 'svg' }), 1));
+  assert.match(forgot.balance[0].unbalanced, /H2O on the left/);
+  const id = ((await call('open_sketcher', {})).structuredContent as { sketch: string }).sketch;
+  // A label starting at a mapped atom goes on that atom, not on a look-alike (here, the other amide).
+  const T = 'CC(=O)Nc1ccc(cc1)[C:1](=O)[NH:2]C1CCCCC1';
+  await call('show_in_sketcher', { structure: T, disconnect: [[1, 2]], labels: [{ at: '[C:1](=O)N', text: 'amide C–N' }] });
+  const label = ((await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: { labels?: { occurrence?: number }[] }[] }).updates[0]!.labels![0]!;
+  const { labelPlaces, readStructure } = await import('@hexsketch/agent');
+  const { smilesAtomMaps } = await import('@hexsketch/core');
+  const t = await readStructure(T);
+  assert.equal(labelPlaces(t.mol, '[C:1](=O)N')[label.occurrence! - 1]!.id, smilesAtomMaps(t.mol).get(1));
+  // A mechanism whose last step drops the bromide: reported, still shown.
+  const shown = JSON.parse(textOf(await call('show_in_sketcher', { steps: [
+    { structure: '[OH-:1].[CH3:2][Br:3]', arrows: [{ from: [1], to: [1, 2] }, { from: [2, 3], to: [3] }] },
+    { structure: '[OH:1][CH3:2]' },
+  ] })));
+  assert.equal(shown.shown, true);
+  assert.match(shown.balance[0], /Step 1 → 2: Br on the left is not on the right; the charge changes by \+1/);
+});

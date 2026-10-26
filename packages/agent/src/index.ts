@@ -11,6 +11,8 @@ import '@hexsketch/naming/rings';
 
 export { labelPlaces, placeLabels, type AtomLabel, type PlacedLabels } from './labels.ts';
 export { alignByMaps, arrangeForArrows, electronArrows, type ElectronArrow } from './arrows.ts';
+export { describeImbalance, disconnectionMarks, imbalance, type Imbalance } from './retro.ts';
+import { describeImbalance, imbalance } from './retro.ts';
 
 /**
  * HexSketch for AI agents and scripts: read a structure from SMILES, a
@@ -340,6 +342,22 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
     y += down + 2 * L;
   }
   return { mol, objects, groups: [], style, format: 'smiles' };
+}
+
+/**
+ * Atoms that do not balance across each forward arrow of a scheme: a
+ * byproduct not drawn, or atoms from a reagent written above the arrow
+ * (which is fine). Retrosynthetic arrows are skipped: they never balance.
+ */
+export async function schemeBalance(input: Scheme): Promise<{ step: number; unbalanced: string }[]> {
+  const stages = await Promise.all(input.stages.map((t) => readStructure(t.trim(), { format: 'smiles' })));
+  const out: { step: number; unbalanced: string }[] = [];
+  for (let i = 1; i < stages.length; i++) {
+    if (input.arrows?.[i - 1]?.type === 'retrosynthetic') continue;
+    const x = imbalance(expanded(stages[i - 1]!), expanded(stages[i]!));
+    if (x) out.push({ step: i, unbalanced: describeImbalance(x) });
+  }
+  return out;
 }
 
 /** The structure with abbreviations (Ph, OMe, Boc...) drawn out, for SMILES, names and comparisons. */
