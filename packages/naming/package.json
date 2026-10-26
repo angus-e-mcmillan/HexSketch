@@ -4,6 +4,11 @@
   "license": "BUSL-1.1",
   "type": "module",
   "main": "./src/index.ts",
-  "exports": { ".": "./src/index.ts" },
-  "dependencies": { "@hexsketch/core": "0.1.0" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./rings": "./src/all-rings.ts"
+  },
+  "dependencies": {
+    "@hexsketch/core": "0.1.0"
+  }
 }

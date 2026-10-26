@@ -172,3 +172,16 @@ test('substructures are found whichever way the double bonds are drawn', async (
   assert.equal(substructureMatches(parseSmiles('[O-]'), parseSmiles('CC(=O)[O-]')).length, 1);
   assert.equal(substructureMatches(parseSmiles('[O-]'), parseSmiles('CC(=O)O')).length, 0);
 });
+
+test('aromatic carbanions and carbocations kekulize without a pi bond of their own', () => {
+  for (const smi of ['[cH-]1cccc1', 'Cc1nn2[c-](C(=O)NC)c(C)n[n+]2c1', '[cH+]1cccccc1']) assert.doesNotThrow(() => parseSmiles(smi), smi);
+});
+
+test('a sulfoxide stereocentre survives a round trip: the lone pair stands where an H would', () => {
+  for (const smi of ['C[S@](=O)c1ccccc1', 'C[S@@](=O)c1ccccc1', 'O=[S@]1OCCS1']) {
+    const mol = parseSmiles(smi);
+    const s = [...mol.atoms()].find((a) => a.element === 'S' && a.chirality)!;
+    assert.ok(s, `${smi}: chirality recorded`);
+    assert.equal(writeSmiles(parseSmiles(writeSmiles(mol))), writeSmiles(mol), smi);
+  }
+});

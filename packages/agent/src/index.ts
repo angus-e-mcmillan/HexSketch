@@ -7,6 +7,7 @@ import {
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
+import '@hexsketch/naming/rings';
 
 /**
  * HexSketch for AI agents and scripts: read a structure from SMILES, a
@@ -357,8 +358,13 @@ function parts(mol: Molecule): Molecule[] {
   });
 }
 
-const safeName = (mol: Molecule): { name: string | null; reason?: string } => {
-  try { return nameMolecule(mol); } catch (err) { return { name: null, reason: (err as Error).message }; }
+/**
+ * The name, never throwing. A structure read from SMILES is named by the
+ * SMILES's own stereochemistry; one that was drawn, by what the drawing shows
+ * (so a double bond the SMILES left open is not given an E/Z from its layout).
+ */
+const safeName = (mol: Molecule, drawn = true): { name: string | null; reason?: string } => {
+  try { return nameMolecule(mol, { geometry: drawn }); } catch (err) { return { name: null, reason: (err as Error).message }; }
 };
 
 // -------------------------------------------------------------------- render
@@ -414,7 +420,7 @@ export async function render(input: string | Structure, opts: RenderOptions = {}
   if (to === 'pdf') return out(toPdf(dep, { padding }), width, height);
   if (!opts.rasterize) throw new Error('PNG needs a rasterizer (render({ to: "png", rasterize })); SVG and PDF need none');
   const png = await opts.rasterize(svg, opts.scale ?? 4);
-  const alt = await altTextFor(s.mol, safeName(expanded(s)).name, s.style, s.objects, s.groups);
+  const alt = await altTextFor(s.mol, safeName(expanded(s), s.smiles === undefined).name, s.style, s.objects, s.groups);
   return out(pngWithPayload(png, alt), width, height);
 }
 
@@ -422,7 +428,8 @@ export async function render(input: string | Structure, opts: RenderOptions = {}
 
 /** The IUPAC name, or null with the reason when the structure is outside what HexSketch names. */
 export async function name(input: string | Structure, opts: ReadOptions = {}): Promise<{ name: string | null; reason?: string }> {
-  return safeName(expanded(await readStructure(input, opts)));
+  const s = await readStructure(input, opts);
+  return safeName(expanded(s), s.smiles === undefined);
 }
 
 export interface Analysis {
@@ -439,10 +446,10 @@ export interface Analysis {
   isotopes: { mz: number; relative: number }[];
 }
 
-function analyzeOne(mol: Molecule): Analysis {
+function analyzeOne(mol: Molecule, drawn = true): Analysis {
   const m = computeMass(mol);
   return {
-    name: safeName(mol).name,
+    name: safeName(mol, drawn).name,
     smiles: writeSmiles(mol),
     formula: m.formulaWithCharge,
     charge: m.charge,
@@ -455,10 +462,11 @@ function analyzeOne(mol: Molecule): Analysis {
 
 /** Name, SMILES, formula and masses: for the whole drawing, and per structure when there are several. */
 export async function analyze(input: string | Structure, opts: ReadOptions = {}): Promise<Analysis & { structures: Analysis[] }> {
-  const mol = expanded(await readStructure(input, opts));
+  const s = await readStructure(input, opts);
+  const mol = expanded(s);
   if (!mol.atomCount) throw new Error('No atoms to analyse');
-  const each = parts(mol);
-  return { ...analyzeOne(mol), structures: each.length > 1 ? each.map(analyzeOne) : [] };
+  const each = parts(mol), drawn = s.smiles === undefined;
+  return { ...analyzeOne(mol, drawn), structures: each.length > 1 ? each.map((m) => analyzeOne(m, drawn)) : [] };
 }
 
 // ------------------------------------------------------------- convert, link
@@ -538,7 +546,7 @@ export async function validate(input: string | Structure, opts: ReadOptions = {}
   }
   const pieces = mol.fragments().length;
   if (pieces > 1) issues.push({ severity: 'note', message: `${pieces} separate structures (salt, mixture or reaction)` });
-  const named = safeName(mol);
+  const named = safeName(mol, s.smiles === undefined);
   if (!named.name) issues.push({ severity: 'note', message: `No IUPAC name generated${named.reason ? `: ${named.reason}` : ''}` });
   return {
     ok: !issues.some((i) => i.severity === 'error'),

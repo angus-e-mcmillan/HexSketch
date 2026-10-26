@@ -18,7 +18,10 @@ export function alkaneStem(n: number): string {
 
 /** di, tri, tetra ... for simple prefixes and suffixes. */
 export function multiplier(n: number): string {
-  const m: Record<number, string> = { 1: '', 2: 'di', 3: 'tri', 4: 'tetra', 5: 'penta', 6: 'hexa', 7: 'hepta', 8: 'octa', 9: 'nona', 10: 'deca' };
+  const m: Record<number, string> = {
+    1: '', 2: 'di', 3: 'tri', 4: 'tetra', 5: 'penta', 6: 'hexa', 7: 'hepta', 8: 'octa', 9: 'nona', 10: 'deca',
+    11: 'undeca', 12: 'dodeca', 13: 'trideca', 14: 'tetradeca', 15: 'pentadeca', 16: 'hexadeca', 17: 'heptadeca', 18: 'octadeca', 19: 'nonadeca', 20: 'icosa',
+  };
   return m[n] ?? `${alkaneStem(n)}a`;
 }
 
@@ -39,7 +42,8 @@ const VOWELS = /^[aeiouy]/;
  * (propan-2-ol, but keep it before a consonant: ethane-1,2-diol).
  */
 export function attachSuffix(parent: string, locants: string, suffix: string): string {
-  const base = VOWELS.test(suffix) && parent.endsWith('e') ? parent.slice(0, -1) : parent;
+  // The final e goes before a vowel, also inside a closing bracket: spiro[indole-3,4'-piperidin]-2-one.
+  const base = !VOWELS.test(suffix) ? parent : parent.endsWith('e') ? parent.slice(0, -1) : parent.endsWith('e]') ? `${parent.slice(0, -2)}]` : parent;
   return locants ? `${base}-${locants}-${suffix}` : `${base}${suffix}`;
 }
 
@@ -51,7 +55,7 @@ export function joinLocants(locants: (number | string)[]): string {
 export function compareLocant(a: number | string, b: number | string): number {
   const key = (x: number | string) => {
     const s = String(x);
-    const m = /^(\d+)([a-z]?)('*)$/.exec(s);
+    const m = /^(\d+)([a-z]?)('*)(?:\(\d+\))?$/.exec(s);
     // Primed locants (second ring of an assembly) sort after all unprimed ones.
     if (!m) return [1e6, s.charCodeAt(0), 0, 0] as const;
     return [m[3]!.length, Number(m[1]), m[2] ? m[2].charCodeAt(0) : 0, 0] as const;

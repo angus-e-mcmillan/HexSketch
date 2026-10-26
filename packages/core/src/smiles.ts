@@ -37,6 +37,8 @@ export function parseSmiles(smiles: string): Molecule {
   const atoms: ParsedAtom[] = [];
   const bonds: { a: number; b: number; order: BondOrder | 'arom'; dir?: '/' | '\\' }[] = [];
   const written: Written[] = [];
+  /** Atoms written after a preceding atom (the first atom, and those after a dot, have none). */
+  const hasPrev = new Set<number>();
   const ringOpen = new Map<number, { atom: number; order: BondOrder | null; slot: number; dir: '/' | '\\' | null }>();
   const stack: number[] = [];
   let prev = -1;
@@ -58,6 +60,7 @@ export function parseSmiles(smiles: string): Molecule {
       addBond(prev, idx, pendingOrder, pendingDir);
       written[prev]!.push(idx);
       written[idx]!.push(prev);
+      hasPrev.add(idx);
     }
     // A bracket hydrogen comes right after the preceding atom (or first, if none).
     if (atom.bracket && atom.hCount > 0 && atom.chiral) written[idx]!.push('H');
@@ -151,7 +154,9 @@ export function parseSmiles(smiles: string): Molecule {
     const needs = atoms.map((a, idx) => {
       if (!a.aromatic) return false;
       const valence = (DEFAULT_VALENCE[a.element] ?? [4])[0]!;
-      const sigma = degreeOrder[idx]! + a.hCount - a.charge * (a.element === 'C' ? -1 : 1);
+      // A charged carbon has three bonds and no pi bond to give ([c-] in a cyclopentadienide,
+      // [c+] in tropylium); a charged heteroatom gains or loses one bond (pyridinium, [n-]).
+      const sigma = degreeOrder[idx]! + a.hCount + (a.element === 'C' ? Math.abs(a.charge) : -a.charge);
       return valence - sigma >= 1;
     });
     const matched = new Set<number>();
@@ -194,6 +199,9 @@ export function parseSmiles(smiles: string): Molecule {
   atoms.forEach((a, idx) => {
     if (!a.chiral) return;
     const order = written[idx]!.map((w) => (w === 'H' ? -1 : ids[w as number]!));
+    // Three neighbours and no H (a sulfoxide, phosphine or sulfonium): the lone pair takes the
+    // place an implicit H would, after the preceding atom.
+    if (order.length === 3 && ['S', 'P', 'Se', 'As'].includes(a.element)) order.splice(hasPrev.has(idx) ? 1 : 0, 0, -1);
     if (order.length === 4) mol.atom(ids[idx]!).chirality = { order, anticlockwise: a.chiral === '@' };
   });
 
@@ -298,6 +306,8 @@ function writeFragment(mol: Molecule, fragment: AtomId[]): string {
   const parentOf = (a: AtomId) => { const b = parentBond.get(a); return b === undefined ? null : mol.otherAtom(mol.bond(b), a); };
   const childBonds = (a: AtomId) => mol.incidentBonds(a).filter((b) => !ringBonds.has(b) && parentBond.get(mol.otherAtom(mol.bond(b), a)) === b);
   const hasH = (a: AtomId) => mol.implicitHydrogens(a) > 0;
+  /** A stereocentre whose fourth position is a lone pair (sulfoxide): written like an implicit H. */
+  const lonePairCentre = (a: AtomId) => !hasH(a) && (mol.atom(a).chirality?.order.includes(-1) ?? false);
 
   // Neighbours in the order the SMILES lists them, as the parser reads @/@@:
   // the preceding atom, a bracket H, ring closures, then branches. H is -1.
@@ -305,7 +315,7 @@ function writeFragment(mol: Molecule, fragment: AtomId[]): string {
     const p = parentOf(a);
     return [
       ...(p === null ? [] : [p]),
-      ...(hasH(a) ? [-1] : []),
+      ...(hasH(a) || lonePairCentre(a) ? [-1] : []),
       ...(closures.get(a) ?? []).map((c) => mol.otherAtom(mol.bond(c.bond), a)),
       ...childBonds(a).map((b) => mol.otherAtom(mol.bond(b), a)),
     ];

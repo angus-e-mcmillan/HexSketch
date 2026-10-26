@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Molecule, type BondDisplay } from '../src/model.ts';
 import { ezLabel, perceiveStereoFromGeometry, rsLabel } from '../src/stereo.ts';
+import { parseSmiles } from '../src/smiles.ts';
 
 const L = 18.43;
 
@@ -53,4 +54,24 @@ test('double bonds: zigzag but-2-ene is E, U-shape is Z', () => {
   assert.equal(build(2.598 * L, -0.5 * L), 'E');   // zigzag
   assert.equal(build(1.732 * L, L), 'Z');           // U-shape: CH3 straight down from C3
   assert.equal(build(2.598 * L, 0.5 * L), null, 'substituent on the bond axis: no descriptor');
+});
+
+/** Labels at every stereocentre, as "atom index:R" in SMILES atom order. */
+const labels = (smi: string) => {
+  const mol = parseSmiles(smi);
+  return [...mol.atoms()].map((a, i) => [i, rsLabel(mol, a.id)] as const).filter(([, l]) => l).map(([i, l]) => `${i}${l}`).join(' ');
+};
+
+test('CIP: branches of equal atoms are compared in rank order (agrees with RDKit)', () => {
+  // Each disagreed before siblings were ordered by their own branches.
+  assert.equal(labels('CC1=C2C(=O)O[C@H](c3ccoc3)[C@]2(C)CCC1'), '6S 12R');
+  assert.equal(labels('CC1=C(C#N)[C@H](c2ccco2)C(C#N)=C(N)S1'), '5S');
+  assert.equal(labels('NC(=O)c1sc2c(c1N)C=N[C@H]1CCCN21'), '11R');
+  assert.equal(labels('Cc1ccccc1[C@@H]1[C@H](C#N)[C@@]12C(N)=NN=C2O'), '7S 8S 11R');
+});
+
+test('CIP: sulfoxides have a lone pair as the lowest substituent; no duplicates across P=O', () => {
+  assert.equal(labels('C[S@](=O)c1ccccc1'), '1S');
+  assert.equal(labels('C[S@@](=O)c1ccccc1'), '1R');
+  assert.equal(labels('CCO[P@@]1(=O)CCCCN1Cc1ccccc1'), '3S');
 });

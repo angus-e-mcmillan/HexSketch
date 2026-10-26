@@ -1,0 +1,169 @@
+{
+  "rdkit": "2026.09.1",
+  "opsin": "2.9.0",
+  "sets": {
+    "solubility": {
+      "title": "Small organics (Huuskonen solubility set)",
+      "naming": {
+        "total": 1282,
+        "correct": 1279,
+        "stereo-added": 0,
+        "stereo": 0,
+        "wrong": 2,
+        "unparsed": 0,
+        "declined": 1,
+        "error": 0,
+        "named": 1281,
+        "accuracy": 0.9976599063962559,
+        "coverage": 0.999219968798752,
+        "accuracy_of_named": 0.9984387197501952,
+        "median_ms": 0.6
+      },
+      "layout": {
+        "HexSketch": {
+          "drawn": 1282,
+          "clean": 0.9641185647425897,
+          "with_clash": 0.0327613104524181,
+          "with_crossing": 0.02418096723868955,
+          "mean_spread": 0.012072941812082707
+        },
+        "RDKit": {
+          "drawn": 1282,
+          "clean": 0.9820592823712948,
+          "with_clash": 0.0171606864274571,
+          "with_crossing": 0.015600624024960999,
+          "mean_spread": 0.0040239670793619405
+        },
+        "RDKit CoordGen": {
+          "drawn": 1282,
+          "clean": 0.9890795631825273,
+          "with_clash": 0.0109204368174727,
+          "with_crossing": 0.0039001560062402497,
+          "mean_spread": 0.006115714479700929
+        }
+      }
+    },
+    "zinc-leads": {
+      "title": "Lead-like molecules (ZINC)",
+      "naming": {
+        "total": 500,
+        "correct": 482,
+        "stereo-added": 1,
+        "stereo": 0,
+        "wrong": 1,
+        "unparsed": 1,
+        "declined": 15,
+        "error": 0,
+        "named": 485,
+        "accuracy": 0.964,
+        "coverage": 0.97,
+        "accuracy_of_named": 0.9938144329896907,
+        "median_ms": 1.2
+      },
+      "layout": {
+        "HexSketch": {
+          "drawn": 500,
+          "clean": 0.96,
+          "with_clash": 0.04,
+          "with_crossing": 0.016,
+          "mean_spread": 0.01069152796269477
+        },
+        "RDKit": {
+          "drawn": 500,
+          "clean": 0.992,
+          "with_clash": 0.006,
+          "with_crossing": 0.006,
+          "mean_spread": 0.001518602579421556
+        },
+        "RDKit CoordGen": {
+          "drawn": 500,
+          "clean": 0.992,
+          "with_clash": 0.004,
+          "with_crossing": 0.006,
+          "mean_spread": 0.004172721963749455
+        }
+      }
+    },
+    "zinc-frags": {
+      "title": "Fragment-like molecules (ZINC), held out",
+      "naming": {
+        "total": 500,
+        "correct": 476,
+        "stereo-added": 0,
+        "stereo": 3,
+        "wrong": 2,
+        "unparsed": 2,
+        "declined": 17,
+        "error": 0,
+        "named": 483,
+        "accuracy": 0.952,
+        "coverage": 0.966,
+        "accuracy_of_named": 0.9855072463768116,
+        "median_ms": 0.8
+      },
+      "layout": {
+        "HexSketch": {
+          "drawn": 500,
+          "clean": 0.966,
+          "with_clash": 0.028,
+          "with_crossing": 0.02,
+          "mean_spread": 0.011322740462213885
+        },
+        "RDKit": {
+          "drawn": 500,
+          "clean": 0.992,
+          "with_clash": 0.006,
+          "with_crossing": 0.008,
+          "mean_spread": 0.0027155575583258152
+        },
+        "RDKit CoordGen": {
+          "drawn": 500,
+          "clean": 0.992,
+          "with_clash": 0.0,
+          "with_crossing": 0.008,
+          "mean_spread": 0.005090539155869661
+        }
+      }
+    }
+  },
+  "all": {
+    "naming": {
+      "total": 2282,
+      "correct": 2237,
+      "stereo-added": 1,
+      "stereo": 3,
+      "wrong": 5,
+      "unparsed": 3,
+      "declined": 33,
+      "error": 0,
+      "named": 2249,
+      "accuracy": 0.9802804557405784,
+      "coverage": 0.9855390008764242,
+      "accuracy_of_named": 0.9946642952423299,
+      "median_ms": 0.8
+    },
+    "layout": {
+      "HexSketch": {
+        "drawn": 2282,
+        "clean": 0.9636283961437335,
+        "with_clash": 0.033304119193689745,
+        "with_crossing": 0.02147239263803681,
+        "mean_spread": 0.011605892031351601
+      },
+      "RDKit": {
+        "drawn": 2282,
+        "clean": 0.9864154250657318,
+        "with_clash": 0.012269938650306749,
+        "with_crossing": 0.011831726555652936,
+        "mean_spread": 0.003188346128227736
+      },
+      "RDKit CoordGen": {
+        "drawn": 2282,
+        "clean": 0.9903593339176161,
+        "with_clash": 0.007011393514460999,
+        "with_crossing": 0.0052585451358457495,
+        "mean_spread": 0.00546537095652329
+      }
+    }
+  }
+}

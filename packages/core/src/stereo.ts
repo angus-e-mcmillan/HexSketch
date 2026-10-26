@@ -16,6 +16,14 @@ const z = (mol: Molecule, id: AtomId) => (id === H ? 1 : elementBySymbol(mol.ato
 
 interface Node { atom: AtomId; z: number; dup: boolean; from: AtomId; path: Set<AtomId> }
 
+/** Sulfur or phosphorus beyond its usual valence (sulfoxide, sulfone, phosphoryl). */
+function expanded(mol: Molecule, id: AtomId): boolean {
+  if (id === H) return false;
+  const e = mol.atom(id).element;
+  const sum = mol.bondOrderSum(id) + mol.implicitHydrogens(id);
+  return ((e === 'S' || e === 'Se') && sum > 2) || ((e === 'P' || e === 'As') && sum > 3);
+}
+
 function children(mol: Molecule, n: Node): Node[] {
   // A duplicate atom carries phantom substituents (atomic number 0), which carry nothing:
   // expanding phantoms too grew the front threefold per sphere on symmetric rings.
@@ -25,7 +33,8 @@ function children(mol: Molecule, n: Node): Node[] {
   for (const b of mol.incidentBonds(n.atom)) {
     const bd = mol.bond(b);
     const y = mol.otherAtom(bd, n.atom);
-    const extra = Math.max(0, Math.round(bd.order) - 1);
+    // No duplicates across a bond to an expanded-octet S or P (S=O, P=O, P=S): IUPAC 2013, P-92.1.4.4.
+    const extra = expanded(mol, n.atom) || expanded(mol, y) ? 0 : Math.max(0, Math.round(bd.order) - 1);
     if (y === n.from) {
       // Multiple bond back to the parent: its duplicates hang here.
       for (let i = 0; i < extra; i++) out.push({ atom: y, z: z(mol, y), dup: true, from: n.atom, path: n.path });
@@ -41,25 +50,43 @@ function children(mol: Molecule, n: Node): Node[] {
   return out;
 }
 
-/** Compare two branches from `centre`: positive if a outranks b, 0 if indistinguishable. */
-function compareBranches(mol: Molecule, centre: AtomId, a: AtomId, b: AtomId): number {
-  const root = (x: AtomId): Node => ({ atom: x, z: z(mol, x), dup: false, from: centre, path: new Set([centre, x]) });
-  let fa: Node[] = [root(a)], fb: Node[] = [root(b)];
-  if (fa[0]!.z !== fb[0]!.z) return fa[0]!.z - fb[0]!.z;
-  for (let depth = 0; depth < 40; depth++) {
-    const expand = (front: Node[]) => front.map((n) => children(mol, n).sort((p, q) => q.z - p.z));
-    const ea = expand(fa), eb = expand(fb);
+/**
+ * A node's children in CIP order, highest first. Children of equal atomic
+ * number are ordered by their own branches (explored `depth` spheres further),
+ * since the hierarchical digraph is compared branch by branch in rank order.
+ */
+function ranked(mol: Molecule, n: Node, depth: number): Node[] {
+  const kids = children(mol, n);
+  return kids.sort((p, q) => (q.z !== p.z ? q.z - p.z : depth > 0 ? -compareNodes(mol, p, q, depth) : 0));
+}
+
+/** Compare the branches rooted at two nodes, sphere by sphere: positive if a outranks b. */
+function compareNodes(mol: Molecule, a: Node, b: Node, depth: number): number {
+  if (a.z !== b.z) return a.z - b.z;
+  let fa: Node[] = [a], fb: Node[] = [b];
+  for (let d = 0; d < depth; d++) {
+    // Siblings are ordered with a shallower look-ahead, which keeps the cost bounded.
+    const look = Math.min(depth - d - 1, SIBLING_DEPTH);
+    const ea = fa.map((n) => ranked(mol, n, look)), eb = fb.map((n) => ranked(mol, n, look));
     for (let i = 0; i < Math.max(ea.length, eb.length); i++) {
       const sa = (ea[i] ?? []).map((n) => n.z), sb = (eb[i] ?? []).map((n) => n.z);
       for (let k = 0; k < Math.max(sa.length, sb.length); k++) {
-        const d = (sa[k] ?? -1) - (sb[k] ?? -1);
-        if (d !== 0) return d;
+        const diff = (sa[k] ?? -1) - (sb[k] ?? -1);
+        if (diff !== 0) return diff;
       }
     }
     fa = ea.flat(); fb = eb.flat();
     if (!fa.length && !fb.length) return 0;
   }
   return 0;
+}
+
+const SIBLING_DEPTH = 12;
+
+/** Compare two branches from `centre`: positive if a outranks b, 0 if indistinguishable. */
+function compareBranches(mol: Molecule, centre: AtomId, a: AtomId, b: AtomId): number {
+  const root = (x: AtomId): Node => ({ atom: x, z: z(mol, x), dup: false, from: centre, path: new Set([centre, x]) });
+  return compareNodes(mol, root(a), root(b), 40);
 }
 
 /** Neighbours of `centre` (implicit H as -1), highest priority first; null if any two tie. */
@@ -84,6 +111,8 @@ export function rsLabel(mol: Molecule, centre: AtomId): 'R' | 'S' | null {
   const ch = mol.atom(centre).chirality;
   if (!ch || ch.order.length !== 4) return null;
   const pri = cipOrder(mol, centre);
+  // A sulfoxide or phosphine's lone pair stands where SMILES puts an implicit H, and ranks lowest.
+  if (pri && pri.length === 3 && ch.order.includes(H) && mol.implicitHydrogens(centre) === 0) pri.push(H);
   if (!pri || pri.length !== 4) return null;
   // Reference arrangement [d, a, b, c] with "anticlockwise" seen from d is R.
   const ref = [pri[3]!, pri[0]!, pri[1]!, pri[2]!];
@@ -100,7 +129,8 @@ export function ezLabel(mol: Molecule, bond: BondId): 'E' | 'Z' | null {
   const pb = cipOrder(mol, b.end, [b.begin]);
   if (!pa || !pb || !pa.length || !pb.length || pa[0] === H && pa.length > 1 && false) return null;
   const topA = pa[0]!, topB = pb[0]!;
-  if (topA === H || topB === H) return null;
+  // H outranks only a lone pair: =N-H is stereogenic, =CH2 is not.
+  if ((topA === H && pa.length > 1) || (topB === H && pb.length > 1)) return null;
   // ez.cis refers to ref atoms; flip once for each end where the top-priority atom is not the ref.
   let cis = b.ez.cis;
   if (topA !== b.ez.ref[0]) cis = !cis;
