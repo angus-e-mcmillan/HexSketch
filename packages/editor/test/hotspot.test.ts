@@ -94,8 +94,17 @@ test('hovering sets the hotspot; keys typed over it leave it there, keys typed a
   assert.deepEqual(ed.hotspot, { kind: 'atom', id: end!.id }, 'key typed while hovering: hotspot stays on the hovered atom');
   type(ed, '11o');
   assert.ok(same(ed, 'CC(C)CO'), 'both later keys build from the hovered atom, then on along the new chain');
-  assert.ok(ed.render().svg.includes('class="hotspot"'), 'green dot drawn');
   const spot = ed.hotspot!;
+  // The green dot marks the hotspot only while the pointer is on it: an atom
+  // the pointer has left looked selected otherwise, and on a touch screen,
+  // where nothing hovers, it stayed that way after every tap.
+  assert.ok(!ed.render().svg.includes('class="hotspot"'), 'no green dot with the pointer away from the molecule');
+  if (spot.kind === 'atom') {
+    const a = ed.doc.mol.atom(spot.id);
+    ed.pointerMove({ x: a.x, y: a.y });
+    assert.ok(ed.render().svg.includes('class="hotspot"'), 'green dot drawn on the atom under the pointer');
+    ed.pointerMove(AWAY);
+  }
   ed.key('x');
   assert.ok(spot.kind === 'atom' && [ed.doc.mol.atom(spot.id).element, ed.doc.mol.atom(spot.id).label].includes('X'), 'x labels the hotspot atom (measured), it does not switch tools');
   ed.key('z', { meta: true });

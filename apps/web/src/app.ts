@@ -59,6 +59,10 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   /** The style new documents start with: the user's default, else HexSketch's. */
   const newDocStyle = (): DrawingStyle => ({ ...(styles.defaultStyle ?? DEFAULT_STYLE) });
   const editor = new Editor(new EditorDocument(new Molecule(), newDocStyle()));
+  // The app opens with the lasso, as ChemDraw does: a click selects, and
+  // nothing is drawn until a bond, ring or other drawing tool is picked. On a
+  // touch screen this is also what leaves a finger free to scroll the sheet.
+  editor.setTool({ kind: 'select', mode: 'lasso' });
   editor.doc.page = { ...prefs.page };
   editor.analysisDecimals = prefs.decimals;
   editor.nameOf = (m) => { try { return nameMolecule(m).name; } catch { return null; } };
@@ -398,11 +402,10 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   function revealDrawing() {
     const b = editor.depiction.bounds;
     if (!Number.isFinite(b.x0)) return;
-    const pad = 40, w = wrapEl.clientWidth - 2 * pad, h = wrapEl.clientHeight - 2 * pad;
+    const pad = 40, w = wrapEl.clientWidth - 2 * pad, h = viewHeight() - 2 * pad;
     const fit = Math.min(w / Math.max(1, b.x1 - b.x0), h / Math.max(1, b.y1 - b.y0));
     if (fit < zoom) setZoom(fit);
-    wrapEl.scrollLeft = (b.x0 + b.x1) / 2 * zoom + 32 - wrapEl.clientWidth / 2;
-    wrapEl.scrollTop = (b.y0 + b.y1) / 2 * zoom + 32 - wrapEl.clientHeight / 2;
+    centreOn(b);
   }
 
   /** Export the selection (or the whole drawing) as an image or a file. */
@@ -553,20 +556,34 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     render();
   }
 
+  function onPhone() { return window.matchMedia('(max-width: 520px)').matches; }
+  /**
+   * The height the drawing is fitted into and centred on. On a phone that is
+   * not the whole canvas: in a chat the message box sits over the bottom of
+   * the frame and grows as the user types, so the lower band is left empty
+   * and the structure stays in sight.
+   */
+  function viewHeight() { return wrapEl.clientHeight * (onPhone() ? 0.74 : 1); }
+
+  /** Put the middle of `b` in the middle of what can be seen. */
+  function centreOn(b: { x0: number; y0: number; x1: number; y1: number }) {
+    wrapEl.scrollLeft = (b.x0 + b.x1) / 2 * zoom + pageEl.offsetLeft - wrapEl.clientWidth / 2;
+    wrapEl.scrollTop = (b.y0 + b.y1) / 2 * zoom + pageEl.offsetTop - viewHeight() / 2;
+  }
+
   /** Cmd+/: zoom so the whole drawing fills the window. */
   function fitToWindow() {
     const b = editor.depiction.bounds;
     if (!Number.isFinite(b.x0) || b.x1 - b.x0 < 1) return;
-    const w = wrapEl.clientWidth - 80, h = wrapEl.clientHeight - 80;
+    const w = wrapEl.clientWidth - 80, h = viewHeight() - 80;
     setZoom(Math.min(w / (b.x1 - b.x0), h / (b.y1 - b.y0)));
-    wrapEl.scrollLeft = (b.x0 + b.x1) / 2 * zoom + 32 - wrapEl.clientWidth / 2;
-    wrapEl.scrollTop = (b.y0 + b.y1) / 2 * zoom + 32 - wrapEl.clientHeight / 2;
+    centreOn(b);
   }
 
-  /** Middle of the visible canvas, in page points. */
+  /** Middle of the visible canvas, in page points (above the chat box on a phone). */
   function viewCentre() {
     const w = wrapEl.getBoundingClientRect();
-    return toPage({ clientX: w.left + w.width / 2, clientY: w.top + w.height / 2 });
+    return toPage({ clientX: w.left + w.width / 2, clientY: w.top + viewHeight() / 2 });
   }
 
   /** Client coordinates to page points. */
@@ -609,13 +626,27 @@ export function mountApp(opts: AppOptions = {}): AppApi {
 
   // ------------------------------------------------------------------- events
 
+  /**
+   * A finger with a selection tool scrolls the sheet, as it does everywhere
+   * else on a phone, and a tap still selects what it lands on; with a bond,
+   * ring or other drawing tool a finger draws. So scrolling never leaves a
+   * stray bond behind, and the lasso the app opens with keeps the sheet free
+   * to move. A mouse is unaffected: it scrolls with the wheel.
+   */
+  let pan: { id: number; x: number; y: number; left: number; top: number; page: { x: number; y: number }; moved: boolean } | null = null;
+  const fingerScrolls = (e: PointerEvent) => e.pointerType === 'touch' && editor.tool.kind === 'select';
+
   wrapEl.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 || e.target === labelEditor) return;
     commitLabel();
     commitCaption();
     wrapEl.focus();
+    if (fingerScrolls(e)) {
+      pan = { id: e.pointerId, x: e.clientX, y: e.clientY, left: wrapEl.scrollLeft, top: wrapEl.scrollTop, page: toPage(e), moved: false };
+      return;
+    }
     wrapEl.setPointerCapture(e.pointerId);
-    editor.pointerDown({ ...toPage(e), shift: e.shiftKey, alt: e.altKey, meta: e.metaKey || e.ctrlKey, time: e.timeStamp });
+    editor.pointerDown({ ...toPage(e), shift: e.shiftKey, alt: e.altKey, meta: e.metaKey || e.ctrlKey, time: e.timeStamp, touch: e.pointerType === 'touch' });
   });
   // Right-click: what you can do with the thing under the pointer, or with the selection.
   wrapEl.addEventListener('contextmenu', (e) => {
@@ -703,10 +734,39 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     }
     return items;
   }
-  wrapEl.addEventListener('pointermove', (e) => editor.pointerMove({ ...toPage(e), shift: e.shiftKey, alt: e.altKey, meta: e.metaKey || e.ctrlKey, time: e.timeStamp }));
+  /** How far a finger may travel and still count as a tap rather than a scroll. */
+  const TAP_SLOP = 8;
+  wrapEl.addEventListener('pointermove', (e) => {
+    if (pan) {
+      if (e.pointerId !== pan.id) return;
+      const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
+      if (!pan.moved && Math.hypot(dx, dy) < TAP_SLOP) return;
+      pan.moved = true;
+      wrapEl.scrollLeft = pan.left - dx;
+      wrapEl.scrollTop = pan.top - dy;
+      return;
+    }
+    editor.pointerMove({ ...toPage(e), shift: e.shiftKey, alt: e.altKey, meta: e.metaKey || e.ctrlKey, time: e.timeStamp, touch: e.pointerType === 'touch' });
+  });
   wrapEl.addEventListener('pointerup', (e) => {
+    if (pan) {
+      if (e.pointerId !== pan.id) return;
+      const { page, moved } = pan;
+      pan = null;
+      // A tap, not a scroll: select what is under the finger (or clear the selection).
+      if (!moved) {
+        editor.pointerDown({ ...page, time: e.timeStamp, touch: true });
+        editor.pointerUp({ ...page, time: e.timeStamp, touch: true });
+      }
+      return;
+    }
     if (e.button !== 0) return;
-    editor.pointerUp({ ...toPage(e), shift: e.shiftKey, alt: e.altKey, meta: e.metaKey || e.ctrlKey, time: e.timeStamp });
+    editor.pointerUp({ ...toPage(e), shift: e.shiftKey, alt: e.altKey, meta: e.metaKey || e.ctrlKey, time: e.timeStamp, touch: e.pointerType === 'touch' });
+  });
+  // The browser took the gesture over (a scroll or a page zoom): draw nothing.
+  wrapEl.addEventListener('pointercancel', (e) => {
+    if (pan?.id === e.pointerId) { pan = null; return; }
+    editor.cancelGesture();
   });
   wrapEl.addEventListener('wheel', (e) => {
     if (!e.ctrlKey && !e.metaKey) return;

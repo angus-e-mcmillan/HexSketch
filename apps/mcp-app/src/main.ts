@@ -189,7 +189,37 @@ async function toggleFullscreen() {
   const r = await app.requestDisplayMode({ mode: document.body.classList.contains('fullscreen') ? 'inline' : 'fullscreen' });
   setFullscreen(r.mode === 'fullscreen');
 }
-app.onhostcontextchanged = (ctx) => { if (ctx.displayMode) setFullscreen(ctx.displayMode === 'fullscreen'); };
+
+/**
+ * The editor asks for full screen the first time it opens: inline it is a
+ * short panel in a narrow column, which is no way to draw, least of all on a
+ * phone. The chat decides — it may refuse, or not offer full screen at all —
+ * and the Full screen button goes on toggling it either way.
+ */
+let askedFullscreen = false;
+async function openFullscreen() {
+  if (askedFullscreen) return;
+  askedFullscreen = true;
+  const ctx = app.getHostContext();
+  if (!ctx?.availableDisplayModes?.includes('fullscreen') || ctx.displayMode === 'fullscreen') return;
+  const r = await app.requestDisplayMode({ mode: 'fullscreen' }).catch(() => null);
+  if (r) setFullscreen(r.mode === 'fullscreen');
+}
+
+/**
+ * How tall the panel is inline: the frame the chat says it has room for,
+ * rather than a guessed 560px that overflows a phone and wastes a desktop.
+ */
+function fitFrame(ctx = app.getHostContext()) {
+  const box = ctx?.containerDimensions as { height?: number; maxHeight?: number } | undefined;
+  const h = box?.height ?? box?.maxHeight;
+  document.body.style.setProperty('--embed-h', h ? `${Math.round(Math.max(320, Math.min(900, h)))}px` : '560px');
+}
+
+app.onhostcontextchanged = (ctx) => {
+  if (ctx.displayMode) setFullscreen(ctx.displayMode === 'fullscreen');
+  if (ctx.containerDimensions) fitFrame(ctx);
+};
 
 // ----------------------------------------------------------- the open sketch
 
@@ -201,6 +231,7 @@ let since = 0;
 async function start(input: string) {
   if (opened) return;
   opened = true;
+  void openFullscreen();
   if (input) await openStructure(input);
   ui.flash(input ? 'Edit the structure, then Send to chat or ask in the chat' : 'Draw your structure, then Send to chat or ask in the chat');
 }
@@ -300,7 +331,7 @@ function startUpdates() {
  */
 async function shareWithModel() {
   const text = await describe();
-  const how = `The HexSketch editor is open in this chat${sketchId ? ` (sketch "${sketchId}")` : ''}, and the user is working in it. Work in it too: show every structure you discuss with show_in_sketcher, highlight the parts you mean and put your explanation in its note; draw reactions with its reaction input (an arrow, reagents above it, solvent and conditions below); keep your chat reply short and point to the editor. Do not show structures as images, pictures from the web or text drawings unless the user asks for one. Call read_sketcher when the user refers to their drawing.`;
+  const how = `The HexSketch editor is open in this chat${sketchId ? ` (sketch "${sketchId}")` : ''}, and the user is working in it. Work in it too: show every structure you discuss with show_in_sketcher, highlight the parts you mean and label them in its note with a line or two at most (the note is a caption on the drawing, not your answer, and on a phone it takes room the drawing needs); draw reactions with its reaction input (an arrow, reagents above it, solvent and conditions below); keep your chat reply short and point to the editor. Do not show structures as images, pictures from the web or text drawings unless the user asks for one. Call read_sketcher when the user refers to their drawing.`;
   await app.updateModelContext({ content: [{ type: 'text', text: text ? `${how}\n\nThe user's drawing, as it is now:\n\n${text}` : `${how}\n\nThe canvas is empty.` }] }).catch(() => {});
 }
 
@@ -322,6 +353,7 @@ ui.editor.onChange(() => {
 app.connect().then(() => {
   app.setupSizeChangedNotifications();
   setFullscreen(app.getHostContext()?.displayMode === 'fullscreen');
+  fitFrame();
 }).catch((err) => {
   // Opened outside a chat (a preview, a test): the editor still works.
   console.warn('HexSketch: no MCP Apps host', err);
