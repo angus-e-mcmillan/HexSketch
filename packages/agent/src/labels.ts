@@ -1,4 +1,4 @@
-import { makeCaption, makeShape, parsePattern, substructureMappings, type AtomId, type DocObject, type DrawingStyle, type Molecule } from '@hexsketch/core';
+import { arcPolyline, curvePolyline, makeCaption, makeShape, parsePattern, substructureMappings, type AtomId, type DocObject, type DrawingStyle, type Molecule } from '@hexsketch/core';
 import { depict, layoutCaption, textWidth } from '@hexsketch/render';
 
 /**
@@ -68,7 +68,7 @@ export function placeLabels(mol: Molecule, objects: readonly DocObject[], style:
     if (o.kind === 'text') {
       for (const l of layoutCaption(o, style).lines) boxes.push({ x0: l.x0, y0: l.top, x1: l.x1, y1: l.bottom });
     } else if (o.kind === 'arrow') {
-      const pts = o.curve?.length ? o.curve : [o.tail, o.head];
+      const pts = o.curve?.length ? curvePolyline(o.curve, 12) : o.arc ? arcPolyline(o, 24) : [o.tail, o.head];
       for (let i = 1; i < pts.length; i++) segments.push([pts[i - 1]!, pts[i]!, line]);
     } else {
       const xs = o.points.map((p) => p.x), ys = o.points.map((p) => p.y);

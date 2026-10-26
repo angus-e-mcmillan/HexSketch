@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
 import { payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
-import { analyze, compare, convert, detectFormat, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
+import { analyze, arrangeForArrows, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
 
@@ -223,4 +223,31 @@ test('labels sit beside their own atom, clear of bonds and of each other', async
   assert.ok(a!.x <= b!.x);
   const second = placeLabels(diacid.mol, [], diacid.style, [{ at: 'C(=O)O', text: 'acid', occurrence: 2 }]).objects[0]!;
   assert.ok(second.kind === 'text' && Math.hypot(second.x - b!.x, second.y - b!.y) < Math.hypot(second.x - a!.x, second.y - a!.y));
+});
+
+test('curly arrows run from a lone pair or bond to an atom or bond, and species come together', async () => {
+  const s = await readStructure('[OH-:1].[CH3:2][Br:3]');
+  const L = s.style.bondLength;
+  const { smilesAtomMaps } = await import('@hexsketch/core');
+  const atom = (n: number) => s.mol.atom(smilesAtomMaps(s.mol).get(n)!);
+  const steps = [{ from: [1], to: [1, 2] }, { from: [2, 3], to: [3] }];
+  arrangeForArrows(s.mol, steps, L);
+  // Hydroxide beside the carbon it attacks, on the side away from bromine.
+  const [o, c, br] = [atom(1), atom(2), atom(3)];
+  assert.ok(Math.hypot(o.x - c.x, o.y - c.y) < 2.2 * L);
+  assert.ok((o.x - c.x) * (br.x - c.x) + (o.y - c.y) * (br.y - c.y) < 0);
+  const arrows = electronArrows(s.mol, s.objects, s.style, steps);
+  assert.equal(arrows.length, 2);
+  const [attack, leave] = arrows as Extract<(typeof arrows)[number], { kind: 'arrow' }>[];
+  const d = (p: { x: number; y: number }, q: { x: number; y: number }) => Math.hypot(p.x - q.x, p.y - q.y);
+  // The attack leaves the hydroxide (just past its OH⁻ label) and ends at the carbon; the C–Br electrons end at bromine.
+  assert.ok(d(attack!.tail, o) < 1.3 * L && d(attack!.head, c) < 0.8 * L);
+  assert.ok(d(leave!.tail, { x: (c.x + br.x) / 2, y: (c.y + br.y) / 2 }) < 0.4 * L && d(leave!.head, br) < L);
+  assert.equal(attack!.curve!.length, 4);
+  // Fishhooks for single electrons; mistakes are explained.
+  assert.equal((electronArrows(s.mol, [], s.style, [{ from: [2, 3], to: [3], electrons: 1 }])[0] as { headEnd: string }).headEnd, 'halfLeft');
+  assert.throws(() => electronArrows(s.mol, [], s.style, [{ from: [1, 2], to: [2] }]), /not bonded/);
+  assert.throws(() => electronArrows(s.mol, [], s.style, [{ from: [9], to: [2] }]), /no atom has map number 9/);
+  const plain = await readStructure('CBr');
+  assert.throws(() => electronArrows(plain.mol, [], plain.style, [{ from: [1], to: [2] }]), /atom-map numbers/);
 });
