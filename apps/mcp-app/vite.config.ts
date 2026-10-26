@@ -19,8 +19,9 @@ function singleFile(): Plugin {
       let html = String(page.source).replace(/^<!doctype html>/i, (d) => `${d}\n<!--\nHexSketch (c) 2026 Angus McMillan. Business Source License 1.1: https://github.com/angus-e-mcmillan/HexSketch/blob/main/LICENSE\n\n${notices}-->`);
       for (const [file, out] of Object.entries(bundle)) {
         if (out.type === 'chunk') {
-          // "</script" inside the code would end the inline script early.
-          const code = out.code.replace(/<\/script/gi, '<\\/script');
+          // "</script" inside the code would end the inline script early. With every import inlined, Vite
+          // leaves its preload list placeholder unfilled: there is nothing to preload, which undefined says.
+          const code = out.code.replace(/<\/script/gi, '<\\/script').replace(/\b__VITE_PRELOAD__\b/g, 'void 0');
           html = html.replace(new RegExp(`<script[^>]*src="[^"]*${escape(file)}"[^>]*></script>`), () => `<script type="module">${code}</script>`);
           delete bundle[file];
         } else if (file.endsWith('.css')) {
