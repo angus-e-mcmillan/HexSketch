@@ -148,6 +148,8 @@ test('the built package serves the real editor', { skip: !existsSync(fileURLToPa
   assert.match(html, /^<!doctype html>/i);
   // Self-contained: chats load nothing from elsewhere.
   assert.doesNotMatch(html, /<script[^>]*\ssrc=|<link[^>]*stylesheet/);
+  // An unfilled Vite placeholder throws as the editor starts (it showed only "HexSketch could not start here").
+  assert.doesNotMatch(html, /__VITE_PRELOAD__/);
   assert.match(html, /Business Source License 1\.1/);
   assert.match(html, /@modelcontextprotocol\/ext-apps \d/);
 });
