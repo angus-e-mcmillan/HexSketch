@@ -113,7 +113,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   local install, nothing leaves the user's machine.
 - Why: makes HexSketch a first-class tool in every MCP client, with no server to run.
 
-### [~] 5. MCP App: the drawing interface
+### [x] 5. MCP App: the drawing interface
 - Tool `open_sketcher` (optional starting structure) returns an MCP Apps UI
   resource: the HexSketch editor bundled into a single self-contained HTML
   file (no CDN, so host CSPs do not block it), mounted with `mountApp`.
@@ -123,7 +123,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Owner tests in Claude Desktop / Claude.ai and ChatGPT; the PR gives exact steps.
 - Why: this is the chemist-AI drawing loop, the core of the vision.
 
-### [~] 6. Claude connector (`apps/mcp-worker`)
+### [x] 6. Claude connector (`apps/mcp-worker`)
 - The same tools and the MCP App over streamable HTTP on a separate
   Cloudflare Worker (`mcp.hexsketch.com/mcp`), so it works as a connector in
   Claude (web, desktop, and mobile where the editor can show) and later in ChatGPT.
@@ -139,7 +139,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   Workers Paid plan). Then: a connector-directory submission, prepared for
   the owner to send.
 
-### [ ] 7. Docs and distribution
+### [~] 7. Docs and distribution
 - `hexsketch.com/llms.txt` and a short `/ai` page for people (static files, no code).
 - A Claude skill describing how to use HexSketch for chemistry.
 - README section with a demo GIF of the chemist-AI loop and one-line installs;
@@ -149,6 +149,11 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   menu ("Star on GitHub").
 - Launch notes for after item 5 works: Show HN, r/chemistry, chemistry
   Bluesky/X, built around a short video of the in-chat editor.
+- Done: `llms.txt`, `/ai`, `skills/hexsketch`, the README (PR #12),
+  `docs/listings.md` with `server.json` for the MCP Registry,
+  `docs/launch.md`, and File › Use with Claude / Star on GitHub on
+  hexsketch.com. Left for the owner: record the video and GIF, then submit
+  the listings once the connector is live.
 
 ### [ ] 8. Proof
 - Naming benchmark: a public set of structures, names round-tripped through
