@@ -12,6 +12,8 @@ export interface SketchUpdate {
   structure?: string;
   /** Atoms and bonds to highlight in the drawing (after any new structure), replacing earlier AI highlights. */
   highlights?: { smiles: string; color: string; name: string }[];
+  /** Short text pinned beside atoms (each at the first atom of its fragment), replacing earlier AI labels. */
+  labels?: { at: string; text: string; color?: string; occurrence?: number }[];
   note?: string;
 }
 

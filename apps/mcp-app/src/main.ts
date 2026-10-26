@@ -1,8 +1,8 @@
 import '@hexsketch/web/style.css';
 import './embed.css';
 import { App } from '@modelcontextprotocol/ext-apps';
-import { aiSummary, parseSmiles, structureLink, substructureMatches, writeCdxml, HEXSKETCH_URL } from '@hexsketch/core';
-import { readStructure } from '@hexsketch/agent';
+import { aiSummary, parsePattern, structureLink, substructureMatches, writeCdxml, HEXSKETCH_URL, type DocObject } from '@hexsketch/core';
+import { placeLabels, readStructure } from '@hexsketch/agent';
 import { nameMolecule } from '@hexsketch/naming';
 import { mountApp, type AppApi } from '@hexsketch/web';
 
@@ -15,13 +15,19 @@ import { mountApp, type AppApi } from '@hexsketch/web';
  * - The chemist's edits reach the AI twice over: as model context (so the next
  *   question is about what is drawn now) and through sketch_sync (so the AI
  *   can call read_sketcher). "Send to chat" also posts the drawing.
- * - What the AI shows with show_in_sketcher (a new structure, highlights, a
- *   note) is fetched with sketch_updates and appears here, in the drawing and
- *   in the Notes panel.
+ * - What the AI shows with show_in_sketcher (a new structure, highlights,
+ *   labels on atoms, a note) is fetched with sketch_updates and appears here,
+ *   in the drawing and in the Notes panel.
  */
 
 /** As the server sends it (packages/hexsketch/src/mcp.ts). */
-interface SketchUpdate { version: number; structure?: string; highlights?: { smiles: string; color: string; name: string }[]; note?: string }
+interface SketchUpdate {
+  version: number;
+  structure?: string;
+  highlights?: { smiles: string; color: string; name: string }[];
+  labels?: { at: string; text: string; color?: string; occurrence?: number }[];
+  note?: string;
+}
 
 const app = new App({ name: 'HexSketch', version: '0.1.8' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 
@@ -71,64 +77,90 @@ notes.querySelector('button')!.addEventListener('click', () => showNotes(false))
 
 function addNote(text: string | undefined, highlights: SketchUpdate['highlights']) {
   const li = document.createElement('li');
-  for (const h of highlights ?? []) {
-    const chip = Object.assign(document.createElement('span'), { className: 'chip', textContent: h.smiles, title: `${h.name}: ${h.smiles}` });
-    chip.style.background = h.color;
-    li.append(chip);
+  const colours = new Map((highlights ?? []).map((h) => [h.name, h.color]));
+  // A colour the note does not name gets a swatch of its own, so every highlight is accounted for.
+  const named = new Set([...(text ?? '').toLowerCase().matchAll(/\*\*([a-z]+)/g)].map((m) => m[1]!));
+  const unnamed = (highlights ?? []).filter((h) => !named.has(h.name));
+  if (unnamed.length) {
+    const key = Object.assign(document.createElement('div'), { className: 'swatches' });
+    for (const h of unnamed) {
+      const chip = Object.assign(document.createElement('span'), { className: 'chip', textContent: h.name, title: h.smiles });
+      chip.style.background = h.color;
+      key.append(chip);
+    }
+    li.append(key);
   }
-  if (text) li.append(formatted(text));
+  if (text) li.append(formatted(text, colours));
   list.prepend(li);
   notes.classList.add('has-notes');
   showNotes(true);
 }
 
-/** A note's text, with the little Markdown models write (**bold**, *italic*, `code`, "- " lists) shown as such. */
-function formatted(text: string): HTMLElement {
+/**
+ * A note's text, with the little Markdown models write (**bold**, *italic*,
+ * `code`, "- " lists) shown as such, and a bold highlight colour ("**Yellow**")
+ * shown in that colour, as the key to the drawing.
+ */
+function formatted(text: string, colours: Map<string, string>): HTMLElement {
   const box = document.createElement('div');
   box.className = 'note-text';
   let ul: HTMLUListElement | null = null;
   for (const line of text.split('\n')) {
     const item = /^\s*[-*•]\s+(.*)$/.exec(line);
-    if (item) { ul ??= box.appendChild(document.createElement('ul')); ul.append(inline(document.createElement('li'), item[1]!)); continue; }
+    if (item) { ul ??= box.appendChild(document.createElement('ul')); ul.append(inline(document.createElement('li'), item[1]!, colours)); continue; }
     ul = null;
-    if (line.trim()) box.append(inline(document.createElement('p'), line));
+    if (line.trim()) box.append(inline(document.createElement('p'), line, colours));
   }
   return box;
 }
-function inline<T extends HTMLElement>(el: T, text: string): T {
+function inline<T extends HTMLElement>(el: T, text: string, colours: Map<string, string>): T {
   // Text nodes only, so nothing the AI writes runs as HTML.
   for (const part of text.split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`)/)) {
     if (!part) continue;
     const tag = part.startsWith('**') ? 'strong' : part.startsWith('*') ? 'em' : part.startsWith('`') ? 'code' : null;
     const strip = tag === 'strong' ? 2 : tag ? 1 : 0;
-    el.append(tag ? Object.assign(document.createElement(tag), { textContent: part.slice(strip, -strip) }) : part);
+    const piece = tag ? Object.assign(document.createElement(tag), { textContent: part.slice(strip, -strip) }) : part;
+    const colour = tag === 'strong' ? colours.get(part.slice(2, -2).trim().toLowerCase()) : undefined;
+    if (colour && typeof piece !== 'string') { piece.className = 'swatch'; piece.style.background = colour; }
+    el.append(piece);
   }
   return el;
 }
 
-// ----------------------------------------------------------- AI highlights
+// ------------------------------------------------- AI highlights and labels
 
 /** What the AI last highlighted, with what each atom and bond had before, so the next call can put it back. */
 let aiMarks: { atoms: Map<number, string | null>; bonds: Map<number, string | null> } = { atoms: new Map(), bonds: new Map() };
+/** The captions (and leaders) of the AI's labels, which its next labels replace. */
+let aiLabels = new Set<number>();
 
-function highlight(highlights: NonNullable<SketchUpdate['highlights']>) {
-  const mol = ui.editor.doc.mol;
-  const marks = highlights.map((h) => {
+/** The AI's highlights and labels, in one edit (one Undo takes them away). */
+function mark(highlights: SketchUpdate['highlights'], labels: SketchUpdate['labels']) {
+  const doc = ui.editor.doc;
+  const marks = (highlights ?? []).map((h) => {
     let pattern;
-    try { pattern = parseSmiles(h.smiles); } catch { return null; }
-    return { color: h.color, places: substructureMatches(pattern, mol) };
+    try { pattern = parsePattern(h.smiles); } catch { return null; }
+    return { color: h.color, places: substructureMatches(pattern, doc.mol) };
   });
-  const previous = aiMarks;
-  aiMarks = { atoms: new Map(), bonds: new Map() };
-  ui.editor.doc.edit((m) => {
-    for (const [id, was] of previous.atoms) if (m.hasAtom(id)) m.atom(id).highlight = was;
-    for (const [id, was] of previous.bonds) if (m.hasBond(id)) m.bond(id).highlight = was;
-    for (const mark of marks) {
-      if (!mark) continue;
-      for (const place of mark.places) {
-        for (const id of place.atoms) { if (!aiMarks.atoms.has(id)) aiMarks.atoms.set(id, m.atom(id).highlight ?? null); m.atom(id).highlight = mark.color; }
-        for (const id of place.bonds) { if (!aiMarks.bonds.has(id)) aiMarks.bonds.set(id, m.bond(id).highlight ?? null); m.bond(id).highlight = mark.color; }
+  doc.edit((m, objects) => {
+    if (highlights) {
+      for (const [id, was] of aiMarks.atoms) if (m.hasAtom(id)) m.atom(id).highlight = was;
+      for (const [id, was] of aiMarks.bonds) if (m.hasBond(id)) m.bond(id).highlight = was;
+      aiMarks = { atoms: new Map(), bonds: new Map() };
+      for (const mk of marks) {
+        if (!mk) continue;
+        for (const place of mk.places) {
+          for (const id of place.atoms) { if (!aiMarks.atoms.has(id)) aiMarks.atoms.set(id, m.atom(id).highlight ?? null); m.atom(id).highlight = mk.color; }
+          for (const id of place.bonds) { if (!aiMarks.bonds.has(id)) aiMarks.bonds.set(id, m.bond(id).highlight ?? null); m.bond(id).highlight = mk.color; }
+        }
       }
+    }
+    if (labels) {
+      for (let i = objects.length - 1; i >= 0; i--) if (aiLabels.has(objects[i]!.id)) objects.splice(i, 1);
+      let placed: DocObject[] = [];
+      try { placed = placeLabels(m, objects, doc.style, labels).objects; } catch { /* a fragment that does not parse: no labels */ }
+      objects.push(...placed);
+      aiLabels = new Set(placed.map((o) => o.id));
     }
   });
 }
@@ -139,6 +171,7 @@ async function openStructure(input: string): Promise<boolean> {
     // Whatever its source (a SMILES laid out around the origin, a drawing from elsewhere), it goes in the middle of the sheet.
     ui.load(s.mol, s.style, s.objects, { centre: true });
     aiMarks = { atoms: new Map(), bonds: new Map() };
+    aiLabels = new Set();
     return true;
   } catch (err) {
     ui.flash(`Could not open the structure: ${(err as Error).message}`);
@@ -150,7 +183,7 @@ async function apply(u: SketchUpdate) {
   // The notes panel opens first, so a new structure is centred in the room it leaves.
   if (u.note || u.highlights?.length) addNote(u.note, u.highlights);
   if (u.structure) await openStructure(u.structure);
-  if (u.highlights) highlight(u.highlights);
+  if (u.highlights || u.labels) mark(u.highlights, u.labels);
   ui.flash(u.structure ? 'The AI changed the drawing (Undo brings yours back)' : 'The AI pointed something out (see Notes)');
 }
 
@@ -331,7 +364,7 @@ function startUpdates() {
  */
 async function shareWithModel() {
   const text = await describe();
-  const how = `The HexSketch editor is open in this chat${sketchId ? ` (sketch "${sketchId}")` : ''}, and the user is working in it. Work in it too: show every structure you discuss with show_in_sketcher, highlight the parts you mean and label them in its note with a line or two at most (the note is a caption on the drawing, not your answer, and on a phone it takes room the drawing needs); draw reactions with its reaction input (an arrow, reagents above it, solvent and conditions below); keep your chat reply short and point to the editor. Do not show structures as images, pictures from the web or text drawings unless the user asks for one. Call read_sketcher when the user refers to their drawing.`;
+  const how = `The HexSketch editor is open in this chat${sketchId ? ` (sketch "${sketchId}")` : ''}, and the user is working in it. Work in it too: show every structure you discuss with show_in_sketcher, highlight the parts you mean, pin short labels to atoms (a pKa, a reactive site, a configuration) and sum them up in its note in a few short bullets by colour (the note is a small summary beside the drawing, not your answer, and on a phone it takes room the drawing needs); draw reactions with its reaction input (an arrow, reagents above it, solvent and conditions below); keep your chat reply short and point to the editor. Do not show structures as images, pictures from the web or text drawings unless the user asks for one. Call read_sketcher when the user refers to their drawing.`;
   await app.updateModelContext({ content: [{ type: 'text', text: text ? `${how}\n\nThe user's drawing, as it is now:\n\n${text}` : `${how}\n\nThe canvas is empty.` }] }).catch(() => {});
 }
 

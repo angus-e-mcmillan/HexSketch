@@ -182,6 +182,16 @@ test('the AI works in the open editor: show, read, and the editor fetches and re
   assert.equal(first.updates[0]!.highlights![0]!.color, '#ffe066');
   assert.deepEqual((await fetch(1)).updates, []);
 
+  // Labels take the colour of the highlight with the same fragment, or the one named; a missing fragment is reported.
+  const labelled = JSON.parse(textOf(await call('show_in_sketcher', {
+    highlight: ['C(=O)O'],
+    labels: [{ at: 'C(=O)O', text: 'pKa ≈ 4.4' }, { at: 'CC(C)C', text: 'lipophilic', colour: 'green' }, { at: 'N', text: 'amine' }],
+  })));
+  assert.deepEqual(labelled.labels.map((l: { places: number }) => l.places), [1, 1, 0]);
+  assert.match(labelled.warning, /Not found in the drawing: N/);
+  const pinned = (await fetch(1)).updates[0] as { labels?: { at: string; color?: string }[] };
+  assert.deepEqual(pinned.labels!.map((l) => [l.at, l.color]), [['C(=O)O', '#8a6d00'], ['CC(C)C', '#2f7a34'], ['N', undefined]]);
+
   // The user's drawing, reported by the editor, is what read_sketcher sees.
   const { convert } = await import('@hexsketch/agent');
   await call('sketch_sync', { sketch: id, cdxml: await convert('CC(C)Cc1ccc(cc1)C(C)C(=O)OC', 'cdxml') });
@@ -189,7 +199,7 @@ test('the AI works in the open editor: show, read, and the editor fetches and re
 
   // A new structure from the AI replaces the drawing; a newer editor makes this one stale.
   await call('show_in_sketcher', { structure: 'c1ccccc1O' });
-  assert.equal((await fetch(1)).updates[0]!.version, 2);
+  assert.equal((await fetch(2)).updates[0]!.version, 3);
   assert.equal(JSON.parse(textOf(await call('read_sketcher', {}))).name, 'phenol');
   // Another editor: the model's calls without an id now mean it, and the first stays reachable by its id.
   await call('open_sketcher', {});
