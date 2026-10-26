@@ -139,7 +139,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   Workers Paid plan). Then: a connector-directory submission, prepared for
   the owner to send.
 
-### [~] 7. Docs and distribution
+### [x] 7. Docs and distribution
 - `hexsketch.com/llms.txt` and a short `/ai` page for people (static files, no code).
 - A Claude skill describing how to use HexSketch for chemistry.
 - README section with a demo GIF of the chemist-AI loop and one-line installs;
@@ -155,11 +155,13 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   hexsketch.com. Left for the owner: record the video and GIF, then submit
   the listings once the connector is live.
 
-### [ ] 8. Proof
+### [~] 8. Proof
 - Naming benchmark: a public set of structures, names round-tripped through
   OPSIN, accuracy reported and reproducible.
 - Depiction comparison against RDKit on the same set.
 - Results published as a page; gaps found become follow-up issues.
+- Done: `tools/bench` (`npm run bench`), `docs/benchmark.md` and
+  hexsketch.com/benchmark, on 1,782 structures from RDKit's public sets.
 
 ## Working notes for scheduled sessions
 

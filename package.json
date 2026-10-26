@@ -22,7 +22,8 @@
     "dev:mcp": "npm run dev -w @hexsketch/mcp-worker",
     "deploy:mcp": "npm run build -w @hexsketch/mcp-app && cd apps/mcp-worker && npx --yes wrangler@4 deploy",
     "smoke:mcp": "node --experimental-strip-types --no-warnings apps/mcp-worker/test/smoke.ts",
-    "feedback": "node --experimental-strip-types --no-warnings tools/feedback.ts"
+    "feedback": "node --experimental-strip-types --no-warnings tools/feedback.ts",
+    "bench": "sh tools/bench/run.sh"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

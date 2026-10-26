@@ -1,0 +1,125 @@
+{
+  "rdkit": "2026.09.1",
+  "opsin": "2.9.0",
+  "sets": {
+    "solubility": {
+      "title": "Small organics (Huuskonen solubility set)",
+      "naming": {
+        "total": 1282,
+        "correct": 994,
+        "stereo-added": 24,
+        "stereo": 0,
+        "wrong": 46,
+        "unparsed": 7,
+        "declined": 210,
+        "error": 1,
+        "named": 1071,
+        "coverage": 0.8354134165366615,
+        "accuracy_of_named": 0.9281045751633987,
+        "median_ms": 0.5
+      },
+      "layout": {
+        "HexSketch": {
+          "drawn": 1282,
+          "clean": 0.9641185647425897,
+          "with_clash": 0.0327613104524181,
+          "with_crossing": 0.02418096723868955,
+          "mean_spread": 0.012072941812082707
+        },
+        "RDKit": {
+          "drawn": 1282,
+          "clean": 0.9820592823712948,
+          "with_clash": 0.0171606864274571,
+          "with_crossing": 0.015600624024960999,
+          "mean_spread": 0.0040239670793619405
+        },
+        "RDKit CoordGen": {
+          "drawn": 1282,
+          "clean": 0.9890795631825273,
+          "with_clash": 0.0109204368174727,
+          "with_crossing": 0.0039001560062402497,
+          "mean_spread": 0.006115714479700929
+        }
+      }
+    },
+    "zinc-leads": {
+      "title": "Lead-like molecules (ZINC)",
+      "naming": {
+        "total": 500,
+        "correct": 131,
+        "stereo-added": 0,
+        "stereo": 4,
+        "wrong": 38,
+        "unparsed": 5,
+        "declined": 320,
+        "error": 2,
+        "named": 178,
+        "coverage": 0.356,
+        "accuracy_of_named": 0.7359550561797753,
+        "median_ms": 0.4
+      },
+      "layout": {
+        "HexSketch": {
+          "drawn": 499,
+          "clean": 0.9599198396793587,
+          "with_clash": 0.04008016032064128,
+          "with_crossing": 0.01603206412825651,
+          "mean_spread": 0.010712906786440867
+        },
+        "RDKit": {
+          "drawn": 500,
+          "clean": 0.992,
+          "with_clash": 0.006,
+          "with_crossing": 0.006,
+          "mean_spread": 0.001518602579421556
+        },
+        "RDKit CoordGen": {
+          "drawn": 500,
+          "clean": 0.992,
+          "with_clash": 0.004,
+          "with_crossing": 0.006,
+          "mean_spread": 0.00417612418781671
+        }
+      }
+    }
+  },
+  "all": {
+    "naming": {
+      "total": 1782,
+      "correct": 1125,
+      "stereo-added": 24,
+      "stereo": 4,
+      "wrong": 84,
+      "unparsed": 12,
+      "declined": 530,
+      "error": 3,
+      "named": 1249,
+      "coverage": 0.7008978675645342,
+      "accuracy_of_named": 0.900720576461169,
+      "median_ms": 0.5
+    },
+    "layout": {
+      "HexSketch": {
+        "drawn": 1781,
+        "clean": 0.9629421673217293,
+        "with_clash": 0.03481190342504211,
+        "with_crossing": 0.021897810218978103,
+        "mean_spread": 0.011691887641507031
+      },
+      "RDKit": {
+        "drawn": 1782,
+        "clean": 0.9848484848484849,
+        "with_clash": 0.014029180695847363,
+        "with_crossing": 0.012906846240179574,
+        "mean_spread": 0.0033210028537894423
+      },
+      "RDKit CoordGen": {
+        "drawn": 1782,
+        "clean": 0.98989898989899,
+        "with_clash": 0.008978675645342313,
+        "with_crossing": 0.004489337822671156,
+        "mean_spread": 0.005571497226085828
+      }
+    }
+  }
+}

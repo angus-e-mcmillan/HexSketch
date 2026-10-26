@@ -1,0 +1,128 @@
+set	id	outcome	smiles	hexsketch_name	opsin_smiles_or_reason
+solubility	train-13	stereo-added	CC=CCC	(E)-pent-2-ene	C\C=C\CC
+solubility	train-17	stereo-added	CC=CCCCC	(E)-hept-2-ene	C\C=C\CCCC
+solubility	train-138	stereo-added	ClC=CCl	(E)-1,2-dichloroeth-1-ene	Cl\C=C\Cl
+solubility	train-139	stereo-added	IC=CI	(E)-1,2-diiodoeth-1-ene	I\C=C\I
+solubility	train-296	stereo-added	CC=CC=O	(E)-but-2-enal	C(\C=C\C)=O
+solubility	train-325	stereo-added	CC=CC=CC(=O)O	(2E,4E)-hexa-2,4-dienoic acid	C(\C=C\C=C\C)(=O)O
+solubility	train-376	unparsed	CCCCC(CC)COC(=O)c1ccccc1C(=O)OCC(CC)CCCC	di2-ethylhexyl benzene-1,2-dicarboxylate	
+solubility	train-499	stereo-added	CCC(=C(CC)c1ccc(O)cc1)c1ccc(O)cc1	4-((Z)-4-(4-hydroxyphenyl)hex-3-en-3-yl)phenol	OC1=CC=C(C=C1)\C(=C(\CC)/C1=CC=C(C=C1)O)\CC
+solubility	train-507	wrong	NS(=O)(=O)c1cc2c(cc1Cl)NCNS2(=O)=O	9-(aminosulfonyl)-8-chloro-2,2-dioxo-2-thia-3,5-diazabicyclo[4.4.0]deca-6,7,9-triene	NS(=O)(=O)C=1C(=C=C2NCNS(C2C1)(=O)=O)Cl
+solubility	train-508	wrong	NS(=O)(=O)c1cc2c(cc1Cl)N=CNS2(=O)=O	9-(aminosulfonyl)-8-chloro-2,2-dioxo-2-thia-3,5-diazabicyclo[4.4.0]deca-4,6,7,9-tetraene	NS(=O)(=O)C=1C(=C=C2N=CNS(C2C1)(=O)=O)Cl
+solubility	train-515	wrong	Nc1ncnc2c1ccn2C1OC(CO)C(O)C1O	2-(2-amino-3,5,7-triazabicyclo[4.3.0]nonan-7-yl)-5-(1-hydroxymethyl)tetrahydrofuran-3,4-diol	NC1C2CCN(C2NCN1)C1OC(C(C1O)O)CO
+solubility	train-531	wrong	NS(=O)(=O)c1cc2c(cc1Cl)NC(C(Cl)Cl)NS2(=O)=O	9-(aminosulfonyl)-8-chloro-4-(1,1-dichloromethyl)-2,2-dioxo-2-thia-3,5-diazabicyclo[4.4.0]deca-6,7,9-triene	NS(=O)(=O)C=1C(=C=C2NC(NS(C2C1)(=O)=O)C(Cl)Cl)Cl
+solubility	train-552	wrong	CCOP(=S)(OCC)N1C(=O)c2ccccc2C1=O	2-(diethoxymercaptophosphanyl)isoindoline-1,3-dione	C(C)OS(OCC)PN1C(C2=CC=CC=C2C1=O)=O
+solubility	train-554	wrong	Cc1cc(Cl)ccc1N=CN(C)C	4-chloro-1-((1-(dimethylamino)methyl)amino)-2-methylbenzene	ClC1=CC(=C(C=C1)NCN(C)C)C
+solubility	train-577	wrong	N#CN=C(N)N	((1,1-diaminomethyl)amino)methanenitrile	NC(N)NC#N
+solubility	train-594	wrong	NC(N)=O	aminoformamide	NNC=O
+solubility	train-599	wrong	NC(=O)NCc1ccccc1	(benzylamino)formamide	C(C1=CC=CC=C1)NNC=O
+solubility	train-635	wrong	CON(C)C(=O)Nc1ccc(Cl)cc1	1-chloro-4-((methoxymethylcarbamoyl)amino)benzene	ClC1=CC=C(C=C1)NC(NCOC)=O
+solubility	train-637	wrong	CON(C)C(=O)Nc1ccc(Cl)c(Cl)c1	1,2-dichloro-4-((methoxymethylcarbamoyl)amino)benzene	ClC1=C(C=C(C=C1)NC(NCOC)=O)Cl
+solubility	train-660	wrong	CCOP(=S)(OCC)SCSCC	((1-(ethylthio)methyl)thioethoxymercaptophosphanyloxy)ethane	C(C)SCSCCOSPOCC
+solubility	train-661	wrong	CCOP(=S)(OCC)SCCSCC	1-((diethoxymercaptophosphanyl)thio)-2-(ethylthio)ethane	C(C)OS(OCC)PSCCSCC
+solubility	train-662	wrong	COP(=S)(OC)SCN1C(=O)c2ccccc2C1=O	2-(1-((mercaptodimethoxyphosphanyl)thio)methyl)isoindoline-1,3-dione	SCOP(SCN1C(C2=CC=CC=C2C1=O)=O)OC
+solubility	train-663	wrong	COP(=S)(OC)Oc1nc(Cl)c(Cl)cc1Cl	3,5,6-trichloro-2-(mercaptodimethoxyphosphanyloxy)pyridine	ClC=1C(=NC(=C(C1)Cl)Cl)OP(OCS)OC
+solubility	train-664	wrong	COP(=S)(OC)Oc1ccc([N+](=O)[O-])cc1	1-(mercaptodimethoxyphosphanyloxy)-4-nitrobenzene	SCOP(OC1=CC=C(C=C1)[N+](=O)[O-])OC
+solubility	train-665	wrong	COP(=S)(OC)Oc1ccc([N+](=O)[O-])cc1Cl	2-chloro-1-(mercaptodimethoxyphosphanyloxy)-4-nitrobenzene	ClC1=C(C=CC(=C1)[N+](=O)[O-])OP(OCS)OC
+solubility	train-666	wrong	CCOP(=S)(OCC)SCSP(=S)(OCC)OCC	((1-((diethoxymercaptophosphanyl)thio)methyl)thioethoxymercaptophosphanyloxy)ethane	C(C)OS(OCC)PSCSCCOSPOCC
+solubility	train-667	wrong	CCCCSP(=O)(SCCCC)SCCCC	1-((dibutylthiophosphoryl)thio)butane	C(CCC)P(=S)(CCCC)SCCCC
+solubility	train-668	wrong	COP(=S)(OC)Oc1cc(Cl)c(Br)cc1Cl	1-bromo-2,5-dichloro-4-(mercaptodimethoxyphosphanyloxy)benzene	BrC1=C(C=C(C(=C1)Cl)OP(OCS)OC)Cl
+solubility	train-669	wrong	COP(=S)(OC)Oc1cc(Cl)c(Cl)cc1Cl	1,4,5-trichloro-2-(mercaptodimethoxyphosphanyloxy)benzene	ClC1=C(C=C(C(=C1)Cl)Cl)OP(OCS)OC
+solubility	train-677	wrong	S=C=Nc1cccc2ccccc12	1-((1-thioxomethyl)amino)naphthalene	S=CNC1=CC=CC2=CC=CC=C12
+solubility	train-679	stereo-added	CC=CCC#N	(E)-pent-3-enenitrile	C(C\C=C\C)#N
+solubility	train-692	wrong	CC(C)c1ccc(NC(=O)N(C)C)cc1	(dimethylamino)-N-(4-isopropylphenyl)formamide	CN(C)N(C=O)C1=CC=C(C=C1)C(C)C
+solubility	train-706	stereo-added	NC(Cc1ccccc1)C(=O)O	phenylalanine	N[C@@H](CC1=CC=CC=C1)C(=O)O
+solubility	train-710	stereo-added	CSCCC(N)C(=O)O	methionine	N[C@@H](CCSC)C(=O)O
+solubility	train-717	stereo-added	CCOC(=O)C=Cc1ccccc1	ethyl (E)-3-phenylprop-2-enoate	C1(=CC=CC=C1)/C=C/C(=O)OCC
+solubility	train-737	unparsed	CN(C)CCN(Cc1ccccc1)c1ccccn1	N-benzyl-N,N-dimethyl-N-(pyridin-2-yl)ethane-1,2-diamine	
+solubility	train-755	wrong	NC(=O)NC1NC(=O)NC1=O	((2,5-dioxoimidazolidin-4-yl)amino)formamide	O=C1NC(C(N1)NNC=O)=O
+solubility	train-763	unparsed	O=c1[nH]cnc2[nH]cnc12	2,4,7,9-tetraazabicyclo[4.3.0]nona-2,6,7-trien-5-one	
+solubility	train-766	wrong	Nc1ncnc2nc[nH]c12	2,4,7,9-tetraazabicyclo[4.3.0]nona-2,4,6,8-tetraen-5-amine	C12N=CN=C(C2=NC=N1)N
+solubility	train-772	stereo-added	NC(=O)CCC(N)C(=O)O	glutamine	N[C@@H](CCC(N)=O)C(=O)O
+solubility	train-776	stereo-added	O=C(O)C=Cc1c[nH]cn1	(E)-3-(1H-imidazol-4-yl)prop-2-enoic acid	N1C=NC(=C1)/C=C/C(=O)O
+solubility	train-777	wrong	Cn1c(=O)[nH]c2[nH]c(=O)[nH]c2c1=O	4-methyl-2,4,7,9-tetraazabicyclo[4.3.0]non-6-ene-3,5,8-trione	CN1C(NC2NC(N=C2C1=O)=O)=O
+solubility	train-779	stereo-added	NC(Cc1c[nH]cn1)C(=O)O	histidine	N[C@@H](CC1=CNC=N1)C(=O)O
+solubility	train-852	wrong	CNC(=O)ON=C(CSC)C(C)(C)C	(((3,3-dimethyl-1-(methylthio)butan-2-yl)amino)oxy)-N-methylformamide	CC(C(CSC)NON(C=O)C)(C)C
+solubility	train-865	wrong	CNC(=O)ON=C1C(Cl)C2CC(C#N)C1C2	(((3-chloro-6-cyanobicyclo[2.2.1]heptan-2-yl)amino)oxy)-N-methylformamide	ClC1C(C2C(CC1C2)C#N)NON(C=O)C
+solubility	train-868	unparsed	O=c1[nH]cnc2c1ncn2C1OC(CO)C(O)C1O	9-(3,4-dihydroxy-5-(1-hydroxymethyl)tetrahydrofuran-2-yl)-2,4,7,9-tetraazabicyclo[4.3.0]nona-2,6,7-trien-5-one	
+solubility	train-869	stereo-added	CC=Cc1ccc(OC)cc1	1-methoxy-4-((E)-prop-1-en-1-yl)benzene	COC1=CC=C(C=C1)\C=C\C
+solubility	train-872	unparsed	Cn1c(=O)c2c(ncn2CC(O)CO)n(C)c1=O	7-(2,3-dihydroxypropyl)-2,4-dimethyl-2,4,7,9-tetraazabicyclo[4.3.0]nona-6,8-diene-3,5-dione	
+solubility	train-876	stereo-added	CC(C)=CCCC(C)=CC=O	(E)-3,7-dimethylocta-2,6-dienal	C\C(=C/C=O)\CCC=C(C)C
+solubility	train-894	wrong	CNC(=O)Oc1cccc(N=CN(C)C)c1	3-((1-(dimethylamino)methyl)amino)phenyl methylcarbamate	CNC(OC1=CC(=CC=C1)NCN(C)C)=O
+solubility	train-895	wrong	CCOP(=S)(OCC)SCSc1ccc(Cl)cc1	1-chloro-4-((1-((diethoxymercaptophosphanyl)thio)methyl)thio)benzene	ClC1=CC=C(C=C1)SCSPS(OCC)OCC
+solubility	train-898	wrong	CCOP(=S)(OCC)Oc1ccc(S(C)=O)cc1	1-(diethoxymercaptophosphanyloxy)-4-(methylsulfinyl)benzene	C(C)OS(OCC)POC1=CC=C(C=C1)S(=O)C
+solubility	train-921	wrong	O=C(Nc1ccccc1)Nc1ccccc1	N-phenyl(phenylamino)formamide	C1(=CC=CC=C1)N(C=O)NC1=CC=CC=C1
+solubility	train-945	wrong	CCOP(=S)(OCC)Oc1ccc2c(C)c(Cl)c(=O)oc2c1	4-chloro-9-(diethoxymercaptophosphanyloxy)-5-methyl-2-oxabicyclo[4.4.0]deca-4,6,8,10-tetraen-3-one	ClC=1C(OC2=CC(=CC=C2C1C)OPS(OCC)OCC)=O
+solubility	train-946	wrong	CCOP(=S)(OCC)SC(CCl)N1C(=O)c2ccccc2C1=O	2-(2-chloro-1-((diethoxymercaptophosphanyl)thio)ethyl)isoindoline-1,3-dione	ClCC(SPS(OCC)OCC)N1C(C2=CC=CC=C2C1=O)=O
+solubility	train-949	wrong	CC1CCCCC1NC(=O)Nc1ccccc1	N-(2-methylcyclohexyl)(phenylamino)formamide	CC1C(CCCC1)N(C=O)NC1=CC=CC=C1
+solubility	train-951	wrong	CC(C)OP(=S)(OC(C)C)SCCNS(=O)(=O)c1ccccc1	(((2-((diisopropoxymercaptophosphanyl)thio)ethyl)amino)sulfonyl)benzene	C(C)(C)OS(OC(C)C)PSCCNS(=O)(=O)C1=CC=CC=C1
+solubility	train-970	wrong	COc1ccc(Oc2ccc(NC(=O)N(C)C)cc2)cc1	(dimethylamino)-N-(4-((4-methoxyphenyl)oxy)phenyl)formamide	CN(C)N(C=O)C1=CC=C(C=C1)OC1=CC=C(C=C1)OC
+solubility	train-976	stereo-added	O=C(C=CC=Cc1ccc2c(c1)OCO2)N1CCCCC1	1-((2E,4E)-5-(benzo[d][1,3]dioxol-5-yl)penta-2,4-dienoyl)piperidine	O1COC2=C1C=CC(=C2)/C=C/C=C/C(=O)N2CCCCC2
+solubility	train-999	stereo-added	COC(C)(C)CCCC(C)CC=CC(C)=CC(=O)OC(C)C	isopropyl (2E,4E)-11-methoxy-3,7,11-trimethyldodeca-2,4-dienoate	COC(CCCC(C/C=C/C(=C/C(=O)OC(C)C)/C)C)(C)C
+solubility	train-1005	stereo-added	COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)C=Cc1ccccc1	2-(5-methoxy-2-methyl-1-((E)-3-phenylprop-2-enoyl)-1H-indol-3-yl)acetic acid	COC=1C=C2C(=C(N(C2=CC1)C(\C=C\C1=CC=CC=C1)=O)C)CC(=O)O
+solubility	test-35	stereo-added	BrC=CBr	(E)-1,2-dibromoeth-1-ene	Br\C=C\Br
+solubility	test-83	stereo-added	O=C(O)C=Cc1ccccc1	(E)-3-phenylprop-2-enoic acid	C1(=CC=CC=C1)/C=C/C(=O)O
+solubility	test-141	wrong	CNC(=NC#N)NCCSCc1[nH]cnc1C	((1-(methylamino)-1-((2-((1-(4-methyl-1H-imidazol-5-yl)methyl)thio)ethyl)amino)methyl)amino)methanenitrile	CNC(NCCSCC1=C(N=CN1)C)NC#N
+solubility	test-142	unparsed	Cn1c(=O)c2c(ncn2C)n(C)c1=O	2,4,7-trimethyl-2,4,7,9-tetraazabicyclo[4.3.0]nona-6,8-diene-3,5-dione	
+solubility	test-150	wrong	CNC(N)=O	amino-N-methylformamide	NN(C=O)C
+solubility	test-164	error	COC(=O)NS(=O)(=O)c1ccc(N)cc1		Cannot read properties of undefined (reading 'text')
+solubility	test-166	wrong	COP(=S)(OC)Oc1ccc(SC)c(C)c1	4-(mercaptodimethoxyphosphanyloxy)-2-methyl-1-(methylthio)benzene	SCOP(OC1=CC(=C(C=C1)SC)C)OC
+solubility	test-167	wrong	COP(=S)(OC)Oc1ccc([N+](=O)[O-])c(C)c1	4-(mercaptodimethoxyphosphanyloxy)-2-methyl-1-nitrobenzene	SCOP(OC1=CC(=C(C=C1)[N+](=O)[O-])C)OC
+solubility	test-168	wrong	COP(=S)(OC)Oc1cc(Cl)c(I)cc1Cl	1,4-dichloro-5-iodo-2-(mercaptodimethoxyphosphanyloxy)benzene	ClC1=C(C=C(C(=C1)I)Cl)OP(OCS)OC
+solubility	test-177	stereo-added	NC(Cc1ccc(O)cc1)C(=O)O	tyrosine	N[C@@H](CC1=CC=C(C=C1)O)C(=O)O
+solubility	test-178	stereo-added	CC(C)N(C(=O)SCC(Cl)=CCl)C(C)C	(((Z)-2,3-dichloroprop-2-en-1-yl)thio)-N,N-diisopropylformamide	Cl\C(\CSC(=O)N(C(C)C)C(C)C)=C/Cl
+solubility	test-190	stereo-added	NC(=O)CC(N)C(=O)O	asparagine	N[C@@H](CC(N)=O)C(=O)O
+solubility	test-214	wrong	CCOc1ccc(NC(N)=O)cc1	amino-N-(4-ethoxyphenyl)formamide	NN(C=O)C1=CC=C(C=C1)OCC
+solubility	test-224	wrong	CCN(CC)c1c([N+](=O)[O-])cc(C(F)(F)F)c(N)c1[N+](=O)[O-]	N,N-diethyl-2,4-dinitro-6-(1,1,1-trifluoromethyl)benzene-1,3-diamine	C(C)N(C1=C(C(=C(C=C1C(F)(F)F)[N+](=O)[O-])N)[N+](=O)[O-])CC
+solubility	test-239	unparsed	CN(C)CCN(Cc1cccs1)c1ccccn1	N,N-dimethyl-N-(pyridin-2-yl)-N-(1-(thiophen-2-yl)methyl)ethane-1,2-diamine	
+solubility	test-241	wrong	NS(=O)(=O)c1cc2c(cc1C(F)(F)F)NC(Cc1ccccc1)NS2(=O)=O	9-(aminosulfonyl)-4-benzyl-2,2-dioxo-8-(1,1,1-trifluoromethyl)-2-thia-3,5-diazabicyclo[4.4.0]deca-6,7,9-triene	NS(=O)(=O)C=1C(=C=C2NC(NS(C2C1)(=O)=O)CC1=CC=CC=C1)C(F)(F)F
+solubility	test-254	wrong	CCOC(=O)C(c1c(O)c2ccccc2oc1=O)c1c(O)c2ccccc2oc1=O	ethyl 2,2-bis(2-hydroxy-4-oxo-5-oxabicyclo[4.4.0]decan-3-yl)acetate	OC1C2CCCCC2OC(C1C(C(=O)OCC)C1C(C2CCCCC2OC1=O)O)=O
+zinc-leads	ZINC02351349	unparsed	Cc1cc(C)nc(-n2ncc3c2CCCC3=O)n1	7-(4,6-dimethylpyrimidin-2-yl)-7,8-diazabicyclo[4.3.0]nona-6,8-dien-2-one	
+zinc-leads	ZINC05549721	wrong	CN(/C(S)=N/NC(=O)[C@H]1CCC(=O)N1)c1ccccc1	(R)-5-((1-mercapto-1-(methyl(phenyl)amino)methyl)aminocarbamoyl)pyrrolidin-2-one	SC(N(C1=CC=CC=C1)C)NNC(=O)[C@H]1CCC(N1)=O
+zinc-leads	ZINC06525698	stereo	Cc1ccccc1[C@@H]1[C@H](C#N)[C@@]12C(N)=NN=C2O	(1S,2S,3S)-7-amino-4-hydroxy-2-(2-methylphenyl)-5,6-diazaspiro[2.4]hepta-4,6-diene-1-carbonitrile	NC1=NN=C([C@]12[C@@H]([C@@H]2C#N)C2=C(C=CC=C2)C)O
+zinc-leads	ZINC19880407	wrong	C/C(=N/Oc1cccc(F)n1)c1ccccc1	2-fluoro-6-(((1-phenylethyl)amino)oxy)pyridine	FC1=NC(=CC=C1)ONC(C)C1=CC=CC=C1
+zinc-leads	ZINC01588238	wrong	C1Cc2onc(-c3noc4c3CCC4)c2C1	4-(4-oxa-3-azabicyclo[3.3.0]octan-2-yl)-2-oxa-3-azabicyclo[3.3.0]octa-3,5-diene	C12C(NOC2CCC1)C1=NOC2CCC=C12
+zinc-leads	ZINC00222804	wrong	O=C(COC1=CCCC1)N/N=C/c1ccccc1Cl	1-((1-((1-(2-chlorophenyl)methyl)aminocarbamoyl)methyl)oxy)cyclopent-1-ene	ClC1=C(C=CC=C1)CNNC(=O)COC1=CCCC1
+zinc-leads	ZINC02057760	wrong	CC(=O)Nc1ccc(S(=O)(=O)Oc2cc(C)nc3ncnn23)cc1	N-(4-(((4-methyl-1,5,7,9-tetraazabicyclo[4.3.0]nonan-2-yl)oxy)sulfonyl)phenyl)acetamide	CC1CC(N2NCNC2N1)OS(=O)(=O)C1=CC=C(C=C1)NC(C)=O
+zinc-leads	ZINC06380277	wrong	CC/N=C(\SCc1ccncc1)C(C#N)C#N	((2,2-dicyano-1-((1-(pyridin-4-yl)methyl)thio)ethyl)amino)ethane	C(#N)C(C(SCC1=CC=NC=C1)NCC)C#N
+zinc-leads	ZINC01578471	wrong	OCCN1C(c2ccccc2)=CN2C=CS[C@@H]21	2-((R)-3-phenyl-8-thia-2,5-diazabicyclo[3.3.0]octan-2-yl)ethan-1-ol	C1(=CC=CC=C1)C1N([C@@H]2SCCN2C1)CCO
+zinc-leads	ZINC01580316	wrong	C1CC[NH+]2CSCCC[C@@H]2C1	(S)-3-thia-1-azabicyclo[5.4.0]undecane	N12CSCCC[C@@H]2CCCC1
+zinc-leads	ZINC32587233	wrong	Cc1nn2cc(Cn3cnc4ccncc4c3=O)nc2s1	4-(1-(7-methyl-8-thia-2,5,6-triazabicyclo[3.3.0]octan-3-yl)methyl)-2,4,8-triazabicyclo[4.4.0]deca-2,6,8,10-tetraen-5-one	CC1NN2CC(NC2S1)CN1C=NC2=CC=NC=C2C1=O
+zinc-leads	ZINC35323783	stereo	CC1(C)[C@@]2(C#N)C(=O)N[C@]1(C)O[C@@H](c1ccccc1)C2(C#N)C#N	(1R,3S,5R)-1,8,8-trimethyl-6-oxo-3-phenyl-2-oxa-7-azabicyclo[3.2.1]octane-4,4,5-tricarbonitrile	C[C@]12O[C@H](C([C@@](C(N1)=O)(C2(C)C)C#N)(C#N)C#N)C2=CC=CC=C2
+zinc-leads	ZINC21176605	wrong	O=C([O-])CCC(=O)N1CCC(Oc2nnnc3ccccc23)CC1	4-oxo-4-(4-((3,4,5-triazabicyclo[4.4.0]decan-2-yl)oxy)piperidin-1-yl)butanoate	O=C(CCC(=O)[O-])N1CCC(CC1)OC1C2CCCCC2NNN1
+zinc-leads	ZINC32590156	wrong	OCc1cccc(-c2nccc3occc23)c1	(3-(7-oxa-3-azabicyclo[4.3.0]nonan-2-yl)phenyl)methanol	C12C(NCCC2OCC1)C=1C=C(C=CC1)CO
+zinc-leads	ZINC01764765	wrong	C=NC1C=CCC=C1	3-(methylamino)cyclohexa-1,4-diene	CNC1C=CCC=C1
+zinc-leads	ZINC00243040	unparsed	Nc1nc2c(s1)C(=O)NCCC2	9-amino-10-thia-3,8-diazabicyclo[5.3.0]deca-7,8-dien-2-one	
+zinc-leads	ZINC15224080	wrong	CS/C(C)=N/Oc1ncnc2ccccc12	4-(((1-(methylthio)ethyl)amino)oxy)quinazoline	CSC(C)NOC1=NC=NC2=CC=CC=C12
+zinc-leads	ZINC01871901	unparsed	CCOC(=O)n1[nH][nH]c2c(c(=O)n(C)c(=O)n2C)n1C(=O)OCC	diethyl 7,9-dimethyl-8,10-dioxo-2,3,4,5,7,9-hexaazabicyclo[4.4.0]dec-6-ene-2,3-dicarboxylate	
+zinc-leads	ZINC00265495	stereo	CC1=C2C(=O)O[C@H](c3ccoc3)[C@]2(C)CCC1	(1R,9R)-9-(furan-3-yl)-1,5-dimethyl-8-oxabicyclo[4.3.0]non-5-en-7-one	O1C=C(C=C1)[C@@H]1OC(C2=C(CCC[C@@]12C)C)=O
+zinc-leads	ZINC05282762	wrong	N#CCS(=O)(=O)[C@@H]1CCCC=C1[NH+]1CCOCC1	2-(((R)-2-morpholinocyclohex-2-en-1-yl)sulfonyl)acetonitrile	O1CCN(CC1)C=1[C@@H](CCCC1)S(=O)(=O)CC#N
+zinc-leads	ZINC04098885	wrong	CC(=O)C1=CCC[C@@H]2CC[C@H]1[NH2+]2	1-((1R,6R)-9-azabicyclo[4.2.1]nonan-2-yl)ethan-1-one	[C@H]12C(CCC[C@H](CC1)N2)C(C)=O
+zinc-leads	ZINC16953432	wrong	Nc1ncnc2c([C@@H]3C[C@H](O)[C@@H](CO)O3)n[nH]c12	(2R,3S,5S)-5-(2-amino-3,5,8,9-tetraazabicyclo[4.3.0]nonan-7-yl)-2-(1-hydroxymethyl)tetrahydrofuran-3-ol	NC1C2NNC(C2NCN1)[C@@H]1C[C@@H]([C@H](O1)CO)O
+zinc-leads	ZINC05920112	wrong	C[C@H]1Sc2ssc(=S)c2S1	(R)-7-methyl-4-thioxo-2,3,6,8-tetrathiabicyclo[3.3.0]oct-5-ene	CC1S=C2C(SS[C@H]2S1)=S
+zinc-leads	ZINC05675384	stereo	CC[C@@H](c1ccoc1)[S@@](=O)c1ccccc1	3-((S)-1-(phenylsulfinyl)propyl)furan	C1(=CC=CC=C1)S(=O)[C@@H](CC)C1=COC=C1
+zinc-leads	ZINC01607889	wrong	C[NH+]1CCO[C@@H](c2ccccc2)c2ccsc2CC1	(S)-6-methyl-2-phenyl-3-oxa-10-thia-6-azabicyclo[7.3.0]dodeca-9,11-diene	CN1CCOC([C@@H]2C=CS=C2CC1)C1=CC=CC=C1
+zinc-leads	ZINC08721401	error	COC(=O)NN=Cc1c[nH]nc1-c1ccc(OC)cc1		Cannot read properties of undefined (reading 'text')
+zinc-leads	ZINC06485149	wrong	C[PH](C)(Cc1ccc([N+](=O)[O-])cc1)c1ccccc1	1-(1-(dimethylphenylphosphanyl)methyl)-4-nitrobenzene	CC=1C(=C(C=CC1)PCC1=CC=C(C=C1)[N+](=O)[O-])C
+zinc-leads	ZINC16974985	wrong	O=C1OC[C@H]2S[C@H](c3ccccc3)[NH2+][C@H]12	(1S,3R,5R)-3-phenyl-7-oxa-2-thia-4-azabicyclo[3.3.0]octan-6-one	C1(=CC=CC=C1)[C@H]1S[C@@H]2COC([C@H]2N1)=O
+zinc-leads	ZINC00097189	wrong	CO/N=C(\C(=O)[O-])c1csc(Nc2cc(-c3ccco3)on2)c1	(((1-(5-((5-(furan-2-yl)isoxazol-3-yl)amino)thiophen-3-yl)-2-hydroxy-2-oxoethyl)amino)oxy)methane	O1C(=CC=C1)C1=CC(=NO1)NC1=CC(=CS1)C(C(=O)O)NOC
+zinc-leads	ZINC00186775	wrong	Cc1cc(C)nc(N/C([O-])=N/S(=O)(=O)N2CCCCCC2)n1	1-(((1-((4,6-dimethylpyrimidin-2-yl)amino)-1-hydroxymethyl)amino)sulfonyl)azepane	CC1=NC(=NC(=C1)C)NC(O)NS(=O)(=O)N1CCCCCC1
+zinc-leads	ZINC00080290	wrong	O=c1cc(O)c2sccc2[nH]1	5-hydroxy-7-thia-2-azabicyclo[4.3.0]nona-4,6,8-trien-3-one	OC1=CC(NC2C=CS=C12)=O
+zinc-leads	ZINC04594478	error	Cc1nn2[c-](C(=O)NCc3ccco3)c(C)n[n+]2c1[N+](=O)[O-]		"error: Not a valid SMILES: cannot kekulize ""Cc1nn2[c-](C(=O)NCc3ccco3)c(C)n[n+]2c1[N+](=O)[O-]"". Check the aromatic rings: pyrrole-type N needs [nH], and a ring written in lowercase must be able to take alternating double bonds"
+zinc-leads	ZINC05103278	wrong	C/N=C1\CC(=O)C1(F)F	((2,2-difluoro-3-oxocyclobutyl)amino)methane	FC1(C(CC1=O)NC)F
+zinc-leads	ZINC04639687	unparsed	Cc1noc2c1[C@@H](c1ccccc1)C(C#N)=C([NH3+])[C@H]2c1cccc(O)c1	(2S,5R)-3-cyano-5-(3-hydroxyphenyl)-9-methyl-2-phenyl-7-oxa-8-azabicyclo[4.3.0]nona-3,6,8-trien-4-aminium	
+zinc-leads	ZINC15230985	wrong	COc1cc(/C=C(/C#N)c2nc3ccccc3[nH]2)cc2sc(=O)oc12	(Z)-2-(1H-benzimidazol-2-yl)-3-(5-methoxy-8-oxo-7-oxa-9-thiabicyclo[4.3.0]nonan-3-yl)prop-2-enenitrile	N1C(=NC2=C1C=CC=C2)\C(\C#N)=C/C2CC1SC(OC1C(C2)OC)=O
+zinc-leads	ZINC06749075	wrong	COCC/N=C1\C(=O)C(=O)[C@@H]1c1ccc(C)cc1	1-methoxy-2-(((R)-2-(4-methylphenyl)-3,4-dioxocyclobutyl)amino)ethane	COCCN[C@@H]1C(C(C1=O)=O)C1=CC=C(C=C1)C
+zinc-leads	ZINC12250592	wrong	CSc1[nH]c(C)cc(=O)c1C#N	6-methyl-2-(methylthio)-4-oxopyridine-3-carbonitrile	CC1=CC(C(C(=N1)SC)C#N)=O
+zinc-leads	ZINC02436012	wrong	CCOC(=O)[C@H](S[P@](O)(=S)OC)c1ccccc1	ethyl (R)-2-((hydroxymercaptomethoxyphosphanyl)thio)-2-phenylacetate	OSCOPS[C@@H](C(=O)OCC)C1=CC=CC=C1
+zinc-leads	ZINC08742562	wrong	Oc1nc(S)nc2c1CC[C@@H](c1ccccc1)O2	(S)-3-mercapto-9-phenyl-10-oxa-2,4-diazabicyclo[4.4.0]deca-2,4,6-trien-5-ol	SC1=N[C@H]2OC(CC=C2C(=N1)O)C1=CC=CC=C1
+zinc-leads	ZINC05477675	wrong	O=c1ccc2cnn(-c3ccccc3)c2o1	9-phenyl-2-oxa-8,9-diazabicyclo[4.3.0]nona-4,6,7-trien-3-one	C1(=CC=CC=C1)N1N=C=C2C=CC(OC12)=O
+zinc-leads	ZINC01641834	wrong	C[NH+]1CCC(OC(=O)[C@@](O)(c2ccccc2)c2ccns2)CC1	1-methylpiperidin-4-yl (S)-2-hydroxy-2-(isothiazol-5-yl)-2-phenylacetate	O[C@](C(=O)OC1CCN(CC1)C)(C1=CC=CC=C1)C1=CC=NS1
+zinc-leads	ZINC12506134	wrong	COC(=O)c1ccoc1CC1CC[NH2+]CC1	methyl 2-(1-(piperidin-4-yl)methyl)furan-3-carboxylate	N1CCC(CC1)CC=1OC=CC1C(=O)OC
+zinc-leads	ZINC16893188	wrong	Nc1nc(O)cc(/N=C/[C@@H](C=O)[N+](=O)[O-])n1	2-amino-4-hydroxy-6-(((S)-2-nitro-3-oxopropyl)amino)pyrimidine	NC1=NC(=CC(=N1)O)NC[C@@H](C=O)[N+](=O)[O-]
+zinc-leads	ZINC06145487	wrong	CO[C@]1(n2nnc3ccccc32)CC(=O)N1c1ccccc1	(R)-4-methoxy-1-phenyl-4-(7,8,9-triazabicyclo[4.3.0]nonan-7-yl)azetidin-2-one	CO[C@@]1(CC(N1C1=CC=CC=C1)=O)N1C2CCCCC2NN1
+zinc-leads	ZINC12422107	wrong	COC(=O)c1ccoc1-c1sc2nc(C)cc(C)c2c1N	methyl 2-(9-amino-2,4-dimethyl-7-thia-5-azabicyclo[4.3.0]nonan-8-yl)furan-3-carboxylate	NC1C(SC2NC(CC(C12)C)C)C=1OC=CC1C(=O)OC
+zinc-leads	ZINC39269804	wrong	Cc1nc2c(s1)CCCC2	8-methyl-7-thia-9-azabicyclo[4.3.0]nona-6,8-diene	CC=1S=C2CCCCC2N1
+zinc-leads	ZINC05284069	wrong	CC(C)(C)/N=C1/COC(=O)C1	2-methyl-2-((5-oxotetrahydrofuran-3-yl)amino)propane	CC(C)(C)NC1COC(C1)=O
+zinc-leads	ZINC16977238	unparsed	Oc1ncnc2snc(Cl)c12	7-chloro-9-thia-2,4,8-triazabicyclo[4.3.0]nona-2,4,6,7-tetraen-5-ol	
+zinc-leads	ZINC08536224	wrong	Cc1ccc(OC/C(N)=N/OC(=O)c2cc(C)on2)cc1	3-(((1-amino-2-((4-methylphenyl)oxy)ethyl)amino)oxycarbonyl)-5-methylisoxazole	NC(COC1=CC=C(C=C1)C)NOC(=O)C1=NOC(=C1)C
