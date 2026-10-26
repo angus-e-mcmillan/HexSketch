@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSmiles, writeSmiles } from '../src/smiles.ts';
+import { parseSmiles, smilesAtomMaps, writeSmiles } from '../src/smiles.ts';
 import { sameStructure } from '../src/isomorphism.ts';
 import { computeMass } from '../src/formula.ts';
 
@@ -184,4 +184,16 @@ test('a sulfoxide stereocentre survives a round trip: the lone pair stands where
     assert.ok(s, `${smi}: chirality recorded`);
     assert.equal(writeSmiles(parseSmiles(writeSmiles(mol))), writeSmiles(mol), smi);
   }
+});
+
+test('atom-map numbers name atoms; a mapped bare element keeps its hydrogens', () => {
+  const m = parseSmiles('[OH-:1].[CH3:2][Br:3]');
+  assert.deepEqual([...smilesAtomMaps(m).keys()], [1, 2, 3]);
+  assert.equal(m.atom(smilesAtomMaps(m).get(3)!).element, 'Br');
+  // [C:1] as reaction SMILES write it: a methyl, not a bare carbon; H, charge or isotope given are kept exactly.
+  assert.equal(computeMass(parseSmiles('[C:1][C:2](=[O:3])O')).formula, computeMass(parseSmiles('CC(=O)O')).formula);
+  assert.equal(computeMass(parseSmiles('[CH2:1]=[CH2:2]')).formula, 'C2H4');
+  assert.equal(writeSmiles(parseSmiles('[O-:1][C:2]')), '[O-]C');
+  assert.deepEqual([...smilesAtomMaps(parseSmiles('CCO')).keys()], []);
+  assert.throws(() => parseSmiles('[C:1][C:1]'), /used twice/);
 });

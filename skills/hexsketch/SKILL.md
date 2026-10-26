@@ -20,6 +20,10 @@ than describing them, and keep the chat for the short answer.
    labels pinned to atoms (a few words or a value: "pKa ≈ 4.4", "Michael
    acceptor") and a note of a few short bullets by colour. Then refer to the
    drawing by colour in the chat: "the yellow ester".
+   For a mechanism, one call per step with curly `arrows`: give the species
+   as SMILES with atom-map numbers (`[OH-:1].[CH3:2][Br:3]`) and arrows from
+   a lone pair (`[1]`) or bond (`[2, 3]`) to an atom or a bond being made
+   (`[1, 2]`).
 4. While the editor is open, don't show structures as images, web pictures,
    ASCII drawings or extra editors. Use `render_structure` only when the
    chemist asks for an image or a file.

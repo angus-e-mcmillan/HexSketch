@@ -28,10 +28,23 @@ interface ParsedAtom {
   isotope: number | null;
   /** '@' or '@@' from a bracket atom. */
   chiral?: '@' | '@@';
+  /** Atom-map number, [CH3:1]. */
+  map?: number;
 }
 
 /** Neighbour order as written, for @/@@: atom indices, 'H' for the bracket hydrogen. */
 type Written = (number | 'H')[];
+
+const atomMaps = new WeakMap<Molecule, Map<number, AtomId>>();
+
+/**
+ * The atom-map numbers of a molecule parsed from SMILES ([CH3:1] is map 1):
+ * how an assistant names atoms to point at, as reaction SMILES do. Empty for
+ * other molecules (and copies).
+ */
+export function smilesAtomMaps(mol: Molecule): ReadonlyMap<number, AtomId> {
+  return atomMaps.get(mol) ?? new Map();
+}
 
 export function parseSmiles(smiles: string): Molecule {
   const atoms: ParsedAtom[] = [];
@@ -186,6 +199,13 @@ export function parseSmiles(smiles: string): Molecule {
       element: a.element, x: 0, y: 0, charge: a.charge, isotope: a.isotope,
       explicitHydrogens: a.bracket ? a.hCount : null,
     }).id);
+  const mapped = new Map<number, AtomId>();
+  atoms.forEach((a, idx) => {
+    if (a.map === undefined) return;
+    if (mapped.has(a.map)) throw new Error(`atom map number ${a.map} is used twice in "${s}"`);
+    mapped.set(a.map, ids[idx]!);
+  });
+  if (mapped.size) atomMaps.set(mol, mapped);
   for (const b of bonds) {
     if (mol.bondBetween(ids[b.a]!, ids[b.b]!)) continue;
     mol.addBond({ begin: ids[b.a]!, end: ids[b.b]!, order: b.order as BondOrder });
@@ -228,9 +248,9 @@ export function parseSmiles(smiles: string): Molecule {
 }
 
 function parseBracket(body: string): ParsedAtom {
-  const m = /^(\d+)?([A-Z][a-z]?|[bcnops]|se|as|\*)(@{1,2}(?:TH[12]|AL[12]|SP[123]|TB\d+|OH\d+)?)?(H\d*)?([+-]+\d*|[+-]\d+)?(?::\d+)?$/.exec(body);
+  const m = /^(\d+)?([A-Z][a-z]?|[bcnops]|se|as|\*)(@{1,2}(?:TH[12]|AL[12]|SP[123]|TB\d+|OH\d+)?)?(H\d*)?([+-]+\d*|[+-]\d+)?(?::(\d+))?$/.exec(body);
   if (!m) throw new Error(`bad bracket atom [${body}]`);
-  const [, iso, sym, , h, chg] = m;
+  const [, iso, sym, , h, chg, map] = m;
   const aromatic = /^[a-z]/.test(sym!);
   const element = sym === '*' ? 'C' : aromatic ? sym![0]!.toUpperCase() + sym!.slice(1) : sym!;
   if (sym !== '*' && !elementBySymbol(element)) throw new Error(`unknown element in [${body}]`);
@@ -241,7 +261,13 @@ function parseBracket(body: string): ParsedAtom {
     charge = sign * (digits ? Number(digits) : chg.length);
   }
   const chiralMark = /^@{1,2}/.exec(m[3] ?? '')?.[0] as '@' | '@@' | undefined;
+  // A mapped atom written as just its element ([C:1], [c:2]) keeps its usual hydrogens, as
+  // reaction SMILES are often written: give H, a charge or an isotope to say exactly.
+  if (map && !h && !chg && !iso && !chiralMark && (ORGANIC.has(sym!) || AROMATIC_ORGANIC.has(sym!))) {
+    return { element, aromatic, bracket: false, hCount: -1, charge: 0, isotope: null, map: Number(map) };
+  }
   return {
+    ...(map ? { map: Number(map) } : {}),
     element, aromatic, bracket: true,
     hCount: h ? (h.length > 1 ? Number(h.slice(1)) : 1) : 0,
     charge, isotope: iso ? Number(iso) : null,

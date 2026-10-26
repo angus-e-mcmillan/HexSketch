@@ -272,3 +272,21 @@ test('reactions are drawn as schemes: arrows with reagents above and conditions 
   assert.deepEqual(got.objects.filter((o) => o.kind === 'text').map((o) => o.text), ['+', 'H2SO4 (cat.)', 'reflux, 4 h', '+']);
   assert.ok(JSON.parse(textOf(await call('read_sketcher', {}))).structures.some((x: { name: string }) => x.name === 'methyl 2-(4-isobutylphenyl)propanoate'));
 });
+
+test('a mechanism step: curly arrows reach the editor with the structure, and images', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const step = { structure: '[OH-:1].[CH3:2][Br:3]', arrows: [{ from: [1], to: [1, 2] }, { from: [2, 3], to: [3], colour: 'blue' }] };
+  const id = ((await call('open_sketcher', {})).structuredContent as { sketch: string }).sketch;
+  assert.equal((await call('show_in_sketcher', step)).isError, undefined);
+  const { updates } = (await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: { structure?: string }[] };
+  const { readStructure } = await import('@hexsketch/agent');
+  const got = await readStructure(updates[0]!.structure!);
+  const curly = got.objects.filter((o) => o.kind === 'arrow' && o.curve?.length);
+  assert.equal(curly.length, 2);
+  assert.equal((curly[1] as { color: string | null }).color, '#1b6aa5');
+  // Arrows need the mapped structure in the same call; a wrong atom is named.
+  assert.match(textOf(await call('show_in_sketcher', { arrows: step.arrows })), /same call/);
+  assert.match(textOf(await call('show_in_sketcher', { structure: 'CBr', arrows: [{ from: [1], to: [2] }] })), /atom-map numbers/);
+  assert.match(textOf(await call('render_structure', { structure: step.structure, arrows: [{ from: [1], to: [7] }], format: 'svg' })), /no atom has map number 7/);
+  assert.match(textOf(await call('render_structure', { ...step, format: 'svg' })), /<svg/);
+});
