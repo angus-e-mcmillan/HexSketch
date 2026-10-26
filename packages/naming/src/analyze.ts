@@ -1,7 +1,7 @@
 import { perceiveRings, type AtomId, type Molecule } from '@hexsketch/core';
 
 /** Characteristic groups in decreasing seniority (IUPAC 2013, P-41). */
-export const SENIORITY = ['carboxylate', 'olate', 'aminium', 'acid', 'ester', 'acylHalide', 'amide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
+export const SENIORITY = ['carboxylate', 'olate', 'ium', 'aminium', 'acid', 'ester', 'acylHalide', 'amide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
 export type GroupKind = (typeof SENIORITY)[number];
 
 export interface Group {
@@ -92,7 +92,7 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       const or = singles.find((n) => el(mol, n.atom) === 'O' && mol.neighbours(n.atom).length === 2 && !ringAtoms.has(n.atom));
       const x = singles.find((n) => ['F', 'Cl', 'Br', 'I'].includes(el(mol, n.atom)));
       const nAmide = singles.find((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
-        && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C'));
+        && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C') && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
       const others = carbons.length + singles.length;
       // Urea: C(=O) between two open-chain nitrogens, named as the parent "urea".
       const ureaN = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
@@ -145,6 +145,11 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       groups.push({ kind: 'aminium', anchor: mol.neighbours(x.id)[0]!, ownCarbon: false, consumed: [x.id], nitrogen: x.id });
       continue;
     }
+    // Cationic ring nitrogen (piperidin-1-ium, pyridin-1-ium): named on its ring.
+    if (x.charge === 1 && x.element === 'N' && ringAtoms.has(x.id) && isRingCation(mol, x.id)) {
+      groups.push({ kind: 'ium', anchor: x.id, ownCarbon: false, consumed: [] });
+      continue;
+    }
     if (x.charge !== 0) continue;
     const carbonNbrs = mol.neighbours(x.id).filter((n) => el(mol, n) === 'C');
     const allBondsSingle = mol.incidentBonds(x.id).every((b) => mol.bond(b).order === 1);
@@ -160,6 +165,14 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     }
   }
   return groups;
+}
+
+/** A ring N+ named with -ium: bonded to ring atoms, carbon, hydrogen or an oxido O-, and not nitro. */
+export function isRingCation(mol: Molecule, n: AtomId): boolean {
+  const a = mol.atom(n);
+  if (a.element !== 'N' || a.charge !== 1) return false;
+  return mol.neighbours(n).every((m) => el(mol, m) === 'C' || el(mol, m) === 'N' || (el(mol, m) === 'O' && mol.atom(m).charge === -1 && mol.neighbours(m).length === 1))
+    && mol.neighbours(n).filter((m) => el(mol, m) === 'O').length <= 1;
 }
 
 /** Carbon double-bonded to O or N (acyl/imidoyl), which disqualifies ester alkyls and amines. */

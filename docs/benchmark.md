@@ -17,20 +17,18 @@ a structure it says so rather than guess ("declined").
 
 | Set | Structures | Named | Correct (of named) | E/Z added | Wrong stereo | Wrong structure | Name OPSIN can't read | Declined | Error |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Small organics (Huuskonen solubility set) | 1282 | 1074 (83.8%) | 1071 (99.7%) | 0 | 0 | 2 | 1 | 207 | 1 |
-| Lead-like molecules (ZINC) | 500 | 192 (38.4%) | 175 (91.1%) | 0 | 5 | 10 | 2 | 304 | 4 |
-| **All** | 1782 | 1266 (71.0%) | 1246 (98.4%) | 0 | 5 | 12 | 3 | 511 | 5 |
+| Small organics (Huuskonen solubility set) | 1282 | 1250 (97.5%) | 1248 (99.8%) | 0 | 0 | 2 | 0 | 32 | 0 |
+| Lead-like molecules (ZINC) | 500 | 382 (76.4%) | 371 (97.1%) | 1 | 9 | 0 | 1 | 117 | 1 |
+| **All** | 1782 | 1632 (91.6%) | 1619 (99.2%) | 1 | 9 | 2 | 1 | 149 | 1 |
 
-Median time to name a structure: 0.5 ms.
+Median time to name a structure: 0.8 ms.
 
 Why structures were declined:
 
-- ring system without a supported parent name: 383
-- charged species: 82
-- no parent hydride: 20
-- substituent chain: 12
-- ring substituent without a supported name: 11
-- nitrogen substituent: 2
+- ring system without a supported parent name: 103
+- charged species: 38
+- no parent hydride: 5
+- ring substituent without a supported name: 2
 - esters with different alkyl groups: 1
 
 Every wrong name, unreadable name and error is listed in

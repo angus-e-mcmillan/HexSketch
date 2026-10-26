@@ -1,26 +1,15 @@
 set	id	outcome	smiles	hexsketch_name	opsin_smiles_or_reason
-solubility	train-666	unparsed	CCOP(=S)(OCC)SCSP(=S)(OCC)OCC	(((1-((diethoxyphosphorothioyl)thio)methyl)thio)ethoxyphosphorothioyloxy)ethane	
 solubility	train-852	wrong	CNC(=O)ON=C(CSC)C(C)(C)C	(((3,3-dimethyl-1-(methylthio)butan-2-ylidene)amino)oxy)-N-methylformamide	CC(C(CSC)=NON(C=O)C)(C)C
 solubility	train-865	wrong	CNC(=O)ON=C1C(Cl)C2CC(C#N)C1C2	(((3-chloro-6-cyanobicyclo[2.2.1]heptan-2-ylidene)amino)oxy)-N-methylformamide	ClC1C(C2C(CC1C2)C#N)=NON(C=O)C
-solubility	test-164	error	COC(=O)NS(=O)(=O)c1ccc(N)cc1		Cannot read properties of undefined (reading 'complex')
 zinc-leads	ZINC06525698	stereo	Cc1ccccc1[C@@H]1[C@H](C#N)[C@@]12C(N)=NN=C2O	(1S,2S,3S)-7-amino-4-hydroxy-2-(2-methylphenyl)-5,6-diazaspiro[2.4]hepta-4,6-diene-1-carbonitrile	NC1=NN=C([C@]12[C@@H]([C@@H]2C#N)C2=C(C=CC=C2)C)O
-zinc-leads	ZINC01578471	stereo	OCCN1C(c2ccccc2)=CN2C=CS[C@@H]21	2-((R)-3-phenyl-8-thia-2,5-diazabicyclo[3.3.0]oct-3,6-dien-2-yl)ethan-1-ol	C1(=CC=CC=C1)C=1N([C@@H]2SC=CN2C1)CCO
-zinc-leads	ZINC01580316	wrong	C1CC[NH+]2CSCCC[C@@H]2C1	(S)-3-thia-1-azabicyclo[5.4.0]undecane	N12CSCCC[C@@H]2CCCC1
-zinc-leads	ZINC30783294	unparsed	CC(=O)/N=C1/NC(=O)/C(=C/N2CCCCC2)S1	N-((2Z,5Z)-4-oxo-5-(1-(piperidin-1-yl)methylidene)thiazolidin-2-yl)acetamide	
+zinc-leads	ZINC04290546	stereo	CSc1nc(N2CC(C)=C(C)C[S@]2=O)ns1	4,5-dimethyl-2-(5-(methylthio)-1,2,4-thiadiazol-3-yl)-1-oxo-3,6-dihydro-2H-1,2-thiazine	CC=1CN(S(CC1C)=O)C1=NSC(=N1)SC
+zinc-leads	ZINC01578471	stereo	OCCN1C(c2ccccc2)=CN2C=CS[C@@H]21	2-((R)-6-phenyl-7,7a-dihydroimidazo[2,1-b]thiazol-7-yl)ethan-1-ol	C1(=CC=CC=C1)C=1N([C@@H]2SC=CN2C1)CCO
 zinc-leads	ZINC35323783	stereo	CC1(C)[C@@]2(C#N)C(=O)N[C@]1(C)O[C@@H](c1ccccc1)C2(C#N)C#N	(1R,3S,5R)-1,8,8-trimethyl-6-oxo-3-phenyl-2-oxa-7-azabicyclo[3.2.1]octane-4,4,5-tricarbonitrile	C[C@]12O[C@H](C([C@@](C(N1)=O)(C2(C)C)C#N)(C#N)C#N)C2=CC=CC=C2
-zinc-leads	ZINC00265495	stereo	CC1=C2C(=O)O[C@H](c3ccoc3)[C@]2(C)CCC1	(1R,9R)-9-(furan-3-yl)-1,5-dimethyl-8-oxabicyclo[4.3.0]non-5-en-7-one	O1C=C(C=C1)[C@@H]1OC(C2=C(CCC[C@@]12C)C)=O
-zinc-leads	ZINC05282762	wrong	N#CCS(=O)(=O)[C@@H]1CCCC=C1[NH+]1CCOCC1	2-(((R)-2-morpholinocyclohex-2-en-1-yl)sulfonyl)acetonitrile	O1CCN(CC1)C=1[C@@H](CCCC1)S(=O)(=O)CC#N
-zinc-leads	ZINC04098885	wrong	CC(=O)C1=CCC[C@@H]2CC[C@H]1[NH2+]2	1-((1R,6R)-9-azabicyclo[4.2.1]non-2-en-2-yl)ethan-1-one	[C@H]12C(=CCC[C@H](CC1)N2)C(C)=O
+zinc-leads	ZINC05567373	stereo-added	C[S@](=O)CC1=NC(=N)N=C1C[S@@](C)=O	2-imino-4,5-bis(1-(methylsulfinyl)methyl)-2H-imidazole	N=C1N=C(C(=N1)CS(=O)C)CS(=O)C
+zinc-leads	ZINC00265495	stereo	CC1=C2C(=O)O[C@H](c3ccoc3)[C@]2(C)CCC1	(3R,3aR)-3-(furan-3-yl)-3a,7-dimethyl-1,3,3a,4,5,6-hexahydroisobenzofuran-1-one	O1C=C(C=C1)[C@@H]1OC(C2=C(CCC[C@@]12C)C)=O
 zinc-leads	ZINC05675384	stereo	CC[C@@H](c1ccoc1)[S@@](=O)c1ccccc1	3-((S)-1-(phenylsulfinyl)propyl)furan	C1(=CC=CC=C1)S(=O)[C@@H](CC)C1=COC=C1
-zinc-leads	ZINC01607889	wrong	C[NH+]1CCO[C@@H](c2ccccc2)c2ccsc2CC1	(S)-6-methyl-2-phenyl-3-oxa-10-thia-6-azabicyclo[7.3.0]dodeca-1(9),11-diene	CN1CCO[C@H](C=2C=CSC2CC1)C1=CC=CC=C1
-zinc-leads	ZINC08721401	error	COC(=O)NN=Cc1c[nH]nc1-c1ccc(OC)cc1		Cannot read properties of undefined (reading 'complex')
-zinc-leads	ZINC06485149	wrong	C[PH](C)(Cc1ccc([N+](=O)[O-])cc1)c1ccccc1	1-(1-(dimethylphenylphosphanyl)methyl)-4-nitrobenzene	CC=1C(=C(C=CC1)PCC1=CC=C(C=C1)[N+](=O)[O-])C
-zinc-leads	ZINC16974985	wrong	O=C1OC[C@H]2S[C@H](c3ccccc3)[NH2+][C@H]12	(1S,3R,5R)-3-phenyl-7-oxa-2-thia-4-azabicyclo[3.3.0]octan-6-one	C1(=CC=CC=C1)[C@H]1S[C@@H]2COC([C@H]2N1)=O
-zinc-leads	ZINC06055095	wrong	Cc1cccc(/C=N/NC2=NNC([NH3+])=Cc3ncnn32)c1	1-((E)-1-(((5-amino-1,3,4,8,10-pentaazabicyclo[5.3.0]dec-2,5,7,9-tetraen-2-yl)amino)imino)methyl)-3-methylbenzene	NC=1NN=C(N2N=CN=C2C1)N\N=C\C1=CC(=CC=C1)C
+zinc-leads	ZINC03911024	stereo	CCc1nnc(SCC2=N[C@@H]3C=CC=CN3C(=O)C2)nc1CC	(R)-2-(1-((5,6-diethyl-1,2,4-triazin-3-yl)thio)methyl)-3,9a-dihydro-4H-pyrido[1,2-a]pyrimidin-4-one	C(C)C=1N=C(N=NC1CC)SCC1=N[C@@H]2N(C(C1)=O)C=CC=C2
 zinc-leads	ZINC04594478	error	Cc1nn2[c-](C(=O)NCc3ccco3)c(C)n[n+]2c1[N+](=O)[O-]		"error: Not a valid SMILES: cannot kekulize ""Cc1nn2[c-](C(=O)NCc3ccco3)c(C)n[n+]2c1[N+](=O)[O-]"". Check the aromatic rings: pyrrole-type N needs [nH], and a ring written in lowercase must be able to take alternating double bonds"
-zinc-leads	ZINC12250592	wrong	CSc1[nH]c(C)cc(=O)c1C#N	6-methyl-2-(methylthio)-4-oxopyridine-3-carbonitrile	CC1=CC(C(C(=N1)SC)C#N)=O
-zinc-leads	ZINC02436012	unparsed	CCOC(=O)[C@H](S[P@](O)(=S)OC)c1ccccc1	ethyl (R)-2-((hydroxymethoxyphosphorothioyl)thio)-2-phenylacetate	
-zinc-leads	ZINC09187082	error	CCOC(=O)c1ccc(NC=C2C(=O)OC(C)(C)OC2=O)cc1		Cannot read properties of undefined (reading 'complex')
-zinc-leads	ZINC01641834	wrong	C[NH+]1CCC(OC(=O)[C@@](O)(c2ccccc2)c2ccns2)CC1	1-methylpiperidin-4-yl (S)-2-hydroxy-2-(isothiazol-5-yl)-2-phenylacetate	O[C@](C(=O)OC1CCN(CC1)C)(C1=CC=CC=C1)C1=CC=NS1
-zinc-leads	ZINC12506134	wrong	COC(=O)c1ccoc1CC1CC[NH2+]CC1	methyl 2-(1-(piperidin-4-yl)methyl)furan-3-carboxylate	N1CCC(CC1)CC=1OC=CC1C(=O)OC
-zinc-leads	ZINC12546759	error	CCOC(=O)/C(C#N)=c1/s/c(=C\Nc2ccccc2)c(=O)n1CC		Cannot read properties of undefined (reading 'complex')
+zinc-leads	ZINC02436012	stereo	CCOC(=O)[C@H](S[P@](O)(=S)OC)c1ccccc1	ethyl (R)-2-((hydroxy(methoxy)phosphorothioyl)thio)-2-phenylacetate	OP(=S)(OC)S[C@@H](C(=O)OCC)C1=CC=CC=C1
+zinc-leads	ZINC20568713	stereo	CC1=C(C#N)[C@H](c2ccco2)C(C#N)=C(N)S1	(R)-2-amino-4-(furan-2-yl)-6-methyl-4H-thiopyran-3,5-dicarbonitrile	NC=1SC(=C([C@H](C1C#N)C=1OC=CC1)C#N)C
+zinc-leads	ZINC17223734	unparsed	CCOC(=O)CNC1=[NH+]N=[S@@](=O)(O)c2ccccc21	(R)-5-((2-ethoxy-2-oxoethyl)amino)-2-hydroxy-2-oxo-2-thia-3,4-diazabicyclo[4.4.0]deca-1(10),2,4,6,8-pentaen-4-ium	

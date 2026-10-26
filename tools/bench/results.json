@@ -6,17 +6,17 @@
       "title": "Small organics (Huuskonen solubility set)",
       "naming": {
         "total": 1282,
-        "correct": 1071,
+        "correct": 1248,
         "stereo-added": 0,
         "stereo": 0,
         "wrong": 2,
-        "unparsed": 1,
-        "declined": 207,
-        "error": 1,
-        "named": 1074,
-        "coverage": 0.8377535101404057,
-        "accuracy_of_named": 0.9972067039106145,
-        "median_ms": 0.5
+        "unparsed": 0,
+        "declined": 32,
+        "error": 0,
+        "named": 1250,
+        "coverage": 0.9750390015600624,
+        "accuracy_of_named": 0.9984,
+        "median_ms": 0.6
       },
       "layout": {
         "HexSketch": {
@@ -46,17 +46,17 @@
       "title": "Lead-like molecules (ZINC)",
       "naming": {
         "total": 500,
-        "correct": 175,
-        "stereo-added": 0,
-        "stereo": 5,
-        "wrong": 10,
-        "unparsed": 2,
-        "declined": 304,
-        "error": 4,
-        "named": 192,
-        "coverage": 0.384,
-        "accuracy_of_named": 0.9114583333333334,
-        "median_ms": 0.4
+        "correct": 371,
+        "stereo-added": 1,
+        "stereo": 9,
+        "wrong": 0,
+        "unparsed": 1,
+        "declined": 117,
+        "error": 1,
+        "named": 382,
+        "coverage": 0.764,
+        "accuracy_of_named": 0.9712041884816754,
+        "median_ms": 1.0
       },
       "layout": {
         "HexSketch": {
@@ -78,7 +78,7 @@
           "clean": 0.992,
           "with_clash": 0.004,
           "with_crossing": 0.006,
-          "mean_spread": 0.00417612418781671
+          "mean_spread": 0.004172721963749455
         }
       }
     }
@@ -86,17 +86,17 @@
   "all": {
     "naming": {
       "total": 1782,
-      "correct": 1246,
-      "stereo-added": 0,
-      "stereo": 5,
-      "wrong": 12,
-      "unparsed": 3,
-      "declined": 511,
-      "error": 5,
-      "named": 1266,
-      "coverage": 0.7104377104377104,
-      "accuracy_of_named": 0.9842022116903634,
-      "median_ms": 0.5
+      "correct": 1619,
+      "stereo-added": 1,
+      "stereo": 9,
+      "wrong": 2,
+      "unparsed": 1,
+      "declined": 149,
+      "error": 1,
+      "named": 1632,
+      "coverage": 0.9158249158249159,
+      "accuracy_of_named": 0.9920343137254902,
+      "median_ms": 0.8
     },
     "layout": {
       "HexSketch": {
@@ -118,7 +118,7 @@
         "clean": 0.98989898989899,
         "with_clash": 0.008978675645342313,
         "with_crossing": 0.004489337822671156,
-        "mean_spread": 0.005571497226085828
+        "mean_spread": 0.0055705426177616825
       }
     }
   }

@@ -18,7 +18,10 @@ export function alkaneStem(n: number): string {
 
 /** di, tri, tetra ... for simple prefixes and suffixes. */
 export function multiplier(n: number): string {
-  const m: Record<number, string> = { 1: '', 2: 'di', 3: 'tri', 4: 'tetra', 5: 'penta', 6: 'hexa', 7: 'hepta', 8: 'octa', 9: 'nona', 10: 'deca' };
+  const m: Record<number, string> = {
+    1: '', 2: 'di', 3: 'tri', 4: 'tetra', 5: 'penta', 6: 'hexa', 7: 'hepta', 8: 'octa', 9: 'nona', 10: 'deca',
+    11: 'undeca', 12: 'dodeca', 13: 'trideca', 14: 'tetradeca', 15: 'pentadeca', 16: 'hexadeca', 17: 'heptadeca', 18: 'octadeca', 19: 'nonadeca', 20: 'icosa',
+  };
   return m[n] ?? `${alkaneStem(n)}a`;
 }
 

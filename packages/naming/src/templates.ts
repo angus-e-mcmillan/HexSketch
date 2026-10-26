@@ -15,6 +15,14 @@ export interface RingTemplate {
   /** Retained name for the substituent attached at locant 1 (phenyl for benzene). */
   ylRetained?: string;
   aromatic: boolean;
+  /**
+   * A fully unsaturated (mancude) parent whose partly or fully saturated forms
+   * are named with hydro prefixes: 4,5,6,7-tetrahydro-1,3-benzothiazole.
+   * Set for every aromatic parent except benzene, below.
+   */
+  mancude?: boolean;
+  /** Generated parents (rings.ts) give atoms and ring bonds instead of a SMILES, in locant order. */
+  skeleton?: { elements: string[]; bonds: [number, number][] };
 }
 
 const seq = (n: number) => Array.from({ length: n }, (_, i) => String(i + 1));
@@ -81,3 +89,9 @@ export const TEMPLATES: RingTemplate[] = [
   { name: '1,3,2-dioxaborolane', yl: '1,3,2-dioxaborolan', smiles: 'O1BOCC1', locants: seq(5), aromatic: false },
   { name: 'decahydronaphthalene', yl: 'decahydronaphthalen', smiles: 'C1CCC2CCCCC2C1', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: false },
 ];
+
+/** Parents named by hydro prefixes when partly saturated (benzene's are cycloalkenes). */
+const HYDRO_PARENTS = new Set(['pyridine', 'pyrimidine', 'pyrazine', 'pyridazine', 'furan', 'thiophene', 'pyrrole', 'imidazole', 'pyrazole',
+  'oxazole', 'thiazole', 'isoxazole', 'isothiazole', 'naphthalene', 'quinoline', 'isoquinoline', 'indole', 'benzofuran', 'benzo[b]thiophene',
+  'benzimidazole', 'benzoxazole', 'benzothiazole', 'quinoxaline', 'quinazoline', 'indazole', 'fluorene']);
+for (const t of TEMPLATES) if (HYDRO_PARENTS.has(t.name)) t.mancude = true;
