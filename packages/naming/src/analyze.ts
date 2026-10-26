@@ -1,7 +1,7 @@
 import { perceiveRings, type AtomId, type Molecule } from '@hexsketch/core';
 
 /** Characteristic groups in decreasing seniority (IUPAC 2013, P-41). */
-export const SENIORITY = ['carboxylate', 'olate', 'ium', 'aminium', 'acid', 'ester', 'acylHalide', 'amide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
+export const SENIORITY = ['carboxylate', 'olate', 'thiolate', 'ide', 'ium', 'iminium', 'aminium', 'acid', 'ester', 'acylHalide', 'amide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
 export type GroupKind = (typeof SENIORITY)[number];
 
 export interface Group {
@@ -145,6 +145,23 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       groups.push({ kind: 'aminium', anchor: mol.neighbours(x.id)[0]!, ownCarbon: false, consumed: [x.id], nitrogen: x.id });
       continue;
     }
+    // Thiolate S- on carbon: benzenethiolate.
+    if (x.charge === -1 && x.element === 'S' && mol.neighbours(x.id).length === 1 && el(mol, mol.neighbours(x.id)[0]!) === 'C'
+        && !isAcylCarbon(mol, mol.neighbours(x.id)[0]!)) {
+      groups.push({ kind: 'thiolate', anchor: mol.neighbours(x.id)[0]!, ownCarbon: false, consumed: [x.id] });
+      continue;
+    }
+    // Anionic ring nitrogen: 1H-tetrazol-1-ide.
+    if (x.charge === -1 && x.element === 'N' && ringAtoms.has(x.id) && isRingAnion(mol, x.id)) {
+      groups.push({ kind: 'ide', anchor: x.id, ownCarbon: false, consumed: [] });
+      continue;
+    }
+    // Iminium C=N+: propan-2-iminium, N-methylpyrrolidin-2-iminium.
+    if (x.charge === 1 && x.element === 'N' && !ringAtoms.has(x.id) && isIminium(mol, x.id)) {
+      const c = mol.neighbours(x.id).find((n) => mol.bondBetween(x.id, n)!.order === 2)!;
+      groups.push({ kind: 'iminium', anchor: c, ownCarbon: false, consumed: [x.id], nitrogen: x.id });
+      continue;
+    }
     // Cationic ring nitrogen (piperidin-1-ium, pyridin-1-ium): named on its ring.
     if (x.charge === 1 && x.element === 'N' && ringAtoms.has(x.id) && isRingCation(mol, x.id)) {
       groups.push({ kind: 'ium', anchor: x.id, ownCarbon: false, consumed: [] });
@@ -173,6 +190,22 @@ export function isRingCation(mol: Molecule, n: AtomId): boolean {
   if (a.element !== 'N' || a.charge !== 1) return false;
   return mol.neighbours(n).every((m) => el(mol, m) === 'C' || el(mol, m) === 'N' || (el(mol, m) === 'O' && mol.atom(m).charge === -1 && mol.neighbours(m).length === 1))
     && mol.neighbours(n).filter((m) => el(mol, m) === 'O').length <= 1;
+}
+
+/** A ring N- with only ring neighbours (the conjugate base of an NH). */
+export function isRingAnion(mol: Molecule, n: AtomId): boolean {
+  const a = mol.atom(n);
+  return a.element === 'N' && a.charge === -1 && mol.neighbours(n).length === 2 && mol.incidentBonds(n).every((b) => mol.bond(b).order === 1);
+}
+
+/** An open-chain C=N+ with only carbon or hydrogen otherwise on the nitrogen. */
+export function isIminium(mol: Molecule, n: AtomId): boolean {
+  const a = mol.atom(n);
+  if (a.element !== 'N' || a.charge !== 1) return false;
+  const dbl = mol.incidentBonds(n).filter((b) => mol.bond(b).order === 2);
+  if (dbl.length !== 1 || mol.incidentBonds(n).some((b) => mol.bond(b).order > 2)) return false;
+  const c = mol.otherAtom(mol.bond(dbl[0]!), n);
+  return el(mol, c) === 'C' && mol.neighbours(n).every((m) => el(mol, m) === 'C');
 }
 
 /** Carbon double-bonded to O or N (acyl/imidoyl), which disqualifies ester alkyls and amines. */

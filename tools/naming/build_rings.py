@@ -194,21 +194,113 @@ def stem(name: str) -> str:
     return name[:-1] if name.endswith('e') else name
 
 
-def fusion_names() -> list[tuple[str, tuple]]:
-    """Two-ring fusion names, each with a preference key (lower is better)."""
-    out = []
-    letters = 'abcdefg'
-    for pre, (mono, size) in ATTACHED.items():
-        pairs = [(i, i % size + 1) for i in range(1, size + 1)]
-        for base in BASES:
-            bsize = BASE_SIZE[base]
-            if seniority(composition(base)) < seniority(composition(mono)):
-                continue  # the base component must be the senior one
-            for (p, q) in pairs:
-                for x, y in ((p, q), (q, p)):
-                    for li in range(bsize):
-                        out.append((f'{pre}[{x},{y}-{letters[li]}]{base}', (li, min(x, y), x > y)))
+# Bicyclic components, as prefixes and as bases (OPSIN parses each to learn its
+# numbering, ring count and heteroatoms).
+BICYCLIC_PREFIXES = {
+    'indolo': '1H-indole', 'isoindolo': '2H-isoindole', 'quino': 'quinoline', 'isoquino': 'isoquinoline', 'quinazolino': 'quinazoline',
+    'quinoxalino': 'quinoxaline', 'benzimidazo': '1H-benzimidazole', '[1]benzothieno': '1-benzothiophene', '[1]benzofuro': '1-benzofuran',
+    'naphtho': 'naphthalene', 'indeno': '1H-indene', 'chromeno': '2H-chromene', '[1,3]benzoxazolo': '1,3-benzoxazole',
+    '[1,3]benzothiazolo': '1,3-benzothiazole', 'purino': '7H-purine', 'pteridino': 'pteridine', 'phthalazino': 'phthalazine',
+    'cinnolino': 'cinnoline', 'indazolo': '1H-indazole', 'indolizino': 'indolizine', 'quinolizino': '4H-quinolizine',
+}
+BICYCLIC_BASES = {
+    'quinoline': 'quinoline', 'isoquinoline': 'isoquinoline', 'quinazoline': 'quinazoline', 'quinoxaline': 'quinoxaline', 'indole': '1H-indole',
+    'isoindole': '2H-isoindole', 'benzimidazole': '1H-benzimidazole', '[1,3]benzoxazole': '1,3-benzoxazole', '[1,3]benzothiazole': '1,3-benzothiazole',
+    '[1]benzofuran': '1-benzofuran', '[1]benzothiophene': '1-benzothiophene', 'indazole': '1H-indazole', 'purine': '7H-purine', 'pteridine': 'pteridine',
+    'phthalazine': 'phthalazine', 'cinnoline': 'cinnoline', 'naphthalene': 'naphthalene', 'chromene': '2H-chromene', '[1,8]naphthyridine': '1,8-naphthyridine',
+    '[1,6]naphthyridine': '1,6-naphthyridine', 'indolizine': 'indolizine', 'quinolizine': '4H-quinolizine', '[1,4]benzodiazepine': '1H-1,4-benzodiazepine',
+    '[1,4]benzoxazine': '2H-1,4-benzoxazine', '[1,4]benzothiazine': '2H-1,4-benzothiazine', '[1,3]benzodioxole': '1,3-benzodioxole',
+    'imidazo[1,2-a]pyridine': 'imidazo[1,2-a]pyridine', 'thieno[2,3-d]pyrimidine': 'thieno[2,3-d]pyrimidine', 'pyrrolo[2,3-b]pyridine': '1H-pyrrolo[2,3-b]pyridine',
+}
+MONO_FOR_BASE = {b: re.sub(r'^\[([\d,]+)\]', lambda m: m.group(1) + '-', b) for b in BASES}
+for b in ('pyran', 'thiopyran', '[1,4]oxazine', '[1,3]oxazine', '[1,4]thiazine', '[1,3]thiazine', 'azepine', '[1,4]diazepine', '[1,3]diazepine',
+          '[1,4]oxazepine', '[1,4]thiazepine', '[1,3,4]thiadiazine', '[1,2,4]triazepine', 'pyrrole', 'imidazole', 'pyrazole', '[1,2,4]triazole', '[1,2,3]triazole', 'tetrazole'):
+    MONO_FOR_BASE[b] = '2H-' + MONO_FOR_BASE[b] if b.startswith(('pyran', 'thiopyran')) or 'azine' in b or 'azepine' in b or 'thiadiazine' in b else '1H-' + MONO_FOR_BASE[b]
+
+
+def component_info(names: dict[str, str]) -> dict[str, dict]:
+    """For each component: its peripheral numbered bonds as locant pairs, atom count and seniority."""
+    docs = opsin_cml(list(set(names.values())))
+    out = {}
+    for key, parent in names.items():
+        d = docs.get(parent)
+        r = parse_one(d) if d is not None else None
+        if r is None:
+            print(f'  component not parsed: {parent}', file=sys.stderr)
+            continue
+        locs, els = r['locants'], r['elements']
+        rd = Chem.RWMol()
+        for e in els:
+            rd.AddAtom(Chem.Atom(e))
+        for a, b in r['bonds']:
+            rd.AddBond(a, b, Chem.BondType.SINGLE)
+        m = rd.GetMol()
+        m.UpdatePropertyCache(strict=False)
+        Chem.FastFindRings(m)
+        rings = m.GetRingInfo().AtomRings()
+        pairs = [(int(locs[a]), int(locs[b])) for a, b in r['bonds'] if locs[a].isdigit() and locs[b].isdigit()]
+        n, o, s_ = els.count('N'), els.count('O'), els.count('S')
+        sen = (n > 0, o > 0 if not n else 0, len(rings), max(len(x) for x in rings), n + o + s_, (n > 0) + (o > 0) + (s_ > 0), o, s_, n)
+        out[key] = {'pairs': pairs, 'atoms': len(els), 'seniority': sen}
     return out
+
+
+def fusion_names() -> list[tuple[str, tuple]]:
+    """Two- and three-ring fusion names, each with a preference key (lower is better):
+    the most senior base component first (FR-3.1), then the lowest descriptor."""
+    letters = 'abcdefghijklmn'
+    # Each attached monocycle as OPSIN parses it on its own (indicated hydrogen where it needs one).
+    needs_h = {'pyrrole': '1H-', 'imidazole': '1H-', 'pyrazole': '1H-', '1,2,4-triazole': '1H-', '1,2,3-triazole': '1H-', 'tetrazole': '1H-',
+               'azepine': '1H-', '1,4-diazepine': '1H-', 'pyran': '2H-', 'thiopyran': '2H-', '1,4-oxazine': '2H-', '1,3-oxazine': '2H-',
+               '1,4-thiazine': '2H-', '1,3-thiazine': '2H-'}
+    prefixes = {p: needs_h.get(m, '') + m for p, (m, _) in ATTACHED.items()}
+    prefixes['benzo'] = 'benzene'
+    prefixes.update(BICYCLIC_PREFIXES)
+    bases = dict(MONO_FOR_BASE)
+    bases.update(BICYCLIC_BASES)
+    info_p = component_info(prefixes)
+    info_b = component_info(bases)
+    out = []
+    for pre, pi in info_p.items():
+        for base, bi in info_b.items():
+            if bi['seniority'] < pi['seniority']:
+                continue  # the base component must be the senior one
+            if pi['atoms'] > 6 and bi['atoms'] > 6:
+                continue  # four rings: leave to NAMED
+            rank0 = tuple(-x for x in bi['seniority'])
+            nletters = min(bi['atoms'], len(letters))
+            if pre == 'benzo':
+                for li in range(nletters):
+                    out.append((f'benzo[{letters[li]}]{base}', (rank0, li, 0, 0)))
+                continue
+            for (p, q) in pi['pairs']:
+                for x, y in ((p, q), (q, p)):
+                    for li in range(nletters):
+                        out.append((f'{pre}[{x},{y}-{letters[li]}]{base}', (rank0, li, min(x, y), x > y)))
+    return out
+
+
+def encode_locants(locs: list[str]) -> str:
+    out, n = [], 0
+    for l in locs:
+        m = re.fullmatch(r'(\d+)([a-z]?)', l)
+        num, letter = int(m.group(1)), m.group(2)
+        if not letter and num == n + 1:
+            out.append('.'); n = num
+        elif letter and num == n:
+            out.append(letter)
+        else:
+            return '!' + ' '.join(locs)
+    return ''.join(out)
+
+
+def repr_row(r: dict) -> str:
+    n = len(r['elements'])
+    bonds = set(r['bonds'])
+    extra = ' '.join(f'{a}.{b}' for a, b in sorted(bonds) if b != a + 1)
+    gaps = ' '.join(str(i) for i in range(n - 1) if (i, i + 1) not in bonds)
+    els = ''.join(r['elements'])
+    return repr([r['name'], els, encode_locants(r['locants']), extra, gaps])
 
 
 def main():
@@ -240,26 +332,17 @@ def main():
     print(f'{len(rows)} distinct ring systems', file=sys.stderr)
     lines = [
         '// Generated by tools/naming/build_rings.py from OPSIN: do not edit by hand.',
-        '// Ring parents with their IUPAC locants, atoms in locant order, ring bonds as index pairs.',
-        "import type { RingTemplate } from './templates.ts';",
+        '// Ring parents with their IUPAC numbering. Each row: name; elements in locant order;',
+        '// locants ("." the next number, a letter the previous number lettered: 1 2 3 3a 4 = "...a."),',
+        '// or "!" and the list; ring bonds other than locant-order neighbours ("0.8 3.8"); and the',
+        '// locant-order neighbours that are not bonded.',
         '',
-        'type Row = [name: string, elements: string, locants: string, bonds: string];',
-        'const ROWS: Row[] = [',
+        'export type RingRow = [name: string, elements: string, locants: string, extra: string, gaps: string];',
+        'export const RING_ROWS: RingRow[] = [',
     ]
     for r in rows:
-        bonds = ' '.join(f'{a}-{b}' for a, b in r['bonds'])
-        lines.append(f"  [{r['name']!r}, {' '.join(r['elements'])!r}, {' '.join(r['locants'])!r}, {bonds!r}],")
-    lines += [
-        '];',
-        '',
-        '/** Mancude parents for hydro-prefix naming, in order of preference. */',
-        'export const RING_PARENTS: RingTemplate[] = ROWS.map(([name, elements, locants, bonds]) => ({',
-        "  name, yl: name.replace(/e$/, ''), smiles: '', aromatic: true, mancude: true,",
-        "  skeleton: { elements: elements.split(' '), bonds: bonds.split(' ').map((b) => b.split('-').map(Number) as [number, number]) },",
-        "  locants: locants.split(' '),",
-        '}));',
-        '',
-    ]
+        lines.append('  ' + repr_row(r) + ',')
+    lines += ['];', '']
     OUT.write_text('\n'.join(lines), encoding='utf-8')
     print(f'wrote {OUT}', file=sys.stderr)
 
