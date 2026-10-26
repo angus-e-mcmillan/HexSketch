@@ -42,7 +42,8 @@ const VOWELS = /^[aeiouy]/;
  * (propan-2-ol, but keep it before a consonant: ethane-1,2-diol).
  */
 export function attachSuffix(parent: string, locants: string, suffix: string): string {
-  const base = VOWELS.test(suffix) && parent.endsWith('e') ? parent.slice(0, -1) : parent;
+  // The final e goes before a vowel, also inside a closing bracket: spiro[indole-3,4'-piperidin]-2-one.
+  const base = !VOWELS.test(suffix) ? parent : parent.endsWith('e') ? parent.slice(0, -1) : parent.endsWith('e]') ? `${parent.slice(0, -2)}]` : parent;
   return locants ? `${base}-${locants}-${suffix}` : `${base}${suffix}`;
 }
 

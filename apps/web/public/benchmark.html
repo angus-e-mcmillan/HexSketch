@@ -42,8 +42,9 @@ and every drawing scored against RDKit's.</p>
 
 <h2>Naming</h2>
 <p>A name counts as correct only if OPSIN turns it back into exactly the structure, stereochemistry included
-(compared by standard InChI). When HexSketch can't name a structure, it says so rather than guess.</p>
-<div class="scroll"><table><thead><tr><th>Set</th><th>Structures</th><th>Named</th><th>Correct (of named)</th><th>E/Z added</th><th>Wrong stereo</th><th>Wrong structure</th><th>Name OPSIN can&#x27;t read</th><th>Declined</th><th>Error</th></tr></thead><tbody><tr><td>Small organics (Huuskonen solubility set)</td><td>1282</td><td>1278 (99.7%)</td><td>1276 (99.8%)</td><td>0</td><td>0</td><td>2</td><td>0</td><td>4</td><td>0</td></tr><tr><td>Lead-like molecules (ZINC)</td><td>500</td><td>482 (96.4%)</td><td>479 (99.4%)</td><td>1</td><td>0</td><td>1</td><td>1</td><td>18</td><td>0</td></tr><tr><td>Fragment-like molecules (ZINC), held out</td><td>500</td><td>480 (96.0%)</td><td>473 (98.5%)</td><td>0</td><td>3</td><td>2</td><td>2</td><td>20</td><td>0</td></tr><tr><td>All</td><td>2282</td><td>2240 (98.2%)</td><td>2228 (99.5%)</td><td>1</td><td>3</td><td>5</td><td>3</td><td>42</td><td>0</td></tr></tbody></table></div>
+(compared by standard InChI). When HexSketch can't name a structure, it says so rather than guess. The
+fragment-like set is held out: it was not looked at while the namer was improved.</p>
+<div class="scroll"><table><thead><tr><th>Set</th><th>Structures</th><th>Correct</th><th>Named</th><th>Correct, of those named</th><th>Wrong structure</th><th>Wrong stereo</th><th>E/Z added</th><th>Name OPSIN can&#x27;t read</th><th>Declined</th><th>Error</th></tr></thead><tbody><tr><td>Small organics (Huuskonen solubility set)</td><td>1282</td><td>1279 (99.8%)</td><td>1281 (99.9%)</td><td>99.8%</td><td>2</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td></tr><tr><td>Lead-like molecules (ZINC)</td><td>500</td><td>482 (96.4%)</td><td>485 (97.0%)</td><td>99.4%</td><td>1</td><td>0</td><td>1</td><td>1</td><td>15</td><td>0</td></tr><tr><td>Fragment-like molecules (ZINC), held out</td><td>500</td><td>476 (95.2%)</td><td>483 (96.6%)</td><td>98.6%</td><td>2</td><td>3</td><td>0</td><td>2</td><td>17</td><td>0</td></tr><tr><td>All</td><td>2282</td><td>2237 (98.0%)</td><td>2249 (98.6%)</td><td>99.5%</td><td>5</td><td>3</td><td>1</td><td>3</td><td>33</td><td>0</td></tr></tbody></table></div>
 <p class="muted">Median time to name a structure: 0.8 ms.</p>
 
 <h2>Drawing</h2>
@@ -2144,6 +2145,7 @@ L 15.0 124.4
 <ul>
   <li><strong>Small organics (Huuskonen solubility set)</strong>: Huuskonen, J. Chem. Inf. Comput. Sci. 2000, 40, 773, as distributed with RDKit.</li>
   <li><strong>Lead-like molecules (ZINC)</strong>: from the ZINC database, as distributed with RDKit.</li>
+  <li><strong>Fragment-like molecules (ZINC), held out</strong>: from ZINC, as distributed with RDKit; not looked at while the namer was improved.</li>
 </ul>
 <p><a href="/">Open HexSketch</a> · <a href="/ai">HexSketch for AI</a></p>
 </main>

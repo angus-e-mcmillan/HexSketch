@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseSmiles, sameStructure } from '@hexsketch/core';
 import { ionize, nameMolecule } from '../src/index.ts';
+import '../src/all-rings.ts';
 import { opsinAvailable, opsinToSmiles } from '../src/opsin.ts';
 
 const EXPECTED: [string, string][] = [
@@ -114,6 +115,20 @@ const EXPECTED: [string, string][] = [
   ['O=c1cc[nH]cc1', 'pyridin-4(1H)-one'],
   ['O=c1ccc2ccccc2[nH]1', 'quinolin-2(1H)-one'],
   ['O=c1[nH]cnc2ccccc12', 'quinazolin-4(3H)-one'],
+  // Found by the benchmark (tools/bench): ureas, hydro parents, charges, bridged and spiro systems.
+  ['CN(C)C(=O)Nc1ccccc1', '1,1-dimethyl-3-phenylurea'],
+  ['C[NH+]1CCCCC1', '1-methylpiperidin-1-ium'],
+  ['O=C([O-])c1ccc[n+](C)c1', '1-methylpyridin-1-ium-3-carboxylate'],
+  ['C1Cc2ccccc2C1', '2,3-dihydro-1H-indene'],
+  ['c1nc2c(s1)CCCC2', '4,5,6,7-tetrahydrobenzothiazole'],
+  ['c1nc2ccccn2c1', 'imidazo[1,2-a]pyridine'],
+  ['C1CC2CC1C1CCCC21', 'tricyclo[5.2.1.0^{2,6}]decane'],
+  ['C1CCC2(CC1)CCc1ccccc12', "2',3'-dihydrospiro[cyclohexane-1,1'-indene]"],
+  ['C1CSCCSC1', '1,4-dithiepane'],
+  ['O=NN1CCCCC1', '1-nitrosopiperidine'],
+  ['CC(C)=[NH+]C', 'N-methylpropan-2-iminium'],
+  ['c1cc[n-]n1', '1H-pyrazol-1-ide'],
+  ['C[S@@](=O)c1ccccc1', '((R)-methylsulfinyl)benzene'],
 ];
 
 const ROUND_TRIP: string[] = [
@@ -136,6 +151,15 @@ const ROUND_TRIP: string[] = [
   'CC(=O)OCC(=O)OC', 'C[N+](C)(C)C.[Br-]', 'O=C([O-])c1ccccc1.[K+]', 'CCN(CC)CC.Cl', 'O=C1c2ccccc2C(=O)N1CCO',
   'C1CSCCN1', 'C1CCNCCC1', 'c1cnc2ccccc2n1', 'c1ccc2[nH]ncc2c1', 'c1ccc2c(c1)OCO2', 'O=C1OCCC1', 'C1=CCOC1',
   'COC(=O)C1=C(C)NC(C)=C(C(=O)OC)C1c1ccccc1[N+](=O)[O-]', 'O=C(N[C@@H](C)C(=O)O)OCC1c2ccccc2-c2ccccc21',
+  // C=N, P=S, N-N, charges, fused/hydro, bridged and spiro parents (each class once failed the benchmark).
+  'CC(C)=NO', 'CON=Cc1ccccc1', 'NC(=O)NN=C(C)C', 'S=C=Nc1ccccc1', 'COP(=S)(OC)Oc1ccc([N+](=O)[O-])cc1',
+  'CCOP(=S)(OCC)SCSCC', 'NC(N)=O', 'CNC(=O)Nc1ccc(Cl)cc1', 'NNc1ccccc1', 'c1ccc(N=Nc2ccccc2)cc1', 'ON(C)c1ccccc1',
+  'CCCCC(CC)COC(=O)c1ccccc1C(=O)OCC(CC)CCCC', 'O=[N+]([O-])OCC(CO[N+](=O)[O-])O[N+](=O)[O-]', '[N-]=[N+]=NCc1ccccc1',
+  'C[NH+]1CCC(OC(=O)C)CC1', 'C[n+]1ccccc1', '[O-][n+]1ccccc1', 'CC(C)=[NH2+]', 'Sc1nnc(C)[nH]1', 'c1nnn[n-]1',
+  'CS(=O)(=O)[O-]', 'CC1=CC(=O)c2ccccc2N1', 'O=C1CCc2ccccc2N1', 'c1ccc2c(c1)CCCN2', 'C1=CCNCC1', 'C1=NCCN1',
+  'Cc1nc2n(n1)c(C)cc(C)n2', 'Cn1c(=O)c2c(ncn2C)n(C)c1=O', 'c1ccc2c(c1)Sc1ccccc1N2', 'CC12CCC3C(CCC4CC(O)CCC43C)C1CCC2O',
+  'c1cc2ccc3cccc4ccc(c1)c2c34', 'ClC1=C(Cl)C2(Cl)C3CC=CC3C1(Cl)C2(Cl)Cl', 'C1CC2CCC1C2', 'C1C2CC3CC1CC(C2)C3',
+  'O=C1Nc2ccccc2C12CCNCC2', 'C1CCC2(CC1)OCCO2', 'O=[S@]1OCCS1', 'C1CSCCSC1', 'CC1=C(C)OP(=O)(O)O1',
 ];
 
 test('names match ChemDraw and IUPAC for known cases', () => {
@@ -173,6 +197,8 @@ const STEREO: string[] = [
   // Amino acids and peptides, including allo-threonine (must not be called threonine) and a D residue.
   'N[C@@H]([C@@H](C)O)C(=O)O', 'N[C@@H]([C@H](C)O)C(=O)O', 'C[C@H](N)C(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)O',
   'C[C@@H](N)C(=O)N[C@H](CC(C)C)C(=O)O',
+  // Oximes, hydrazones and azo compounds carry E/Z; sulfoxides are stereocentres.
+  'C/C(=N/O)c1ccccc1', 'C/C(=N\\O)c1ccccc1', 'c1ccc(/N=N/c2ccccc2)cc1', 'CC[C@@H](c1ccoc1)[S@@](=O)c1ccccc1',
 ];
 
 test('stereodescriptors survive the OPSIN round trip', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, async () => {

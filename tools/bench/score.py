@@ -154,7 +154,7 @@ def naming_summary(sub):
     counts = {k: sum(1 for r in sub if r['naming'] == k) for k in OUTCOMES}
     named_n = counts['correct'] + counts['stereo-added'] + counts['stereo'] + counts['wrong'] + counts['unparsed']
     ms = [float(r['ms']) for r in sub if r['ms']]
-    return {'total': len(sub), **counts, 'named': named_n,
+    return {'total': len(sub), **counts, 'named': named_n, 'accuracy': counts['correct'] / len(sub),
             'coverage': named_n / len(sub), 'accuracy_of_named': counts['correct'] / named_n if named_n else 0,
             'median_ms': statistics.median(ms) if ms else None}
 
@@ -205,13 +205,13 @@ A = summary['all']
 
 
 def naming_table_md():
-    lines = ['| Set | Structures | Named | Correct (of named) | E/Z added | Wrong stereo | Wrong structure | Name OPSIN can\'t read | Declined | Error |',
-             '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
+    lines = ['| Set | Structures | Correct | Named | Correct, of those named | Wrong structure | Wrong stereo | E/Z added | Name OPSIN can\'t read | Declined | Error |',
+             '|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|']
+    row = lambda t, s: (f"| {t} | {s['total']} | {s['correct']} ({pct(s['accuracy'])}) | {s['named']} ({pct(s['coverage'])}) | {pct(s['accuracy_of_named'])} "
+                        f"| {s['wrong']} | {s['stereo']} | {s['stereo-added']} | {s['unparsed']} | {s['declined']} | {s['error']} |")
     for k, t in SETS.items():
-        s = summary['sets'][k]['naming']
-        lines.append(f"| {t} | {s['total']} | {s['named']} ({pct(s['coverage'])}) | {s['correct']} ({pct(s['accuracy_of_named'])}) | {s['stereo-added']} | {s['stereo']} | {s['wrong']} | {s['unparsed']} | {s['declined']} | {s['error']} |")
-    s = A['naming']
-    lines.append(f"| **All** | {s['total']} | {s['named']} ({pct(s['coverage'])}) | {s['correct']} ({pct(s['accuracy_of_named'])}) | {s['stereo-added']} | {s['stereo']} | {s['wrong']} | {s['unparsed']} | {s['declined']} | {s['error']} |")
+        lines.append(row(t, summary['sets'][k]['naming']))
+    lines.append(row('**All**', A['naming']))
     return '\n'.join(lines)
 
 
@@ -238,7 +238,9 @@ independent name-to-structure tool, and the two are compared by standard InChI
 exactly the structure, stereochemistry included. "E/Z added" means the name
 gives a double bond's geometry that the input SMILES left open (HexSketch names
 the drawing, where the bond is drawn one way round). When HexSketch can't name
-a structure it says so rather than guess ("declined").
+a structure it says so rather than guess ("declined"). The fragment-like set
+is held out: it was not looked at while the namer was improved, so it shows
+how HexSketch does on structures it has never been shown.
 
 {naming_table_md()}
 
@@ -274,6 +276,8 @@ HexSketch's drawings with overlaps or crossings are listed in
   J. Chem. Inf. Comput. Sci. 2000, 40, 773, as distributed with RDKit.
 - **{SETS['zinc-leads']}:** {summary['sets']['zinc-leads']['naming']['total']} lead-like molecules from the ZINC database, as
   distributed with RDKit (`Regress/Data/zinc.leads.500.q.smi`).
+- **{SETS['zinc-frags']}:** {summary['sets']['zinc-frags']['naming']['total']} fragment-like molecules from ZINC, also distributed
+  with RDKit (`Regress/Data/zinc.frags.500.q.smi`).
 
 Both come from RDKit release `Release_2025_09_1` (`tools/bench/prep.py`).
 """
@@ -360,7 +364,8 @@ and every drawing scored against RDKit's.</p>
 
 <h2>Naming</h2>
 <p>A name counts as correct only if OPSIN turns it back into exactly the structure, stereochemistry included
-(compared by standard InChI). When HexSketch can't name a structure, it says so rather than guess.</p>
+(compared by standard InChI). When HexSketch can't name a structure, it says so rather than guess. The
+fragment-like set is held out: it was not looked at while the namer was improved.</p>
 {table_html(naming_table_md())}
 <p class="muted">Median time to name a structure: {A['naming']['median_ms']:.1f} ms.</p>
 
@@ -378,6 +383,7 @@ and every drawing scored against RDKit's.</p>
 <ul>
   <li><strong>{SETS['solubility']}</strong>: Huuskonen, J. Chem. Inf. Comput. Sci. 2000, 40, 773, as distributed with RDKit.</li>
   <li><strong>{SETS['zinc-leads']}</strong>: from the ZINC database, as distributed with RDKit.</li>
+  <li><strong>{SETS['zinc-frags']}</strong>: from ZINC, as distributed with RDKit; not looked at while the namer was improved.</li>
 </ul>
 <p><a href="/">Open HexSketch</a> · <a href="/ai">HexSketch for AI</a></p>
 </main>

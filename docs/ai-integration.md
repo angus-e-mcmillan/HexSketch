@@ -161,7 +161,9 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
 - Depiction comparison against RDKit on the same set.
 - Results published as a page; gaps found become follow-up issues.
 - Done: `tools/bench` (`npm run bench`), `docs/benchmark.md` and
-  hexsketch.com/benchmark, on 1,782 structures from RDKit's public sets.
+  hexsketch.com/benchmark, on 2,282 structures from RDKit's public sets,
+  500 of them held out. Correct names went from 63% to 98% (99.5% of the
+  names given are right); the gaps it found are fixed in the naming PR.
 
 ## Working notes for scheduled sessions
 

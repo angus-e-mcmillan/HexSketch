@@ -21,6 +21,8 @@ export interface RingTemplate {
    * Set for every aromatic parent except benzene, below.
    */
   mancude?: boolean;
+  /** The fully saturated name, when it is not just hydro prefixes on this one (1,4-dithiepane). */
+  saturated?: string;
   /** Generated parents (rings.ts) give atoms and ring bonds instead of a SMILES, in locant order. */
   skeleton?: { elements: string[]; bonds: [number, number][] };
 }

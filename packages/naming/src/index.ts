@@ -1,1 +1,1 @@
-export { ionize, nameMolecule, OutOfScope, type NameOptions, type NameResult } from './namer.ts';
+export { addRingParents, ionize, nameMolecule, OutOfScope, type NameOptions, type NameResult } from './namer.ts';

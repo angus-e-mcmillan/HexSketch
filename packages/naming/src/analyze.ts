@@ -214,6 +214,7 @@ export function isIminium(mol: Molecule, n: AtomId): boolean {
 
 /** Carbon double-bonded to O or N (acyl/imidoyl), which disqualifies ester alkyls and amines. */
 export function isAcylCarbon(mol: Molecule, c: AtomId): boolean {
+  if (el(mol, c) !== 'C') return false;
   return mol.incidentBonds(c).some((b) => {
     const bd = mol.bond(b);
     const o = mol.otherAtom(bd, c);

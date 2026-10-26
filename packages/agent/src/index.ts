@@ -7,6 +7,7 @@ import {
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
+import '@hexsketch/naming/rings';
 
 /**
  * HexSketch for AI agents and scripts: read a structure from SMILES, a
