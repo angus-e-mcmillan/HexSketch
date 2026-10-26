@@ -1,7 +1,7 @@
 import { perceiveRings, type AtomId, type Molecule } from '@hexsketch/core';
 
 /** Characteristic groups in decreasing seniority (IUPAC 2013, P-41). */
-export const SENIORITY = ['carboxylate', 'olate', 'aminium', 'acid', 'ester', 'acylHalide', 'amide', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
+export const SENIORITY = ['carboxylate', 'olate', 'aminium', 'acid', 'ester', 'acylHalide', 'amide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
 export type GroupKind = (typeof SENIORITY)[number];
 
 export interface Group {
@@ -94,6 +94,14 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       const nAmide = singles.find((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
         && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C'));
       const others = carbons.length + singles.length;
+      // Urea: C(=O) between two open-chain nitrogens, named as the parent "urea".
+      const ureaN = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
+        && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
+      if (ureaN.length === 2 && others === 2) {
+        groups.push({ kind: 'urea', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, ureaN[0]!.atom, ureaN[1]!.atom] });
+        claimed.add(dblO.atom); claimed.add(ureaN[0]!.atom); claimed.add(ureaN[1]!.atom);
+        continue;
+      }
       if (oh && others <= 2) { groups.push({ kind: 'acid', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, oh.atom] }); claimed.add(dblO.atom); claimed.add(oh.atom); continue; }
       if (or && others <= 2) {
         const esterCarbon = mol.neighbours(or.atom).find((m) => m !== c.id)!;

@@ -51,7 +51,7 @@ export function joinLocants(locants: (number | string)[]): string {
 export function compareLocant(a: number | string, b: number | string): number {
   const key = (x: number | string) => {
     const s = String(x);
-    const m = /^(\d+)([a-z]?)('*)$/.exec(s);
+    const m = /^(\d+)([a-z]?)('*)(?:\(\d+\))?$/.exec(s);
     // Primed locants (second ring of an assembly) sort after all unprimed ones.
     if (!m) return [1e6, s.charCodeAt(0), 0, 0] as const;
     return [m[3]!.length, Number(m[1]), m[2] ? m[2].charCodeAt(0) : 0, 0] as const;
