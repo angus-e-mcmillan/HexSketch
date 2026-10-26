@@ -191,6 +191,102 @@ export function arrangeForArrows(mol: Molecule, arrows: readonly ElectronArrow[]
   }
 }
 
+/**
+ * Draw a mechanism step where the step before left off: each structure is
+ * moved (and turned, or flipped when it has no wedges) so its atoms sit
+ * where the atoms with the same map numbers were in `ref`. A species that
+ * has just split off is then eased clear of the rest. Returns whether any
+ * structure could be placed this way.
+ */
+export function alignByMaps(mol: Molecule, ref: Molecule, bondLength: number): boolean {
+  const mine = smilesAtomMaps(mol), theirs = smilesAtomMaps(ref);
+  if (!mine.size || !theirs.size) return false;
+  const frags = mol.fragments();
+  let any = false;
+  for (const ids of frags) {
+    const pairs = ids.flatMap((id) => {
+      const n = [...mine].find(([, a]) => a === id)?.[0];
+      const r = n === undefined ? undefined : theirs.get(n);
+      return r === undefined ? [] : [{ id, to: ref.atom(r) as Pt }];
+    });
+    if (!pairs.length) continue;
+    any = true;
+    const pts = ids.map((id) => mol.atom(id));
+    const from = pairs.map((p) => ({ x: mol.atom(p.id).x, y: mol.atom(p.id).y }));
+    // Mostly by the atoms that were already one structure: one just bonded on came from elsewhere.
+    const refFrag = new Map<AtomId, number>();
+    ref.fragments().forEach((f, k) => f.forEach((id) => refFrag.set(id, k)));
+    const fragOfPair = pairs.map((p) => refFrag.get([...theirs].find(([, r]) => ref.atom(r) === p.to)![1])!);
+    const main = mode(fragOfPair);
+    const weights = fragOfPair.map((k) => (k === main ? 1 : 0.1));
+    const wedged = [...mol.bonds()].some((b) => ids.includes(b.begin) && /wedge|hash/i.test(b.display));
+    // Turned about the reacting centre: the mapped atom bonded to most other mapped atoms stays exactly where it was.
+    const mapped = new Set(pairs.map((p) => p.id));
+    let pivot = -1, most = -1;
+    pairs.forEach((p, k) => {
+      const n = mol.neighbours(p.id).filter((x) => mapped.has(x)).length;
+      if (weights[k] === 1 && n > most) { most = n; pivot = k; }
+    });
+    const fit = bestFit(from, pairs.map((p) => p.to), weights, !wedged, pivot);
+    for (const a of pts) { const q = fit(a); a.x = q.x; a.y = q.y; }
+  }
+  if (!any) return false;
+  // Species apart: one that has just left sits at least 1.5 bonds from the rest.
+  const L = bondLength;
+  for (let round = 0; round < 3; round++) {
+    for (let i = 0; i < frags.length; i++) {
+      for (let j = i + 1; j < frags.length; j++) {
+        const A = frags[i]!.map((id) => mol.atom(id)), B = frags[j]!.map((id) => mol.atom(id));
+        let close = Infinity;
+        for (const a of A) for (const b of B) close = Math.min(close, len(sub(a, b)));
+        if (close >= L * 1.5) continue;
+        const mover = B.length <= A.length ? B : A, other = mover === B ? A : B;
+        const c = (xs: Pt[]) => xs.reduce((m, p) => ({ x: m.x + p.x / xs.length, y: m.y + p.y / xs.length }), { x: 0, y: 0 });
+        const away = unit(sub(c(mover), c(other)));
+        for (const a of mover) { a.x += away.x * (L * 1.5 - close + L * 0.2); a.y += away.y * (L * 1.5 - close + L * 0.2); }
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * The rigid motion (turn, optionally a flip, then a shift) taking points
+ * `a` closest to points `b`, in the weighted least-squares sense, turning
+ * about `pivot` (which then lands exactly on its partner) when one is given.
+ */
+function bestFit(a: Pt[], b: Pt[], w: number[], mayFlip: boolean, pivot = -1): (p: Pt) => Pt {
+  const W = w.reduce((t, x) => t + x, 0) || 1;
+  const centre = (ps: Pt[]) => ps.reduce((m, p, i) => ({ x: m.x + (p.x * w[i]!) / W, y: m.y + (p.y * w[i]!) / W }), { x: 0, y: 0 });
+  // About a pivot, that point maps exactly onto its partner; otherwise about the weighted centres.
+  const ca = pivot >= 0 ? { ...a[pivot]! } : centre(a), cb = pivot >= 0 ? { ...b[pivot]! } : centre(b);
+  const solve = (flip: number) => {
+    let sxx = 0, sxy = 0;
+    a.forEach((p, i) => {
+      const u = { x: p.x - ca.x, y: (p.y - ca.y) * flip }, v = sub(b[i]!, cb);
+      sxx += w[i]! * (u.x * v.x + u.y * v.y); sxy += w[i]! * (u.x * v.y - u.y * v.x);
+    });
+    const t = a.length > 1 ? Math.atan2(sxy, sxx) : 0;
+    const map = (p: Pt) => {
+      const u = { x: p.x - ca.x, y: (p.y - ca.y) * flip };
+      return { x: cb.x + u.x * Math.cos(t) - u.y * Math.sin(t), y: cb.y + u.x * Math.sin(t) + u.y * Math.cos(t) };
+    };
+    const err = a.reduce((e, p, i) => e + w[i]! * len(sub(map(p), b[i]!)) ** 2, 0);
+    return { map, err };
+  };
+  const plain = solve(1);
+  if (!mayFlip || a.length < 3) return plain.map;
+  const flipped = solve(-1);
+  return flipped.err < plain.err * 0.7 ? flipped.map : plain.map;
+}
+
+/** The most common value. */
+function mode(xs: number[]): number {
+  const n = new Map<number, number>();
+  for (const x of xs) n.set(x, (n.get(x) ?? 0) + 1);
+  return [...n].sort((p, q) => q[1] - p[1])[0]![0];
+}
+
 /** The middle of an atom's widest gap between bonds, or (for ties) the one nearest `prefer`. */
 function openDirection(mol: Molecule, id: AtomId, prefer: Pt): Pt {
   const a = mol.atom(id);

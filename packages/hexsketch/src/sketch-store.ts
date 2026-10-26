@@ -15,6 +15,8 @@ export interface SketchUpdate {
   /** Short text pinned beside atoms (each at the first atom of its fragment), replacing earlier AI labels. */
   labels?: { at: string; text: string; color?: string; occurrence?: number }[];
   note?: string;
+  /** One of a sequence sent together (a mechanism's steps): the editor opens at the first and steps through with Back and Next. */
+  step?: { index: number; count: number };
 }
 
 export interface Sketch {

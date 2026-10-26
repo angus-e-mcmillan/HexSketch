@@ -30,9 +30,16 @@ body.notes-open .notes { display: flex; flex-direction: column; min-height: 0; b
 .notes li ul { margin: 0; padding-left: 14px; }
 .notes li ul li { margin: 2px 0; }
 .notes .swatch { padding: 0 4px; border-radius: 3px; color: #1d1d1f; }
-.notes .swatches { margin-bottom: 4px; }
+.notes .note-key { margin-bottom: 4px; }
 .notes li code { font: 12px ui-monospace, monospace; background: var(--chrome); padding: 0 3px; border-radius: 3px; }
 .notes .chip { display: inline-block; margin: 0 4px 2px 0; padding: 0 6px; border-radius: 3px; font-size: 11px; color: #1d1d1f; }
+.notes .steps { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.notes .steps[hidden] { display: none; }
+.notes .steps .where { flex: 1; text-align: center; font-variant-numeric: tabular-nums; }
+.notes .steps button { border: 1px solid var(--line); background: #fff; border-radius: 5px; padding: 2px 8px; font-size: 12px; cursor: pointer; color: inherit; }
+.notes .steps button:disabled { opacity: 0.4; cursor: default; }
+.notes ol > li { cursor: pointer; }
+.notes ol > li.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .notes .notes-empty { margin: 12px; font-size: 12px; color: var(--muted); }
 .notes.has-notes .notes-empty { display: none; }
 

@@ -1,7 +1,7 @@
 import '@hexsketch/web/style.css';
 import './embed.css';
 import { App } from '@modelcontextprotocol/ext-apps';
-import { aiSummary, parsePattern, structureLink, substructureMatches, writeCdxml, HEXSKETCH_URL, type DocObject } from '@hexsketch/core';
+import { aiSummary, objectPoints, parsePattern, structureLink, substructureMatches, writeCdxml, HEXSKETCH_URL, type DocObject, type DrawingStyle, type Molecule, type ObjectGroup } from '@hexsketch/core';
 import { placeLabels, readStructure } from '@hexsketch/agent';
 import { nameMolecule } from '@hexsketch/naming';
 import { mountApp, type AppApi } from '@hexsketch/web';
@@ -27,6 +27,7 @@ interface SketchUpdate {
   highlights?: { smiles: string; color: string; name: string }[];
   labels?: { at: string; text: string; color?: string; occurrence?: number }[];
   note?: string;
+  step?: { index: number; count: number };
 }
 
 const app = new App({ name: 'HexSketch', version: '0.1.8' }, { availableDisplayModes: ['inline', 'fullscreen'] });
@@ -66,23 +67,28 @@ function setLink(state: 'live' | 'off' | 'wait', text: string, detail = '') {
 
 // ------------------------------------------------------------------ notes
 
-/** The notes panel: what the AI explained, newest first, with its highlight colours. */
+/**
+ * The notes panel: what the AI explained, in order, with its highlight
+ * colours, and Back and Next through what it showed (a mechanism's steps).
+ */
 const notes = document.createElement('aside');
 notes.className = 'notes';
-notes.innerHTML = '<header><span>Notes</span><button type="button" title="Hide notes" aria-label="Hide notes">×</button></header><ol></ol><p class="notes-empty">What the AI points out appears here.</p>';
+notes.innerHTML = '<header><span>Notes</span><button type="button" class="close" title="Hide notes" aria-label="Hide notes">×</button></header>'
+  + '<nav class="steps" hidden><button type="button" class="back" aria-label="Back">‹ Back</button><span class="where"></span><button type="button" class="next" aria-label="Next">Next ›</button></nav>'
+  + '<ol></ol><p class="notes-empty">What the AI points out appears here.</p>';
 document.querySelector('.workspace')!.append(notes);
 const list = notes.querySelector('ol')!;
 const showNotes = (on: boolean) => document.body.classList.toggle('notes-open', on);
-notes.querySelector('button')!.addEventListener('click', () => showNotes(false));
+notes.querySelector('.close')!.addEventListener('click', () => showNotes(false));
 
-function addNote(text: string | undefined, highlights: SketchUpdate['highlights']) {
+function addNote(text: string | undefined, highlights: SketchUpdate['highlights']): HTMLLIElement {
   const li = document.createElement('li');
   const colours = new Map((highlights ?? []).map((h) => [h.name, h.color]));
   // A colour the note does not name gets a swatch of its own, so every highlight is accounted for.
   const named = new Set([...(text ?? '').toLowerCase().matchAll(/\*\*([a-z]+)/g)].map((m) => m[1]!));
   const unnamed = (highlights ?? []).filter((h) => !named.has(h.name));
   if (unnamed.length) {
-    const key = Object.assign(document.createElement('div'), { className: 'swatches' });
+    const key = Object.assign(document.createElement('div'), { className: 'note-key' });
     for (const h of unnamed) {
       const chip = Object.assign(document.createElement('span'), { className: 'chip', textContent: h.name, title: h.smiles });
       chip.style.background = h.color;
@@ -91,9 +97,10 @@ function addNote(text: string | undefined, highlights: SketchUpdate['highlights'
     li.append(key);
   }
   if (text) li.append(formatted(text, colours));
-  list.prepend(li);
+  list.append(li);
   notes.classList.add('has-notes');
   showNotes(true);
+  return li;
 }
 
 /**
@@ -165,11 +172,70 @@ function mark(highlights: SketchUpdate['highlights'], labels: SketchUpdate['labe
   });
 }
 
-async function openStructure(input: string): Promise<boolean> {
+// ------------------------------------------------------------------ steps
+
+/** What the editor showed after each of the AI's updates, to step back and forth through. */
+interface Frame {
+  mol: Molecule; objects: DocObject[]; groups: ObjectGroup[]; style: DrawingStyle;
+  marks: typeof aiMarks; labels: Set<number>; card: HTMLLIElement | null;
+}
+const frames: Frame[] = [];
+let at = -1;
+const stepsBar = notes.querySelector<HTMLElement>('.steps')!;
+const copyMarks = (m: typeof aiMarks) => ({ atoms: new Map(m.atoms), bonds: new Map(m.bonds) });
+// Item by item: a drawing read from CDXML may carry helpers on its arrays, which can't be cloned.
+const copyAll = <T,>(xs: readonly T[]): T[] => xs.map((x) => structuredClone(x));
+
+function keepFrame(card: HTMLLIElement | null) {
+  const d = ui.editor.doc;
+  const i = frames.push({
+    mol: d.mol.clone(), objects: copyAll(d.objects), groups: copyAll(d.groups), style: { ...d.style },
+    marks: copyMarks(aiMarks), labels: new Set(aiLabels), card,
+  }) - 1;
+  card?.addEventListener('click', () => goTo(i));
+  at = i;
+  showStep();
+}
+
+/** Show frame i (one Undo step, so the user's own edits come back with Undo). */
+function goTo(i: number) {
+  const f = frames[i];
+  if (!f || i === at) return;
+  ui.editor.doc.replace(f.mol.clone(), copyAll(f.objects), copyAll(f.groups), { ...f.style });
+  aiMarks = copyMarks(f.marks);
+  aiLabels = new Set(f.labels);
+  at = i;
+  showStep();
+}
+
+function showStep() {
+  stepsBar.hidden = frames.length < 2;
+  stepsBar.querySelector('.where')!.textContent = `${at + 1} of ${frames.length}`;
+  stepsBar.querySelector<HTMLButtonElement>('.back')!.disabled = at <= 0;
+  stepsBar.querySelector<HTMLButtonElement>('.next')!.disabled = at >= frames.length - 1;
+  frames.forEach((f, i) => f.card?.classList.toggle('current', i === at));
+  frames[at]?.card?.scrollIntoView({ block: 'nearest' });
+}
+stepsBar.querySelector('.back')!.addEventListener('click', () => goTo(at - 1));
+stepsBar.querySelector('.next')!.addEventListener('click', () => goTo(at + 1));
+
+/** How far the first of a sequence of steps was moved onto the sheet: the later steps move as far, so their atoms stay put. */
+let stepShift: { x: number; y: number } | null = null;
+
+async function openStructure(input: string, step?: SketchUpdate['step']): Promise<boolean> {
   try {
     const s = await readStructure(input);
-    // Whatever its source (a SMILES laid out around the origin, a drawing from elsewhere), it goes in the middle of the sheet.
-    ui.load(s.mol, s.style, s.objects, { centre: true });
+    const first = s.mol.atoms().next().value as { x: number; y: number } | undefined;
+    const was = first ? { x: first.x, y: first.y } : null;
+    if (step && step.index > 0 && stepShift) {
+      for (const a of s.mol.atoms()) { a.x += stepShift.x; a.y += stepShift.y; }
+      for (const o of s.objects) for (const q of objectPoints(o)) { q.x += stepShift.x; q.y += stepShift.y; }
+      ui.load(s.mol, s.style, s.objects);
+    } else {
+      // Whatever its source (a SMILES laid out around the origin, a drawing from elsewhere), it goes in the middle of the sheet.
+      ui.load(s.mol, s.style, s.objects, { centre: true });
+      stepShift = first && was ? { x: first.x - was.x, y: first.y - was.y } : null;
+    }
     aiMarks = { atoms: new Map(), bonds: new Map() };
     aiLabels = new Set();
     return true;
@@ -181,10 +247,12 @@ async function openStructure(input: string): Promise<boolean> {
 
 async function apply(u: SketchUpdate) {
   // The notes panel opens first, so a new structure is centred in the room it leaves.
-  if (u.note || u.highlights?.length) addNote(u.note, u.highlights);
-  if (u.structure) await openStructure(u.structure);
+  const card = u.note || u.highlights?.length ? addNote(u.note, u.highlights) : null;
+  if (u.structure) await openStructure(u.structure, u.step);
   if (u.highlights || u.labels) mark(u.highlights, u.labels);
-  ui.flash(u.structure ? 'The AI changed the drawing (Undo brings yours back)' : 'The AI pointed something out (see Notes)');
+  keepFrame(card);
+  if (u.step) ui.flash(`Step ${u.step.index + 1} of ${u.step.count}: Back and Next are in Notes`);
+  else ui.flash(u.structure ? 'The AI changed the drawing (Undo brings yours back)' : 'The AI pointed something out (see Notes)');
 }
 
 // ------------------------------------------------------------ the chat link
@@ -339,7 +407,15 @@ function startUpdates() {
         return;
       }
       setLink('live', 'Linked to the AI', 'What the AI shows with show_in_sketcher appears here.');
-      for (const u of sc.updates ?? []) { since = Math.max(since, u.version); await apply(u); lastActivity = Date.now(); }
+      // Steps sent together open at the first, for the user to step through.
+      let first: { frame: number; count: number } | null = null;
+      for (const u of sc.updates ?? []) {
+        since = Math.max(since, u.version);
+        await apply(u);
+        if (u.step?.index === 0) first = { frame: at, count: u.step.count };
+        lastActivity = Date.now();
+      }
+      if (first) { goTo(first.frame); ui.flash(`Step 1 of ${first.count}: Next is in Notes`); }
     } catch (err) {
       failures += 1;
       const why = (err as Error)?.message ?? String(err);

@@ -36,6 +36,7 @@ Use either this or the connector, not both.
 ## Things to ask
 
 - *Draw the synthesis of paracetamol from 4-aminophenol.*
+- *Show me the mechanism of ester hydrolysis, step by step.*
 - *What is this?* (after drawing something)
 - *Highlight the stereocentres in this structure.*
 - *Suggest a protecting group for the amine and show the scheme.*
@@ -47,7 +48,11 @@ Use either this or the connector, not both.
   **Full screen** to keep the editor open beside the chat. **Send to chat**
   posts your drawing as a message.
 - **Answer in structures.** Claude draws in the editor, highlights parts of a
-  molecule in colour and leaves notes beside it. Undo brings your drawing back.
+  molecule in colour, pins short labels to atoms ("pKa ≈ 4.4") and leaves
+  notes beside it. Undo brings your drawing back.
+- **Walk through mechanisms.** Claude draws each step with curly arrows, and
+  you step through them with Back and Next, the atoms staying put from one
+  step to the next.
 - **Draw proper schemes.** Arrows, "+" signs, reagents above the arrow and
   conditions below, with each compound drawn the same way round as the one
   before.

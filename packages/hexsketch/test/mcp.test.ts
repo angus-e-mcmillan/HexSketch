@@ -290,3 +290,32 @@ test('a mechanism step: curly arrows reach the editor with the structure, and im
   assert.match(textOf(await call('render_structure', { structure: step.structure, arrows: [{ from: [1], to: [7] }], format: 'svg' })), /no atom has map number 7/);
   assert.match(textOf(await call('render_structure', { ...step, format: 'svg' })), /<svg/);
 });
+
+test('a mechanism in one call: steps the editor steps through, checked before any is shown', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const id = ((await call('open_sketcher', {})).structuredContent as { sketch: string }).sketch;
+  const steps = [
+    { structure: '[OH-:1].C[C:2](=[O:3])[O:4]C', arrows: [{ from: [1], to: [1, 2] }, { from: [2, 3], to: [3] }], note: 'Addition' },
+    { structure: 'C[C:2]([OH:1])([O-:3])[O:4]C', arrows: [{ from: [3], to: [3, 2] }, { from: [2, 4], to: [4] }], note: 'Elimination' },
+    { structure: 'C[C:2](=[O:3])[O-:1].[H][O:4]C', note: 'Products' },
+  ];
+  // A mistake in any step shows nothing, and says which step.
+  const bad = await call('show_in_sketcher', { steps: [steps[0], { ...steps[1], arrows: [{ from: [9], to: [2] }] }] });
+  assert.match(textOf(bad), /Step 2: .*no atom has map number 9/);
+  assert.equal(((await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: unknown[] }).updates.length, 0);
+  assert.match(textOf(await call('show_in_sketcher', { steps, note: 'x' })), /not both/);
+
+  const shown = JSON.parse(textOf(await call('show_in_sketcher', { steps })));
+  assert.equal(shown.steps.length, 3);
+  assert.match(shown.next, /step 1 of 3/);
+  const { updates } = (await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: { step?: { index: number; count: number }; note?: string; structure?: string }[] };
+  assert.deepEqual(updates.map((u) => [u.step?.index, u.step?.count, u.note]), [[0, 3, 'Addition'], [1, 3, 'Elimination'], [2, 3, 'Products']]);
+  // Each step keeps its atoms where the step before had them: the carbonyl carbon does not move.
+  const { readStructure } = await import('@hexsketch/agent');
+  const carbon = async (u: { structure?: string }) => {
+    const m = (await readStructure(u.structure!)).mol;
+    return [...m.atoms()].find((a) => a.element === 'C' && m.neighbours(a.id).filter((n) => m.atom(n).element === 'O').length >= 2)!;
+  };
+  const [c1, c2] = [await carbon(updates[0]!), await carbon(updates[1]!)];
+  assert.ok(Math.hypot(c1.x - c2.x, c1.y - c2.y) < 1, `the carbon moved by ${Math.hypot(c1.x - c2.x, c1.y - c2.y).toFixed(1)}`);
+});
