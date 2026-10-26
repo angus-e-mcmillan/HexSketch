@@ -10,7 +10,7 @@ import { nameMolecule } from '@hexsketch/naming';
 import '@hexsketch/naming/rings';
 
 export { labelPlaces, placeLabels, type AtomLabel, type PlacedLabels } from './labels.ts';
-export { arrangeForArrows, electronArrows, type ElectronArrow } from './arrows.ts';
+export { alignByMaps, arrangeForArrows, electronArrows, type ElectronArrow } from './arrows.ts';
 
 /**
  * HexSketch for AI agents and scripts: read a structure from SMILES, a

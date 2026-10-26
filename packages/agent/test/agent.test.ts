@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
 import { payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
-import { analyze, arrangeForArrows, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
+import { alignByMaps, analyze, arrangeForArrows, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
 
@@ -250,4 +250,26 @@ test('curly arrows run from a lone pair or bond to an atom or bond, and species 
   assert.throws(() => electronArrows(s.mol, [], s.style, [{ from: [9], to: [2] }]), /no atom has map number 9/);
   const plain = await readStructure('CBr');
   assert.throws(() => electronArrows(plain.mol, [], plain.style, [{ from: [1], to: [2] }]), /atom-map numbers/);
+});
+
+test('a mechanism step keeps its atoms where the step before had them', async () => {
+  const { smilesAtomMaps } = await import('@hexsketch/core');
+  const before = await readStructure('C[C:2]([OH:1])([O-:3])[O:4]C');
+  const after = await readStructure('C[C:2](=[O:3])[OH:1].[O-:4]C');
+  const L = after.style.bondLength;
+  assert.equal(alignByMaps(after.mol, before.mol, L), true);
+  const at = (s: typeof before, n: number) => s.mol.atom(smilesAtomMaps(s.mol).get(n)!);
+  // The reacting carbon stays exactly put; its neighbours move only as far as the new geometry needs.
+  const moved = (n: number) => Math.hypot(at(after, n).x - at(before, n).x, at(after, n).y - at(before, n).y);
+  assert.ok(moved(2) < 0.01 * L);
+  for (const n of [1, 3]) assert.ok(moved(n) < 0.6 * L, `atom ${n} stays near`);
+  // The methoxide that left sits clear of the acid, not on top of where it was bonded.
+  const gap = Math.min(...[1, 2, 3].map((n) => Math.hypot(at(after, n).x - at(after, 4).x, at(after, n).y - at(after, 4).y)));
+  assert.ok(gap >= 1.5 * L - 0.01);
+  // Moved whole: every bond keeps its length.
+  for (const b of after.mol.bonds()) {
+    const p = after.mol.atom(b.begin), q = after.mol.atom(b.end);
+    assert.ok(Math.abs(Math.hypot(p.x - q.x, p.y - q.y) - L) < 0.01 * L);
+  }
+  assert.equal(alignByMaps(after.mol, (await readStructure('CCO')).mol, L), false);
 });
