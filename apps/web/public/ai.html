@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HexSketch for AI</title>
+<meta name="description" content="Chemists think in sketches. LLMs think in text. HexSketch lets chemists talk to LLMs with structures.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root { color-scheme: light dark; --text: #1d1d1f; --muted: #5f6368; --bg: #ffffff; --line: #e3e3e6; --panel: #f5f5f7; }
+  @media (prefers-color-scheme: dark) { :root { --text: #ececf0; --muted: #a0a3a8; --bg: #17181a; --line: #34363a; --panel: #222326; } }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  main { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 30px; line-height: 1.25; margin: 0 0 12px; }
+  h2 { font-size: 19px; margin: 32px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+  p, li { margin: 8px 0; }
+  .lead { font-size: 18px; color: var(--muted); }
+  figure { margin: 24px 0; }
+  figure img { display: block; width: 100%; height: auto; border-radius: 10px; border: 1px solid var(--line); }
+  figcaption { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  ol.steps { padding-left: 22px; }
+  code { font: 14px ui-monospace, Menlo, monospace; background: var(--panel); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+  .muted { color: var(--muted); font-size: 14px; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+<h1>Chemists think in sketches. LLMs think in text. HexSketch lets chemists talk to LLMs with structures.</h1>
+<p class="lead">HexSketch puts a structure editor inside your chat with Claude. You draw,
+Claude sees the drawing. Claude answers by drawing back: structures, reaction
+schemes with reagents and conditions, highlights and notes.</p>
+
+<figure>
+  <img src="/images/sitagliptin-scheme.png" width="916" height="215" alt="Reaction scheme drawn by HexSketch: the prositagliptin ketone, with transaminase ATA-117, PLP and iPrNH2 in DMSO/water at 40 °C, gives (R)-sitagliptin">
+  <figcaption>The enzymatic step in Merck's sitagliptin process, drawn by HexSketch.</figcaption>
+</figure>
+
+<h2>Add it to Claude</h2>
+<p>Takes a minute. Nothing to install, no account.</p>
+<ol class="steps">
+  <li>In Claude, open <strong>Settings › Connectors › Add custom connector</strong>.</li>
+  <li>Name: <code>HexSketch</code> · URL: <code>https://mcp.hexsketch.com/mcp</code> · click <strong>Add</strong>.</li>
+  <li>Start a new chat and type: <em>Open HexSketch with ibuprofen</em>.</li>
+</ol>
+<p class="muted">Works on claude.ai and in the Claude desktop app. On a Team or Enterprise plan, an owner adds the connector first.</p>
+<p><strong>Claude Code:</strong> <code>claude mcp add --transport http hexsketch https://mcp.hexsketch.com/mcp</code></p>
+<p><strong>Keep everything on your computer:</strong> download
+<a href="https://github.com/angus-e-mcmillan/HexSketch/releases/latest/download/hexsketch.mcpb">hexsketch.mcpb</a>,
+double-click it and click <strong>Install</strong> in Claude Desktop. It works offline.
+Use either this or the connector, not both.</p>
+
+<h2>Things to ask</h2>
+<ul>
+  <li><em>Draw the synthesis of paracetamol from 4-aminophenol.</em></li>
+  <li><em>What is this?</em> (after drawing something)</li>
+  <li><em>Highlight the stereocentres in this structure.</em></li>
+  <li><em>Suggest a protecting group for the amine and show the scheme.</em></li>
+</ul>
+
+<h2>Any other assistant</h2>
+<ul>
+  <li>Draw in <a href="/">HexSketch</a>, then <strong>Edit › Copy for AI</strong> and paste into the chat: it gives the name, SMILES, formula and masses, and a link back to your drawing.</li>
+  <li>Ask the assistant for a link like <code>https://hexsketch.com/#smiles=CCO</code> to open its structure here, ready to edit.</li>
+</ul>
+
+<h2>More</h2>
+<ul>
+  <li><a href="/privacy">Privacy</a>: the connector keeps only the editors open in your chats, for a day; nothing you draw is logged.</li>
+  <li><a href="https://github.com/angus-e-mcmillan/HexSketch">HexSketch on GitHub</a>: source, the command line and library, and issues.</li>
+  <li><a href="/llms.txt">llms.txt</a>: HexSketch described for AI assistants.</li>
+</ul>
+</main>
+</body>
+</html>

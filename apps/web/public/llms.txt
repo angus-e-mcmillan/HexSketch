@@ -1,0 +1,24 @@
+# HexSketch
+
+> HexSketch is a chemical structure editor (https://hexsketch.com) and a set of tools that let AI assistants draw, name and check structures. Chemists think in sketches, LLMs think in text: HexSketch lets them talk with structures. An assistant connected to HexSketch opens the editor in the chat, sees what the chemist draws, and answers by drawing back: structures, reaction schemes with reagents and conditions, highlights and notes.
+
+## Use HexSketch from an AI assistant
+
+- Remote MCP server (streamable HTTP, no login): `https://mcp.hexsketch.com/mcp`. In Claude: Settings › Connectors › Add custom connector. In Claude Code: `claude mcp add --transport http hexsketch https://mcp.hexsketch.com/mcp`.
+- Local MCP server, offline: the Claude Desktop extension https://github.com/angus-e-mcmillan/HexSketch/releases/latest/download/hexsketch.mcpb
+- Tools: `open_sketcher` (the editor in the chat), `read_sketcher`, `show_in_sketcher` (draw, highlight, annotate), `render_structure` (PNG, SVG, PDF, CDXML, MOL; structures or reaction schemes), `name_structure` (IUPAC, offline), `analyze_structure` (formula, masses, m/z), `validate_structure` (check a SMILES before presenting it), `convert_structure`, `compare_structures`, `structure_link`.
+- Input is SMILES, molfile, CDXML or a HexSketch link. Not names: HexSketch does not turn names into structures.
+
+## Without any tools
+
+- Open a structure for the user to edit by giving them a link: `https://hexsketch.com/#smiles=<percent-encoded SMILES>`, for example https://hexsketch.com/#smiles=CC(%3DO)Oc1ccccc1C(%3DO)O for aspirin. The structure is in the URL fragment, which browsers never send to a server.
+- Text a user pastes that starts "Structure from HexSketch" (from Edit › Copy for AI) gives the name, SMILES, formula and masses of what they drew, and a link back to the drawing.
+- Pictures copied from HexSketch carry the structure inside them (alt text and a PNG text chunk), so they paste back into HexSketch for editing.
+
+## Docs
+
+- [HexSketch for AI](https://hexsketch.com/ai): setup for people
+- [Link and picture format](https://github.com/angus-e-mcmillan/HexSketch/blob/main/docs/link-format.md): how structures travel in links and pictures (MIT)
+- [The hexsketch package](https://github.com/angus-e-mcmillan/HexSketch/tree/main/packages/hexsketch): command line, library and local MCP server
+- [Privacy](https://hexsketch.com/privacy)
+- [Source](https://github.com/angus-e-mcmillan/HexSketch)

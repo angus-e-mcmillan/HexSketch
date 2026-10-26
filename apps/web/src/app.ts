@@ -35,6 +35,8 @@ export interface AppOptions {
   firstRunGuide?: boolean;
   /** Open the structure in the page address (hexsketch.com/#smiles=… or #cdxml=…), on load and when it changes (the standalone app). */
   openLinks?: boolean;
+  /** File menu items for the HexSketch for AI page and the GitHub repo, each opened in a new tab (the standalone app). */
+  aboutLinks?: boolean;
 }
 export interface AppApi {
   editor: Editor;
@@ -252,6 +254,10 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       'sep',
       { label: 'Getting Started Guide', run: () => { void openGuide().then(() => wrapEl.focus()); } },
       { label: 'Send Feedback…', run: () => { void openFeedback().then(() => wrapEl.focus()); } },
+      ...(opts.aboutLinks ? ['sep' as const,
+        { label: 'Use with Claude…', run: () => { window.open('/ai', '_blank', 'noopener'); } },
+        { label: 'Star on GitHub', run: () => { window.open('https://github.com/angus-e-mcmillan/HexSketch', '_blank', 'noopener'); } },
+      ] : []),
     ] },
     { title: 'Edit', items: () => [
       { label: 'Undo', shortcut: '⌘Z', run: () => editor.doc.undo(), enabled: editor.doc.canUndo },

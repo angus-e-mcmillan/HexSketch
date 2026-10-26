@@ -82,6 +82,9 @@ What you draw stays in your browser.
 
 Scripts, the command line and other AI tools (Codex, Cursor and any MCP
 client): see [packages/hexsketch](packages/hexsketch/README.md).
+[hexsketch.com/llms.txt](https://hexsketch.com/llms.txt) describes HexSketch
+for AI assistants, and [skills/hexsketch](skills/hexsketch/SKILL.md) is the
+same guidance the server gives, as a Claude skill.
 
 Building it needs Node 22.
 
