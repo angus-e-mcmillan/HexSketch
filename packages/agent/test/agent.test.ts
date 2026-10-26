@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
 import { payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
-import { alignByMaps, analyze, arrangeForArrows, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
+import { alignByMaps, analyze, arrangeForArrows, disconnectionMarks, imbalance, schemeBalance, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
 
@@ -272,4 +272,19 @@ test('a mechanism step keeps its atoms where the step before had them', async ()
     assert.ok(Math.abs(Math.hypot(p.x - q.x, p.y - q.y) - L) < 0.01 * L);
   }
   assert.equal(alignByMaps(after.mol, (await readStructure('CCO')).mol, L), false);
+});
+
+test('retrosynthesis: disconnections are marked across their bonds, and steps are balanced', async () => {
+  const s = await readStructure('c1ccccc1[C:1](=O)[NH:2]C');
+  const [mark] = disconnectionMarks(s.mol, s.style, [[1, 2]]);
+  assert.ok(mark?.kind === 'shape' && mark.line === 'wavy');
+  assert.throws(() => disconnectionMarks(s.mol, s.style, [[2, 9]]), /no atom has map number 9/);
+  const plain = (await readStructure('CCO')).mol;
+  assert.throws(() => disconnectionMarks(plain, s.style, [[1, 2]]), /map numbers/);
+  // Fischer esterification balances with its water, and says so when the water is left out.
+  assert.deepEqual(await schemeBalance({ stages: ['CC(=O)O.OC', 'CC(=O)OC.O'] }), []);
+  assert.deepEqual(await schemeBalance({ stages: ['CC(=O)O.OC', 'CC(=O)OC'] }), [{ step: 1, unbalanced: 'H2O on the left is not on the right' }]);
+  assert.deepEqual(await schemeBalance({ stages: ['CC(=O)O', 'CCO'], arrows: [{ type: 'retrosynthetic' }] }), []);
+  const x = imbalance((await readStructure('[OH-].CBr')).mol, (await readStructure('CO')).mol);
+  assert.deepEqual(x, { lost: 'Br', gained: '', charge: 1 });
 });

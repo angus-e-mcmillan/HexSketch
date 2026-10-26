@@ -23,7 +23,10 @@ than describing them, and keep the chat for the short answer.
    For a mechanism, one call per step with curly `arrows`: give the species
    as SMILES with atom-map numbers (`[OH-:1].[CH3:2][Br:3]`) and arrows from
    a lone pair (`[1]`) or bond (`[2, 3]`) to an atom or a bond being made
-   (`[1, 2]`).
+   (`[1, 2]`). Send a whole mechanism at once as `steps`: the chemist steps
+   through it with Back and Next.
+   For a retrosynthesis, mark bonds with `disconnect` (`[[1, 2]]`), then
+   show the precursors behind a retrosynthetic arrow and the forward route.
 4. While the editor is open, don't show structures as images, web pictures,
    ASCII drawings or extra editors. Use `render_structure` only when the
    chemist asks for an image or a file.

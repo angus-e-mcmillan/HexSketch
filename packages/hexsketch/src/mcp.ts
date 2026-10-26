@@ -2,8 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { alignByMaps, analyze, arrangeForArrows, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, readStructure, render, scheme, validate, type ElectronArrow, type Rasterizer, type RenderFormat, type Scheme, type Structure } from '@hexsketch/agent';
-import { parsePattern, substructureMatches, type Molecule } from '@hexsketch/core';
+import { alignByMaps, analyze, arrangeForArrows, compare, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, imbalance, labelPlaces, link, name, orientLike, readStructure, render, scheme, schemeBalance, validate, type ElectronArrow, type Rasterizer, type RenderFormat, type Scheme, type Structure } from '@hexsketch/agent';
+import { parsePattern, smilesAtomMaps, substructureMatches, type Molecule } from '@hexsketch/core';
 import { memorySketchStore, type Sketch, type SketchStore, type SketchUpdate } from './sketch-store.ts';
 
 export type { SketchUpdate } from './sketch-store.ts';
@@ -63,6 +63,7 @@ const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 - Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher: highlight the parts you mean, pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour — the drawing carries the detail, the note is a small summary beside it, and your answer stays in the chat. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").
 - Draw every reaction as a scheme, with the reaction input (render_structure, open_sketcher, show_in_sketcher): starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.
 - Draw a mechanism one step per show_in_sketcher call, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.
+- For a retrosynthesis, mark the disconnections on the target (disconnect, by atom-map numbers), show the precursors as a reaction with a retrosynthetic arrow, then the forward route with its reagents and conditions; steps lets the chemist walk through it. HexSketch checks that atoms balance, not whether a route works or its materials can be bought: say so when it matters.
 - Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.
 - Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user's current drawing is also given to you in the same form.`;
 
@@ -84,6 +85,8 @@ const arrows = z.array(z.object({
   colour: z.enum(COLOUR_NAMES).optional().describe('Arrow colour, as a highlight colour name; default black.'),
 })).max(12).describe('Curly (electron-pushing) arrows for a mechanism step, drawn on the structure or reaction given in the same call. Give it as SMILES with atom-map numbers on the atoms the arrows touch, e.g. "[OH-:1].[CH3:2][Br:3]" with arrows [{from:[1],to:[1,2]},{from:[2,3],to:[3]}]. A mapped atom written as just its element ([C:1]) keeps its usual hydrogens; separate species are drawn close together, the attacking one beside the atom it attacks. HexSketch places each arrow clear of the drawing.');
 
+const disconnect = z.array(z.array(z.number().int().min(0)).length(2)).max(6).describe('Retrosynthesis: bonds of the target to mark as disconnections, by their atoms\' map numbers in the SMILES. [[1, 2]] draws a wavy line across the bond 1–2. Follow it with the synthons or reagents as a reaction with a retrosynthetic arrow.');
+
 const style = z.enum(['hexsketch', 'acs']).optional().describe('Drawing style: hexsketch (default) or acs (ACS 1996 journal style).');
 const READ_ONLY = { readOnlyHint: true, openWorldHint: false } as const;
 
@@ -93,9 +96,10 @@ const failure = (err: unknown): CallToolResult => ({ isError: true, content: [{ 
 const safely = (fn: () => Promise<CallToolResult>) => fn().catch(failure);
 
 /** A tool's structure or reaction scheme (exactly one), ready for the agent functions, with any curly arrows drawn on it. */
-async function given(structureText: string | undefined, reactionScheme: Scheme | undefined, opts: { style?: 'hexsketch' | 'acs'; like?: Molecule; arrows?: ElectronArrow[] } = {}): Promise<string | Structure> {
+async function given(structureText: string | undefined, reactionScheme: Scheme | undefined, opts: { style?: 'hexsketch' | 'acs'; like?: Molecule; arrows?: ElectronArrow[]; disconnect?: number[][] } = {}): Promise<string | Structure> {
   if (structureText && reactionScheme) throw new Error('Give a structure or a reaction, not both');
-  const { arrows: curly, ...read } = opts;
+  const { arrows: curly, disconnect: cuts, ...read } = opts;
+  if (cuts?.length && !structureText && !reactionScheme) throw new Error('Disconnections are marked on the structure given in the same call: give the target as SMILES with atom-map numbers, e.g. "c1ccccc1[C:1](=O)[NH:2]C"');
   if (curly?.length && !structureText && !reactionScheme) throw new Error('Arrows are drawn on the structure or reaction given in the same call: give it as SMILES with atom-map numbers, e.g. "[OH-:1].[CH3:2][Br:3]"');
   let s: string | Structure;
   let placed = false;
@@ -108,12 +112,38 @@ async function given(structureText: string | undefined, reactionScheme: Scheme |
     if (!placed) orientLike(s, read.like);
   } else if (!structureText) throw new Error('Give a structure (SMILES, molfile, CDXML or a HexSketch link) or a reaction');
   else s = structureText;
-  if (!curly?.length) return s;
+  if (!curly?.length && !cuts?.length) return s;
   if (typeof s === 'string') s = await readStructure(s, read.style ? { style: read.style } : {});
-  // A scheme keeps its stages where they are; one structure's separate species come together.
-  if (!reactionScheme && !placed) arrangeForArrows(s.mol, curly, s.style.bondLength);
-  s.objects.push(...electronArrows(s.mol, s.objects, s.style, curly));
+  if (curly?.length) {
+    // A scheme keeps its stages where they are; one structure's separate species come together.
+    if (!reactionScheme && !placed) arrangeForArrows(s.mol, curly, s.style.bondLength);
+    s.objects.push(...electronArrows(s.mol, s.objects, s.style, curly));
+  }
+  if (cuts?.length) s.objects.push(...disconnectionMarks(s.mol, s.style, cuts));
   return s;
+}
+
+/**
+ * A label fragment that starts at a mapped atom ("[C:1](=O)N") means that
+ * atom: which of the fragment's places it is, counted as the editor counts
+ * them (left to right), so the label lands there and not on a look-alike.
+ */
+function mappedOccurrence(mol: Molecule, at: string): number | undefined {
+  let pattern: Molecule;
+  try { pattern = parsePattern(at); } catch { return undefined; }
+  const first = pattern.atoms().next().value;
+  const n = first ? [...smilesAtomMaps(pattern)].find(([, id]) => id === first.id)?.[0] : undefined;
+  const target = n === undefined ? undefined : smilesAtomMaps(mol).get(n);
+  if (target === undefined) return undefined;
+  const i = labelPlaces(mol, at).findIndex((p) => p.id === target);
+  return i >= 0 ? i + 1 : undefined;
+}
+
+/** For a tool result: where a scheme's atoms don't balance, and what that may mean. */
+async function balanceOf(r: Scheme | undefined): Promise<Record<string, unknown>> {
+  if (!r) return {};
+  const b = await schemeBalance(r).catch(() => []);
+  return b.length ? { balance: b, balance_note: 'Atoms that do not balance across an arrow: fine when they come from a reagent written above it or leave as an unshown byproduct; otherwise add the missing byproduct (H2O, HCl...) or correct the product.' } : {};
 }
 
 /** The arrows as the agent takes them, with colour names turned into colours. */
@@ -158,6 +188,7 @@ export function createServer(opts: ServerOptions): McpServer {
       structure: structure.optional(),
       reaction: reaction.optional(),
       arrows: arrows.optional(),
+      disconnect: disconnect.optional(),
       format: z.enum(formats as [RenderFormat, ...RenderFormat[]]).optional().describe(`Output format; default ${formats[0]}. PDF needs save_to.`),
       style,
       ...(opts.saveFile ? {
@@ -167,16 +198,16 @@ export function createServer(opts: ServerOptions): McpServer {
     },
     annotations: { title: 'Draw a structure', readOnlyHint: !opts.saveFile, destructiveHint: false, openWorldHint: false },
   }, (args) => tool(async () => {
-    const a = args as { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; format?: RenderFormat; style?: 'hexsketch' | 'acs'; save_to?: string; overwrite?: boolean };
+    const a = args as { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; disconnect?: number[][]; format?: RenderFormat; style?: 'hexsketch' | 'acs'; save_to?: string; overwrite?: boolean };
     const fromPath = a.save_to ? (/\.([a-z]+)$/i.exec(a.save_to)?.[1]?.toLowerCase() as RenderFormat | undefined) : undefined;
     if (a.save_to && (!fromPath || !formats.includes(fromPath))) throw new Error(`save_to needs one of these extensions: ${formats.map((f) => `.${f}`).join(' ')}`);
     const to = fromPath ?? a.format ?? formats[0]!;
     if (to === 'pdf' && !a.save_to) throw new Error('PDF is a file: give save_to, e.g. /path/to/structure.pdf');
-    const input = await given(a.structure, a.reaction, { ...read(a.style), arrows: curlyArrows(a.arrows) });
+    const input = await given(a.structure, a.reaction, { ...read(a.style), arrows: curlyArrows(a.arrows), ...(a.disconnect ? { disconnect: a.disconnect } : {}) });
     const r = await render(input, { ...read(a.style), to, ...(opts.rasterize ? { rasterize: opts.rasterize } : {}) });
     const about = await analyze(input, read(a.style));
     const saved = a.save_to && opts.saveFile ? await opts.saveFile(a.save_to, r.data, a.overwrite ?? false) : undefined;
-    const info = { name: about.name, smiles: about.smiles, formula: about.formula, link: await link(input, read(a.style)), ...(saved ? { saved } : {}) };
+    const info = { name: about.name, smiles: about.smiles, formula: about.formula, link: await link(input, read(a.style)), ...(saved ? { saved } : {}), ...(await balanceOf(a.reaction)) };
     const content: CallToolResult['content'] = [];
     if (to === 'png') content.push({ type: 'image', data: toBase64(r.data as Uint8Array), mimeType: 'image/png' });
     else if (typeof r.data === 'string' && !saved) content.push({ type: 'text', text: r.data });
@@ -242,8 +273,8 @@ export function createServer(opts: ServerOptions): McpServer {
       return s;
     };
     /** What the editor is sent to draw: the structure as given, or as CDXML when laid out here (a scheme, or turned to match `like`). */
-    const toDraw = async (t?: string, r?: Scheme, like?: Molecule, curly?: ElectronArrow[]): Promise<string> => {
-      const g = await given(t, r, { ...(like ? { like } : {}), ...(curly ? { arrows: curly } : {}) });
+    const toDraw = async (t?: string, r?: Scheme, like?: Molecule, curly?: ElectronArrow[], cuts?: number[][]): Promise<string> => {
+      const g = await given(t, r, { ...(like ? { like } : {}), ...(curly ? { arrows: curly } : {}), ...(cuts ? { disconnect: cuts } : {}) });
       return typeof g === 'string' ? g : convert(g, 'cdxml');
     };
     const appOnly = { ui: { resourceUri: SKETCHER_URI, visibility: ['app'] as ('app' | 'model')[] } };
@@ -262,11 +293,12 @@ export function createServer(opts: ServerOptions): McpServer {
         structure: structure.optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.'),
         reaction: reaction.optional(),
         arrows: arrows.optional(),
+        disconnect: disconnect.optional(),
       },
       annotations: { title: 'Open the HexSketch editor', ...READ_ONLY },
       _meta: { ui: { resourceUri: SKETCHER_URI } },
-    }, ({ structure: text0, reaction: r, arrows: curly }) => safely(async () => {
-      const s = r || text0 ? await toDraw(text0, r, undefined, curlyArrows(curly)) : undefined;
+    }, ({ structure: text0, reaction: r, arrows: curly, disconnect: cuts }) => safely(async () => {
+      const s = r || text0 ? await toDraw(text0, r, undefined, curlyArrows(curly), cuts) : undefined;
       const about = s ? await analyze(s) : null;
       const sketch = await store.create(s ?? '');
       opened.add(sketch.id);
@@ -275,7 +307,7 @@ export function createServer(opts: ServerOptions): McpServer {
       const shared = { structure: s ?? '', sketch: sketch.id, next };
       if (!s || !about) return { content: [{ type: 'text', text: JSON.stringify({ opened: 'an empty canvas', next, fallback: 'In a chat that cannot show the editor, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }, null, 2) }], structuredContent: shared };
       const url = await link(s);
-      const info = { opened: about.name ?? about.smiles, smiles: about.smiles, link: url };
+      const info = { opened: about.name ?? about.smiles, smiles: about.smiles, link: url, ...(await balanceOf(r)) };
       return {
         content: [{ type: 'text', text: JSON.stringify({ ...info, next, fallback: 'If the chat cannot show the editor, the link opens the same structure on hexsketch.com.' }, null, 2) }],
         structuredContent: { ...shared, ...info },
@@ -298,6 +330,7 @@ export function createServer(opts: ServerOptions): McpServer {
         structure: structure.optional().describe('A new structure to draw in place of the current one (the user can undo it). To show several side by side (both enantiomers, compounds you compare), join their SMILES with "." in one structure; for a reaction, use reaction instead, so it gets an arrow, reagents and conditions. Leave out to work on what is drawn.'),
         reaction: reaction.optional(),
         arrows: arrows.optional(),
+        disconnect: disconnect.optional(),
         highlight: z.array(z.string().min(1)).max(HIGHLIGHTS.length).optional().describe('SMILES fragments to highlight, e.g. ["C(=O)O", "c1ccccc1"].'),
         labels: z.array(z.object({
           at: z.string().min(1).describe('SMILES fragment whose first atom the label points at, e.g. "OC(=O)" for an acid\'s OH. The same fragment as a highlight gives the label that highlight\'s colour.'),
@@ -307,29 +340,31 @@ export function createServer(opts: ServerOptions): McpServer {
         })).max(MAX_LABELS).optional().describe(`Up to ${MAX_LABELS} short labels pinned beside atoms: values and properties at the atom they belong to (pKa, a reactive site, a configuration), so the drawing carries the detail and the note stays short.`),
         note: z.string().max(800).optional().describe('A summary for the editor\'s notes panel, small and organised: up to five "- " bullets of a few words each, each starting with the **colour** it explains (e.g. "- **Yellow**: carboxylic acid, pKa ≈ 4.4"), or two short sentences. Point to the drawing rather than repeat its labels; no preamble, no restating the question, no chemistry lesson: the explanation goes in the chat reply.'),
     };
-    type Show = { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; highlight?: string[]; labels?: { at: string; text: string; colour?: string; occurrence?: number }[]; note?: string };
+    type Show = { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; disconnect?: number[][]; highlight?: string[]; labels?: { at: string; text: string; colour?: string; occurrence?: number }[]; note?: string };
 
     /** Check one step and build the editor's update for it, drawn the same way round as `before`. */
     const prepare = async (a: Show, before: Molecule | undefined, current: string): Promise<{ update: Omit<SketchUpdate, 'version'>; report: Record<string, unknown>; mol: Molecule | null }> => {
       if (a.arrows?.length && !a.reaction && !a.structure) throw new Error('Arrows are drawn on the structure or reaction given in the same call: give the structure again as SMILES with atom-map numbers on the atoms the arrows touch, e.g. "[OH-:1].[CH3:2][Br:3]"');
       // A scheme reaches the editor as CDXML, arrows and text included, the same way round as what it replaces.
-      const g = a.reaction || a.structure ? await given(a.structure, a.reaction, { ...(before ? { like: before } : {}), ...(a.arrows ? { arrows: curlyArrows(a.arrows)! } : {}) }) : undefined;
+      if (a.disconnect?.length && !a.reaction && !a.structure) throw new Error('Disconnections are marked on the structure given in the same call: give the target again as SMILES with atom-map numbers, e.g. "c1ccccc1[C:1](=O)[NH:2]C"');
+      const g = a.reaction || a.structure ? await given(a.structure, a.reaction, { ...(before ? { like: before } : {}), ...(a.arrows ? { arrows: curlyArrows(a.arrows)! } : {}), ...(a.disconnect ? { disconnect: a.disconnect } : {}) }) : undefined;
       const s = g === undefined ? undefined : typeof g === 'string' ? g : await convert(g, 'cdxml');
       if (!s && !a.highlight?.length && !a.labels?.length && !a.note) throw new Error('Give a structure, a reaction, a highlight, labels or a note to show.');
       const drawing = s ?? current;
       const mol: Molecule | null = drawing ? (await readStructure(drawing)).mol : null;
-      // The structure as drawn, with its atom-map numbers, for the next step to follow.
-      const drawn = g && typeof g !== 'string' ? g.mol : mol;
       const highlights = (a.highlight ?? []).map((frag, i) => {
         let pattern: Molecule;
         try { pattern = parsePattern(frag); } catch (err) { throw new Error(`Highlight "${frag}" is not a SMILES fragment: ${(err as Error).message}`); }
         const places = mol ? substructureMatches(pattern, mol).length : 0;
         return { smiles: frag, ...HIGHLIGHTS[i]!, places };
       });
+      // The structure as drawn, with its atom-map numbers, for the next step to follow.
+      const drawn = g && typeof g !== 'string' ? g.mol : mol;
       const pinned = (a.labels ?? []).map((l) => {
         const places = mol ? labelPlaces(mol, l.at).length : 0;
         const colour = l.colour ? HIGHLIGHTS.find((h) => h.name === l.colour) : highlights.find((h) => h.smiles === l.at);
-        return { at: l.at, text: l.text, ...(colour ? { color: colour.text } : {}), ...(l.occurrence ? { occurrence: l.occurrence } : {}), places };
+        const occurrence = l.occurrence ?? (drawn ? mappedOccurrence(drawn, l.at) : undefined);
+        return { at: l.at, text: l.text, ...(colour ? { color: colour.text } : {}), ...(occurrence ? { occurrence } : {}), places };
       });
       const missed = [...highlights.filter((h) => h.places === 0).map((h) => h.smiles), ...pinned.filter((l) => l.places < (l.occurrence ?? 1)).map((l) => l.at)];
       return {
@@ -341,6 +376,7 @@ export function createServer(opts: ServerOptions): McpServer {
           ...(a.note ? { note: a.note } : {}),
         },
         report: {
+          ...(await balanceOf(a.reaction)),
           highlights: highlights.map((h) => ({ smiles: h.smiles, colour: h.name, places: h.places })),
           ...(pinned.length ? { labels: pinned.map((l) => ({ at: l.at, text: l.text, places: l.places })) } : {}),
           ...(missed.length ? { warning: `Not found in the drawing: ${missed.join(', ')}. Check the fragment against read_sketcher's SMILES.` } : {}),
@@ -350,7 +386,7 @@ export function createServer(opts: ServerOptions): McpServer {
 
     server.registerTool('show_in_sketcher', {
       title: 'Show in the HexSketch editor',
-      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), or a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows). For a mechanism or any sequence, give steps instead: the user steps through them with Back and Next. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
+      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, a retrosynthesis or any sequence, give steps instead: the user steps through them with Back and Next. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
       inputSchema: {
         sketch: sketchId,
         ...showFields,
@@ -378,9 +414,18 @@ export function createServer(opts: ServerOptions): McpServer {
         if (p.update.structure) { current = p.update.structure; like = p.mol ?? like; }
       }
       for (const [i, p] of prepared.entries()) await store.addUpdate(sketch.id, { ...p.update, step: { index: i, count: prepared.length } });
+      // In a mechanism every species is drawn, so each step should have the atoms and charge of the one before.
+      const unbalanced: string[] = [];
+      for (let i = 1; i < steps.length; i++) {
+        const a0 = prepared[i - 1]!, a1 = prepared[i]!;
+        if (!steps[i - 1]!.structure || !steps[i]!.structure || !a0.mol || !a1.mol) continue;
+        const x = imbalance(a0.mol, a1.mol);
+        if (x) unbalanced.push(`Step ${i} → ${i + 1}: ${describeImbalance(x)}`);
+      }
       return text({
         shown: true, sketch: sketch.id,
         steps: prepared.map((p, i) => ({ step: i + 1, ...p.report })),
+        ...(unbalanced.length ? { balance: unbalanced, balance_note: 'In a mechanism each step should have the same atoms and total charge as the one before. Unless a species joins or leaves on purpose (a proton from the solvent, say), check the step and show it again.' } : {}),
         next: `The user sees step 1 of ${prepared.length} in the editor and steps through with Back and Next. In the chat, say in a line or two what happens overall and point them to the steps; don't narrate each one.`,
       });
     }));
