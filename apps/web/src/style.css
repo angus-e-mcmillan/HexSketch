@@ -66,6 +66,48 @@ body { display: grid; grid-template-rows: 40px 1fr 24px; height: 100vh; overflow
   .workspace { grid-template-columns: 70px 1fr; }
 }
 
+/*
+ * Phones: the drawing gets the width. The tools become a strip that scrolls
+ * sideways, directly under the menu bar: in a chat the bottom of the frame
+ * belongs to the chat's own box, which slides up over whatever is there, so
+ * nothing you need to reach can live down there. The rulers and the things
+ * that only read well on a big screen step aside. A desktop window is never
+ * this narrow, so nothing above changes.
+ */
+@media (max-width: 520px) {
+  body { grid-template-rows: auto minmax(0, 1fr) 20px; }
+  .topbar { padding: 4px 6px; gap: 4px; }
+  .brand { display: none; }
+  .menu button { padding: 4px 7px; font-size: 12px; }
+  .zoom { min-width: 36px; font-size: 11px; }
+  .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .palette {
+    /* Two rows, so the rings are one short swipe away rather than three. */
+    grid-row: 1; grid-template-columns: none; grid-template-rows: 38px 38px;
+    grid-auto-flow: column; grid-auto-columns: 38px; gap: 3px; padding: 5px 6px;
+    justify-content: start; overflow-x: auto; overflow-y: hidden;
+    border-right: none; border-bottom: 1px solid var(--line);
+    /* It runs off the right edge: let it scroll by itself, and say so. */
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  }
+  .palette::-webkit-scrollbar { display: none; }
+  .canvas-area { grid-row: 2; }
+  .palette .group-gap { grid-column: auto; grid-row: 1 / span 2; width: 1px; height: auto; margin: 2px 5px; border-bottom: none; border-right: 1px solid var(--line); }
+  .tool { width: 38px; height: 38px; }
+  .tool svg { width: 26px; height: 26px; }
+  /* The rulers measure in points: on a phone they only cost drawing space. */
+  .canvas-area, .canvas-area.no-rulers { grid-template-columns: 0 minmax(0, 1fr); grid-template-rows: 0 minmax(0, 1fr); }
+  .canvas-area .ruler, .canvas-area .ruler-corner { visibility: hidden; }
+  .page { margin: 12px; }
+  /* One line, whatever the message: the row is 20px tall here. */
+  .status { padding: 0 8px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* A finger scrolls the sheet (app.ts); the browser keeps pinch to zoom. */
+.canvas-wrap { touch-action: pinch-zoom; }
+
 .label-editor.caption { font: 13px Helvetica, Arial, sans-serif; min-width: 120px; }
 
 /* Flyout palettes and colour menus */

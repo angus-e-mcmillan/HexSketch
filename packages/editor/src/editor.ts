@@ -26,6 +26,11 @@ export interface PointerInfo {
   meta?: boolean;
   /** Event time in ms; needed for double-clicks. */
   time?: number;
+  /**
+   * A finger rather than a mouse: nothing stays hovered after it lifts, since
+   * a touch screen has no pointer resting on the drawing.
+   */
+  touch?: boolean;
 }
 
 /** A piece of drawing on its own: structures, objects and groups (copied, duplicated, placed). */
@@ -295,7 +300,19 @@ export class Editor {
     else if (g.kind === 'move') this.#commitMove(g.x - g.x0, g.y - g.y0);
     else if (g.kind === 'marquee') this.#setSelection({ ...inRect(this.doc.mol, g.x0, g.y0, g.x, g.y), objects: objectsInRect(this.doc.objects, this.doc.style, g.x0, g.y0, g.x, g.y) }, !!p.shift);
     else if (g.kind === 'lasso') this.#setSelection({ ...inLasso(this.doc.mol, g.points), objects: this.#objectsInLasso(g.points) }, !!p.shift);
-    this.#setHover(this.hit(p.x, p.y));
+    this.#setHover(p.touch ? { kind: 'none' } : this.hit(p.x, p.y));
+    this.#emit();
+  }
+
+  /**
+   * The host lost the pointer (a finger turned into a scroll, the window lost
+   * focus): drop the gesture without drawing or moving anything.
+   */
+  cancelGesture() {
+    const g = this.#gesture;
+    this.#gesture = { kind: 'idle' };
+    if (g.kind === 'handle') this.doc.endLive();
+    this.#setHover({ kind: 'none' });
     this.#emit();
   }
 
@@ -1470,15 +1487,12 @@ export class Editor {
     for (const a of this.selection.atoms) if (mol.hasAtom(a)) atomBox(a, HOVER, 'rgba(59,130,246,0.18)');
     if (this.hover.kind === 'atom' && mol.hasAtom(this.hover.id)) atomBox(this.hover.id, HOVER, 'rgba(59,130,246,0.12)');
     if (this.hover.kind === 'bond' && mol.hasBond(this.hover.id)) bondBand(this.hover.id, HOVER);
+    // ChemDraw's green dot marks where a typed key would land, on the atom
+    // under the pointer, in its most open direction. The hotspot is drawn only
+    // while the pointer is on it: a drawn atom that the pointer has left looks
+    // selected otherwise, and on a touch screen it stays that way.
     const spot = this.#liveHotspot();
-    if (spot && !sameHit(spot, this.hover)) {
-      // Highlighted like a hover; an atom also gets ChemDraw's green dot, just off it in its most open direction.
-      if (spot.kind === 'bond') bondBand(spot.id, HOVER);
-      else {
-        atomBox(spot.id, HOVER, 'rgba(59,130,246,0.12)');
-      }
-    }
-    if (spot?.kind === 'atom') {
+    if (spot?.kind === 'atom' && sameHit(spot, this.hover)) {
       const a = mol.atom(spot.id);
       const angles = mol.neighbours(spot.id).map((n) => Math.atan2(mol.atom(n).y - a.y, mol.atom(n).x - a.x));
       const dir = angles.length ? largestGapBisector(angles) : -Math.PI / 4;

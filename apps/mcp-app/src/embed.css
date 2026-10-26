@@ -1,7 +1,10 @@
-/* Inside a chat: a fixed-height panel inline (the chat sizes its frame to the
-   content); the whole window full screen, where the chat stays beside it. */
-body.embedded { height: 560px; }
-body.embedded.fullscreen { height: 100vh; }
+/* Inside a chat: a panel inline, as tall as the frame the chat offers
+   (--embed-h, from the host's containerDimensions) or 560px when it says
+   nothing; the whole window full screen, where the chat stays beside it.
+   100dvh, not 100vh, so a phone's address bar does not cut off the status
+   line and the tool strip. */
+body.embedded { height: var(--embed-h, 560px); }
+body.embedded.fullscreen { height: 100vh; height: 100dvh; }
 .menu button.host-action { margin-left: 6px; border: 1px solid var(--line); background: #fff; }
 .menu button.host-action.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
 .menu button.host-action.primary:hover { background: #2559b8; }
@@ -10,6 +13,13 @@ body.embedded.fullscreen { height: 100vh; }
 .notes { display: none; }
 body.notes-open .workspace { grid-template-columns: 76px 1fr 260px; }
 @media (max-width: 640px) { body.notes-open .workspace { grid-template-columns: 76px 1fr 170px; } }
+/* On a phone the notes sit under the drawing, not beside it: the tools stay
+   at the top, where the chat's own box cannot slide up over them, and the
+   drawing keeps the middle of the frame. */
+@media (max-width: 520px) {
+  body.notes-open .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
+  body.notes-open .notes { grid-row: 3; max-height: 30dvh; border-left: none; border-top: 1px solid var(--line); }
+}
 body.notes-open .notes { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--line); background: var(--chrome); }
 .notes header { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--line); }
 .notes header button { border: none; background: none; font-size: 16px; line-height: 1; cursor: pointer; color: var(--muted); }
@@ -29,3 +39,9 @@ body.notes-open .notes { display: flex; flex-direction: column; min-height: 0; b
 .link-state[data-state='live'] { color: #265b19; border-color: #9ccc8a; background: #eef7e8; }
 .link-state[data-state='wait'] { cursor: help; }
 .link-state[data-state='off'] { color: #7f2c28; border-color: #e3a5a2; background: #fbefee; cursor: help; }
+
+/* The top bar on a phone: the three host actions fit on one line. */
+@media (max-width: 520px) {
+  .menu button.host-action { margin-left: 4px; padding: 4px 8px; font-size: 12px; }
+  .link-state { max-width: 150px; font-size: 11px; padding: 1px 6px; }
+}
