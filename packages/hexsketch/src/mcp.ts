@@ -2,8 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import { analyze, compare, convert, detectFormat, link, name, orientLike, readStructure, render, scheme, validate, type Rasterizer, type RenderFormat, type Scheme, type Structure } from '@hexsketch/agent';
-import { parseSmiles, substructureMatches, type Molecule } from '@hexsketch/core';
+import { analyze, compare, convert, detectFormat, labelPlaces, link, name, orientLike, readStructure, render, scheme, validate, type Rasterizer, type RenderFormat, type Scheme, type Structure } from '@hexsketch/agent';
+import { parsePattern, substructureMatches, type Molecule } from '@hexsketch/core';
 import { memorySketchStore, type Sketch, type SketchStore } from './sketch-store.ts';
 
 export type { SketchUpdate } from './sketch-store.ts';
@@ -44,9 +44,13 @@ export const SKETCHER_URI = 'ui://hexsketch/sketcher.html';
 
 /** Highlight colours for show_in_sketcher, in order, named so the model can refer to them. */
 export const HIGHLIGHTS = [
-  { name: 'yellow', color: '#ffe066' }, { name: 'blue', color: '#8fd3ff' }, { name: 'orange', color: '#ffb07a' },
-  { name: 'green', color: '#a6e3a1' }, { name: 'purple', color: '#d4b0ff' },
+  { name: 'yellow', color: '#ffe066', text: '#8a6d00' }, { name: 'blue', color: '#8fd3ff', text: '#1b6aa5' },
+  { name: 'orange', color: '#ffb07a', text: '#b4531a' }, { name: 'green', color: '#a6e3a1', text: '#2f7a34' },
+  { name: 'purple', color: '#d4b0ff', text: '#6b46b5' },
 ] as const;
+const COLOUR_NAMES = HIGHLIGHTS.map((h) => h.name) as [string, ...string[]];
+/** At most this many labels on a drawing, so it stays readable. */
+const MAX_LABELS = 8;
 
 const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 
@@ -54,7 +58,7 @@ const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 - Before presenting a SMILES you wrote, call validate_structure and compare its name and formula with what you meant.
 - Open the editor first. As soon as the conversation turns to a structure — drawing, showing, explaining, comparing or changing one — call open_sketcher before any other HexSketch tool, with the structure if you have one and empty if the user is about to draw. Do it on the first such message, not after answering in text once: the editor is the point of HexSketch, and it opens full screen beside the conversation. Only a request for a file or a bare number (a mass, a name, a formula) is answered without it.
 - To show a structure where the editor cannot be opened, call render_structure. Every result includes a link that opens the structure in HexSketch, where the user can edit it by drawing: always give the user that link.
-- Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher: highlight the parts you mean, and label them in its note with a line or two at most — the note is a caption on the drawing, not your answer, which stays in the chat. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").
+- Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher: highlight the parts you mean, pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour — the drawing carries the detail, the note is a small summary beside it, and your answer stays in the chat. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").
 - Draw every reaction as a scheme, with the reaction input (render_structure, open_sketcher, show_in_sketcher): starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.
 - Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.
 - Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user's current drawing is also given to you in the same form.`;
@@ -111,7 +115,7 @@ export function createServer(opts: ServerOptions): McpServer {
   const inEditor = async (r: CallToolResult): Promise<CallToolResult> => {
     const id = !r.isError && sketches ? await sketches.live(ON_SCREEN_MS) : null;
     if (!id || (!opts.sketchesPerConversation && !opened.has(id))) return r;
-    return { ...r, content: [...r.content, { type: 'text', text: `The HexSketch editor is open in this chat (sketch "${id}"): show this there with show_in_sketcher (a structure, highlights and a note of a line or two labelling them) rather than as an image, a picture from the web or a text drawing, and keep your chat reply short.` }] };
+    return { ...r, content: [...r.content, { type: 'text', text: `The HexSketch editor is open in this chat (sketch "${id}"): show this there with show_in_sketcher (a structure, highlights, short labels on atoms and a note of a few bullets summing them up) rather than as an image, a picture from the web or a text drawing, and keep your chat reply short.` }] };
   };
   /** A model tool's body: a bad structure becomes a tool error the assistant can read and fix; results point to an open editor. */
   const tool = (fn: () => Promise<CallToolResult>) => safely(fn).then(inEditor);
@@ -237,7 +241,7 @@ export function createServer(opts: ServerOptions): McpServer {
       const sketch = await store.create(s ?? '');
       opened.add(sketch.id);
       // Models see the text or the structuredContent depending on the chat, so both say how to carry on.
-      const next = `The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher (with sketch "${sketch.id}") with highlight (SMILES fragments, coloured yellow, blue, orange... in order) and a short note, or with a new structure. Draw reactions with reaction (an arrow between starting materials and products, reagents above it, solvent and conditions below), never as structures side by side. Keep the note to a caption of a line or two naming the highlights, and the chat reply short, pointing at the drawing by colour. Call read_sketcher (with the same sketch) whenever the user refers to their drawing, since they may have edited it. While it is open, do not show structures as images, pictures from the web or text drawings, and do not open another editor. Suggest Full screen to keep the editor beside the chat.`;
+      const next = `The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher (with sketch "${sketch.id}") with highlight (SMILES fragments, coloured yellow, blue, orange... in order), labels (a few words or a value beside an atom: "pKa ≈ 4.4", "Michael acceptor") and a short note, or with a new structure. Draw reactions with reaction (an arrow between starting materials and products, reagents above it, solvent and conditions below), never as structures side by side. Keep the note to a few short bullets naming the highlights by colour, and the chat reply short, pointing at the drawing by colour. Call read_sketcher (with the same sketch) whenever the user refers to their drawing, since they may have edited it. While it is open, do not show structures as images, pictures from the web or text drawings, and do not open another editor. Suggest Full screen to keep the editor beside the chat.`;
       const shared = { structure: s ?? '', sketch: sketch.id, next };
       if (!s || !about) return { content: [{ type: 'text', text: JSON.stringify({ opened: 'an empty canvas', next, fallback: 'In a chat that cannot show the editor, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }, null, 2) }], structuredContent: shared };
       const url = await link(s);
@@ -261,41 +265,54 @@ export function createServer(opts: ServerOptions): McpServer {
 
     server.registerTool('show_in_sketcher', {
       title: 'Show in the HexSketch editor',
-      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, and explain it in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point or step: highlight the groups you are describing, draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), point out a stereocentre. Keep the note to a caption of a line or two \u2014 the panel is narrow and on a phone it takes room the drawing needs. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each call replaces your earlier highlights; the user can undo anything you change.`,
+      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point or step: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products). Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
       inputSchema: {
         sketch: sketchId,
         structure: structure.optional().describe('A new structure to draw in place of the current one (the user can undo it). To show several side by side (both enantiomers, compounds you compare), join their SMILES with "." in one structure; for a reaction, use reaction instead, so it gets an arrow, reagents and conditions. Leave out to work on what is drawn.'),
         reaction: reaction.optional(),
         highlight: z.array(z.string().min(1)).max(HIGHLIGHTS.length).optional().describe('SMILES fragments to highlight, e.g. ["C(=O)O", "c1ccccc1"].'),
-        note: z.string().max(600).optional().describe('A caption for the drawing, shown in the editor\'s notes panel: at most two short sentences, or three bullets of a few words each, naming the highlights by colour. It is a label, not the answer \u2014 no preamble, no restating the question, no chemistry lesson; anything longer belongs in the chat reply. **bold** and "- " lists are shown as such. E.g. "**Yellow**: the new ester. **Blue**: the acid it came from."'),
+        labels: z.array(z.object({
+          at: z.string().min(1).describe('SMILES fragment whose first atom the label points at, e.g. "OC(=O)" for an acid\'s OH. The same fragment as a highlight gives the label that highlight\'s colour.'),
+          text: z.string().min(1).max(40).describe('A few words or a value, e.g. "pKa ≈ 4.4", "Michael acceptor", "(S)", "H-bond donor". Not a sentence.'),
+          colour: z.enum(COLOUR_NAMES).optional().describe('Text colour, as a highlight colour name; default that of the highlight with the same fragment, else grey.'),
+          occurrence: z.number().int().min(1).max(20).optional().describe('Which place, when the fragment is found more than once: counted left to right (default 1).'),
+        })).max(MAX_LABELS).optional().describe(`Up to ${MAX_LABELS} short labels pinned beside atoms: values and properties at the atom they belong to (pKa, a reactive site, a configuration), so the drawing carries the detail and the note stays short.`),
+        note: z.string().max(800).optional().describe('A summary for the editor\'s notes panel, small and organised: up to five "- " bullets of a few words each, each starting with the **colour** it explains (e.g. "- **Yellow**: carboxylic acid, pKa ≈ 4.4"), or two short sentences. Point to the drawing rather than repeat its labels; no preamble, no restating the question, no chemistry lesson: the explanation goes in the chat reply.'),
       },
       annotations: { title: 'Show in the HexSketch editor', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-    }, ({ sketch: id, structure: text0, reaction: r, highlight, note }) => safely(async () => {
+    }, ({ sketch: id, structure: text0, reaction: r, highlight, labels, note }) => safely(async () => {
       const sketch = await target(id);
       // A scheme reaches the editor as CDXML, arrows and text included, the same way round as what it replaces.
       const before = sketch.drawing ? await readStructure(sketch.drawing).then((x) => x.mol, () => undefined) : undefined;
       const s = r || text0 ? await toDraw(text0, r, before) : undefined;
-      if (!s && !highlight?.length && !note) throw new Error('Give a structure, a reaction, a highlight or a note to show.');
+      if (!s && !highlight?.length && !labels?.length && !note) throw new Error('Give a structure, a reaction, a highlight, labels or a note to show.');
       const drawing = s ?? sketch.drawing;
       const mol: Molecule | null = drawing ? (await readStructure(drawing)).mol : null;
       const highlights = (highlight ?? []).map((frag, i) => {
         let pattern: Molecule;
-        try { pattern = parseSmiles(frag); } catch (err) { throw new Error(`Highlight "${frag}" is not a SMILES fragment: ${(err as Error).message}`); }
+        try { pattern = parsePattern(frag); } catch (err) { throw new Error(`Highlight "${frag}" is not a SMILES fragment: ${(err as Error).message}`); }
         const places = mol ? substructureMatches(pattern, mol).length : 0;
         return { smiles: frag, ...HIGHLIGHTS[i]!, places };
+      });
+      const pinned = (labels ?? []).map((l) => {
+        const places = mol ? labelPlaces(mol, l.at).length : 0;
+        const colour = l.colour ? HIGHLIGHTS.find((h) => h.name === l.colour) : highlights.find((h) => h.smiles === l.at);
+        return { at: l.at, text: l.text, ...(colour ? { color: colour.text } : {}), ...(l.occurrence ? { occurrence: l.occurrence } : {}), places };
       });
       await store.addUpdate(sketch.id, {
         ...(s ? { structure: s } : {}),
         ...(highlight ? { highlights: highlights.map(({ smiles, color, name: n }) => ({ smiles, color, name: n })) } : {}),
+        ...(labels ? { labels: pinned.map(({ places: _, ...l }) => l) } : {}),
         ...(note ? { note } : {}),
       });
-      const missed = highlights.filter((h) => h.places === 0).map((h) => h.smiles);
+      const missed = [...highlights.filter((h) => h.places === 0).map((h) => h.smiles), ...pinned.filter((l) => l.places < (l.occurrence ?? 1)).map((l) => l.at)];
       return text({
         shown: true,
         sketch: sketch.id,
         highlights: highlights.map((h) => ({ smiles: h.smiles, colour: h.name, places: h.places })),
+        ...(pinned.length ? { labels: pinned.map((l) => ({ at: l.at, text: l.text, places: l.places })) } : {}),
         ...(missed.length ? { warning: `Not found in the drawing: ${missed.join(', ')}. Check the fragment against read_sketcher's SMILES.` } : {}),
-        next: 'The user sees this in the editor now. Keep the note a caption of a line or two; put the rest in a short chat reply that points at the drawing by colour. For the next point or step, call show_in_sketcher again.',
+        next: 'The user sees this in the editor now. Keep the note a short, organised summary; put the explanation in a short chat reply that points at the drawing by colour. For the next point or step, call show_in_sketcher again.',
       });
     }));
 

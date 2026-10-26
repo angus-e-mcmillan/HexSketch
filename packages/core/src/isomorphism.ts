@@ -1,6 +1,7 @@
 import type { AtomId, BondId, Molecule } from './model.ts';
 import { perceiveRings } from './rings.ts';
 import { ezLabel, perceiveStereoFromGeometry } from './stereo.ts';
+import { parseSmiles } from './smiles.ts';
 
 /**
  * Are two structures the same compound? Compares heavy-atom graphs labelled
@@ -151,6 +152,24 @@ function aromaticAtoms(mol: Molecule): Set<AtomId> {
  * has while "CC(C)C" stays out of the benzene ring. Hydrogen counts are not
  * compared. Distinct atom sets only, at most `limit`.
  */
+/**
+ * Parse a SMILES fragment to match with substructureMatches, keeping which
+ * atoms were written aromatic: in "C(=O)Oc" (an aryl ester) the lone "c" is
+ * no ring of its own, so only the spelling says it must be an aromatic atom.
+ */
+export function parsePattern(smiles: string): Molecule {
+  const mol = parseSmiles(smiles);
+  const tokens = smiles.match(/\[[^\]]*\]|Cl|Br|[BCNOSPFI*]|[bcnops]/g) ?? [];
+  const atoms = [...mol.atoms()];
+  if (tokens.length === atoms.length) {
+    const written = new Set<AtomId>();
+    tokens.forEach((t, i) => { if (/^\[\d*[a-z]/.test(t) || /^[a-z]/.test(t)) written.add(atoms[i]!.id); });
+    if (written.size) writtenAromatic.set(mol, written);
+  }
+  return mol;
+}
+const writtenAromatic = new WeakMap<Molecule, Set<AtomId>>();
+
 export function substructureMatches(pattern: Molecule, target: Molecule, limit = 50): { atoms: AtomId[]; bonds: BondId[] }[] {
   return substructureMappings(pattern, target, limit).map(({ atoms, bonds }) => ({ atoms, bonds }));
 }
@@ -177,7 +196,7 @@ export function substructureMappings(pattern: Molecule, target: Molecule, limit 
   const map = new Map<AtomId, AtomId>();
   const used = new Set<AtomId>();
   const found = new Map<string, { atoms: AtomId[]; bonds: BondId[]; map: Map<AtomId, AtomId> }>();
-  const aroP = aromaticAtoms(pattern), aroT = aromaticAtoms(target);
+  const aroP = new Set([...aromaticAtoms(pattern), ...(writtenAromatic.get(pattern) ?? [])]), aroT = aromaticAtoms(target);
   const targetIds = [...target.atoms()].map((a) => a.id);
 
   const fits = (x: AtomId, y: AtomId) => {

@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
-import { payloadFromPng, decodePayload, parseSmiles, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
-import { analyze, compare, convert, detectFormat, link, name, orientLike, readStructure, render, scheme, validate } from '../src/index.ts';
+import { payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
+import { analyze, compare, convert, detectFormat, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
 
@@ -192,4 +192,35 @@ test('related structures are drawn the same way round', async () => {
   const turned = (m: typeof before.mol) => Math.abs(Math.atan2(Math.sin(angle(m, map.get(ch2)!, map.get(ch)!) - angle(before.mol, ch2, ch)), Math.cos(angle(m, map.get(ch2)!, map.get(ch)!) - angle(before.mol, ch2, ch))));
   orientLike(after, before.mol);
   assert.ok(turned(after.mol) < 0.2, `turned by ${turned(after.mol)} rad`);
+});
+
+test('a fragment written aromatic only matches aromatic atoms, even outside a ring', () => {
+  const aspirin = parseSmiles('CC(=O)Oc1ccccc1C(=O)O');
+  assert.equal(substructureMatches(parsePattern('C(=O)Oc'), aspirin).length, 1);
+  assert.equal(substructureMatches(parsePattern('C(=O)OC'), aspirin).length, 0);
+  assert.equal(substructureMatches(parsePattern('[nH]'), parseSmiles('c1cc[nH]c1')).length, 1);
+});
+
+test('labels sit beside their own atom, clear of bonds and of each other', async () => {
+  const s = await readStructure('CC(C)Cc1ccc(cc1)C(C)C(=O)O');
+  const L = s.style.bondLength;
+  const labels = [{ at: 'OC(=O)', text: 'pKa ≈ 4.4' }, { at: 'CC(C)C', text: 'lipophilic' }, { at: 'N', text: 'nothing' }];
+  const { objects, found } = placeLabels(s.mol, s.objects, s.style, labels);
+  assert.deepEqual(found, [1, 1, 0]);
+  const captions = objects.filter((o) => o.kind === 'text');
+  assert.equal(captions.length, 2);
+  for (const [i, c] of captions.entries()) {
+    const anchor = labelPlaces(s.mol, labels[i]!.at)[0]!;
+    // Nearer its own atom than any other, and within two bond lengths of it.
+    const d = (a: { x: number; y: number }) => Math.hypot(a.x - c.x, a.y - (c.y - 3));
+    const nearest = [...s.mol.atoms()].sort((a, b) => d(a) - d(b))[0]!;
+    assert.equal(nearest.id, anchor.id, `"${c.text}" is nearest its atom`);
+    assert.ok(d(anchor) < 2 * L);
+  }
+  // Places count left to right, and occurrence picks one.
+  const diacid = await readStructure('OC(=O)c1ccccc1C(=O)O');
+  const [a, b] = labelPlaces(diacid.mol, 'C(=O)O');
+  assert.ok(a!.x <= b!.x);
+  const second = placeLabels(diacid.mol, [], diacid.style, [{ at: 'C(=O)O', text: 'acid', occurrence: 2 }]).objects[0]!;
+  assert.ok(second.kind === 'text' && Math.hypot(second.x - b!.x, second.y - b!.y) < Math.hypot(second.x - a!.x, second.y - a!.y));
 });

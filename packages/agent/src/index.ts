@@ -9,6 +9,8 @@ import { Editor, EditorDocument } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
 import '@hexsketch/naming/rings';
 
+export { labelPlaces, placeLabels, type AtomLabel, type PlacedLabels } from './labels.ts';
+
 /**
  * HexSketch for AI agents and scripts: read a structure from SMILES, a
  * molfile, CDXML, a HexSketch link or picture payload; render it; name it;
