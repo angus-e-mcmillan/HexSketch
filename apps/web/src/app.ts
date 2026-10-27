@@ -644,7 +644,51 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   let pan: { id: number; x: number; y: number; left: number; top: number; page: { x: number; y: number }; moved: boolean } | null = null;
   const fingerScrolls = (e: PointerEvent) => e.pointerType === 'touch' && editor.tool.kind === 'select';
 
+  /**
+   * Two fingers pinch to zoom, about the point between them, with any tool:
+   * the second finger cancels what the first had begun (a scroll, a bond),
+   * and nothing is drawn until every finger has lifted.
+   */
+  const fingers = new Map<number, { clientX: number; clientY: number }>();
+  let pinch: { dist: number; zoom: number; at: { x: number; y: number } } | null = null;
+  let pinched = false;
+  const spread = () => {
+    const [a, b] = [...fingers.values()] as [{ clientX: number; clientY: number }, { clientX: number; clientY: number }];
+    return { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1, mid: { clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2 } };
+  };
+  /** Keep track of fingers; true while a pinch owns the gesture, so nothing else sees it. */
+  function pinchEvent(e: PointerEvent): boolean {
+    if (e.pointerType !== 'touch') return false;
+    if (e.type === 'pointerdown') fingers.set(e.pointerId, e);
+    else if (e.type === 'pointermove' && fingers.has(e.pointerId)) fingers.set(e.pointerId, e);
+    else if (e.type === 'pointerup' || e.type === 'pointercancel') fingers.delete(e.pointerId);
+    if (e.type === 'pointerdown' && fingers.size === 2) {
+      pan = null;
+      editor.cancelGesture();
+      const { dist, mid } = spread();
+      pinch = { dist, zoom, at: toPage(mid) };
+      pinched = true;
+      return true;
+    }
+    if (pinch && fingers.size >= 2 && e.type === 'pointermove') {
+      const { dist, mid } = spread();
+      setZoom(pinch.zoom * (dist / pinch.dist));
+      // The point that was between the fingers stays between them.
+      const r = pageEl.getBoundingClientRect();
+      wrapEl.scrollLeft += r.left + pinch.at.x * zoom - mid.clientX;
+      wrapEl.scrollTop += r.top + pinch.at.y * zoom - mid.clientY;
+      return true;
+    }
+    if (fingers.size < 2) pinch = null;
+    if (pinched) {
+      if (!fingers.size) pinched = false;
+      return true;
+    }
+    return false;
+  }
+
   wrapEl.addEventListener('pointerdown', (e) => {
+    if (pinchEvent(e)) return;
     if (e.button !== 0 || e.target === labelEditor) return;
     commitLabel();
     commitCaption();
@@ -745,6 +789,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   /** How far a finger may travel and still count as a tap rather than a scroll. */
   const TAP_SLOP = 8;
   wrapEl.addEventListener('pointermove', (e) => {
+    if (pinchEvent(e)) return;
     if (pan) {
       if (e.pointerId !== pan.id) return;
       const dx = e.clientX - pan.x, dy = e.clientY - pan.y;
@@ -757,6 +802,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     editor.pointerMove({ ...toPage(e), shift: e.shiftKey, alt: e.altKey, meta: e.metaKey || e.ctrlKey, time: e.timeStamp, touch: e.pointerType === 'touch' });
   });
   wrapEl.addEventListener('pointerup', (e) => {
+    if (pinchEvent(e)) return;
     if (pan) {
       if (e.pointerId !== pan.id) return;
       const { page, moved } = pan;
@@ -773,6 +819,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   });
   // The browser took the gesture over (a scroll or a page zoom): draw nothing.
   wrapEl.addEventListener('pointercancel', (e) => {
+    if (pinchEvent(e)) return;
     if (pan?.id === e.pointerId) { pan = null; return; }
     editor.cancelGesture();
   });
