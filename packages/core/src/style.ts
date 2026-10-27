@@ -21,6 +21,8 @@ export interface DrawingStyle {
   captionSize: number;
   showTerminalCarbonLabels: boolean;
   hideImplicitHydrogens: boolean;
+  /** Draw a terminal CH3 as "Me" rather than as a bare line end (HexSketch's own setting; ChemDraw has none). */
+  methylAsMe?: boolean;
   /**
    * The document colour table after background and foreground: what
    * ChemDraw's Colors menu lists as "Other # 1..n". '#rrggbb'.
@@ -83,6 +85,7 @@ export const HEXSKETCH_STYLE: Readonly<DrawingStyle> = {
   captionSize: 10,
   showTerminalCarbonLabels: false,
   hideImplicitHydrogens: false,
+  methylAsMe: true,
   palette: DEFAULT_PALETTE,
 };
 
@@ -115,9 +118,10 @@ export const STYLE_PRESETS: readonly { id: string; label: string; style: Readonl
 /** The numbers and switches that make up a style, for comparing two styles (palette aside). */
 export const STYLE_FIELDS = [
   'bondLength', 'lineWidth', 'boldWidth', 'hashSpacing', 'marginWidth', 'bondSpacing', 'chainAngle',
-  'labelFont', 'labelSize', 'labelBold', 'captionFont', 'captionSize', 'showTerminalCarbonLabels', 'hideImplicitHydrogens',
+  'labelFont', 'labelSize', 'labelBold', 'captionFont', 'captionSize', 'showTerminalCarbonLabels', 'hideImplicitHydrogens', 'methylAsMe',
 ] as const satisfies readonly (keyof DrawingStyle)[];
 
 export function sameStyle(a: DrawingStyle, b: DrawingStyle): boolean {
-  return STYLE_FIELDS.every((k) => (typeof a[k] === 'number' ? Math.abs((a[k] as number) - (b[k] as number)) < 1e-3 : a[k] === b[k]));
+  // Switches compare as on or off: a style saved before a switch existed has it unset.
+  return STYLE_FIELDS.every((k) => (typeof a[k] === 'number' ? Math.abs((a[k] as number) - (b[k] as number)) < 1e-3 : typeof a[k] === 'boolean' || typeof b[k] === 'boolean' ? !!a[k] === !!b[k] : a[k] === b[k]));
 }

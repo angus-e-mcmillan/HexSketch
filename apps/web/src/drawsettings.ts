@@ -73,6 +73,7 @@ export function drawingSettingsDialog(current: { style: DrawingStyle; units: 'cm
               <div class="ds-row"><span>Font</span><select name="labelFont">${fontOptions}</select><input name="labelSize" type="number" min="4" max="48" step="0.5" aria-label="Label size"> pt
                 <label class="ds-check ds-inline"><input name="labelBold" type="checkbox"> Bold</label></div>
               <label class="ds-check"><input name="showTerminalCarbonLabels" type="checkbox"> Show terminal carbon labels (CH<sub>3</sub>)</label>
+              <label class="ds-check"><input name="methylAsMe" type="checkbox"> Show methyl groups as Me</label>
             </fieldset>
             <fieldset>
               <legend>Captions</legend>
@@ -135,6 +136,7 @@ export function drawingSettingsDialog(current: { style: DrawingStyle; units: 'cm
       input('labelSize').value = String(style.labelSize);
       input('labelBold').checked = style.labelBold;
       input('showTerminalCarbonLabels').checked = style.showTerminalCarbonLabels;
+      input('methylAsMe').checked = !!style.methylAsMe;
       field<HTMLSelectElement>('captionFont').value = (CAPTION_FONTS as readonly string[]).includes(style.captionFont) ? style.captionFont : 'Helvetica';
       input('captionSize').value = String(style.captionSize);
       paletteSel.value = paletteId(style) ?? (filePalette ? 'file' : 'hexsketch');
@@ -153,6 +155,7 @@ export function drawingSettingsDialog(current: { style: DrawingStyle; units: 'cm
       next.labelSize = num('labelSize', style.labelSize, 4);
       next.labelBold = input('labelBold').checked;
       next.showTerminalCarbonLabels = input('showTerminalCarbonLabels').checked;
+      next.methylAsMe = input('methylAsMe').checked;
       next.captionFont = field<HTMLSelectElement>('captionFont').value;
       next.captionSize = num('captionSize', style.captionSize, 4);
       const pv = paletteSel.value;
