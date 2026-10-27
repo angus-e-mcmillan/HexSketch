@@ -533,6 +533,8 @@ export function readCdxmlStyle(xml: string, base: DrawingStyle = DEFAULT_STYLE):
     captionSize: num('CaptionSize') ?? base.captionSize,
     showTerminalCarbonLabels: yes('ShowTerminalCarbonLabels') ?? base.showTerminalCarbonLabels,
     hideImplicitHydrogens: yes('HideImplicitHydrogens') ?? base.hideImplicitHydrogens,
+    // HexSketch's own switch: a ChemDraw file keeps its bare methyls.
+    methylAsMe: /\bCreationProgram="HexSketch"/.test(root) ? base.methylAsMe : false,
   };
 }
 

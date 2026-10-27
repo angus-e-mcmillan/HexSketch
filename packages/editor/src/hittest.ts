@@ -1,5 +1,5 @@
 import { distanceToObject, insideShape, objectPolylines, type AtomId, type BondId, type DocObject, type DrawingStyle, type Molecule } from '@hexsketch/core';
-import { captionBounds } from '@hexsketch/render';
+import { captionBounds, isMethyl } from '@hexsketch/render';
 import type { Depiction } from '@hexsketch/render';
 
 export type Hit = { kind: 'atom'; id: AtomId } | { kind: 'bond'; id: BondId } | { kind: 'object'; id: number } | { kind: 'none' };
@@ -13,7 +13,8 @@ export function hitTest(mol: Molecule, dep: Depiction | null, x: number, y: numb
   let bestAtom: AtomId | null = null, bestA = L * 0.3;
   for (const a of mol.atoms()) {
     const d = Math.hypot(a.x - x, a.y - y);
-    const label = dep?.labels.get(a.id);
+    // A methyl's "Me" is picked like the line end it stands for, so its bond stays easy to click.
+    const label = dep && !isMethyl(mol, a.id, dep.style) ? dep.labels.get(a.id) : undefined;
     const inLabel = label && x >= label.bounds.x0 && x <= label.bounds.x1 && y >= label.bounds.y0 && y <= label.bounds.y1;
     if (inLabel && d < bestA + L) { bestAtom = a.id; bestA = Math.min(bestA, d); continue; }
     if (d <= bestA) { bestA = d; bestAtom = a.id; }

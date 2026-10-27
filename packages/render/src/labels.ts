@@ -57,8 +57,16 @@ export function needsLabel(mol: Molecule, id: AtomId, style: DrawingStyle): bool
   if (atom.isotope !== null || atom.charge !== 0 || atom.radical !== 0) return true;
   const degree = mol.neighbours(id).length;
   if (degree === 0) return true;
-  if (degree === 1 && style.showTerminalCarbonLabels) return true;
+  if (degree === 1 && (style.showTerminalCarbonLabels || isMethyl(mol, id, style))) return true;
   return false;
+}
+
+/** A terminal CH3 drawn as "Me" in this style (only the drawing changes: the atom stays a carbon). */
+export function isMethyl(mol: Molecule, id: AtomId, style: DrawingStyle): boolean {
+  if (!style.methylAsMe) return false;
+  const atom = mol.atom(id);
+  return atom.element === 'C' && atom.label === null && atom.isotope === null && atom.charge === 0 && atom.radical === 0
+    && mol.neighbours(id).length === 1 && mol.implicitHydrogens(id) === 3;
 }
 
 /**
@@ -134,8 +142,9 @@ export function layoutLabel(mol: Molecule, id: AtomId, style: DrawingStyle): Ato
 
   let main: Token[];
   let anchorIndex = 0;
-  if (atom.label !== null) {
-    main = tokenizeNickname(atom.label);
+  const nickname = atom.label ?? (isMethyl(mol, id, style) ? 'Me' : null);
+  if (nickname !== null) {
+    main = tokenizeNickname(nickname);
     if (side === 'left') {
       main = reverseNickname(main);
       anchorIndex = main.length - 1;
@@ -149,7 +158,7 @@ export function layoutLabel(mol: Molecule, id: AtomId, style: DrawingStyle): Ato
   }
 
   const hTokens: Token[] = [];
-  if (hCount > 0 && atom.label === null) {
+  if (hCount > 0 && nickname === null) {
     hTokens.push({ text: 'H', kind: 'normal' });
     if (hCount > 1) hTokens.push({ text: String(hCount), kind: 'sub' });
   }

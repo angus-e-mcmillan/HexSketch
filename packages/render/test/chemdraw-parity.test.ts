@@ -50,7 +50,9 @@ const toBoundary = (p: P, poly: P[]) => Math.min(...poly.map((a, i) => segDist(p
 const hausdorff = (a: P[], b: P[]) => Math.max(...a.map((p) => toBoundary(p, b)), ...b.map((p) => toBoundary(p, a)));
 const centroid = (pts: P[]) => ({ x: pts.reduce((s, p) => s + p.x, 0) / pts.length, y: pts.reduce((s, p) => s + p.y, 0) / pts.length });
 
-const dep = depict(buildFixture(DEFAULT_STYLE), DEFAULT_STYLE);
+// ChemDraw has no "Me" switch: its fixtures show bare methyls.
+const CHEMDRAW = { ...DEFAULT_STYLE, methylAsMe: false };
+const dep = depict(buildFixture(CHEMDRAW), CHEMDRAW);
 const mine = dep.primitives.filter((p): p is Extract<Primitive, { kind: 'polygon' }> => p.kind === 'polygon').map((p) => p.points);
 
 test('same number of filled shapes as ChemDraw', () => {
