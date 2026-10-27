@@ -12,7 +12,8 @@ than describing them, and keep the chat for the short answer.
 
 1. As soon as the conversation turns to a structure, call `open_sketcher`:
    with the structure if you have one, empty if the chemist is about to draw.
-   Do it on the first such message.
+   Do it on the first such message, and give the highlights, labels, note,
+   arrows or steps in the same call: one round, not two.
 2. When the chemist says "this", "my structure" or "what I drew", call
    `read_sketcher` first: they may have edited the drawing.
 3. Make each point with `show_in_sketcher`: a new structure or scheme,
@@ -39,8 +40,11 @@ drawing.
 
 - HexSketch reads SMILES, molfiles, CDXML and HexSketch links, not names.
   Write the SMILES yourself.
-- Call `validate_structure` on every SMILES you write, and check that the name
-  and formula it returns are what you meant. Fix and check again if not.
+- Check every SMILES you write against the name and formula HexSketch
+  returns with it (`open_sketcher`, `show_in_sketcher` and `render_structure`
+  all return them, with any problems found). Fix and show it again if they
+  are not what you meant. `validate_structure` is for a SMILES you only give
+  in text.
 - Write stereochemistry explicitly (`[C@@H]`, `/` and `\`) whenever the
   compound has it, and confirm it with the (R)/(S) or (E)/(Z) in the name.
 - Use `compare_structures` to tell whether two structures are the same

@@ -343,3 +343,22 @@ test('retrosynthesis and balance: disconnections drawn, a step from nowhere repo
   assert.equal(shown.shown, true);
   assert.match(shown.balance[0], /Step 1 → 2: Br on the left is not on the right; the charge changes by \+1/);
 });
+
+test('one round: open_sketcher takes what show_in_sketcher would, and results say what was drawn', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const opened = await call('open_sketcher', { structure: 'CC(C)Cc1ccc(cc1)C(C)C(=O)O', highlight: ['C(=O)O'], labels: [{ at: 'OC(=O)', text: 'pKa ≈ 4.4' }], note: '**Yellow**: the acid' });
+  const info = JSON.parse(textOf(opened));
+  assert.match(info.drawn.name, /propanoic acid$/);
+  assert.equal(info.drawn.formula, 'C13H18O2');
+  assert.equal(info.highlights[0].places, 1);
+  const id = (opened.structuredContent as { sketch: string }).sketch;
+  const { updates } = (await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: { highlights?: unknown[]; labels?: unknown[]; note?: string }[] };
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0]!.note, '**Yellow**: the acid');
+  // Steps open straight away too, and a drawn structure with a problem says so.
+  const steps = JSON.parse(textOf(await call('open_sketcher', { steps: [{ structure: 'CCO', note: 'a' }, { structure: 'CC=O', note: 'b' }] })));
+  assert.equal(steps.steps.length, 2);
+  assert.equal(steps.steps[1].drawn.formula, 'C2H4O');
+  const shown = JSON.parse(textOf(await call('show_in_sketcher', { structure: 'C(C)(C)(C)(C)C' })));
+  assert.ok(shown.drawn.issues?.length);
+});
