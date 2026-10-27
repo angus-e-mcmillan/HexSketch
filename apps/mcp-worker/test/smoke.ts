@@ -59,7 +59,14 @@ await step('a reaction shown by the model reaches the editor, through another se
   assert.equal(got.updates[0]?.note, 'Esterification');
   assert.match(got.updates[0]?.structure ?? '', /<arrow/);
   const again = (await editor.call('sketch_updates', { sketch, since: 1 })).structuredContent as { live: boolean; updates: unknown[] };
-  assert.deepEqual(again, { live: true, updates: [] }); // only what it hasn't had
+  assert.deepEqual(again, { live: true, updates: [], waits: true }); // only what it hasn't had
+  // A poll that waits returns the moment the AI shows something.
+  const t0 = Date.now();
+  const waiting = editor.call('sketch_updates', { sketch, since: 1, wait: 10000 });
+  setTimeout(() => void model.call('show_in_sketcher', { sketch, note: 'Later' }), 500);
+  const later = (await waiting).structuredContent as { updates: { note?: string }[] };
+  assert.equal(later.updates[0]?.note, 'Later');
+  assert.ok(Date.now() - t0 < 5000, `a waiting poll took ${Date.now() - t0} ms`);
 });
 await step('while the editor polls, results point the model to it', async () => {
   const r = await model.call('analyze_structure', { structure: 'CCO' });

@@ -12,11 +12,15 @@ import type { Sketch as SketchData, SketchStore, SketchUpdate } from '../../../p
  */
 
 const DAY = 24 * 3600e3;
+/** The longest an editor's poll waits for an update. */
+const MAX_WAIT = 20_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export class Sketch extends DurableObject {
   /** When the editor last asked for updates: kept in memory only, since an editor on screen asks every few seconds. */
   #seenAt = 0;
+  /** Editors waiting for the next update (a long poll), woken by addUpdate. */
+  #waiting = new Set<() => void>();
 
   async create(id: string, drawing: string): Promise<void> {
     await this.ctx.storage.put({ id, drawing, count: 0 });
@@ -38,6 +42,7 @@ export class Sketch extends DurableObject {
     // One key per update (zero-padded, so they list in order): a value may hold at most 2 MB.
     await this.ctx.storage.put<unknown>({ count: u.version, [`u:${String(u.version).padStart(6, '0')}`]: u, ...(update.structure ? { drawing: update.structure } : {}) });
     await this.ctx.storage.setAlarm(Date.now() + DAY);
+    for (const wake of [...this.#waiting]) wake();
     return u;
   }
 
@@ -47,10 +52,23 @@ export class Sketch extends DurableObject {
     await this.ctx.storage.setAlarm(Date.now() + DAY);
   }
 
-  /** An editor polling: one call per poll (each call to a Durable Object is billed), only the updates it hasn't had. */
-  async poll(since: number): Promise<{ live: boolean; updates: SketchUpdate[] }> {
-    if ((await this.ctx.storage.get<number>('count')) === undefined) return { live: false, updates: [] };
+  /**
+   * An editor polling: one call per poll (each call to a Durable Object is
+   * billed), only the updates it hasn't had. With nothing new, it waits up
+   * to `waitMs` for the next update, so what the AI shows arrives at once.
+   */
+  async poll(since: number, waitMs = 0): Promise<{ live: boolean; updates: SketchUpdate[] }> {
+    const count = await this.ctx.storage.get<number>('count');
+    if (count === undefined) return { live: false, updates: [] };
     this.#seenAt = Date.now();
+    if (count <= since && waitMs > 0) {
+      await new Promise<void>((resolve) => {
+        const wake = () => { clearTimeout(timer); this.#waiting.delete(wake); resolve(); };
+        const timer = setTimeout(wake, Math.min(waitMs, MAX_WAIT));
+        this.#waiting.add(wake);
+      });
+      this.#seenAt = Date.now();
+    }
     const start = `u:${String(Math.max(0, Math.floor(since)) + 1).padStart(6, '0')}`;
     return { live: true, updates: [...(await this.ctx.storage.list<SketchUpdate>({ prefix: 'u:', start })).values()] };
   }
@@ -101,7 +119,7 @@ export function hostedSketchStore(env: SketchEnv, conversation: string | null): 
     },
     async setDrawing(id, drawing) { await sketch(id).setDrawing(drawing); },
     async seen(id) { await sketch(id).seen(); },
-    async poll(id, since) { return UUID.test(id) ? sketch(id).poll(since) : { live: false, updates: [] }; },
+    async poll(id, since, waitMs) { return UUID.test(id) ? sketch(id).poll(since, waitMs) : { live: false, updates: [] }; },
     async live(withinMs) {
       const id = await latest();
       if (!id) return null;

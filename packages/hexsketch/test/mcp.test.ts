@@ -343,3 +343,21 @@ test('retrosynthesis and balance: disconnections drawn, a step from nowhere repo
   assert.equal(shown.shown, true);
   assert.match(shown.balance[0], /Step 1 → 2: Br on the left is not on the right; the charge changes by \+1/);
 });
+
+test('the editor waits for the next update: it arrives as soon as the AI shows it', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const id = ((await call('open_sketcher', { structure: 'CCO' })).structuredContent as { sketch: string }).sketch;
+  const t0 = Date.now();
+  const waiting = call('sketch_updates', { sketch: id, since: 0, wait: 5000 });
+  setTimeout(() => void call('show_in_sketcher', { note: 'now' }), 300);
+  const got = (await waiting).structuredContent as { updates: { note?: string }[]; waits?: boolean };
+  const took = Date.now() - t0;
+  assert.equal(got.waits, true);
+  assert.equal(got.updates[0]?.note, 'now');
+  assert.ok(took < 1500, `took ${took} ms`);
+  // Nothing new: it waits out its time, then answers with nothing.
+  const t1 = Date.now();
+  const idle = (await call('sketch_updates', { sketch: id, since: 1, wait: 600 })).structuredContent as { updates: unknown[] };
+  assert.equal(idle.updates.length, 0);
+  assert.ok(Date.now() - t1 >= 550);
+});
