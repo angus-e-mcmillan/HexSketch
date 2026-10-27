@@ -105,8 +105,8 @@ body { display: grid; grid-template-rows: 40px 1fr 24px; height: 100vh; overflow
   .status { padding: 0 8px; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
-/* A finger scrolls the sheet (app.ts); the browser keeps pinch to zoom. */
-.canvas-wrap { touch-action: pinch-zoom; }
+/* A finger scrolls the sheet and two pinch to zoom it (app.ts), in a chat's frame too, where the browser's own pinch zoom is off. */
+.canvas-wrap { touch-action: none; }
 
 .label-editor.caption { font: 13px Helvetica, Arial, sans-serif; min-width: 120px; }
 
