@@ -51,6 +51,11 @@ export const HIGHLIGHTS = [
 const COLOUR_NAMES = HIGHLIGHTS.map((h) => h.name) as [string, ...string[]];
 /** At most this many labels on a drawing, so it stays readable. */
 const MAX_LABELS = 8;
+/**
+ * How wide a reaction scheme may run before it wraps onto another row: two
+ * A4 pages side by side less their margins, the in-chat editor's sheet.
+ */
+const SCHEME_WIDTH = 2 * (595.28 - 72);
 /** At most this many steps in one show_in_sketcher call. */
 const MAX_STEPS = 10;
 
@@ -103,7 +108,7 @@ async function given(structureText: string | undefined, reactionScheme: Scheme |
   if (curly?.length && !structureText && !reactionScheme) throw new Error('Arrows are drawn on the structure or reaction given in the same call: give it as SMILES with atom-map numbers, e.g. "[OH-:1].[CH3:2][Br:3]"');
   let s: string | Structure;
   let placed = false;
-  if (reactionScheme) s = await scheme(reactionScheme, read);
+  if (reactionScheme) s = await scheme(reactionScheme, { ...read, maxWidth: SCHEME_WIDTH });
   // A SMILES replacing a drawing is turned to match it (laid-out files keep their own coordinates).
   else if (structureText && read.like?.atomCount && detectFormat(structureText) === 'smiles') {
     s = await readStructure(structureText, read.style ? { style: read.style } : {});
