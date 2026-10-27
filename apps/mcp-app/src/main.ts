@@ -317,9 +317,17 @@ function fitFrame(ctx = app.getHostContext()) {
   document.body.style.setProperty('--embed-h', h ? `${Math.round(Math.max(320, Math.min(900, h)))}px` : '560px');
 }
 
+/** Keep clear of what the chat's own controls cover, where it says (a phone's message box, a notch). */
+function keepClear(ctx = app.getHostContext()) {
+  const inset = ctx?.safeAreaInsets;
+  if (!inset) return;
+  for (const side of ['top', 'right', 'bottom', 'left'] as const) document.body.style.setProperty(`--safe-${side}`, `${Math.max(0, inset[side] ?? 0)}px`);
+}
+
 app.onhostcontextchanged = (ctx) => {
   if (ctx.displayMode) setFullscreen(ctx.displayMode === 'fullscreen');
   if (ctx.containerDimensions) fitFrame(ctx);
+  if (ctx.safeAreaInsets) keepClear(ctx);
 };
 
 // ----------------------------------------------------------- the open sketch
@@ -463,6 +471,7 @@ app.connect().then(() => {
   app.setupSizeChangedNotifications();
   setFullscreen(app.getHostContext()?.displayMode === 'fullscreen');
   fitFrame();
+  keepClear();
 }).catch((err) => {
   // Opened outside a chat (a preview, a test): the editor still works.
   console.warn('HexSketch: no MCP Apps host', err);

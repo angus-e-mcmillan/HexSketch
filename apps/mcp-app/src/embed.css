@@ -13,13 +13,16 @@ body.embedded.fullscreen { height: 100vh; height: 100dvh; }
 .notes { display: none; }
 body.notes-open .workspace { grid-template-columns: 76px 1fr 260px; }
 @media (max-width: 640px) { body.notes-open .workspace { grid-template-columns: 76px 1fr 170px; } }
-/* On a phone the notes sit under the drawing, not beside it: the tools stay
-   at the top, where the chat's own box cannot slide up over them, and the
-   drawing keeps the middle of the frame. */
+/* On a phone the notes sit under the tools and above the drawing, not
+   beside it: the chat's own message box slides up over the bottom of the
+   frame, so nothing that needs reading or tapping goes there. */
 @media (max-width: 520px) {
-  body.notes-open .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
-  body.notes-open .notes { grid-row: 3; max-height: 30dvh; border-left: none; border-top: 1px solid var(--line); }
+  body.notes-open .workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); }
+  body.notes-open .notes { grid-row: 2; max-height: 26dvh; border-left: none; border-bottom: 1px solid var(--line); }
+  body.notes-open .canvas-area { grid-row: 3; }
 }
+/* What the chat says its own controls cover (MCP Apps safeAreaInsets). */
+body.embedded { padding: var(--safe-top, 0) var(--safe-right, 0) var(--safe-bottom, 0) var(--safe-left, 0); box-sizing: border-box; }
 body.notes-open .notes { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--line); background: var(--chrome); }
 .notes header { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--line); }
 .notes header button { border: none; background: none; font-size: 16px; line-height: 1; cursor: pointer; color: var(--muted); }
