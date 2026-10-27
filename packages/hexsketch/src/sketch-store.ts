@@ -43,9 +43,11 @@ export interface SketchStore {
   /**
    * What an editor polling for updates needs, in one step: whether the
    * sketch is still open, its updates after `since`, and a note that its
-   * editor is on screen. Optional: stores without it are asked with get and seen.
+   * editor is on screen. With `waitMs`, a poll that finds nothing waits up
+   * to that long for the next update and returns as soon as it comes.
+   * Optional: stores without it are asked with get and seen.
    */
-  poll?(id: string, since: number): Promise<{ live: boolean; updates: SketchUpdate[] }>;
+  poll?(id: string, since: number, waitMs?: number): Promise<{ live: boolean; updates: SketchUpdate[] }>;
 }
 
 /** A store in this process's memory: for tests, and servers that are one process with one connection. */

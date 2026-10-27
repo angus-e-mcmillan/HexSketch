@@ -56,6 +56,8 @@ const MAX_LABELS = 8;
  * A4 pages side by side less their margins, the in-chat editor's sheet.
  */
 const SCHEME_WIDTH = 2 * (595.28 - 72);
+/** The longest the editor's poll for updates waits for one (well inside any chat's limit on a call). */
+const MAX_WAIT = 20_000;
 /** At most this many steps in one show_in_sketcher call. */
 const MAX_STEPS = 10;
 
@@ -463,19 +465,26 @@ export function createServer(opts: ServerOptions): McpServer {
     // For the editor itself (hidden from the model where the chat supports it).
     registerAppTool(server, 'sketch_updates', {
       description: 'Used by the HexSketch editor to fetch what show_in_sketcher asked it to show. Not for the model.',
-      inputSchema: { sketch: z.string(), since: z.number().int() },
+      inputSchema: { sketch: z.string(), since: z.number().int(), wait: z.number().int().min(0).max(MAX_WAIT).optional() },
       annotations: { title: 'Fetch editor updates', ...READ_ONLY },
       _meta: appOnly,
-    }, ({ sketch: id, since }) => safely(async () => {
+    }, ({ sketch: id, since, wait }) => safely(async () => {
+      // With wait, a poll that finds nothing holds on until the next update (or the wait is up): what the AI shows arrives at once.
+      // `waits` tells the editor this server does, so it can poll again straight away.
+      const waitMs = Math.min(wait ?? 0, MAX_WAIT);
       if (store.poll) {
         // A plain object: one returned by a Durable Object call carries extra (symbol) keys.
-        const { live, updates } = await store.poll(id, since);
-        return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live, updates: [...updates] } };
+        const { live, updates } = await store.poll(id, since, waitMs);
+        return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live, updates: [...updates], waits: true } };
       }
-      const sketch = await store.get(id);
-      if (sketch && Date.now() - (lastSeen.get(id) ?? 0) > 5000) { lastSeen.set(id, Date.now()); await store.seen(id); }
-      const updates = sketch ? sketch.updates.filter((u) => u.version > since) : [];
-      return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live: !!sketch, updates } };
+      const until = Date.now() + waitMs;
+      for (;;) {
+        const sketch = await store.get(id);
+        if (sketch && Date.now() - (lastSeen.get(id) ?? 0) > 5000) { lastSeen.set(id, Date.now()); await store.seen(id); }
+        const updates = sketch ? sketch.updates.filter((u) => u.version > since) : [];
+        if (!sketch || updates.length || Date.now() >= until) return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live: !!sketch, updates, waits: true } };
+        await new Promise((r) => setTimeout(r, 250));
+      }
     }));
 
     registerAppTool(server, 'sketch_sync', {

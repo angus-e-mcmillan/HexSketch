@@ -366,6 +366,15 @@ app.ontoolresult = (result) => {
  * again, brings it straight back to the quick pace.
  */
 const POLL = { active: 2000, quiet: 5000, idle: 30000, asleep: 60000, hidden: 30000 };
+/**
+ * While the editor is on screen and in use, each poll waits on the server
+ * (up to this long) for the next update, which then arrives at once, and the
+ * next poll follows straight away. A server or chat that can't hold a call
+ * open falls back to the paced polls above.
+ */
+const LONG_WAIT = 15000;
+let longPoll = true;
+let inFlight = false;
 const QUIET_AFTER = 2 * 60e3, IDLE_AFTER = 15 * 60e3, ASLEEP_AFTER = 30 * 60e3, HIDDEN_STOP_AFTER = 10 * 60e3;
 let lastActivity = Date.now();
 let hiddenSince = document.hidden ? Date.now() : 0;
@@ -408,12 +417,21 @@ function startUpdates() {
   let failures = 0;
   polling = true;
   pollNow = async () => {
+    if (inFlight) return;
+    inFlight = true;
+    clearTimeout(pollTimer);
+    const wait = longPoll && !document.hidden && Date.now() - lastActivity <= ASLEEP_AFTER ? LONG_WAIT : 0;
+    let waited = false;
     try {
-      const r = await app.callServerTool({ name: 'sketch_updates', arguments: { sketch: sketchId, since } });
+      let r;
+      try { r = await app.callServerTool({ name: 'sketch_updates', arguments: { sketch: sketchId, since, ...(wait ? { wait } : {}) } }); } finally { inFlight = false; }
       if (r.isError) throw new Error((r.content?.[0] as { text?: string } | undefined)?.text ?? 'the chat returned an error');
-      const sc = r.structuredContent as { live?: boolean; updates?: SketchUpdate[] } | undefined;
+      const sc = r.structuredContent as { live?: boolean; updates?: SketchUpdate[]; waits?: boolean } | undefined;
       if (!sc) throw new Error('the chat returned no structuredContent from sketch_updates');
       failures = 0;
+      // An older server answers at once: back to paced polls.
+      if (wait && !sc.waits) longPoll = false;
+      waited = !!(wait && sc.waits);
       if (sc.live === false) {
         polling = false;
         setLink('off', 'Not linked: HexSketch has lost this editor', 'HexSketch no longer knows this editor (it was opened more than a day ago, or by another computer). Ask the AI to open the sketcher again.');
@@ -430,12 +448,14 @@ function startUpdates() {
       }
       if (first) { goTo(first.frame); ui.flash(`Step 1 of ${first.count}: Next is in Notes`); }
     } catch (err) {
+      // A chat that won't hold the call open: paced polls from now on.
+      if (wait) longPoll = false;
       failures += 1;
       const why = (err as Error)?.message ?? String(err);
       if (failures >= 2) setLink('off', `Not linked: ${why.slice(0, 60)}`, `The editor could not fetch the AI's updates: ${why}`);
     }
     if (failures) { schedulePoll(Math.min(30000, 2000 * 2 ** failures)); return; }
-    const next = pollDelay();
+    const next = waited && !document.hidden ? 0 : pollDelay();
     if (next === null) {
       paused = true;
       setLink('wait', 'Paused while out of sight', 'The editor stopped checking for the AI\'s changes while it was out of sight. It reconnects as soon as it is on screen again.');
@@ -467,7 +487,11 @@ ui.editor.onChange(() => {
     if (sketchId && app.getHostCapabilities()?.serverTools) {
       const doc = ui.editor.doc;
       const cdxml = doc.mol.atomCount || doc.objects.length ? writeCdxml(doc.mol, doc.style, doc.objects, { groups: doc.groups }) : '';
-      app.callServerTool({ name: 'sketch_sync', arguments: { sketch: sketchId, cdxml } }).catch(() => {});
+      const sent = Date.now();
+      app.callServerTool({ name: 'sketch_sync', arguments: { sketch: sketchId, cdxml } }).then(() => {
+        // A chat that runs the editor's calls one at a time holds this behind the waiting poll: stop waiting, so edits reach the AI promptly.
+        if (inFlight && longPoll && Date.now() - sent > 4000) longPoll = false;
+      }, () => {});
     }
   }, 800);
 });
