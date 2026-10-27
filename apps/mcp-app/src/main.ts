@@ -3,7 +3,7 @@ import './embed.css';
 import { App } from '@modelcontextprotocol/ext-apps';
 import { aiSummary, objectPoints, parsePattern, structureLink, substructureMatches, writeCdxml, HEXSKETCH_URL, type DocObject, type DrawingStyle, type Molecule, type ObjectGroup } from '@hexsketch/core';
 import { placeLabels, readStructure } from '@hexsketch/agent';
-import { nameMolecule } from '@hexsketch/naming';
+import { addRingParents, nameMolecule } from '@hexsketch/naming';
 import { mountApp, type AppApi } from '@hexsketch/web';
 
 /**
@@ -337,12 +337,35 @@ let sketchId = '';
 let opened = false;
 let since = 0;
 
+/**
+ * The ring parents, which the page carries as gzipped JSON
+ * (src/rings-later.ts): added once the first drawing is up, after which
+ * names and what the AI is told about the drawing are brought up to date.
+ */
+async function loadRingParents() {
+  const el = document.getElementById('ring-parents');
+  if (!el) return;
+  el.remove();
+  try {
+    const bytes = Uint8Array.from(atob(el.textContent ?? ''), (c) => c.charCodeAt(0));
+    const json = await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+    addRingParents(JSON.parse(json) as Parameters<typeof addRingParents>[0]);
+  } catch (err) {
+    console.warn('HexSketch: ring parents not loaded', err);
+    return;
+  }
+  ui.editor.doc.touch();
+  void shareWithModel();
+}
+
 /** The editor's first content: the tool's input, or its result where a chat sends only that. */
 async function start(input: string) {
   if (opened) return;
   opened = true;
   void openFullscreen();
   if (input) await openStructure(input);
+  // Once the drawing has been painted (two frames on), so it never waits for them.
+  requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(() => void loadRingParents(), 50)));
   ui.flash(input ? 'Edit the structure, then Send to chat or ask in the chat' : 'Draw your structure, then Send to chat or ask in the chat');
 }
 // The structure as given opens at once, unless the server draws more onto it (a scheme, arrows, steps): then its result does.

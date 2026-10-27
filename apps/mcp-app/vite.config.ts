@@ -1,5 +1,8 @@
 import { defineConfig, type Plugin } from 'vite';
+import { fileURLToPath } from 'node:url';
+import { gzipSync } from 'node:zlib';
 import { thirdPartyLicenses } from '../../tools/build/third-party-licenses.ts';
+import { RING_ROWS } from '../../packages/naming/src/rings.ts';
 
 /**
  * The editor as one self-contained HTML file, served as an MCP Apps resource.
@@ -29,6 +32,9 @@ function singleFile(): Plugin {
           delete bundle[file];
         }
       }
+      // The ring parents as data, not code, gzipped (a seventh of the size): unpacked once the editor is up (src/rings-later.ts).
+      const rings = gzipSync(JSON.stringify(RING_ROWS), { level: 9 }).toString('base64');
+      html = html.replace(/<\/body>/i, () => `<script type="application/octet-stream" id="ring-parents">${rings}</script>\n</body>`);
       if (/<script[^>]*\ssrc=|<link[^>]*stylesheet/.test(html)) throw new Error('single-file: something was left outside the page');
       page.source = html;
     },
@@ -37,6 +43,7 @@ function singleFile(): Plugin {
 
 export default defineConfig({
   base: './',
+  resolve: { alias: { '@hexsketch/naming/rings': fileURLToPath(new URL('./src/rings-later.ts', import.meta.url)) } },
   plugins: [singleFile()],
   build: {
     outDir: 'dist',
