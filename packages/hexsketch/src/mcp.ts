@@ -64,8 +64,8 @@ const MAX_STEPS = 10;
 const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 
 - Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.
-- Before presenting a SMILES you wrote, call validate_structure and compare its name and formula with what you meant.
-- Open the editor first. As soon as the conversation turns to a structure — drawing, showing, explaining, comparing or changing one — call open_sketcher before any other HexSketch tool, with the structure if you have one and empty if the user is about to draw. Do it on the first such message, not after answering in text once: the editor is the point of HexSketch, and it opens full screen beside the conversation. Only a request for a file or a bare number (a mass, a name, a formula) is answered without it.
+- Check every SMILES you write against the name and formula HexSketch returns for it: open_sketcher, show_in_sketcher and render_structure return them with any problems found, so draw first rather than calling validate_structure first. Use validate_structure for a SMILES you only give in text.
+- Open the editor first. As soon as the conversation turns to a structure — drawing, showing, explaining, comparing or changing one — call open_sketcher before any other HexSketch tool, with the structure if you have one and empty if the user is about to draw, and in the same call the highlights, labels, note, arrows or steps you would show next. Do it on the first such message, not after answering in text once: the editor is the point of HexSketch, and it opens full screen beside the conversation. Only a request for a file or a bare number (a mass, a name, a formula) is answered without it.
 - To show a structure where the editor cannot be opened, call render_structure. Every result includes a link that opens the structure in HexSketch, where the user can edit it by drawing: always give the user that link.
 - Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher: highlight the parts you mean, pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour — the drawing carries the detail, the note is a small summary beside it, and your answer stays in the chat. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").
 - Draw every reaction as a scheme, with the reaction input (render_structure, open_sketcher, show_in_sketcher): starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.
@@ -214,7 +214,8 @@ export function createServer(opts: ServerOptions): McpServer {
     const r = await render(input, { ...read(a.style), to, ...(opts.rasterize ? { rasterize: opts.rasterize } : {}) });
     const about = await analyze(input, read(a.style));
     const saved = a.save_to && opts.saveFile ? await opts.saveFile(a.save_to, r.data, a.overwrite ?? false) : undefined;
-    const info = { name: about.name, smiles: about.smiles, formula: about.formula, link: await link(input, read(a.style)), ...(saved ? { saved } : {}), ...(await balanceOf(a.reaction)) };
+    const issues = (await validate(input, read(a.style))).issues.filter((x) => x.severity !== 'note').map((x) => x.message);
+    const info = { name: about.name, smiles: about.smiles, formula: about.formula, ...(issues.length ? { issues } : {}), link: await link(input, read(a.style)), ...(saved ? { saved } : {}), ...(await balanceOf(a.reaction)) };
     const content: CallToolResult['content'] = [];
     if (to === 'png') content.push({ type: 'image', data: toBase64(r.data as Uint8Array), mimeType: 'image/png' });
     else if (typeof r.data === 'string' && !saved) content.push({ type: 'text', text: r.data });
@@ -293,44 +294,16 @@ export function createServer(opts: ServerOptions): McpServer {
       contents: [{ uri: SKETCHER_URI, mimeType: RESOURCE_MIME_TYPE, text: await html(), _meta: { ui: { prefersBorder: true, permissions: { clipboardWrite: {} } } } }],
     }));
 
-    registerAppTool(server, 'open_sketcher', {
-      title: 'Open the HexSketch editor',
-      description: 'Open HexSketch\'s drawing editor in the chat, so the user can draw a structure by hand or edit one you give. This is the first tool to call whenever the conversation involves a structure — drawing, sketching, showing, explaining, comparing, correcting one — before render_structure or structure_link, and on the first such message rather than after an answer in text. It opens full screen, beside the conversation. Then keep working in that editor: read_sketcher shows what the user drew, and show_in_sketcher changes, highlights and annotates it. The user\'s drawing also comes back as a message starting "Structure from HexSketch" when they press Send to chat. In chats that cannot show the editor, give the user the link in the result instead.',
-      inputSchema: {
-        structure: structure.optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.'),
-        reaction: reaction.optional(),
-        arrows: arrows.optional(),
-        disconnect: disconnect.optional(),
-      },
-      annotations: { title: 'Open the HexSketch editor', ...READ_ONLY },
-      _meta: { ui: { resourceUri: SKETCHER_URI } },
-    }, ({ structure: text0, reaction: r, arrows: curly, disconnect: cuts }) => safely(async () => {
-      const s = r || text0 ? await toDraw(text0, r, undefined, curlyArrows(curly), cuts) : undefined;
-      const about = s ? await analyze(s) : null;
-      const sketch = await store.create(s ?? '');
-      opened.add(sketch.id);
-      // Models see the text or the structuredContent depending on the chat, so both say how to carry on.
-      const next = `The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher (with sketch "${sketch.id}") with highlight (SMILES fragments, coloured yellow, blue, orange... in order), labels (a few words or a value beside an atom: "pKa ≈ 4.4", "Michael acceptor") and a short note, or with a new structure. Draw reactions with reaction (an arrow between starting materials and products, reagents above it, solvent and conditions below), never as structures side by side. Keep the note to a few short bullets naming the highlights by colour, and the chat reply short, pointing at the drawing by colour. Call read_sketcher (with the same sketch) whenever the user refers to their drawing, since they may have edited it. While it is open, do not show structures as images, pictures from the web or text drawings, and do not open another editor. Suggest Full screen to keep the editor beside the chat.`;
-      const shared = { structure: s ?? '', sketch: sketch.id, next };
-      if (!s || !about) return { content: [{ type: 'text', text: JSON.stringify({ opened: 'an empty canvas', next, fallback: 'In a chat that cannot show the editor, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }, null, 2) }], structuredContent: shared };
-      const url = await link(s);
-      const info = { opened: about.name ?? about.smiles, smiles: about.smiles, link: url, ...(await balanceOf(r)) };
+    /** What the model checks a structure it wrote against: its name and formula, and anything that looks wrong. */
+    const checkOf = async (drawing: string | Structure): Promise<Record<string, unknown>> => {
+      const [about, v] = await Promise.all([analyze(drawing), validate(drawing)]);
+      const issues = v.issues.filter((x) => x.severity !== 'note').map((x) => x.message);
       return {
-        content: [{ type: 'text', text: JSON.stringify({ ...info, next, fallback: 'If the chat cannot show the editor, the link opens the same structure on hexsketch.com.' }, null, 2) }],
-        structuredContent: { ...shared, ...info },
+        name: about.name, formula: about.formula,
+        ...(about.structures.length ? { structures: about.structures.map((x) => ({ name: x.name, formula: x.formula })) } : {}),
+        ...(issues.length ? { issues } : {}),
       };
-    }));
-
-    server.registerTool('read_sketcher', {
-      title: 'Read the HexSketch editor',
-      description: 'What the user has drawn in the open HexSketch editor: name, SMILES (with stereochemistry), formula, masses and a link. Call it whenever the user refers to their drawing ("this", "what I drew", "my structure").',
-      inputSchema: { sketch: sketchId },
-      annotations: { title: 'Read the HexSketch editor', ...READ_ONLY },
-    }, ({ sketch: id }) => safely(async () => {
-      const sketch = await target(id);
-      if (!sketch.drawing) return text({ sketch: sketch.id, empty: true, note: 'The canvas is empty.' });
-      return text({ sketch: sketch.id, ...(await analyze(sketch.drawing)), link: await link(sketch.drawing), next: 'Show what you say about this drawing in the editor with show_in_sketcher (highlight the parts you mean, explain in the note).' });
-    }));
+    };
 
     /** One step's fields: what show_in_sketcher shows, and each of its steps. */
     const showFields = {
@@ -383,6 +356,8 @@ export function createServer(opts: ServerOptions): McpServer {
           ...(a.note ? { note: a.note } : {}),
         },
         report: {
+          // What was drawn, to check against what was meant (in place of a separate validate_structure call).
+          ...(s ? { drawn: await checkOf(s) } : {}),
           ...(await balanceOf(a.reaction)),
           highlights: highlights.map((h) => ({ smiles: h.smiles, colour: h.name, places: h.places })),
           ...(pinned.length ? { labels: pinned.map((l) => ({ at: l.at, text: l.text, places: l.places })) } : {}),
@@ -391,36 +366,19 @@ export function createServer(opts: ServerOptions): McpServer {
       };
     };
 
-    server.registerTool('show_in_sketcher', {
-      title: 'Show in the HexSketch editor',
-      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, a retrosynthesis or any sequence, give steps instead: the user steps through them with Back and Next. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
-      inputSchema: {
-        sketch: sketchId,
-        ...showFields,
-        steps: z.array(z.object(showFields)).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, a sequence of up to ${MAX_STEPS} steps the user steps through with Back and Next, starting at the first: a mechanism (each step its species with atom-map numbers, its curly arrows and a one-line note naming it, keeping the same map numbers throughout), a synthesis, or a before-and-after. Each step is drawn the same way round as the one before.`),
-      },
-      annotations: { title: 'Show in the HexSketch editor', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-    }, (args) => safely(async () => {
-      const { sketch: id, steps, ...one } = args as Show & { sketch?: string; steps?: Show[] };
-      const sketch = await target(id);
-      const before = sketch.drawing ? await readStructure(sketch.drawing).then((x) => x.mol, () => undefined) : undefined;
-      const next = 'The user sees this in the editor now. Keep the note a short, organised summary; put the explanation in a short chat reply that points at the drawing by colour. For the next point, call show_in_sketcher again.';
-      if (!steps) {
-        const { update, report } = await prepare(one, before, sketch.drawing);
-        await store.addUpdate(sketch.id, update);
-        return text({ shown: true, sketch: sketch.id, ...report, next });
-      }
-      if (Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
+
+    /** Show a sequence of steps, all checked before any is shown, opening at the first; returns what to tell the model. */
+    const showSteps = async (id: string, steps: Show[], before: Molecule | undefined, current: string): Promise<Record<string, unknown>> => {
       // Every step is checked before any is shown, so a mistake in step 3 leaves the editor as it was.
       const prepared: Awaited<ReturnType<typeof prepare>>[] = [];
-      let like = before, current = sketch.drawing;
+      let like = before;
       for (const [i, step] of steps.entries()) {
         let p;
         try { p = await prepare(step, like, current); } catch (err) { throw new Error(`Step ${i + 1}: ${(err as Error).message}`); }
         prepared.push(p);
         if (p.update.structure) { current = p.update.structure; like = p.mol ?? like; }
       }
-      for (const [i, p] of prepared.entries()) await store.addUpdate(sketch.id, { ...p.update, step: { index: i, count: prepared.length } });
+      for (const [i, p] of prepared.entries()) await store.addUpdate(id, { ...p.update, step: { index: i, count: prepared.length } });
       // In a mechanism every species is drawn, so each step should have the atoms and charge of the one before.
       const unbalanced: string[] = [];
       for (let i = 1; i < steps.length; i++) {
@@ -429,12 +387,79 @@ export function createServer(opts: ServerOptions): McpServer {
         const x = imbalance(a0.mol, a1.mol);
         if (x) unbalanced.push(`Step ${i} → ${i + 1}: ${describeImbalance(x)}`);
       }
-      return text({
-        shown: true, sketch: sketch.id,
+      return {
         steps: prepared.map((p, i) => ({ step: i + 1, ...p.report })),
         ...(unbalanced.length ? { balance: unbalanced, balance_note: 'In a mechanism each step should have the same atoms and total charge as the one before. Unless a species joins or leaves on purpose (a proton from the solvent, say), check the step and show it again.' } : {}),
         next: `The user sees step 1 of ${prepared.length} in the editor and steps through with Back and Next. In the chat, say in a line or two what happens overall and point them to the steps; don't narrate each one.`,
-      });
+      };
+    };
+    const stepsField = z.array(z.object(showFields)).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, a sequence of up to ${MAX_STEPS} steps the user steps through with Back and Next, starting at the first: a mechanism (each step its species with atom-map numbers, its curly arrows and a one-line note naming it, keeping the same map numbers throughout), a synthesis, or a before-and-after. Each step is drawn the same way round as the one before.`);
+
+    registerAppTool(server, 'open_sketcher', {
+      title: 'Open the HexSketch editor',
+      description: 'Open HexSketch\'s drawing editor in the chat, so the user can draw a structure by hand or edit one you give. This is the first tool to call whenever the conversation involves a structure — drawing, sketching, showing, explaining, comparing, correcting one — before render_structure or structure_link, and on the first such message rather than after an answer in text. It opens full screen, beside the conversation. Give, in this same call, what you would show next (highlight, labels, note, arrows, disconnect, or steps), so the user sees your answer as the editor opens rather than after another round. Then keep working in that editor: read_sketcher shows what the user drew, and show_in_sketcher changes, highlights and annotates it. The result gives the name and formula of what was drawn, with any problems found: check them against what you meant. The user\'s drawing also comes back as a message starting "Structure from HexSketch" when they press Send to chat. In chats that cannot show the editor, give the user the link in the result instead.',
+      inputSchema: {
+        ...showFields,
+        structure: structure.optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.'),
+        steps: stepsField,
+      },
+      annotations: { title: 'Open the HexSketch editor', ...READ_ONLY },
+      _meta: { ui: { resourceUri: SKETCHER_URI } },
+    }, (args) => safely(async () => {
+      const { steps, ...one } = args as Show & { steps?: Show[] };
+      if (steps && Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
+      const { structure: text0, reaction: r, arrows: curly, disconnect: cuts, ...marks } = one;
+      const s = r || text0 ? await toDraw(text0, r, undefined, curlyArrows(curly), cuts) : undefined;
+      // Highlights, labels and a note on what opens: checked before the editor is opened, as show_in_sketcher checks them.
+      const shown = !steps && (marks.highlight?.length || marks.labels?.length || marks.note) ? await prepare(marks, undefined, s ?? '') : null;
+      const sketch = await store.create(s ?? '');
+      opened.add(sketch.id);
+      if (shown) await store.addUpdate(sketch.id, shown.update);
+      const sequence = steps ? await showSteps(sketch.id, steps, undefined, '') : null;
+      // Models see the text or the structuredContent depending on the chat, so both say how to carry on.
+      const next = `The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher (with sketch "${sketch.id}") with highlight (SMILES fragments, coloured yellow, blue, orange... in order), labels (a few words or a value beside an atom: "pKa ≈ 4.4", "Michael acceptor") and a short note, or with a new structure. Draw reactions with reaction (an arrow between starting materials and products, reagents above it, solvent and conditions below), never as structures side by side. Keep the note to a few short bullets naming the highlights by colour, and the chat reply short, pointing at the drawing by colour. Call read_sketcher (with the same sketch) whenever the user refers to their drawing, since they may have edited it. While it is open, do not show structures as images, pictures from the web or text drawings, and do not open another editor. Suggest Full screen to keep the editor beside the chat.`;
+      const shared = { structure: s ?? '', sketch: sketch.id, next };
+      if (sequence) return { content: [{ type: 'text', text: JSON.stringify({ opened: `${steps!.length} steps`, ...sequence, next: `${sequence.next} ${next}` }, null, 2) }], structuredContent: shared };
+      if (!s) return { content: [{ type: 'text', text: JSON.stringify({ opened: 'an empty canvas', next, fallback: 'In a chat that cannot show the editor, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }, null, 2) }], structuredContent: shared };
+      const [check, url] = await Promise.all([checkOf(s), link(s)]);
+      const info = { opened: (check.name as string | null) ?? 'the structure', drawn: check, link: url, ...(shown ? shown.report : {}), ...(await balanceOf(r)) };
+      return {
+        content: [{ type: 'text', text: JSON.stringify({ ...info, next, fallback: 'If the chat cannot show the editor, the link opens the same structure on hexsketch.com.' }, null, 2) }],
+        structuredContent: { ...shared, ...info },
+      };
+    }));
+
+    server.registerTool('read_sketcher', {
+      title: 'Read the HexSketch editor',
+      description: 'What the user has drawn in the open HexSketch editor: name, SMILES (with stereochemistry), formula, masses and a link. Call it whenever the user refers to their drawing ("this", "what I drew", "my structure").',
+      inputSchema: { sketch: sketchId },
+      annotations: { title: 'Read the HexSketch editor', ...READ_ONLY },
+    }, ({ sketch: id }) => safely(async () => {
+      const sketch = await target(id);
+      if (!sketch.drawing) return text({ sketch: sketch.id, empty: true, note: 'The canvas is empty.' });
+      return text({ sketch: sketch.id, ...(await analyze(sketch.drawing)), link: await link(sketch.drawing), next: 'Show what you say about this drawing in the editor with show_in_sketcher (highlight the parts you mean, explain in the note).' });
+    }));
+
+    server.registerTool('show_in_sketcher', {
+      title: 'Show in the HexSketch editor',
+      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, a retrosynthesis or any sequence, give steps instead: the user steps through them with Back and Next. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
+      inputSchema: {
+        sketch: sketchId,
+        ...showFields,
+        steps: stepsField,
+      },
+      annotations: { title: 'Show in the HexSketch editor', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+    }, (args) => safely(async () => {
+      const { sketch: id, steps, ...one } = args as Show & { sketch?: string; steps?: Show[] };
+      const sketch = await target(id);
+      const before = sketch.drawing ? await readStructure(sketch.drawing).then((x) => x.mol, () => undefined) : undefined;
+      if (steps) {
+        if (Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
+        return text({ shown: true, sketch: sketch.id, ...(await showSteps(sketch.id, steps, before, sketch.drawing)) });
+      }
+      const { update, report } = await prepare(one, before, sketch.drawing);
+      await store.addUpdate(sketch.id, update);
+      return text({ shown: true, sketch: sketch.id, ...report, next: 'The user sees this in the editor now. Keep the note a short, organised summary; put the explanation in a short chat reply that points at the drawing by colour. For the next point, call show_in_sketcher again.' });
     }));
 
     // For the editor itself (hidden from the model where the chat supports it).

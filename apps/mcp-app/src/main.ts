@@ -345,7 +345,11 @@ async function start(input: string) {
   if (input) await openStructure(input);
   ui.flash(input ? 'Edit the structure, then Send to chat or ask in the chat' : 'Draw your structure, then Send to chat or ask in the chat');
 }
-app.ontoolinput = ({ arguments: args }) => start(typeof args?.structure === 'string' ? args.structure.trim() : '');
+// The structure as given opens at once, unless the server draws more onto it (a scheme, arrows, steps): then its result does.
+app.ontoolinput = ({ arguments: args }) => {
+  if (args && ['reaction', 'arrows', 'disconnect', 'steps'].some((k) => args[k] !== undefined)) return;
+  void start(typeof args?.structure === 'string' ? args.structure.trim() : '');
+};
 app.ontoolresult = (result) => {
   const sc = result.structuredContent as { structure?: unknown; sketch?: unknown } | undefined;
   void start(typeof sc?.structure === 'string' ? sc.structure.trim() : '');
