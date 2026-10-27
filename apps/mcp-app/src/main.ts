@@ -48,7 +48,8 @@ window.addEventListener('unhandledrejection', (e) => showError(e.reason));
 
 let ui: AppApi;
 try {
-  ui = mountApp({ zoom: 1.25, actions: [expand, send, open] });
+  // Two A4 pages side by side: room for a reaction scheme on one line, as a chat's full-screen frame is wide.
+  ui = mountApp({ zoom: 1.25, actions: [expand, send, open], page: { paper: 'A4', orientation: 'portrait', across: 2, down: 1 } });
 } catch (err) {
   showError(err);
   throw err;

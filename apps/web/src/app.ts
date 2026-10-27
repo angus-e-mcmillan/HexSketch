@@ -1,4 +1,4 @@
-import { altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle } from '@hexsketch/core';
+import { altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument, type Tool } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
@@ -37,6 +37,8 @@ export interface AppOptions {
   openLinks?: boolean;
   /** File menu items for the HexSketch for AI page and the GitHub repo, each opened in a new tab (the standalone app). */
   aboutLinks?: boolean;
+  /** The page new drawings are laid out on, in place of the user's saved default (the in-chat editor's is two A4 pages wide). */
+  page?: PageSettings;
 }
 export interface AppApi {
   editor: Editor;
@@ -65,7 +67,8 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   // nothing is drawn until a bond, ring or other drawing tool is picked. On a
   // touch screen this is also what leaves a finger free to scroll the sheet.
   editor.setTool({ kind: 'select', mode: 'lasso' });
-  editor.doc.page = { ...prefs.page };
+  const newPage = () => ({ ...(opts.page ?? prefs.page) });
+  editor.doc.page = newPage();
   editor.analysisDecimals = prefs.decimals;
   editor.nameOf = (m) => { try { return nameMolecule(m).name; } catch { return null; } };
   // Ring parents for naming (fused and hydro ring systems): a separate chunk, loaded once the editor is up.
@@ -244,7 +247,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
 
   menuBar($('menu'), [
     { title: 'File', items: () => [
-      { label: 'New', run: () => { editor.doc.page = { ...prefs.page }; editor.doc.replace(new Molecule(), [], [], newDocStyle()); setZoom(zoom); } },
+      { label: 'New', run: () => { editor.doc.page = newPage(); editor.doc.replace(new Molecule(), [], [], newDocStyle()); setZoom(zoom); } },
       { label: 'Open…', shortcut: '⌘O', run: () => $<HTMLInputElement>('fileInput').click() },
       'sep',
       { label: 'Save as CDXML', shortcut: '⌘S', run: saveCdxml },
