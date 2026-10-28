@@ -1,6 +1,6 @@
 # HexSketch
 
-**Chemists think in sketches. LLMs think in text. HexSketch lets chemists
+**Chemists think in structures. LLMs think in text. HexSketch lets chemists
 talk to LLMs with structures.**
 
 HexSketch puts a real structure editor inside your chat with Claude. You draw,
@@ -35,12 +35,10 @@ Use either this or the connector, not both.
 
 ## Things to ask
 
-- *Draw the synthesis of paracetamol from 4-aminophenol.*
-- *Show me the mechanism of ester hydrolysis, step by step.*
-- *What is this?* (after drawing something)
-- *Highlight the stereocentres in this structure.*
-- *Suggest a protecting group for the amine and show the scheme.*
-- *Is this SMILES right? CC(=O)Oc1ccccc1C(=O)O*
+- *Draw the mechanism of tert-butyl ester hydrolysis with acid using curley arrows.*
+- *Draw a molecule and ask it, what is the pKa of this compound?*
+- *Using HexSketch, draw me a retrosynthesis of AZD7594*
+- *Draw a molecule and ask it to analyze the functional groups*
 
 ## What Claude can do with it
 
