@@ -74,8 +74,13 @@ const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 - Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.
 - Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user's current drawing is also given to you in the same form.`;
 
-const structure = z.string().min(1).max(1_000_000).describe('The structure: SMILES (e.g. "CC(=O)Oc1ccccc1C(=O)O"), molfile or CDXML text, or a HexSketch link (https://hexsketch.com/#smiles=... or #cdxml=...). Not a name.');
-const reaction = z.object({
+/**
+ * Input schemas are made fresh for each use: a schema object used twice in
+ * one tool is published as a $ref to the first, which some clients (Claude's
+ * directory among them) can't read.
+ */
+const structure = () => z.string().min(1).max(1_000_000).describe('The structure: SMILES (e.g. "CC(=O)Oc1ccccc1C(=O)O"), molfile or CDXML text, or a HexSketch link (https://hexsketch.com/#smiles=... or #cdxml=...). Not a name.');
+const reaction = () => z.object({
   stages: z.array(z.string().min(1)).min(2).max(8).describe('SMILES of each stage, left to right: starting materials, any intermediates, products. Join the structures of one stage with "." and they are drawn with "+" between them, e.g. ["CC(=O)O.OCC", "CC(=O)OCC.O"].'),
   arrows: z.array(z.object({
     reagents: z.string().max(200).optional().describe('Written above the arrow: reagents and catalysts, e.g. "MeOH, H2SO4 (cat.)" or "1. LDA  2. MeI". Digits in formulas are subscripted.'),
@@ -84,15 +89,15 @@ const reaction = z.object({
   })).optional().describe('One per step, between consecutive stages (one fewer than the stages).'),
 }).describe('A reaction scheme instead of a single structure: starting materials, an arrow with the reagents above it and the solvent and conditions below, and the products. Use it for every reaction or synthetic step.');
 
-const atomRef = z.array(z.number().int().min(0)).min(1).max(2);
-const arrows = z.array(z.object({
-  from: atomRef.describe('Where the electrons come from, by atom-map number: [3] a lone pair on atom 3, [2, 3] the bond between atoms 2 and 3.'),
-  to: atomRef.describe('Where they go: [2] onto atom 2, [1, 2] into the bond 1–2, existing or being made (a nucleophile attacking: from [1] to [1, 2]).'),
+const atomRef = () => z.array(z.number().int().min(0)).min(1).max(2);
+const arrows = () => z.array(z.object({
+  from: atomRef().describe('Where the electrons come from, by atom-map number: [3] a lone pair on atom 3, [2, 3] the bond between atoms 2 and 3.'),
+  to: atomRef().describe('Where they go: [2] onto atom 2, [1, 2] into the bond 1–2, existing or being made (a nucleophile attacking: from [1] to [1, 2]).'),
   electrons: z.union([z.literal(1), z.literal(2)]).optional().describe('2 (default): an electron pair, full arrowhead. 1: one electron, a fishhook (radical steps).'),
   colour: z.enum(COLOUR_NAMES).optional().describe('Arrow colour, as a highlight colour name; default black.'),
 })).max(12).describe('Curly (electron-pushing) arrows for a mechanism step, drawn on the structure or reaction given in the same call. Give it as SMILES with atom-map numbers on the atoms the arrows touch, e.g. "[OH-:1].[CH3:2][Br:3]" with arrows [{from:[1],to:[1,2]},{from:[2,3],to:[3]}]. A mapped atom written as just its element ([C:1]) keeps its usual hydrogens; separate species are drawn close together, the attacking one beside the atom it attacks. HexSketch places each arrow clear of the drawing.');
 
-const disconnect = z.array(z.array(z.number().int().min(0)).length(2)).max(6).describe('Retrosynthesis: bonds of the target to mark as disconnections, by their atoms\' map numbers in the SMILES. [[1, 2]] draws a wavy line across the bond 1–2. Follow it with the synthons or reagents as a reaction with a retrosynthetic arrow.');
+const disconnect = () => z.array(z.array(z.number().int().min(0)).length(2)).max(6).describe('Retrosynthesis: bonds of the target to mark as disconnections, by their atoms\' map numbers in the SMILES. [[1, 2]] draws a wavy line across the bond 1–2. Follow it with the synthons or reagents as a reaction with a retrosynthetic arrow.');
 
 const style = z.enum(['hexsketch', 'acs']).optional().describe('Drawing style: hexsketch (default) or acs (ACS 1996 journal style).');
 const READ_ONLY = { readOnlyHint: true, openWorldHint: false } as const;
@@ -192,10 +197,10 @@ export function createServer(opts: ServerOptions): McpServer {
     title: 'Draw a structure',
     description: `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${opts.rasterize ? ' (PNG by default)' : ' (SVG)'}, with its name, SMILES and a link that opens it in HexSketch for editing. Show the user the image and the link.${opts.saveFile ? ' With save_to, also writes the file (format from the extension: .png .svg .pdf .cdxml .mol).' : ''}`,
     inputSchema: {
-      structure: structure.optional(),
-      reaction: reaction.optional(),
-      arrows: arrows.optional(),
-      disconnect: disconnect.optional(),
+      structure: structure().optional(),
+      reaction: reaction().optional(),
+      arrows: arrows().optional(),
+      disconnect: disconnect().optional(),
       format: z.enum(formats as [RenderFormat, ...RenderFormat[]]).optional().describe(`Output format; default ${formats[0]}. PDF needs save_to.`),
       style,
       ...(opts.saveFile ? {
@@ -226,21 +231,21 @@ export function createServer(opts: ServerOptions): McpServer {
   server.registerTool('name_structure', {
     title: 'Name a structure',
     description: 'The IUPAC name of a structure, generated offline. Returns name null with a reason when the structure is outside what HexSketch names.',
-    inputSchema: { structure },
+    inputSchema: { structure: structure() },
     annotations: { title: 'Name a structure', ...READ_ONLY },
   }, ({ structure: s }) => tool(async () => text({ ...(await name(s)), link: await link(s) })));
 
   server.registerTool('analyze_structure', {
     title: 'Analyze a structure',
     description: 'Name, SMILES (with stereochemistry), molecular formula, exact (monoisotopic) mass, molecular weight, elemental analysis and isotope pattern (m/z). Mixtures and salts are also given per structure.',
-    inputSchema: { structure },
+    inputSchema: { structure: structure() },
     annotations: { title: 'Analyze a structure', ...READ_ONLY },
   }, ({ structure: s }) => tool(async () => text({ ...(await analyze(s)), link: await link(s) })));
 
   server.registerTool('validate_structure', {
     title: 'Check a structure',
     description: 'Check a structure, typically a SMILES you wrote, before presenting it: catches unreadable SMILES, names given instead of SMILES, aromatic rings that cannot be kekulized, atoms over or under their valence, unusual charges and radicals. Returns ok, issues (error, warning or note), and the name and formula to compare with what you meant. Never fails on bad input; it reports it.',
-    inputSchema: { structure },
+    inputSchema: { structure: structure() },
     annotations: { title: 'Check a structure', ...READ_ONLY },
   }, ({ structure: s }) => tool(async () => {
     const v = await validate(s);
@@ -250,21 +255,21 @@ export function createServer(opts: ServerOptions): McpServer {
   server.registerTool('convert_structure', {
     title: 'Convert a structure',
     description: 'Convert a structure to SMILES (with stereochemistry), a molfile (V2000), CDXML (ChemDraw) or a HexSketch link.',
-    inputSchema: { structure, to: z.enum(['smiles', 'mol', 'cdxml', 'link']).describe('Target format.') },
+    inputSchema: { structure: structure(), to: z.enum(['smiles', 'mol', 'cdxml', 'link']).describe('Target format.') },
     annotations: { title: 'Convert a structure', ...READ_ONLY },
   }, ({ structure: s, to }) => tool(async () => ({ content: [{ type: 'text', text: await convert(s, to) }] })));
 
   server.registerTool('compare_structures', {
     title: 'Compare two structures',
     description: 'Are two structures the same compound, and the same stereoisomer? The inputs may be in different formats (a SMILES against a drawing, for instance).',
-    inputSchema: { a: structure, b: structure },
+    inputSchema: { a: structure(), b: structure() },
     annotations: { title: 'Compare two structures', ...READ_ONLY },
   }, ({ a, b }) => tool(async () => text(await compare(a, b))));
 
   server.registerTool('structure_link', {
     title: 'Link to edit in HexSketch',
     description: 'A link that opens the structure in HexSketch (in the browser, nothing to install), where the user can edit it by drawing and copy it back. Give it to the user whenever they may want to change a structure.',
-    inputSchema: { structure, style },
+    inputSchema: { structure: structure(), style },
     annotations: { title: 'Link to edit in HexSketch', ...READ_ONLY },
   }, ({ structure: s, style: st }) => tool(async () => ({ content: [{ type: 'text', text: await link(s, read(st)) }] })));
 
@@ -306,11 +311,11 @@ export function createServer(opts: ServerOptions): McpServer {
     };
 
     /** One step's fields: what show_in_sketcher shows, and each of its steps. */
-    const showFields = {
-        structure: structure.optional().describe('A new structure to draw in place of the current one (the user can undo it). To show several side by side (both enantiomers, compounds you compare), join their SMILES with "." in one structure; for a reaction, use reaction instead, so it gets an arrow, reagents and conditions. Leave out to work on what is drawn.'),
-        reaction: reaction.optional(),
-        arrows: arrows.optional(),
-        disconnect: disconnect.optional(),
+    const showFields = () => ({
+        structure: structure().optional().describe('A new structure to draw in place of the current one (the user can undo it). To show several side by side (both enantiomers, compounds you compare), join their SMILES with "." in one structure; for a reaction, use reaction instead, so it gets an arrow, reagents and conditions. Leave out to work on what is drawn.'),
+        reaction: reaction().optional(),
+        arrows: arrows().optional(),
+        disconnect: disconnect().optional(),
         highlight: z.array(z.string().min(1)).max(HIGHLIGHTS.length).optional().describe('SMILES fragments to highlight, e.g. ["C(=O)O", "c1ccccc1"].'),
         labels: z.array(z.object({
           at: z.string().min(1).describe('SMILES fragment whose first atom the label points at, e.g. "OC(=O)" for an acid\'s OH. The same fragment as a highlight gives the label that highlight\'s colour.'),
@@ -319,7 +324,7 @@ export function createServer(opts: ServerOptions): McpServer {
           occurrence: z.number().int().min(1).max(20).optional().describe('Which place, when the fragment is found more than once: counted left to right (default 1).'),
         })).max(MAX_LABELS).optional().describe(`Up to ${MAX_LABELS} short labels pinned beside atoms: values and properties at the atom they belong to (pKa, a reactive site, a configuration), so the drawing carries the detail and the note stays short.`),
         note: z.string().max(800).optional().describe('A summary for the editor\'s notes panel, small and organised: up to five "- " bullets of a few words each, each starting with the **colour** it explains (e.g. "- **Yellow**: carboxylic acid, pKa ≈ 4.4"), or two short sentences. Point to the drawing rather than repeat its labels; no preamble, no restating the question, no chemistry lesson: the explanation goes in the chat reply.'),
-    };
+    });
     type Show = { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; disconnect?: number[][]; highlight?: string[]; labels?: { at: string; text: string; colour?: string; occurrence?: number }[]; note?: string };
 
     /** Check one step and build the editor's update for it, drawn the same way round as `before`. */
@@ -393,14 +398,14 @@ export function createServer(opts: ServerOptions): McpServer {
         next: `The user sees step 1 of ${prepared.length} in the editor and steps through with Back and Next. In the chat, say in a line or two what happens overall and point them to the steps; don't narrate each one.`,
       };
     };
-    const stepsField = z.array(z.object(showFields)).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, a sequence of up to ${MAX_STEPS} steps the user steps through with Back and Next, starting at the first: a mechanism (each step its species with atom-map numbers, its curly arrows and a one-line note naming it, keeping the same map numbers throughout), a synthesis, or a before-and-after. Each step is drawn the same way round as the one before.`);
+    const stepsField = z.array(z.object(showFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, a sequence of up to ${MAX_STEPS} steps the user steps through with Back and Next, starting at the first: a mechanism (each step its species with atom-map numbers, its curly arrows and a one-line note naming it, keeping the same map numbers throughout), a synthesis, or a before-and-after. Each step is drawn the same way round as the one before.`);
 
     registerAppTool(server, 'open_sketcher', {
       title: 'Open the HexSketch editor',
       description: 'Open HexSketch\'s drawing editor in the chat, so the user can draw a structure by hand or edit one you give. This is the first tool to call whenever the conversation involves a structure — drawing, sketching, showing, explaining, comparing, correcting one — before render_structure or structure_link, and on the first such message rather than after an answer in text. It opens full screen, beside the conversation. Give, in this same call, what you would show next (highlight, labels, note, arrows, disconnect, or steps), so the user sees your answer as the editor opens rather than after another round. Then keep working in that editor: read_sketcher shows what the user drew, and show_in_sketcher changes, highlights and annotates it. The result gives the name and formula of what was drawn, with any problems found: check them against what you meant. The user\'s drawing also comes back as a message starting "Structure from HexSketch" when they press Send to chat. In chats that cannot show the editor, give the user the link in the result instead.',
       inputSchema: {
-        ...showFields,
-        structure: structure.optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.'),
+        ...showFields(),
+        structure: structure().optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.'),
         steps: stepsField,
       },
       annotations: { title: 'Open the HexSketch editor', ...READ_ONLY },
@@ -445,7 +450,7 @@ export function createServer(opts: ServerOptions): McpServer {
       description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, a retrosynthesis or any sequence, give steps instead: the user steps through them with Back and Next. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
       inputSchema: {
         sketch: sketchId,
-        ...showFields,
+        ...showFields(),
         steps: stepsField,
       },
       annotations: { title: 'Show in the HexSketch editor', readOnlyHint: false, destructiveHint: false, openWorldHint: false },

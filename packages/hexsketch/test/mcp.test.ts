@@ -380,3 +380,16 @@ test('one round: open_sketcher takes what show_in_sketcher would, and results sa
   const shown = JSON.parse(textOf(await call('show_in_sketcher', { structure: 'C(C)(C)(C)(C)C' })));
   assert.ok(shown.drawn.issues?.length);
 });
+
+test('every tool input is spelt out in full: no $ref, which directory clients cannot read', async () => {
+  const { client } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const tools = (await client.listTools()).tools;
+  assert.ok(tools.length >= 12);
+  for (const t of tools) {
+    assert.doesNotMatch(JSON.stringify(t.inputSchema), /"\$ref"/, `${t.name} has a $ref in its input schema`);
+    // Every parameter has a type (or a choice of values).
+    for (const [k, v] of Object.entries((t.inputSchema as { properties?: Record<string, { type?: unknown; enum?: unknown; anyOf?: unknown }> }).properties ?? {})) {
+      assert.ok(v.type || v.enum || v.anyOf, `${t.name}.${k} has no type`);
+    }
+  }
+});
