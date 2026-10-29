@@ -225,6 +225,29 @@ export function peptideMolecule(p: Peptide, L = 18.43): Molecule {
 }
 
 /**
+ * Lay a structure out as Expand Label draws its sequence, when it is a peptide
+ * (one fragment that recognisePeptide reads): backbone zigzag, side chains on
+ * alternate sides, and wedges for the configurations the structure records.
+ * Returns false, leaving the structure untouched, when it is not a peptide;
+ * callers then fall back to layout2D, which folds long chains onto themselves.
+ */
+export function layoutAsPeptide(mol: Molecule, L = 18.43): boolean {
+  if (mol.atomCount < 7) return false;
+  let p: Peptide | null;
+  try { p = recognisePeptide(mol); } catch { return false; }
+  if (!p) return false;
+  const built = peptideMolecule(p, L);
+  const map = isomorphisms(built, mol).next().value;
+  if (!map) return false;
+  const want = new Map<AtomId, { order: AtomId[]; anticlockwise: boolean }>();
+  for (const a of mol.atoms()) if (a.chirality) want.set(a.id, { order: [...a.chirality.order], anticlockwise: a.chirality.anticlockwise });
+  for (const [from, to] of map) { const a = mol.atom(to), b = built.atom(from); a.x = b.x; a.y = b.y; }
+  for (const b of mol.bonds()) if (/^(wedge|hash)(Begin|End)$/.test(b.display)) b.display = 'plain';
+  assignWedges(mol, want);
+  return true;
+}
+
+/**
  * Backbone on a horizontal zigzag (as ChemDraw draws expanded sequences);
  * every other group is laid out on its own and swung onto its anchor's open
  * side. Rings that close back onto the backbone (Pro, Hyp, pGlu) are drawn as
@@ -419,7 +442,10 @@ function layoutPeptide(mol: Molecule, main: AtomId[], L: number) {
     const cands = placeComponent(mol, c.atoms, anchor, pos.get(anchor)!, dir, L);
     let best = cands[0]!, bestScore = -Infinity;
     cands.forEach((cand, k) => {
-      const score = clearance(cand) - (k === 0 ? 0 : 0.05 * L); // ties go to the straight, unmirrored layout
+      // A bond's length of room is enough: then the first bond leaves along `dir`, at the
+      // ideal angle Clean Up would restore, unmirrored if possible. Swinging the group's
+      // centre onto `dir` (bending its first bond) is for when that is crowded.
+      const score = Math.min(clearance(cand), L) - [0, 0.02, 0.15, 0.17][k]! * L;
       if (score > bestScore) { bestScore = score; best = cand; }
     });
     for (const [id, p] of best) pos.set(id, p);
@@ -472,6 +498,9 @@ function placeComponent(mol: Molecule, atoms: AtomId[], anchor: AtomId, pa: Pt, 
  */
 export function peptideName(p: Peptide): string | null {
   if (p.residues.some((r) => r.protection || r.nMe)) return null;
+  // OPSIN reads "alanyl" as L-alanyl, so a residue drawn without its configuration
+  // has no peptide name that means what was drawn (the systematic name does).
+  if (p.residues.some((r) => r.stereoUnknown && !RESIDUES[r.code]!.achiral)) return null;
   const nt = N_TERMINI[p.nTerm]!;
   if (p.nTerm !== 'H' && !nt.name) return null;
   const parts: string[] = [];
@@ -484,7 +513,7 @@ export function peptideName(p: Peptide): string | null {
     else if (p.cTerm === 'NH2') word = def.amide;
     else return null;
     if (!word) return null;
-    const cfg = def.achiral ? '' : r.stereoUnknown ? '' : r.d ? 'D-' : 'L-';
+    const cfg = def.achiral ? '' : r.d ? 'D-' : 'L-';
     parts.push(cfg + word);
   }
   let body = parts[0]!;
@@ -560,23 +589,42 @@ export function recognisePeptide(frag: Molecule): Peptide | null {
     const toClone = new Map(drawnIds.map((id, i) => [id, cloneIds[i]!]));
     const builtIds = [...built.atoms()].map((a) => a.id);
     const caBuilt = mainCaIndices(p).map((i) => builtIds[i]!);
+    const caSet = new Set(caBuilt.map((id) => builtIds.indexOf(id)));
+    // Each atom's residue: the nearest alpha carbon (side-chain stereocentres sit in their own residue).
+    const residueOf = new Map<AtomId, number>(caBuilt.map((id, i) => [id, i]));
+    for (const queue = [...caBuilt]; queue.length;) {
+      const x = queue.shift()!;
+      for (const n of built.neighbours(x)) if (!residueOf.has(n)) { residueOf.set(n, residueOf.get(x)!); queue.push(n); }
+    }
+    const drawnLabel = new Map<AtomId, 'R' | 'S' | null>();
+    const got = (id: AtomId) => {
+      const c = toClone.get(id)!;
+      if (!drawnLabel.has(c)) drawnLabel.set(c, rsLabel(drawn, c));
+      return drawnLabel.get(c)!;
+    };
+    // The symmetries of a peptide (phenyl flips, tBu methyls, Trt rings) never move a
+    // stereocentre, so a few mappings settle it; trying them all takes exponentially
+    // long on a near miss (allo-Thr among Trt groups froze the page).
+    let tries = 0;
     for (const map of isomorphisms(built, mol)) {
+      if (++tries > 8) break;
       for (const [i, r] of p.residues.entries()) {
         if (RESIDUES[r.code]!.achiral) continue;
-        const want = rsLabel(built, caBuilt[i]!), got = rsLabel(drawn, toClone.get(map.get(caBuilt[i]!)!)!);
-        r.stereoUnknown = got === null;
-        r.d = got !== null && got !== want;
+        const want = rsLabel(built, caBuilt[i]!), g = got(map.get(caBuilt[i]!)!);
+        r.stereoUnknown = g === null;
+        r.d = g !== null && g !== want;
       }
-      // Every other stereocentre must be the standard one for that residue (allo-Thr is not Thr).
+      // Every other stereocentre must be the standard one for that residue (allo-Thr is not Thr);
+      // one drawn without a wedge leaves its residue's configuration unknown, as at Ca.
       const final = parseSmiles(buildSmiles(p).smiles);
       const finalIds = [...final.atoms()].map((a) => a.id);
-      const caSet = new Set(caBuilt.map((id) => builtIds.indexOf(id)));
       const ok = builtIds.every((id, k) => {
         if (caSet.has(k)) return true;
         const want = rsLabel(final, finalIds[k]!);
         if (want === null) return true;
-        const got = rsLabel(drawn, toClone.get(map.get(id)!)!);
-        return got === want;
+        const g = got(map.get(id)!);
+        if (g === null) { p.residues[residueOf.get(id)!]!.stereoUnknown = true; return true; }
+        return g === want;
       });
       if (ok) return p;
     }
