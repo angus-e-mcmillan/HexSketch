@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
 import { payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
-import { alignByMaps, analyze, arrangeForArrows, disconnectionMarks, imbalance, schemeBalance, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
+import { alignByMaps, analyze, arrangeForArrows, disconnectionMarks, highlighted, highlightPlaces, imbalance, schemeBalance, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
 
@@ -183,6 +183,68 @@ test('a retrosynthesis is one drawing: the analysis, then the forward route belo
   // Only the forward arrow is checked for balance (HCl is not drawn), and reported against its scheme.
   assert.deepEqual((await schemeBalance(r)).map((b) => [b.scheme, b.step]), [[2, 1]]);
   await assert.rejects(scheme({ stages: ['CCO', 'CC=O'], then: [{ stages: ['CC=O'] }] }), /Scheme 2: A scheme needs at least two stages/);
+});
+
+test('a peptide from SMILES is drawn N to C, backbone flat, wedges on the side chains', async () => {
+  // Leu-enkephalin written from the C-terminus: drawn from the N-terminus all the same.
+  const s = await readStructure('CC(C)C[C@H](NC(=O)[C@H](Cc1ccccc1)NC(=O)CNC(=O)CNC(=O)[C@@H](N)Cc1ccc(O)cc1)C(=O)O');
+  const L = s.style.bondLength, atoms = [...s.mol.atoms()];
+  const amine = atoms.find((a) => a.element === 'N' && s.mol.neighbours(a.id).length === 1)!;
+  const acid = atoms.find((a) => a.element === 'C' && s.mol.neighbours(a.id).filter((n) => s.mol.atom(n).element === 'O').length === 2)!;
+  assert.ok(amine.x < acid.x - 10 * L);
+  // The amide nitrogens lie on one line, give or take the zigzag.
+  const amides = atoms.filter((a) => a.element === 'N' && s.mol.neighbours(a.id).length === 2).map((a) => a.y);
+  assert.ok(Math.max(...amides) - Math.min(...amides) < L);
+  // Every wedge leaves its stereocentre for a side chain, not for the backbone's N or C=O.
+  const wedges = [...s.mol.bonds()].filter((b) => b.display !== 'plain');
+  assert.equal(wedges.length, 3);
+  for (const b of wedges) {
+    const centre = s.mol.atom(b.display.endsWith('Begin') ? b.begin : b.end), other = s.mol.atom(b.display.endsWith('Begin') ? b.end : b.begin);
+    assert.equal(centre.chirality !== null, true);
+    assert.equal(other.element, 'C');
+    assert.ok(!s.mol.neighbours(other.id).some((n) => s.mol.atom(n).element === 'O' && s.mol.bondBetween(other.id, n)!.order === 2));
+  }
+  assert.equal((await analyze(s)).formula, 'C28H37N5O7');
+  // Matched to a drawing the other way round, it still runs N to C.
+  const flipped = s.mol.clone();
+  for (const a of flipped.atoms()) a.x = -a.x;
+  const again = await readStructure('CC(C)C[C@H](NC(=O)[C@H](Cc1ccccc1)NC(=O)CNC(=O)CNC(=O)[C@@H](N)Cc1ccc(O)cc1)C(=O)O');
+  orientLike(again, flipped);
+  const n2 = [...again.mol.atoms()].find((a) => a.element === 'N' && again.mol.neighbours(a.id).length === 1)!;
+  assert.ok(n2.x < Math.min(...[...again.mol.atoms()].map((a) => a.x)) + 3 * L);
+});
+
+test('a highlight marks one place: where it fits best, the one asked for, or every one', async () => {
+  const s = await readStructure('CC(=O)Oc1ccccc1C(=O)O');
+  // "C(=O)O" is in the ester and the acid; it fits the acid, with nothing on its O.
+  const places = highlightPlaces(s.mol, 'C(=O)O');
+  assert.equal(places.length, 2);
+  const [best] = highlighted(s.mol, { smiles: 'C(=O)O' });
+  assert.equal(best!.atoms.length, 3);
+  assert.ok(best!.atoms.some((id) => s.mol.atom(id).element === 'O' && s.mol.neighbours(id).length === 1 && s.mol.bondBetween(id, s.mol.neighbours(id)[0]!)!.order === 1));
+  // Occurrences count left to right.
+  const x = (p: { atoms: number[] }[]) => Math.min(...p[0]!.atoms.map((id) => s.mol.atom(id).x));
+  assert.ok(x(highlighted(s.mol, { smiles: 'C(=O)O', occurrence: 1 })) < x(highlighted(s.mol, { smiles: 'C(=O)O', occurrence: 2 })));
+  assert.equal(highlighted(s.mol, { smiles: 'C(=O)O', every: true }).length, 2);
+  assert.equal(highlighted(s.mol, { smiles: 'C(=O)O', occurrence: 3 }).length, 0);
+  // A residue: Phe, not the Tyr whose ring the pattern also matches.
+  const enk = await readStructure('N[C@@H](Cc1ccc(O)cc1)C(=O)NCC(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](CC(C)C)C(=O)O');
+  const [phe] = highlighted(enk.mol, { smiles: 'NC(Cc1ccccc1)C(=O)' });
+  const phenol = [...enk.mol.atoms()].find((a) => a.element === 'O' && enk.mol.neighbours(a.id).length === 1 && enk.mol.atom(enk.mol.neighbours(a.id)[0]!).element === 'C' && enk.mol.neighbours(enk.mol.neighbours(a.id)[0]!).length === 3)!;
+  assert.ok(!phe!.atoms.includes(enk.mol.neighbours(phenol.id)[0]!));
+});
+
+test('scheme arrows stay a usual length: long text wraps, centred on the shaft', async () => {
+  const s = await scheme({ stages: ['CCO', 'CC=O'], arrows: [{ reagents: 'Et2NH (3 equiv), KI (cat.), K2CO3', conditions: 'toluene, reflux, 4 h, then aqueous workup\n80%' }] });
+  const L = s.style.bondLength;
+  const arrow = s.objects.find((o) => o.kind === 'arrow') as { tail: { x: number }; head: { x: number } };
+  assert.ok(arrow.head.x - arrow.tail.x <= 6 * L + 1e-6);
+  const texts = s.objects.filter((o) => o.kind === 'text') as { x: number; text: string }[];
+  assert.ok(texts[0]!.text.split('\n').length >= 2);
+  // Bracketed amounts stay whole.
+  assert.ok(texts[0]!.text.split('\n').some((l) => l.includes('(3 equiv)')));
+  // Left of the arrow's middle, by half the head.
+  for (const t of texts) assert.ok(t.x < (arrow.tail.x + arrow.head.x) / 2 && t.x > (arrow.tail.x + arrow.head.x) / 2 - L);
 });
 
 test('related structures are drawn the same way round', async () => {

@@ -141,7 +141,7 @@ function enforceDoubleBondGeometry(mol: Molecule, want: Map<number, { ref: [Atom
  * means the same configuration: try a wedge, compare the configuration it
  * implies with the recorded one, and use a hash instead if they disagree.
  */
-export function assignWedges(mol: Molecule, want: Map<AtomId, { order: AtomId[]; anticlockwise: boolean }>): void {
+export function assignWedges(mol: Molecule, want: Map<AtomId, { order: AtomId[]; anticlockwise: boolean }>, prefer: ReadonlySet<AtomId> = new Set()): void {
   const parity = (from: AtomId[], to: AtomId[]) => {
     const p = from.map((x) => to.indexOf(x));
     let swaps = 0;
@@ -150,13 +150,13 @@ export function assignWedges(mol: Molecule, want: Map<AtomId, { order: AtomId[];
   };
   const used = new Set<number>();
   for (const [centre, ch] of want) {
-    // Prefer an acyclic bond to a terminal-ish neighbour that is not itself a stereocentre.
+    // Prefer an acyclic bond to a terminal-ish neighbour that is not itself a stereocentre, and one in `prefer` (a side chain) to the rest.
     const candidates = mol.incidentBonds(centre)
       .filter((b) => mol.bond(b).order === 1 && !used.has(b))
       .sort((x, y) => score(y) - score(x));
     function score(b: number) {
       const n = mol.otherAtom(mol.bond(b), centre);
-      return (inRing(mol, centre, n) ? 0 : 4) + (want.has(n) ? 0 : 2) + (mol.neighbours(n).length === 1 ? 1 : 0);
+      return (inRing(mol, centre, n) ? 0 : 4) + (want.has(n) ? 0 : 2) + (mol.neighbours(n).length === 1 ? 1 : 0) + (prefer.has(n) ? 3 : 0);
     }
     const bondId = candidates[0];
     if (bondId === undefined) continue;

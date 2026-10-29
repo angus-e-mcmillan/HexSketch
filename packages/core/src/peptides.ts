@@ -216,12 +216,16 @@ function buildSmiles(p: Peptide): Built {
 export function peptideSmiles(p: Peptide): string { return buildSmiles(p).smiles; }
 
 /** The full structure of a peptide, laid out as a backbone zigzag with side chains alternating up and down. */
-export function peptideMolecule(p: Peptide, L = 18.43): Molecule {
+export function peptideMolecule(p: Peptide, L = 18.43): Molecule { return builtPeptide(p, L).mol; }
+
+/** The laid-out peptide and its backbone atoms. */
+function builtPeptide(p: Peptide, L: number): { mol: Molecule; main: AtomId[] } {
   const { smiles, main } = buildSmiles(p);
   const mol = parseSmiles(smiles);
   const ids = [...mol.atoms()].map((a) => a.id);
-  layoutPeptide(mol, main.map((i) => ids[i]!), L);
-  return mol;
+  const backbone = main.map((i) => ids[i]!);
+  layoutPeptide(mol, backbone, L);
+  return { mol, main: backbone };
 }
 
 /**
@@ -236,15 +240,60 @@ export function layoutAsPeptide(mol: Molecule, L = 18.43): boolean {
   let p: Peptide | null;
   try { p = recognisePeptide(mol); } catch { return false; }
   if (!p) return false;
-  const built = peptideMolecule(p, L);
+  const { mol: built, main } = builtPeptide(p, L);
   const map = isomorphisms(built, mol).next().value;
   if (!map) return false;
   const want = new Map<AtomId, { order: AtomId[]; anticlockwise: boolean }>();
   for (const a of mol.atoms()) if (a.chirality) want.set(a.id, { order: [...a.chirality.order], anticlockwise: a.chirality.anticlockwise });
   for (const [from, to] of map) { const a = mol.atom(to), b = built.atom(from); a.x = b.x; a.y = b.y; }
   for (const b of mol.bonds()) if (/^(wedge|hash)(Begin|End)$/.test(b.display)) b.display = 'plain';
-  assignWedges(mol, want);
+  assignWedges(mol, want, offBackbone(mol, new Set(main.map((id) => map.get(id)!))));
   return true;
+}
+
+/** The atoms off the backbone: a stereocentre's wedge goes to one of them, so the side chains show the configuration. */
+const offBackbone = (mol: Molecule, main: ReadonlySet<AtomId>) => new Set([...mol.atoms()].map((a) => a.id).filter((id) => !main.has(id)));
+
+/**
+ * Every peptide among a structure's fragments laid out as layoutAsPeptide
+ * does: N-terminus on the left, the backbone a flat zigzag, side chains with
+ * wedges. The fragments are then set side by side again, in their order, as
+ * layout2D sets them. Returns whether any was a peptide.
+ */
+export function layoutPeptides(mol: Molecule, L = 18.43): boolean {
+  const frags = mol.fragments();
+  let any = false;
+  for (const ids of frags) {
+    if (ids.length < 7) continue;
+    const sub = new Molecule();
+    const toSub = new Map<AtomId, AtomId>();
+    for (const id of ids) toSub.set(id, sub.addAtom({ ...mol.atom(id), chirality: null }).id);
+    for (const id of ids) {
+      const ch = mol.atom(id).chirality;
+      if (ch) sub.atom(toSub.get(id)!).chirality = { order: ch.order.map((x) => (x === -1 ? -1 : toSub.get(x)!)), anticlockwise: ch.anticlockwise };
+    }
+    for (const b of mol.bonds()) if (toSub.has(b.begin)) sub.addBond({ ...b, begin: toSub.get(b.begin)!, end: toSub.get(b.end)!, ez: b.ez ? { ref: [toSub.get(b.ez.ref[0])!, toSub.get(b.ez.ref[1])!], cis: b.ez.cis } : null });
+    if (!layoutAsPeptide(sub, L)) continue;
+    any = true;
+    for (const id of ids) { const a = sub.atom(toSub.get(id)!); const t = mol.atom(id); t.x = a.x; t.y = a.y; }
+    for (const b of mol.bonds()) {
+      if (!toSub.has(b.begin)) continue;
+      const sb = sub.bondBetween(toSub.get(b.begin)!, toSub.get(b.end)!);
+      if (sb) b.display = sb.display;
+    }
+  }
+  if (!any || frags.length < 2) return any;
+  // Side by side again, centred on the first's middle line, 2 bond lengths apart.
+  let x = 0, mid: number | null = null;
+  for (const ids of frags) {
+    const xs = ids.map((id) => mol.atom(id).x), ys = ids.map((id) => mol.atom(id).y);
+    const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+    mid ??= cy;
+    const dx = x - Math.min(...xs), dy = mid - cy;
+    for (const id of ids) { const a = mol.atom(id); a.x += dx; a.y += dy; }
+    x += Math.max(...xs) - Math.min(...xs) + 2 * L;
+  }
+  return any;
 }
 
 /**
