@@ -2,9 +2,11 @@ import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/
 import { createServer } from '../../../packages/hexsketch/src/mcp.ts';
 import pkg from '../../../packages/hexsketch/package.json';
 import sketcherHtml from '../../mcp-app/dist/index.html';
+import { type BudgetEnv, checkBudget, isPaused, pausedText } from './budget.ts';
 import { rasterize } from './png.ts';
 import { hostedSketchStore, type SketchEnv } from './sketches.ts';
 
+export { Budget } from './budget.ts';
 export { Conversation, Sketch } from './sketches.ts';
 
 /**
@@ -18,7 +20,7 @@ export { Conversation, Sketch } from './sketches.ts';
  */
 
 interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
-interface Env extends SketchEnv { LIMIT?: RateLimit; NEW_LIMIT?: RateLimit }
+interface Env extends SketchEnv, BudgetEnv { LIMIT?: RateLimit; NEW_LIMIT?: RateLimit }
 
 const MAX_BODY = 2_000_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -44,14 +46,36 @@ custom connector, with this address:
 More: https://hexsketch.com · Privacy: https://hexsketch.com/privacy
 `;
 
+type Message = { method?: unknown; id?: unknown; params?: { name?: unknown } } | null;
+
+/**
+ * While the daily cap is reached (budget.ts): every tool call gets the
+ * reason instead of running, and the editor's polls say so too, so neither
+ * the model nor the user takes it for a fault. Other requests (initialize,
+ * the tool list) run as usual: they are cheap.
+ */
+function paused(messages: Message[], batch: boolean, conversation: string | null): Response {
+  const text = pausedText();
+  const replies = messages.filter((m) => m?.method && m.id !== undefined).map((m) => ({
+    jsonrpc: '2.0',
+    id: m!.id,
+    ...(m!.method === 'tools/call'
+      ? { result: { content: [{ type: 'text', text }], isError: true, ...(m!.params?.name === 'sketch_updates' ? { structuredContent: { live: true, updates: [], paused: text } } : {}) } }
+      : { error: { code: -32000, message: text } }),
+  }));
+  const headers: Record<string, string> = { ...CORS, ...(conversation ? { 'Mcp-Session-Id': conversation } : {}) };
+  if (!replies.length) return new Response(null, { status: 202, headers });
+  return Response.json(batch ? replies : replies[0], { headers });
+}
+
 async function mcp(req: Request, env: Env): Promise<Response> {
   if (Number(req.headers.get('Content-Length') ?? 0) > MAX_BODY) return rpcError(413, 'Request too large');
   const body = await req.text();
   if (body.length > MAX_BODY) return rpcError(413, 'Request too large');
   let message: unknown;
   try { message = JSON.parse(body); } catch { return rpcError(400, 'Parse error: the body is not JSON'); }
-  const messages = Array.isArray(message) ? message : [message];
-  const initializing = messages.some((m) => (m as { method?: unknown } | null)?.method === 'initialize');
+  const messages = (Array.isArray(message) ? message : [message]) as Message[];
+  const initializing = messages.some((m) => m?.method === 'initialize');
   // The conversation: a new one at initialize, then whatever the client sends back.
   const given = req.headers.get('Mcp-Session-Id');
   const conversation = initializing ? crypto.randomUUID() : given && UUID.test(given) ? given : null;
@@ -60,6 +84,7 @@ async function mcp(req: Request, env: Env): Promise<Response> {
   const ip = req.headers.get('CF-Connecting-IP') ?? 'unknown';
   if (initializing && env.NEW_LIMIT && !(await env.NEW_LIMIT.limit({ key: ip })).success) return rpcError(429, 'Too many new connections: try again in a minute');
   if (env.LIMIT && !(await env.LIMIT.limit({ key: conversation ?? `no-session:${ip}` })).success) return rpcError(429, 'Too many requests: try again in a minute');
+  if (messages.some((m) => m?.method === 'tools/call') && await isPaused(env)) return paused(messages, Array.isArray(message), conversation);
 
   const server = createServer({
     version: pkg.version,
@@ -82,11 +107,17 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const { pathname } = new URL(req.url);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
-    if (pathname === '/' || pathname === '/mcp' && req.method === 'GET' && !req.headers.get('Accept')?.includes('text/event-stream')) return plain(ABOUT);
+    if (pathname === '/' || pathname === '/mcp' && req.method === 'GET' && !req.headers.get('Accept')?.includes('text/event-stream')) {
+      return plain(await isPaused(env) ? `${ABOUT}\nPaused: ${pausedText()}\n` : ABOUT);
+    }
     if (pathname !== '/mcp') return plain('Not found\n', 404);
     if (req.method === 'POST') return mcp(req, env);
     // No server-sent stream (every answer is plain JSON), and sessions need no closing.
     if (req.method === 'DELETE') return new Response(null, { status: 204, headers: CORS });
     return plain('Method not allowed\n', 405, { Allow: 'POST, DELETE, OPTIONS' });
+  },
+
+  async scheduled(_event: unknown, env: Env): Promise<void> {
+    await checkBudget(env);
   },
 };
