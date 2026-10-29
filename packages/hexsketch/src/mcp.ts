@@ -68,6 +68,7 @@ const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
 - Open the editor first. As soon as the conversation turns to a structure — drawing, showing, explaining, comparing or changing one — call open_sketcher before any other HexSketch tool, with the structure if you have one and empty if the user is about to draw, and in the same call the highlights, labels, note, arrows or steps you would show next. Do it on the first such message, not after answering in text once: the editor is the point of HexSketch, and it opens full screen beside the conversation. Only a request for a file or a bare number (a mass, a name, a formula) is answered without it.
 - To show a structure where the editor cannot be opened, call render_structure. Every result includes a link that opens the structure in HexSketch, where the user can edit it by drawing: always give the user that link.
 - Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher: highlight the parts you mean (each highlight one atom, one functional group or one monomer such as an amino acid, at one place), pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour — the drawing carries the detail, the note is a small summary beside it, and your answer stays in the chat. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").
+- Protecting groups are drawn abbreviated, as chemists write them (Boc, Fmoc, Cbz, Alloc, Troc, TBS, TIPS, TES, TBDPS, TMS, Trt, Pbf, PMB, Bn and tBu on O, MOM, THP): write them in full in the SMILES, and names, formulas and checks still see every atom. A highlight or label can't point inside an abbreviation; atoms with map numbers are never abbreviated.
 - Peptides are drawn as chemists draw them, from the SMILES alone: N-terminus on the left, the backbone a flat zigzag, the side chains on wedges showing their configuration. Write their stereocentres in the SMILES.
 - Draw every reaction as a scheme, with the reaction input (render_structure, open_sketcher, show_in_sketcher): starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.
 - Draw a mechanism one step per show_in_sketcher call, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.
@@ -113,9 +114,10 @@ const failure = (err: unknown): CallToolResult => ({ isError: true, content: [{ 
 const safely = (fn: () => Promise<CallToolResult>) => fn().catch(failure);
 
 /** A tool's structure or reaction scheme (exactly one), ready for the agent functions, with any curly arrows drawn on it. */
-async function given(structureText: string | undefined, reactionScheme: Scheme | undefined, opts: { style?: 'hexsketch' | 'acs'; like?: Molecule; arrows?: ElectronArrow[]; disconnect?: number[][] } = {}): Promise<string | Structure> {
+async function given(structureText: string | undefined, reactionScheme: Scheme | undefined, opts: { style?: 'hexsketch' | 'acs'; like?: Molecule; arrows?: ElectronArrow[]; disconnect?: number[][]; abbreviate?: boolean } = {}): Promise<string | Structure> {
   if (structureText && reactionScheme) throw new Error('Give a structure or a reaction, not both');
   const { arrows: curly, disconnect: cuts, ...read } = opts;
+  const reading = { ...(read.style ? { style: read.style } : {}), ...(read.abbreviate ? { abbreviate: true } : {}) };
   if (cuts?.length && !structureText && !reactionScheme) throw new Error('Disconnections are marked on the structure given in the same call: give the target as SMILES with atom-map numbers, e.g. "c1ccccc1[C:1](=O)[NH:2]C"');
   if (curly?.length && !structureText && !reactionScheme) throw new Error('Arrows are drawn on the structure or reaction given in the same call: give it as SMILES with atom-map numbers, e.g. "[OH-:1].[CH3:2][Br:3]"');
   let s: string | Structure;
@@ -123,14 +125,14 @@ async function given(structureText: string | undefined, reactionScheme: Scheme |
   if (reactionScheme) s = await scheme(reactionScheme, { ...read, maxWidth: SCHEME_WIDTH });
   // A SMILES replacing a drawing is turned to match it (laid-out files keep their own coordinates).
   else if (structureText && read.like?.atomCount && detectFormat(structureText) === 'smiles') {
-    s = await readStructure(structureText, read.style ? { style: read.style } : {});
+    s = await readStructure(structureText, reading);
     // A mechanism step keeps its atoms where the step before had them (by map number); otherwise it is turned to match.
     placed = alignByMaps(s.mol, read.like, s.style.bondLength);
     if (!placed) orientLike(s, read.like);
   } else if (!structureText) throw new Error('Give a structure (SMILES, molfile, CDXML or a HexSketch link) or a reaction');
   else s = structureText;
   if (!curly?.length && !cuts?.length) return s;
-  if (typeof s === 'string') s = await readStructure(s, read.style ? { style: read.style } : {});
+  if (typeof s === 'string') s = await readStructure(s, reading);
   if (curly?.length) {
     // A scheme keeps its stages where they are; one structure's separate species come together.
     if (!reactionScheme && !placed) arrangeForArrows(s.mol, curly, s.style.bondLength);
@@ -227,8 +229,10 @@ export function createServer(opts: ServerOptions): McpServer {
     if (a.save_to && (!fromPath || !formats.includes(fromPath))) throw new Error(`save_to needs one of these extensions: ${formats.map((f) => `.${f}`).join(' ')}`);
     const to = fromPath ?? a.format ?? formats[0]!;
     if (to === 'pdf' && !a.save_to) throw new Error('PDF is a file: give save_to, e.g. /path/to/structure.pdf');
-    const input = await given(a.structure, a.reaction, { ...read(a.style), arrows: curlyArrows(a.arrows), ...(a.disconnect ? { disconnect: a.disconnect } : {}) });
-    const r = await render(input, { ...read(a.style), to, ...(opts.rasterize ? { rasterize: opts.rasterize } : {}) });
+    // Pictures (and ChemDraw files) show protecting groups abbreviated; a molfile keeps every atom.
+    const abbreviate = to !== 'mol';
+    const input = await given(a.structure, a.reaction, { ...read(a.style), abbreviate, arrows: curlyArrows(a.arrows), ...(a.disconnect ? { disconnect: a.disconnect } : {}) });
+    const r = await render(input, { ...read(a.style), abbreviate, to, ...(opts.rasterize ? { rasterize: opts.rasterize } : {}) });
     const about = await analyze(input, read(a.style));
     const saved = a.save_to && opts.saveFile ? await opts.saveFile(a.save_to, r.data, a.overwrite ?? false) : undefined;
     const issues = (await validate(input, read(a.style))).issues.filter((x) => x.severity !== 'note').map((x) => x.message);
@@ -299,7 +303,7 @@ export function createServer(opts: ServerOptions): McpServer {
     };
     /** What the editor is sent to draw: the structure as given, or as CDXML when laid out here (a scheme, or turned to match `like`). */
     const toDraw = async (t?: string, r?: Scheme, like?: Molecule, curly?: ElectronArrow[], cuts?: number[][]): Promise<string> => {
-      const g = await given(t, r, { ...(like ? { like } : {}), ...(curly ? { arrows: curly } : {}), ...(cuts ? { disconnect: cuts } : {}) });
+      const g = await given(t, r, { abbreviate: true, ...(like ? { like } : {}), ...(curly ? { arrows: curly } : {}), ...(cuts ? { disconnect: cuts } : {}) });
       return typeof g === 'string' ? g : convert(g, 'cdxml');
     };
     const appOnly = { ui: { resourceUri: SKETCHER_URI, visibility: ['app'] as ('app' | 'model')[] } };
@@ -351,11 +355,11 @@ export function createServer(opts: ServerOptions): McpServer {
       if (a.arrows?.length && !a.reaction && !a.structure) throw new Error('Arrows are drawn on the structure or reaction given in the same call: give the structure again as SMILES with atom-map numbers on the atoms the arrows touch, e.g. "[OH-:1].[CH3:2][Br:3]"');
       // A scheme reaches the editor as CDXML, arrows and text included, the same way round as what it replaces.
       if (a.disconnect?.length && !a.reaction && !a.structure) throw new Error('Disconnections are marked on the structure given in the same call: give the target again as SMILES with atom-map numbers, e.g. "c1ccccc1[C:1](=O)[NH:2]C"');
-      const g = a.reaction || a.structure ? await given(a.structure, a.reaction, { ...(before ? { like: before } : {}), ...(a.arrows ? { arrows: curlyArrows(a.arrows)! } : {}), ...(a.disconnect ? { disconnect: a.disconnect } : {}) }) : undefined;
+      const g = a.reaction || a.structure ? await given(a.structure, a.reaction, { abbreviate: true, ...(before ? { like: before } : {}), ...(a.arrows ? { arrows: curlyArrows(a.arrows)! } : {}), ...(a.disconnect ? { disconnect: a.disconnect } : {}) }) : undefined;
       const s = g === undefined ? undefined : typeof g === 'string' ? g : await convert(g, 'cdxml');
       if (!s && !a.highlight?.length && !a.labels?.length && !a.note) throw new Error('Give a structure, a reaction, a highlight, labels or a note to show.');
       const drawing = s ?? current;
-      const mol: Molecule | null = drawing ? (await readStructure(drawing)).mol : null;
+      const mol: Molecule | null = drawing ? (await readStructure(drawing, { abbreviate: true })).mol : null;
       // The structure as drawn, with its atom-map numbers, for the next step to follow.
       const drawn = g && typeof g !== 'string' ? g.mol : mol;
       const highlights = (a.highlight ?? []).map((h, i) => {
@@ -481,7 +485,7 @@ export function createServer(opts: ServerOptions): McpServer {
     }, (args) => safely(async () => {
       const { sketch: id, steps, ...one } = args as Show & { sketch?: string; steps?: Show[] };
       const sketch = await target(id);
-      const before = sketch.drawing ? await readStructure(sketch.drawing).then((x) => x.mol, () => undefined) : undefined;
+      const before = sketch.drawing ? await readStructure(sketch.drawing, { abbreviate: true }).then((x) => x.mol, () => undefined) : undefined;
       if (steps) {
         if (Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
         return text({ shown: true, sketch: sketch.id, ...(await showSteps(sketch.id, steps, before, sketch.drawing)) });

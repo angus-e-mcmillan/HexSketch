@@ -110,12 +110,15 @@ function tokenizeNickname(label: string): Token[] {
   return (label.match(/\d+|\D+/g) ?? []).map((part) => ({ text: part, kind: /^\d+$/.test(part) ? 'sub' : 'normal' }));
 }
 
+/** Abbreviations that are one word, kept whole when a nickname is reversed (NHBoc -> BocHN, OtBu -> tBuO, not ButO). */
+const WORDS = /TBDPS|TBDMS|TIPS|TBS|TES|TMS|PMB|MOM|THP|Fmoc|Alloc|Troc|Bpin|tBu|sBu|iBu|nBu|iPr|nPr|[A-Z][a-z]*|[^A-Z]+/g;
+
 /** Reverse a nickname to read outward when attached from the right: CO2Me -> MeO2C. */
 function reverseNickname(tokens: Token[]): Token[] {
   const groups: Token[][] = [];
   for (const t of tokens) {
     if (t.kind === 'sub' && groups.length) groups[groups.length - 1]!.push(t);
-    else for (const chunk of t.text.match(/[A-Z][a-z]*|[^A-Z]+/g) ?? [t.text]) groups.push([{ text: chunk, kind: 'normal' }]);
+    else for (const chunk of t.text.match(WORDS) ?? [t.text]) groups.push([{ text: chunk, kind: 'normal' }]);
   }
   return groups.reverse().flat();
 }
@@ -213,11 +216,14 @@ export function layoutLabel(mol: Molecule, id: AtomId, style: DrawingStyle): Ato
     }
   };
 
-  // First line: anchor glyph centred on the atom.
+  // First line: anchor glyph centred on the atom; a nickname attached from the right ends there (Fmoc, BocHN), so it reads outward.
   const first = side === 'above' ? lines[lines.length - 1]! : lines[0]!;
   let before = 0;
   for (let i = 0; i < anchorIndex; i++) before += tokenWidth(first[i]!);
-  const anchorGlyph = first[anchorIndex]!.text[0]!;
+  const anchorToken = first[anchorIndex]!.text;
+  const fromRight = nickname !== null && side === 'left';
+  const anchorGlyph = fromRight ? anchorToken.at(-1)! : anchorToken[0]!;
+  if (fromRight) for (const ch of anchorToken.slice(0, -1)) before += adv(ch, runSize(size, first[anchorIndex]!.kind));
   const startX = atom.x - adv(anchorGlyph, size) / 2 - before;
 
   if (!stacked) {

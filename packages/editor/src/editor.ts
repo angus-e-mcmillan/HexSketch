@@ -1587,7 +1587,7 @@ const NICKNAMES: Record<string, string> = {
   Tf: 'S(=O)(=O)C(F)(F)F', Ts: 'S(=O)(=O)c1ccc(C)cc1', Ms: 'S(=O)(=O)C', SO2Ph: 'S(=O)(=O)c1ccccc1',
   Boc: 'C(=O)OC(C)(C)C', Cbz: 'C(=O)OCc1ccccc1', Z: 'C(=O)OCc1ccccc1', Fmoc: 'C(=O)OCC1c2ccccc2-c2ccccc12', Alloc: 'C(=O)OCC=C', Troc: 'C(=O)OCC(Cl)(Cl)Cl',
   TMS: '[Si](C)(C)C', TBS: '[Si](C)(C)C(C)(C)C', TBDMS: '[Si](C)(C)C(C)(C)C', TIPS: '[Si](C(C)C)(C(C)C)C(C)C', TES: '[Si](CC)(CC)CC', TBDPS: '[Si](c1ccccc1)(c1ccccc1)C(C)(C)C',
-  PMB: 'Cc1ccc(OC)cc1', Trt: 'C(c1ccccc1)(c1ccccc1)c1ccccc1', THP: 'C1CCCCO1', MOM: 'COC',
+  PMB: 'Cc1ccc(OC)cc1', Trt: 'C(c1ccccc1)(c1ccccc1)c1ccccc1', Pbf: 'S(=O)(=O)c1c(C)c(C)c2OC(C)(C)Cc2c1C', THP: 'C1CCCCO1', MOM: 'COC',
   Bpin: 'B1OC(C)(C)C(C)(C)O1', MgBr: '[Mg]Br', MgCl: '[Mg]Cl', SnBu3: '[Sn](CCCC)(CCCC)CCCC',
 };
 

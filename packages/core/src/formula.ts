@@ -132,6 +132,9 @@ export function parseFormula(text: string): Map<string, number> {
     Et: 'C2H5', Pr: 'C3H7', Bu: 'C4H9', tBu: 'C4H9', iPr: 'C3H7',
     Tf: 'CF3SO2', Ts: 'C7H7SO2', Ms: 'CH3SO2', Boc: 'C5H9O2',
     Cbz: 'C8H7O2', Fmoc: 'C15H11O2', TMS: 'C3H9Si', THP: 'C5H9O',
+    Z: 'C8H7O2', Alloc: 'C4H5O2', Troc: 'C3H2Cl3O2', TBS: 'C6H15Si', TBDMS: 'C6H15Si',
+    TES: 'C6H15Si', TIPS: 'C9H21Si', TBDPS: 'C16H19Si', PMB: 'C8H9O', Trt: 'C19H15',
+    MOM: 'C2H5O', Pbf: 'C13H17O3S',
   };
   if (ABBREVIATIONS[text]) text = ABBREVIATIONS[text]!;
 

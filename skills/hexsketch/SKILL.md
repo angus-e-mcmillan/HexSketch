@@ -63,6 +63,8 @@ drawing.
 - On each arrow write what a chemist would: reagents and catalysts above
   (`"Pd(PPh3)4, K2CO3"`), solvent, temperature, time and yield below
   (`"dioxane/H2O, 90 °C, 12 h"`, then `"\n85%"` if known).
+- Write protecting groups in full in the SMILES: the editor draws them as
+  Boc, Fmoc, Cbz, TBS, Trt, Pbf, OBn, OtBu and so on.
 - Use `type: "retrosynthetic"` for disconnections and `"equilibrium"` for
   reversible steps.
 - HexSketch draws related compounds the same way round. Keep each compound in

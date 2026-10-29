@@ -9,6 +9,8 @@ import { Editor, EditorDocument } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
 import '@hexsketch/naming/rings';
 
+import { abbreviateGroups } from './abbreviate.ts';
+export { abbreviateGroups, PROTECTING_GROUPS } from './abbreviate.ts';
 export { highlighted, highlightPlaces, labelPlaces, placeLabels, type AtomLabel, type Highlight, type PlacedLabels } from './labels.ts';
 export { alignByMaps, arrangeForArrows, electronArrows, type ElectronArrow } from './arrows.ts';
 export { describeImbalance, disconnectionMarks, imbalance, type Imbalance } from './retro.ts';
@@ -40,6 +42,8 @@ export interface ReadOptions {
   format?: InputFormat;
   /** Drawing style; defaults to the one the input carries (CDXML, links), else HexSketch's. */
   style?: StyleName | DrawingStyle;
+  /** Draw a SMILES's protecting groups as their abbreviations (Boc, Fmoc, TBS...), as a chemist would: for drawings, not for files. */
+  abbreviate?: boolean;
 }
 
 const STYLES: Record<StyleName, Readonly<DrawingStyle>> = { hexsketch: DEFAULT_STYLE, acs: ACS_1996_STYLE };
@@ -80,6 +84,7 @@ export async function readStructure(input: string | Structure, opts: ReadOptions
       if (!mol.atomCount) throw new Error('The SMILES has no atoms');
       layout2D(mol, style.bondLength);
       layoutPeptides(mol, style.bondLength);
+      if (opts.abbreviate) abbreviateGroups(mol);
       return { mol, objects: [], groups: [], style, format, smiles: text };
     }
     case 'mol': {
@@ -286,7 +291,7 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
     if (detectFormat(t) !== 'smiles') throw new Error(`Stage ${i + 1}: give each stage as SMILES`);
     try { counts.push((await readStructure(t, { ...opts, format: 'smiles' })).mol.fragments().length); } catch (err) { throw new Error(`Stage ${i + 1}: ${(err as Error).message}`); }
   }
-  const s = await readStructure(stages.join('.'), { ...(opts.style ? { style: opts.style } : {}), format: 'smiles' });
+  const s = await readStructure(stages.join('.'), { ...(opts.style ? { style: opts.style } : {}), ...(opts.abbreviate ? { abbreviate: true } : {}), format: 'smiles' });
   const { mol, style } = s;
   const L = style.bondLength, size = style.captionSize, line = size * 1.25;
   const fragments = mol.fragments();
@@ -400,9 +405,12 @@ export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; s
 }
 
 /** The structure with abbreviations (Ph, OMe, Boc...) drawn out, for SMILES, names and comparisons. */
-function expanded(s: Structure): Molecule {
-  if (![...s.mol.atoms()].some((a) => a.label !== null)) return s.mol;
-  const editor = new Editor(new EditorDocument(s.mol.clone(), s.style));
+const expanded = (s: Structure): Molecule => drawnOut(s.mol, s.style);
+
+/** A drawing with its abbreviations (Ph, OMe, Boc...) drawn out; the drawing itself if it has none. */
+export function drawnOut(mol: Molecule, style: DrawingStyle = DEFAULT_STYLE): Molecule {
+  if (![...mol.atoms()].some((a) => a.label !== null)) return mol;
+  const editor = new Editor(new EditorDocument(mol.clone(), style));
   editor.expandLabels();
   return editor.doc.mol;
 }

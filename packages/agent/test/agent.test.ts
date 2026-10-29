@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
-import { payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
-import { alignByMaps, analyze, arrangeForArrows, disconnectionMarks, highlighted, highlightPlaces, imbalance, schemeBalance, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
+import { computeMass, payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
+import { alignByMaps, analyze, PROTECTING_GROUPS, arrangeForArrows, disconnectionMarks, highlighted, highlightPlaces, imbalance, schemeBalance, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
 
@@ -232,6 +232,38 @@ test('a highlight marks one place: where it fits best, the one asked for, or eve
   const [phe] = highlighted(enk.mol, { smiles: 'NC(Cc1ccccc1)C(=O)' });
   const phenol = [...enk.mol.atoms()].find((a) => a.element === 'O' && enk.mol.neighbours(a.id).length === 1 && enk.mol.atom(enk.mol.neighbours(a.id)[0]!).element === 'C' && enk.mol.neighbours(enk.mol.neighbours(a.id)[0]!).length === 3)!;
   assert.ok(!phe!.atoms.includes(enk.mol.neighbours(phenol.id)[0]!));
+});
+
+test('protecting groups are drawn as their abbreviations, and read in full', async () => {
+  // Boc-Phe-OBn: Boc and Bn abbreviated; Phe's own benzyl stays drawn out.
+  const smiles = 'CC(C)(C)OC(=O)N[C@@H](Cc1ccccc1)C(=O)OCc1ccccc1';
+  const s = await readStructure(smiles, { abbreviate: true });
+  assert.deepEqual([...s.mol.atoms()].filter((a) => a.label).map((a) => a.label).sort(), ['Bn', 'Boc']);
+  assert.equal([...s.mol.atoms()].filter((a) => !a.label && a.element === 'C').length, 9);
+  // Names, formulas and SMILES see every atom.
+  const full = await readStructure(smiles);
+  assert.equal((await analyze(s)).formula, (await analyze(full)).formula);
+  assert.equal((await compare(s, full)).same, true);
+  assert.equal(computeMass(s.mol).formula, computeMass(full.mol).formula);
+  // Through CDXML (how a drawing reaches the editor) the labels stay.
+  const back = await readStructure(await convert(s, 'cdxml'));
+  assert.deepEqual([...back.mol.atoms()].filter((a) => a.label).map((a) => a.label).sort(), ['Bn', 'Boc']);
+  // Only when asked; and never over atom-map numbers a mechanism's arrows may need.
+  assert.equal([...full.mol.atoms()].some((a) => a.label), false);
+  const mapped = await readStructure('CC(C)(C)OC(=O)[NH:1]C.[C:2](C)(C)(C)O', { abbreviate: true });
+  assert.equal([...mapped.mol.atoms()].filter((a) => a.label).length, 1);
+  // N-benzyl (a drug's, say) and a TBS chloride reagent stay drawn out.
+  for (const x of ['CN(C)Cc1ccccc1', 'Cl[Si](C)(C)C(C)(C)C']) assert.equal([...(await readStructure(x, { abbreviate: true })).mol.atoms()].some((a) => a.label), false);
+  // Every group, on each atom it protects: abbreviated, with the formula and structure it stands for.
+  for (const g of PROTECTING_GROUPS) {
+    for (const on of g.on) {
+      const smi = `CC${on === 'N' ? 'N' : on}${g.smiles}`;
+      const a = await readStructure(smi, { abbreviate: true }), b = await readStructure(smi);
+      assert.deepEqual([...a.mol.atoms()].filter((x) => x.label).map((x) => x.label), [g.label], `${g.label} on ${on}`);
+      assert.equal(computeMass(a.mol).formula, computeMass(b.mol).formula, `${g.label} formula`);
+      assert.equal((await compare(a, b)).same, true, `${g.label} expands`);
+    }
+  }
 });
 
 test('scheme arrows stay a usual length: long text wraps, centred on the shaft', async () => {
