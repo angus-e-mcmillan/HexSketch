@@ -40,11 +40,24 @@ export interface BudgetEnv {
 }
 const budget = (env: BudgetEnv) => env.BUDGET.get(env.BUDGET.idFromName('budget'));
 
-// Each Worker instance asks the Budget at most once a minute, so checking costs next to nothing.
+/**
+ * Whether today is paused. Requests mostly land on fresh Worker instances,
+ * so the answer is kept for a minute in each data centre's cache (free) and
+ * in the instance: the Budget is asked about once a minute per data centre.
+ */
+const CACHE_KEY = 'https://mcp.hexsketch.com/__budget/paused-on';
 let cached = { at: 0, pausedOn: null as string | null };
 export async function isPaused(env: BudgetEnv): Promise<boolean> {
-  if (Date.now() - cached.at > 60e3) cached = { at: Date.now(), pausedOn: await budget(env).pausedOn() };
+  if (Date.now() - cached.at > 60e3) cached = { at: Date.now(), pausedOn: await pausedOn(env) };
   return cached.pausedOn === today();
+}
+async function pausedOn(env: BudgetEnv): Promise<string | null> {
+  const cache = (globalThis.caches as { default?: Cache } | undefined)?.default;
+  const hit = await cache?.match(CACHE_KEY).catch(() => undefined);
+  if (hit) return (await hit.text()) || null;
+  const date = await budget(env).pausedOn();
+  await cache?.put(CACHE_KEY, new Response(date ?? '', { headers: { 'Cache-Control': 'max-age=60' } })).catch(() => {});
+  return date;
 }
 
 /** The cron: pause today if its use has reached the cap, or lift the pause if the cap was raised. */
