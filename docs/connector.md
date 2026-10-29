@@ -15,7 +15,8 @@ to install.
 - **Limits:**
   - 300 requests a minute per conversation, and 600 new conversations a
     minute per address (generous, since Claude's servers share a few);
-  - 2 MB per request and 1 MB per drawing.
+  - 2 MB per request and 1 MB per drawing;
+  - a daily spending cap (see below), after which it pauses until 00:00 UTC.
 - **What it costs:** mostly open editors, which ask for the AI's updates:
   - every 2 s just after a change, every 5 s after 2 quiet minutes, every
     30 s after 15 and once a minute after 30;
@@ -45,8 +46,37 @@ You need the Cloudflare account that hosts hexsketch.com.
    should start with `ok`, ending with `All good.`
 4. Deploy hexsketch.com too (`npm run deploy:web`), so the privacy page
    (hexsketch.com/privacy) is live.
-5. Add a spending alert: Cloudflare dashboard > Manage Account > Billing >
+5. Turn on the daily spending cap (once; see below).
+6. Add a spending alert too: Cloudflare dashboard > Manage Account > Billing >
    Notifications, for example at $20, so you hear early if usage climbs.
+
+### The daily spending cap
+
+Cloudflare has no hard spending limit, so the server keeps its own
+(`apps/mcp-worker/src/budget.ts`). Every 10 minutes it prices what the
+account has used today (UTC). At `DAILY_CAP_USD` (in `wrangler.jsonc`,
+$5 to start) it pauses until 00:00 UTC. While paused, tool calls answer
+with a message saying why and suggesting hexsketch.com or the local
+install, so Claude tells the user. The editor shows *Paused: daily usage
+limit reached*. The price assumes nothing is included in the plan, so it
+overestimates.
+
+To turn it on:
+
+1. Create an API token: Cloudflare dashboard > My Profile > API Tokens >
+   Create Token > Custom token, with the permission **Account > Account
+   Analytics > Read**.
+2. Check it works: `CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npm run usage`
+   prints today's use and its price.
+3. Give it to the Worker, from `apps/mcp-worker`:
+   `npx wrangler secret put USAGE_API_TOKEN`, then
+   `npx wrangler secret put ACCOUNT_ID` (the account ID is on the dashboard's
+   Workers & Pages overview).
+
+Without these secrets nothing is paused. To change the cap, edit
+`DAILY_CAP_USD` and deploy; `0` pauses the server at the next check, and
+raising the cap lifts a pause. Each check is logged (Workers & Pages >
+hexsketch-mcp > Logs).
 
 ## Add it to Claude
 

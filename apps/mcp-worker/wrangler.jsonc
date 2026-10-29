@@ -10,13 +10,22 @@
   "routes": [{ "pattern": "mcp.hexsketch.com", "custom_domain": true }],
   // Open editors: one Sketch per editor, one Conversation per MCP session
   // (which editor it opened last). Both delete themselves a day after last use.
+  // Budget: whether today is paused by the daily spending cap (src/budget.ts).
   "durable_objects": {
     "bindings": [
       { "name": "SKETCHES", "class_name": "Sketch" },
-      { "name": "CONVERSATIONS", "class_name": "Conversation" }
+      { "name": "CONVERSATIONS", "class_name": "Conversation" },
+      { "name": "BUDGET", "class_name": "Budget" }
     ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Sketch", "Conversation"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Sketch", "Conversation"] },
+    { "tag": "v2", "new_sqlite_classes": ["Budget"] }
+  ],
+  // The daily spending cap, in USD (src/budget.ts), checked every 10 minutes.
+  // 0 pauses the server at the next check; raising it lifts a pause.
+  "vars": { "DAILY_CAP_USD": "5" },
+  "triggers": { "crons": ["*/10 * * * *"] },
   // LIMIT: requests a minute per conversation (an open editor asks for updates at most 30 times a minute).
   // NEW_LIMIT: new conversations a minute per address; generous, since Claude's servers share a few.
   "ratelimits": [

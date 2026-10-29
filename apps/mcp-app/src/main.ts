@@ -363,6 +363,9 @@ app.ontoolresult = (result) => {
  */
 const POLL = { active: 2000, quiet: 5000, idle: 30000, asleep: 60000, hidden: 30000 };
 const QUIET_AFTER = 2 * 60e3, IDLE_AFTER = 15 * 60e3, ASLEEP_AFTER = 30 * 60e3, HIDDEN_STOP_AFTER = 10 * 60e3;
+/** While the hosted server is paused by its daily spending cap: check back this often, whatever the user does. */
+const PAUSED_RETRY = 10 * 60e3;
+let capped = false;
 let lastActivity = Date.now();
 let hiddenSince = document.hidden ? Date.now() : 0;
 let pollTimer = 0, pollDue = 0, paused = false, polling = false;
@@ -385,7 +388,7 @@ function pollDelay(): number | null {
 /** Someone used the editor (or the AI changed it): check again soon. */
 function activity() {
   lastActivity = Date.now();
-  if (!polling) return;
+  if (!polling || capped) return;
   if (paused) { paused = false; setLink('wait', 'Reconnecting…'); schedulePoll(0); }
   else if (pollDue - Date.now() > POLL.active) schedulePoll(POLL.active);
 }
@@ -406,6 +409,16 @@ function startUpdates() {
   pollNow = async () => {
     try {
       const r = await app.callServerTool({ name: 'sketch_updates', arguments: { sketch: sketchId, since } });
+      const why = (r.structuredContent as { paused?: string } | undefined)?.paused;
+      if (why) {
+        if (!capped) ui.flash('HexSketch is paused: its daily usage limit was reached');
+        capped = true;
+        failures = 0;
+        setLink('off', 'Paused: daily usage limit reached', why);
+        schedulePoll(PAUSED_RETRY);
+        return;
+      }
+      capped = false;
       if (r.isError) throw new Error((r.content?.[0] as { text?: string } | undefined)?.text ?? 'the chat returned an error');
       const sc = r.structuredContent as { live?: boolean; updates?: SketchUpdate[] } | undefined;
       if (!sc) throw new Error('the chat returned no structuredContent from sketch_updates');
