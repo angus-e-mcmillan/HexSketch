@@ -1,7 +1,7 @@
 import '@hexsketch/web/style.css';
 import './embed.css';
 import { App } from '@modelcontextprotocol/ext-apps';
-import { aiSummary, objectPoints, parsePattern, structureLink, substructureMatches, writeCdxml, HEXSKETCH_URL, type DocObject, type DrawingStyle, type Molecule, type ObjectGroup } from '@hexsketch/core';
+import { aiSummary, documentSize, objectPoints, parsePattern, structureLink, substructureMatches, writeCdxml, HEXSKETCH_URL, type DocObject, type DrawingStyle, type Molecule, type ObjectGroup } from '@hexsketch/core';
 import { placeLabels, readStructure } from '@hexsketch/agent';
 import { addRingParents, nameMolecule } from '@hexsketch/naming';
 import { mountApp, type AppApi } from '@hexsketch/web';
@@ -207,6 +207,7 @@ function goTo(i: number) {
   aiLabels = new Set(f.labels);
   at = i;
   showStep();
+  ui.reveal();
 }
 
 function showStep() {
@@ -223,12 +224,18 @@ stepsBar.querySelector('.next')!.addEventListener('click', () => goTo(at + 1));
 /** How far the first of a sequence of steps was moved onto the sheet: the later steps move as far, so their atoms stay put. */
 let stepShift: { x: number; y: number } | null = null;
 
+/** Whether a drawing moved by `d` lies on the sheet, clear of its edges: a later step drawn bigger than the first may not. */
+function fitsSheet(mol: Molecule, objects: readonly DocObject[], d: { x: number; y: number }): boolean {
+  const { w, h } = documentSize(ui.editor.doc.page), m = ui.editor.L;
+  return [...mol.atoms(), ...objects.flatMap(objectPoints)].every((p) => p.x + d.x > m && p.x + d.x < w - m && p.y + d.y > m && p.y + d.y < h - m);
+}
+
 async function openStructure(input: string, step?: SketchUpdate['step']): Promise<boolean> {
   try {
     const s = await readStructure(input);
     const first = s.mol.atoms().next().value as { x: number; y: number } | undefined;
     const was = first ? { x: first.x, y: first.y } : null;
-    if (step && step.index > 0 && stepShift) {
+    if (step && step.index > 0 && stepShift && fitsSheet(s.mol, s.objects, stepShift)) {
       for (const a of s.mol.atoms()) { a.x += stepShift.x; a.y += stepShift.y; }
       for (const o of s.objects) for (const q of objectPoints(o)) { q.x += stepShift.x; q.y += stepShift.y; }
       ui.load(s.mol, s.style, s.objects);
@@ -252,6 +259,8 @@ async function apply(u: SketchUpdate) {
   if (u.structure) await openStructure(u.structure, u.step);
   if (u.highlights || u.labels) mark(u.highlights, u.labels);
   keepFrame(card);
+  // The notes panel may have opened over what the structure was fitted to: bring all of it back into view.
+  ui.reveal();
   if (u.step) ui.flash(`Step ${u.step.index + 1} of ${u.step.count}: Back and Next are in Notes`);
   else ui.flash(u.structure ? 'The AI changed the drawing (Undo brings yours back)' : 'The AI pointed something out (see Notes)');
 }

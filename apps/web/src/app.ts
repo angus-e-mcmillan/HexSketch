@@ -48,6 +48,8 @@ export interface AppApi {
    * middle of the sheet as far as it is in view, and zooms out if it doesn't fit.
    */
   load: (mol: Molecule, style?: DrawingStyle, objects?: DocObject[], opts?: { centre?: boolean }) => void;
+  /** If any of the drawing is out of view, zoom out until it all shows and scroll it to the middle. */
+  reveal: () => void;
   image: () => ReturnType<typeof structureImage>;
 }
 
@@ -398,15 +400,28 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     const pts = [...mol.atoms(), ...objects.flatMap(objectPoints)];
     if (!pts.length) return;
     const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    // A drawing bigger than the sheet gets more pages, so none of it hangs off an edge.
+    const page = editor.doc.page, one = documentSize({ ...page, across: 1, down: 1 }), margin = 4 * editor.L;
+    const across = Math.max(page.across, Math.min(20, Math.ceil((x1 - x0 + margin) / one.w)));
+    const down = Math.max(page.down, Math.min(20, Math.ceil((y1 - y0 + margin) / one.h)));
+    if (across !== page.across || down !== page.down) editor.doc.page = { ...page, across, down };
     const v = visibleSheet(), doc = documentSize(editor.doc.page);
     // The middle of what shows, but never so near an edge that part of the drawing falls off the sheet.
     const centre = (lo: number, hi: number, half: number, size: number) =>
       2 * (half + editor.L) > size ? size / 2 : Math.min(size - half - editor.L, Math.max(half + editor.L, (lo + hi) / 2));
-    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
     const dx = centre(v.x0, v.x1, (x1 - x0) / 2, doc.w) - (x0 + x1) / 2;
     const dy = centre(v.y0, v.y1, (y1 - y0) / 2, doc.h) - (y0 + y1) / 2;
     for (const a of mol.atoms()) { a.x += dx; a.y += dy; a.chirality = null; }
     for (const o of objects) for (const q of objectPoints(o)) { q.x += dx; q.y += dy; }
+  }
+
+  /** Whether the whole drawing shows in the window. */
+  function drawingInView() {
+    const b = editor.depiction.bounds;
+    if (!Number.isFinite(b.x0)) return true;
+    const left = pageEl.offsetLeft - wrapEl.scrollLeft, top = pageEl.offsetTop - wrapEl.scrollTop;
+    return b.x0 * zoom + left >= 0 && b.x1 * zoom + left <= wrapEl.clientWidth && b.y0 * zoom + top >= 0 && b.y1 * zoom + top <= viewHeight();
   }
 
   /** Zoom out (never in) until the whole drawing is in view, and scroll it to the middle. */
@@ -1033,6 +1048,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       editor.doc.replace(mol, objects, [], style);
       if (opts.centre) revealDrawing();
     },
+    reveal() { if (!drawingInView()) revealDrawing(); },
     image: () => structureImage(editor.doc.mol, editor.doc.style, editor.doc.objects),
   };
 
