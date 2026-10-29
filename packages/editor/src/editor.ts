@@ -1,4 +1,4 @@
-import { cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, makeCaption, Molecule, objectPoints, objectPolylines, parsePeptide, parseSmiles, peptideMolecule, peptideSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
+import { cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, layoutAsPeptide, makeCaption, Molecule, objectPoints, objectPolylines, parsePeptide, parseSmiles, peptideMolecule, peptideSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
 import { captionBounds, depict, toSvg, type Depiction } from '@hexsketch/render';
 import { EditorDocument } from './document.ts';
 import { hitObject, hitTest, inLasso, inRect, objectsInRect, type Hit } from './hittest.ts';
@@ -149,7 +149,7 @@ export class Editor {
         const pep = peptideMolecule(parsePeptide(c.text.trim())!, L);
         // Left edge at the caption, centred on its text.
         const xs = [...pep.atoms()].map((a) => a.x), ys = [...pep.atoms()].map((a) => a.y);
-        insertMolecule(m, pep, c.x - Math.min(...xs), c.y - this.doc.style.captionSize * 0.35 - (Math.min(...ys) + Math.max(...ys)) / 2);
+        insertMolecule(m, pep, c.x - Math.min(...xs), c.y - this.doc.style.captionSize * 0.35 - (Math.min(...ys) + Math.max(...ys)) / 2, 2 * L);
         this.#removeObjects(objs, [c.id]);
       }
       for (const id of atomJobs) expandAtomLabel(m, id, L);
@@ -1022,14 +1022,16 @@ export class Editor {
   /** Insert a structure (pasted SMILES or file) laid out fresh, beside what is already drawn. */
   insertLaidOut(input: Molecule, at?: { x: number; y: number }) {
     const fresh = input.clone();
-    layout2D(fresh, this.L);
+    // A peptide is drawn as Expand Label draws it: a backbone zigzag rather than a folded chain.
+    if (fresh.fragments().length !== 1 || !layoutAsPeptide(fresh, this.L)) layout2D(fresh, this.L);
     this.doc.edit((m) => {
       const xs = [...fresh.atoms()].map((a) => a.x), ys = [...fresh.atoms()].map((a) => a.y);
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
-      // Centre on the requested point (the middle of the view, as ChemDraw pastes).
+      // Centre on the requested point (the middle of the view, as ChemDraw pastes), but keep
+      // a long structure on the page: the canvas cannot scroll above or left of it.
       const target = at ?? { x: 300, y: 300 };
-      let dx = target.x - cx;
-      const dy = target.y - cy;
+      let dx = Math.max(target.x - cx, 2 * this.L - Math.min(...xs));
+      const dy = Math.max(target.y - cy, 2 * this.L - Math.min(...ys));
       // Don't land on top of an existing drawing: slide right until clear.
       const width = Math.max(...xs) - Math.min(...xs);
       const clashes = () => [...fresh.atoms()].some((a) => [...m.atoms()].some((b) => Math.hypot(a.x + dx - b.x, a.y + dy - b.y) < this.L));
@@ -1260,6 +1262,10 @@ export class Editor {
       if (!runs) { if (!c.text) objects.splice(i, 1); continue; }
       const next = makeCaption(0, 0, '', runs);
       if (next.text !== c.text || JSON.stringify(captionRuns(next)) !== JSON.stringify(captionRuns(c))) setCaptionRuns(c, runs);
+      // A long name (a peptide's) centred under its structure can reach past the left edge
+      // of the page, where the canvas cannot scroll: keep it on the page.
+      const b = captionBounds(c, this.doc.style);
+      if (b.x0 < 0) c.x += this.L - b.x0;
     }
   }
 
@@ -1579,8 +1585,14 @@ function expandable(mol: Molecule, id: AtomId): boolean {
   return !!NICKNAMES[a.label] && mol.neighbours(id).length <= 1;
 }
 
-/** Copy a molecule into `m`, shifted; returns the id map. */
-function insertMolecule(m: Molecule, src: Molecule, dx: number, dy: number): Map<AtomId, AtomId> {
+/**
+ * Copy a molecule into `m`, shifted, but no nearer the top or left edge of the
+ * page than `margin` (the canvas cannot scroll there); returns the id map.
+ */
+function insertMolecule(m: Molecule, src: Molecule, dx: number, dy: number, margin: number): Map<AtomId, AtomId> {
+  const atoms = [...src.atoms()];
+  dx = Math.max(dx, margin - Math.min(...atoms.map((a) => a.x)));
+  dy = Math.max(dy, margin - Math.min(...atoms.map((a) => a.y)));
   const map = new Map<AtomId, AtomId>();
   for (const a of src.atoms()) map.set(a.id, m.addAtom({ ...a, x: a.x + dx, y: a.y + dy, chirality: null }).id);
   for (const b of src.bonds()) m.addBond({ ...b, begin: map.get(b.begin)!, end: map.get(b.end)!, ez: null });
@@ -1594,7 +1606,7 @@ function expandAtomLabel(m: Molecule, id: AtomId, L: number) {
   if (nbrs.length === 0 && parsePeptide(a.label!)) {
     const pep = peptideMolecule(parsePeptide(a.label!)!, L);
     const xs = [...pep.atoms()].map((p) => p.x), ys = [...pep.atoms()].map((p) => p.y);
-    insertMolecule(m, pep, a.x - (Math.min(...xs) + Math.max(...xs)) / 2, a.y - (Math.min(...ys) + Math.max(...ys)) / 2);
+    insertMolecule(m, pep, a.x - (Math.min(...xs) + Math.max(...xs)) / 2, a.y - (Math.min(...ys) + Math.max(...ys)) / 2, 2 * L);
     m.removeAtom(id);
     return;
   }

@@ -9,10 +9,12 @@
  * the drawing from its own coordinates towards ideal distances and then
  * rotates the result back onto the original (rotation only, never a mirror
  * image). Only if that cannot produce clean geometry (a tangled drawing) does
- * it fall back to a fresh layout, aligned as closely as possible to the original.
+ * it fall back to a fresh layout (a peptide's backbone zigzag when the fragment
+ * is a peptide), aligned as closely as possible to the original.
  */
 import { assignWedges, layout2D } from './layout.ts';
 import { Molecule, type AtomId } from './model.ts';
+import { layoutAsPeptide } from './peptides.ts';
 import { perceiveRings } from './rings.ts';
 import { ezLabel, perceiveStereoFromGeometry, rsLabel } from './stereo.ts';
 
@@ -120,19 +122,63 @@ function relax(mol: Molecule, frag: AtomId[], L: number) {
     });
   }
 
-  // Constraint projection (Gauss-Seidel), alternating sweep direction to avoid bias.
-  for (let it = 0; it < 600; it++) {
-    const list = it % 2 ? cons : [...cons].reverse();
-    for (const k of list) {
+  // Atoms that share no bond and no neighbour keep at least this far apart. Without it a
+  // crowded structure (a peptide's side chains) relaxes by folding onto itself.
+  const near = new Set<string>();
+  for (const c of frag) {
+    const nb = [c, ...mol.neighbours(c)];
+    for (const a of nb) for (const b of nb) if (a < b) near.add(`${a},${b}`);
+  }
+  const minD = 0.9 * L;
+  let push: Constraint[] = [];
+
+  // Constraint projection (Gauss-Seidel), alternating sweep direction to avoid bias,
+  // until nothing moves any more (big structures need more sweeps than small ones).
+  const reversed = [...cons].reverse();
+  let before = new Map([...pos].map(([id, p]) => [id, { ...p }]));
+  for (let it = 1; it <= 4000; it++) {
+    if (it % 25 === 1) push = crowded(frag, pos, near, minD);
+    for (const k of it % 2 ? cons : reversed) project(pos, k);
+    for (const k of push) {
       const p = pos.get(k.i)!, q = pos.get(k.j)!;
-      const dx = q.x - p.x, dy = q.y - p.y;
-      const d = Math.hypot(dx, dy) || 1e-6;
-      const f = ((d - k.d) / d) * 0.5 * k.w;
-      p.x += dx * f; p.y += dy * f;
-      q.x -= dx * f; q.y -= dy * f;
+      if (Math.hypot(q.x - p.x, q.y - p.y) < minD) project(pos, k);
+    }
+    if (it % 100 === 0) {
+      let moved = 0;
+      for (const [id, p] of pos) { const o = before.get(id)!; moved = Math.max(moved, Math.hypot(p.x - o.x, p.y - o.y)); }
+      if (it >= 600 && moved < 1e-3 * L) break;
+      before = new Map([...pos].map(([id, p]) => [id, { ...p }]));
     }
   }
   for (const [id, p] of pos) { mol.atom(id).x = p.x; mol.atom(id).y = p.y; }
+}
+
+function project(pos: Map<AtomId, Pt>, k: Constraint) {
+  const p = pos.get(k.i)!, q = pos.get(k.j)!;
+  const dx = q.x - p.x, dy = q.y - p.y;
+  const d = Math.hypot(dx, dy) || 1e-6;
+  const f = ((d - k.d) / d) * 0.5 * k.w;
+  p.x += dx * f; p.y += dy * f;
+  q.x -= dx * f; q.y -= dy * f;
+}
+
+/** Pairs of unrelated atoms closer than 1.5 minD (to push apart while under minD), found on a grid. */
+function crowded(frag: AtomId[], pos: Map<AtomId, Pt>, near: Set<string>, minD: number): Constraint[] {
+  const cell = 1.5 * minD, grid = new Map<string, AtomId[]>();
+  const key = (x: number, y: number) => `${Math.floor(x / cell)},${Math.floor(y / cell)}`;
+  for (const id of frag) { const p = pos.get(id)!, k = key(p.x, p.y); grid.get(k)?.push(id) ?? grid.set(k, [id]); }
+  const out: Constraint[] = [];
+  for (const i of frag) {
+    const p = pos.get(i)!, gx = Math.floor(p.x / cell), gy = Math.floor(p.y / cell);
+    for (let u = gx - 1; u <= gx + 1; u++) for (let v = gy - 1; v <= gy + 1; v++) {
+      for (const j of grid.get(`${u},${v}`) ?? []) {
+        if (j <= i || near.has(`${i},${j}`)) continue;
+        const q = pos.get(j)!;
+        if (Math.hypot(q.x - p.x, q.y - p.y) < cell) out.push({ i, j, d: minD, w: 0.3 });
+      }
+    }
+  }
+  return out;
 }
 
 /** Rotate (and, if allowed, mirror) the fragment about its centroid to best match `original`, then put it back in place. */
@@ -216,7 +262,8 @@ function freshLayout(mol: Molecule, frag: AtomId[], L: number, original: Map<Ato
     bondMap.set(nb.id, b.id);
   }
   perceiveStereoFromGeometry(sub);
-  layout2D(sub, L);
+  // A peptide gets the zigzag Expand Label draws; layout2D folds long chains onto themselves.
+  if (!layoutAsPeptide(sub, L)) layout2D(sub, L);
   for (const a of sub.atoms()) { const t = mol.atom(toMain.get(a.id)!); t.x = a.x; t.y = a.y; }
   for (const b of sub.bonds()) { const t = mol.bond(bondMap.get(b.id)!); if (t.order === 1) t.display = b.display; }
   alignTo(mol, frag, original, true);
