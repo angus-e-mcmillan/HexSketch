@@ -155,7 +155,7 @@ Status: `[ ]` not started, `[~]` PR open, `[x]` merged.
   hexsketch.com. Left for the owner: record the video and GIF, then submit
   the listings once the connector is live.
 
-### [~] 8. Proof
+### [x] 8. Proof
 - Naming benchmark: a public set of structures, names round-tripped through
   OPSIN, accuracy reported and reproducible.
 - Depiction comparison against RDKit on the same set.
