@@ -1,5 +1,5 @@
 import {
-  altTextFor, assignWedges, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArrow, makeCaption, parseSmiles, pngWithPayload,
+  altTextFor, assignWedges, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
@@ -9,7 +9,9 @@ import { Editor, EditorDocument } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
 import '@hexsketch/naming/rings';
 
-export { labelPlaces, placeLabels, type AtomLabel, type PlacedLabels } from './labels.ts';
+import { abbreviateGroups } from './abbreviate.ts';
+export { abbreviateGroups, PROTECTING_GROUPS } from './abbreviate.ts';
+export { highlighted, highlightPlaces, labelPlaces, placeLabels, type AtomLabel, type Highlight, type PlacedLabels } from './labels.ts';
 export { alignByMaps, arrangeForArrows, electronArrows, type ElectronArrow } from './arrows.ts';
 export { describeImbalance, disconnectionMarks, imbalance, type Imbalance } from './retro.ts';
 import { describeImbalance, imbalance } from './retro.ts';
@@ -40,6 +42,8 @@ export interface ReadOptions {
   format?: InputFormat;
   /** Drawing style; defaults to the one the input carries (CDXML, links), else HexSketch's. */
   style?: StyleName | DrawingStyle;
+  /** Draw a SMILES's protecting groups as their abbreviations (Boc, Fmoc, TBS...), as a chemist would: for drawings, not for files. */
+  abbreviate?: boolean;
 }
 
 const STYLES: Record<StyleName, Readonly<DrawingStyle>> = { hexsketch: DEFAULT_STYLE, acs: ACS_1996_STYLE };
@@ -79,6 +83,8 @@ export async function readStructure(input: string | Structure, opts: ReadOptions
       }
       if (!mol.atomCount) throw new Error('The SMILES has no atoms');
       layout2D(mol, style.bondLength);
+      layoutPeptides(mol, style.bondLength);
+      if (opts.abbreviate) abbreviateGroups(mol);
       return { mol, objects: [], groups: [], style, format, smiles: text };
     }
     case 'mol': {
@@ -199,6 +205,8 @@ function copyDrawing(mol: Molecule, ids: readonly AtomId[], ref: Molecule, map: 
   assignWedges(mol, new Map([...mol.atoms()].filter((a) => a.chirality).map((a) => [a.id, { ...a.chirality! }])));
 }
 
+const isPeptide = (mol: Molecule) => { try { return mol.atomCount >= 7 && recognisePeptide(mol) !== null; } catch { return false; } };
+
 /**
  * Draw related structures the same way round: each structure in `targets`
  * (in order) is turned to match the structure among `refs`, and the targets
@@ -209,6 +217,8 @@ function orientLikeOthers(mol: Molecule, targets: readonly AtomId[][], refs: { m
   const known = [...refs];
   for (const ids of targets) {
     const mine = subMolecule(mol, ids);
+    // A peptide keeps its own way round: N-terminus on the left.
+    if (isPeptide(mine)) { known.push({ mol, ids }); continue; }
     let best: { ref: Molecule; maps: Map<AtomId, AtomId>[]; size: number; refSize: number } | null = null;
     for (const r of known) {
       const theirs = r.mol.atomCount === r.ids.length ? r.mol : subMolecule(r.mol, r.ids);
@@ -281,7 +291,7 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
     if (detectFormat(t) !== 'smiles') throw new Error(`Stage ${i + 1}: give each stage as SMILES`);
     try { counts.push((await readStructure(t, { ...opts, format: 'smiles' })).mol.fragments().length); } catch (err) { throw new Error(`Stage ${i + 1}: ${(err as Error).message}`); }
   }
-  const s = await readStructure(stages.join('.'), { ...(opts.style ? { style: opts.style } : {}), format: 'smiles' });
+  const s = await readStructure(stages.join('.'), { ...(opts.style ? { style: opts.style } : {}), ...(opts.abbreviate ? { abbreviate: true } : {}), format: 'smiles' });
   const { mol, style } = s;
   const L = style.bondLength, size = style.captionSize, line = size * 1.25;
   const fragments = mol.fragments();
@@ -290,7 +300,20 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
   orientLikeOthers(mol, fragments, like);
   const objects: DocObject[] = [];
   const lines = (t?: string) => (t?.trim() ? t.trim().split('\n') : []);
-  const textWidth = (t?: string) => Math.max(0, ...lines(t).map((l) => l.length * size * 0.55));
+  const lineWidth = (l: string) => l.length * size * 0.55;
+  const textWidth = (t?: string) => Math.max(0, ...lines(t).map(lineWidth));
+  // Arrows of a usual length: text that would stretch one past MAX_ARROW wraps onto more lines instead.
+  const MIN_ARROW = 2.5 * L, MAX_ARROW = 6 * L, roomFor = MAX_ARROW - 1.2 * L;
+  const wrap = (t?: string) => lines(t).flatMap((l) => {
+    if (lineWidth(l) <= roomFor) return [l];
+    // At commas first ("THF, −78 °C, 2 h"), then at spaces outside brackets ("(3 equiv)" stays whole); a word longer than the room keeps its own line.
+    const out: string[] = [];
+    for (const piece of l.split(/(?<=[,;])\s+/).flatMap((p) => (lineWidth(p) <= roomFor ? [p] : p.split(/\s+(?![^()]*\))/)))) {
+      const joined = out.length ? `${out.at(-1)} ${piece}` : piece;
+      if (out.length && lineWidth(joined) <= roomFor) out[out.length - 1] = joined; else out.push(piece);
+    }
+    return out;
+  }).join('\n');
   const caption = (x: number, y: number, text: string) => { objects.push(makeCaption(x, y, text, [{ text, script: 'formula' }], 'center')); };
 
   // Each stage on its own, from x = 0 and centred on y = 0: its structures with "+" between them.
@@ -316,7 +339,8 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
   }
   const steps = into.map((a) => {
     if (!a) return null;
-    const len = Math.max(3 * L, textWidth(a.reagents) + L, textWidth(a.conditions) + L);
+    a = { ...a, reagents: wrap(a.reagents), conditions: wrap(a.conditions) };
+    const len = Math.max(MIN_ARROW, textWidth(a.reagents) + 1.2 * L, textWidth(a.conditions) + 1.2 * L);
     return { a, len, w: len + L * 1.2, above: lines(a.reagents).length * line + size * 0.7, below: lines(a.conditions).length * line + size * 0.5 };
   });
 
@@ -341,8 +365,11 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
       if (steps[i]) {
         const { a, len } = steps[i]!;
         const tail = { x: x + L * 0.6, y }, head = { x: x + L * 0.6 + len, y };
-        objects.push(makeArrow(tail, head, a.type === 'equilibrium' ? 'equilibrium' : a.type === 'retrosynthetic' ? 'retro' : 'reaction'));
-        const mid = (tail.x + head.x) / 2;
+        const arrow = makeArrow(tail, head, a.type === 'equilibrium' ? 'equilibrium' : a.type === 'retrosynthetic' ? 'retro' : 'reaction');
+        objects.push(arrow);
+        // The text is centred on the shaft, not on shaft and head: a little to the left of the arrow's middle.
+        const tip = (end: string) => (end === 'none' ? 0 : (arrow.headSize / 100) * style.lineWidth);
+        const mid = (tail.x + head.x - tip(arrow.headEnd) + tip(arrow.tailEnd)) / 2;
         const above = a.reagents?.trim(), below = a.conditions?.trim();
         if (above) caption(mid, y - size * 0.7 - (lines(above).length - 1) * line, above);
         if (below) caption(mid, y + size * 1.5, below);
@@ -378,9 +405,12 @@ export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; s
 }
 
 /** The structure with abbreviations (Ph, OMe, Boc...) drawn out, for SMILES, names and comparisons. */
-function expanded(s: Structure): Molecule {
-  if (![...s.mol.atoms()].some((a) => a.label !== null)) return s.mol;
-  const editor = new Editor(new EditorDocument(s.mol.clone(), s.style));
+const expanded = (s: Structure): Molecule => drawnOut(s.mol, s.style);
+
+/** A drawing with its abbreviations (Ph, OMe, Boc...) drawn out; the drawing itself if it has none. */
+export function drawnOut(mol: Molecule, style: DrawingStyle = DEFAULT_STYLE): Molecule {
+  if (![...mol.atoms()].some((a) => a.label !== null)) return mol;
+  const editor = new Editor(new EditorDocument(mol.clone(), style));
   editor.expandLabels();
   return editor.doc.mol;
 }

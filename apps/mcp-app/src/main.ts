@@ -1,8 +1,8 @@
 import '@hexsketch/web/style.css';
 import './embed.css';
 import { App } from '@modelcontextprotocol/ext-apps';
-import { aiSummary, documentSize, objectPoints, parsePattern, structureLink, substructureMatches, writeCdxml, HEXSKETCH_URL, type DocObject, type DrawingStyle, type Molecule, type ObjectGroup } from '@hexsketch/core';
-import { placeLabels, readStructure } from '@hexsketch/agent';
+import { aiSummary, documentSize, objectPoints, structureLink, writeCdxml, HEXSKETCH_URL, type DocObject, type DrawingStyle, type Molecule, type ObjectGroup } from '@hexsketch/core';
+import { drawnOut, highlighted, placeLabels, readStructure } from '@hexsketch/agent';
 import { addRingParents, nameMolecule } from '@hexsketch/naming';
 import { mountApp, type AppApi } from '@hexsketch/web';
 
@@ -24,7 +24,7 @@ import { mountApp, type AppApi } from '@hexsketch/web';
 interface SketchUpdate {
   version: number;
   structure?: string;
-  highlights?: { smiles: string; color: string; name: string }[];
+  highlights?: { smiles: string; occurrence?: number; every?: boolean; color: string; name: string }[];
   labels?: { at: string; text: string; color?: string; occurrence?: number }[];
   note?: string;
   step?: { index: number; count: number };
@@ -145,10 +145,9 @@ let aiLabels = new Set<number>();
 /** The AI's highlights and labels, in one edit (one Undo takes them away). */
 function mark(highlights: SketchUpdate['highlights'], labels: SketchUpdate['labels']) {
   const doc = ui.editor.doc;
+  // Each highlight marks one place (the server says which), or every place if it asks.
   const marks = (highlights ?? []).map((h) => {
-    let pattern;
-    try { pattern = parsePattern(h.smiles); } catch { return null; }
-    return { color: h.color, places: substructureMatches(pattern, doc.mol) };
+    try { return { color: h.color, places: highlighted(doc.mol, h) }; } catch { return null; }
   });
   doc.edit((m, objects) => {
     if (highlights) {
@@ -232,7 +231,8 @@ function fitsSheet(mol: Molecule, objects: readonly DocObject[], d: { x: number;
 
 async function openStructure(input: string, step?: SketchUpdate['step']): Promise<boolean> {
   try {
-    const s = await readStructure(input);
+    // Protecting groups as chemists draw them: Boc, Fmoc, TBS...
+    const s = await readStructure(input, { abbreviate: true });
     const first = s.mol.atoms().next().value as { x: number; y: number } | undefined;
     const was = first ? { x: first.x, y: first.y } : null;
     if (step && step.index > 0 && stepShift && fitsSheet(s.mol, s.objects, stepShift)) {
@@ -272,7 +272,8 @@ async function describe(): Promise<string | null> {
   const doc = ui.editor.doc;
   if (!doc.mol.atomCount) return null;
   const link = await structureLink(doc.mol, doc.style, doc.objects, doc.groups, HEXSKETCH_URL);
-  return aiSummary(doc.mol, { nameOf: (m) => nameMolecule(m).name, link });
+  // Abbreviations (Boc, OTBS...) drawn out, so the AI gets the full SMILES and formula.
+  return aiSummary(drawnOut(doc.mol, doc.style), { nameOf: (m) => nameMolecule(m).name, link });
 }
 
 async function sendToChat(u: AppApi) {

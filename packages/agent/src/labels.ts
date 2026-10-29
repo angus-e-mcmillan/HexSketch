@@ -1,4 +1,4 @@
-import { arcPolyline, curvePolyline, makeCaption, makeShape, parsePattern, substructureMappings, type AtomId, type DocObject, type DrawingStyle, type Molecule } from '@hexsketch/core';
+import { arcPolyline, curvePolyline, makeCaption, makeShape, parsePattern, perceiveRings, substructureMappings, type AtomId, type DocObject, type DrawingStyle, type Molecule } from '@hexsketch/core';
 import { depict, layoutCaption, textWidth } from '@hexsketch/render';
 
 /**
@@ -48,6 +48,42 @@ export function labelPlaces(mol: Molecule, at: string): (Pt & { id: AtomId })[] 
     .map((m) => mol.atom(m.map.get(first.id)!))
     .sort((a, b) => (Math.abs(a.x - b.x) > 1e-6 ? a.x - b.x : a.y - b.y))
     .map((a) => ({ x: a.x, y: a.y, id: a.id }));
+}
+
+/** What one highlight marks: a SMILES fragment, at one place (the best fit, or `occurrence`) or at `every` place. */
+export interface Highlight { smiles: string; occurrence?: number; every?: boolean }
+
+/**
+ * The atoms and bonds a highlight's fragment matches, one entry per place in
+ * reading order (left to right by the fragment's first atom, as labels count
+ * them), each with how loosely it fits: the groups attached that the
+ * fragment does not have, a substituent on one of its rings counting double
+ * (so "NC(Cc1ccccc1)C(=O)" fits Phe better than Tyr). Throws when the
+ * fragment is not SMILES.
+ */
+export function highlightPlaces(mol: Molecule, smiles: string): { atoms: AtomId[]; bonds: number[]; misfit: number }[] {
+  const pattern = parsePattern(smiles);
+  const first = pattern.atoms().next().value;
+  if (!first) return [];
+  const inRing = new Set(perceiveRings(pattern).flatMap((r) => r.atoms));
+  return substructureMappings(pattern, mol)
+    .map((m) => {
+      const mine = new Set(m.atoms);
+      let misfit = 0;
+      for (const [p, t] of m.map) for (const n of mol.neighbours(t)) if (!mine.has(n)) misfit += inRing.has(p) ? 2 : 1;
+      return { atoms: m.atoms, bonds: m.bonds, misfit, at: mol.atom(m.map.get(first.id)!) };
+    })
+    .sort((a, b) => (Math.abs(a.at.x - b.at.x) > 1e-6 ? a.at.x - b.at.x : a.at.y - b.at.y))
+    .map(({ atoms, bonds, misfit }) => ({ atoms, bonds, misfit }));
+}
+
+/** The places a highlight marks: every one if it asks, the one it names, or else the one the fragment fits best (leftmost of equals). */
+export function highlighted(mol: Molecule, h: Highlight): { atoms: AtomId[]; bonds: number[] }[] {
+  const places = highlightPlaces(mol, h.smiles);
+  if (h.every) return places;
+  if (h.occurrence) return places.slice(h.occurrence - 1, h.occurrence);
+  const best = places.reduce<(typeof places)[number] | null>((b, p) => (!b || p.misfit < b.misfit ? p : b), null);
+  return best ? [best] : [];
 }
 
 export function placeLabels(mol: Molecule, objects: readonly DocObject[], style: DrawingStyle, labels: readonly AtomLabel[]): PlacedLabels {
