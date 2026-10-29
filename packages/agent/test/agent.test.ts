@@ -165,6 +165,26 @@ test('scheme draws a reaction: structures, arrows, reagents above and conditions
   await assert.rejects(scheme({ stages: ['CCO', 'ethanal'] }), /Stage 2: .*looks like a name/);
 });
 
+test('a retrosynthesis is one drawing: the analysis, then the forward route below it', async () => {
+  const r = {
+    stages: ['CC(=O)[NH:1][c:2]1ccccc1', 'CC(=O)Cl.Nc1ccccc1'],
+    arrows: [{ type: 'retrosynthetic' as const }],
+    then: [{ stages: ['CC(=O)Cl.Nc1ccccc1', 'CC(=O)Nc1ccccc1'], arrows: [{ reagents: 'Et3N', conditions: 'CH2Cl2, 0 °C' }] }],
+  };
+  const s = await scheme(r);
+  const arrows = s.objects.filter((o) => o.kind === 'arrow') as { tail: { x: number; y: number }; head: { x: number; y: number } }[];
+  // Two arrows, one per scheme, the second on a row below the first; nothing joins the two schemes.
+  assert.equal(arrows.length, 2);
+  assert.ok(arrows[1]!.tail.y > arrows[0]!.tail.y);
+  assert.equal(s.mol.fragments().length, 6);
+  // The forward route starts at the left again, below the target, with no arrow into it.
+  const left = (f: number) => Math.min(...s.mol.fragments()[f]!.map((id) => s.mol.atom(id).x));
+  assert.ok(Math.abs(left(3) - left(0)) < s.style.bondLength);
+  // Only the forward arrow is checked for balance (HCl is not drawn), and reported against its scheme.
+  assert.deepEqual((await schemeBalance(r)).map((b) => [b.scheme, b.step]), [[2, 1]]);
+  await assert.rejects(scheme({ stages: ['CCO', 'CC=O'], then: [{ stages: ['CC=O'] }] }), /Scheme 2: A scheme needs at least two stages/);
+});
+
 test('related structures are drawn the same way round', async () => {
   // The same compound written two ways: drawn identically (up to where it sits).
   const s = await scheme({ stages: ['OC(=O)c1ccccc1OC(C)=O', 'CC(=O)Oc1ccccc1C(=O)O'] });

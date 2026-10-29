@@ -26,8 +26,11 @@ than describing them, and keep the chat for the short answer.
    a lone pair (`[1]`) or bond (`[2, 3]`) to an atom or a bond being made
    (`[1, 2]`). Send a whole mechanism at once as `steps`: the chemist steps
    through it with Back and Next.
-   For a retrosynthesis, mark bonds with `disconnect` (`[[1, 2]]`), then
-   show the precursors behind a retrosynthetic arrow and the forward route.
+   Draw a retrosynthesis or synthesis as one scheme in one call, not as
+   `steps`, so the whole route is on one page: a `reaction` from the target
+   (bonds marked with `disconnect`, `[[1, 2]]`, map numbers on the target
+   only) back to the starting materials with retrosynthetic arrows, and the
+   forward route with its reagents and conditions in `then`, below it.
 4. While the editor is open, don't show structures as images, web pictures,
    ASCII drawings or extra editors. Use `render_structure` only when the
    chemist asks for an image or a file.

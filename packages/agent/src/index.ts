@@ -249,19 +249,32 @@ export interface Scheme {
   stages: string[];
   /** The arrows between consecutive stages (one fewer than the stages); missing ones are plain arrows. */
   arrows?: SchemeArrow[];
+  /** More schemes in the same drawing, each from a new row below (a retrosynthesis's forward route, below its analysis). */
+  then?: Scheme[];
 }
+
+/** A scheme and those it is followed by, in order. */
+const sequences = (s: Scheme): Scheme[] => [s, ...(s.then ?? []).flatMap(sequences)];
 
 /**
  * A reaction scheme as one drawing: the stages left to right, "+" between the
  * structures of a stage, and an arrow between stages with the reagents above
  * it and the conditions below, long enough for its text. Rows wrap at
- * `maxWidth` points (default 520, about the width of a page).
+ * `maxWidth` points (default 520, about the width of a page); each scheme in
+ * `then` starts a row of its own below.
  */
 export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecule; maxWidth?: number } = {}): Promise<Structure> {
-  const stages = input.stages.map((t) => t.trim());
-  if (stages.length < 2) throw new Error('A scheme needs at least two stages (starting material and product)');
-  const arrows = input.arrows ?? [];
-  if (arrows.length > stages.length - 1) throw new Error(`${arrows.length} arrows for ${stages.length} stages: give one fewer arrow than stages`);
+  const all = sequences(input);
+  // The stages of every scheme in one list; `into[i]` is the arrow into stage i, null where a scheme starts.
+  const stages: string[] = [];
+  const into: (SchemeArrow | null)[] = [];
+  for (const [k, seq] of all.entries()) {
+    const where = all.length > 1 ? `Scheme ${k + 1}: ` : '';
+    if (seq.stages.length < 2) throw new Error(`${where}A scheme needs at least two stages (starting material and product)`);
+    const arrows = seq.arrows ?? [];
+    if (arrows.length > seq.stages.length - 1) throw new Error(`${where}${arrows.length} arrows for ${seq.stages.length} stages: give one fewer arrow than stages`);
+    seq.stages.forEach((t, i) => { stages.push(t.trim()); into.push(i ? arrows[i - 1] ?? {} : null); });
+  }
   // Each stage on its own first, so a mistake is reported against the stage it is in.
   const counts: number[] = [];
   for (const [i, t] of stages.entries()) {
@@ -301,31 +314,32 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
     block.w = x;
     blocks.push(block);
   }
-  const steps = blocks.slice(1).map((_, i) => {
-    const a = arrows[i] ?? {};
+  const steps = into.map((a) => {
+    if (!a) return null;
     const len = Math.max(3 * L, textWidth(a.reagents) + L, textWidth(a.conditions) + L);
     return { a, len, w: len + L * 1.2, above: lines(a.reagents).length * line + size * 0.7, below: lines(a.conditions).length * line + size * 0.5 };
   });
 
-  // Rows no wider than maxWidth: a row that breaks starts with the arrow into its first stage.
+  // Rows no wider than maxWidth: a row that breaks starts with the arrow into its first stage; each scheme starts a row.
   const maxWidth = opts.maxWidth ?? 520;
-  const rows: number[][] = [[0]];
-  let width = blocks[0]!.w;
-  for (let i = 1; i < blocks.length; i++) {
-    const need = steps[i - 1]!.w + blocks[i]!.w;
-    if (width + need > maxWidth && width > 0) { rows.push([]); width = 0; }
+  const rows: number[][] = [];
+  let width = 0;
+  for (let i = 0; i < blocks.length; i++) {
+    const need = (steps[i]?.w ?? 0) + blocks[i]!.w;
+    if (!steps[i] || (width + need > maxWidth && width > 0)) { rows.push([]); width = 0; }
     rows.at(-1)!.push(i);
     width += need;
   }
   let y = 0;
   for (const [r, row] of rows.entries()) {
-    const up = Math.max(...row.map((i) => Math.max(blocks[i]!.h / 2, i > 0 ? steps[i - 1]!.above : 0)));
-    const down = Math.max(...row.map((i) => Math.max(blocks[i]!.h / 2, i > 0 ? steps[i - 1]!.below : 0)));
-    if (r > 0) y += up;
+    const up = Math.max(...row.map((i) => Math.max(blocks[i]!.h / 2, steps[i]?.above ?? 0)));
+    const down = Math.max(...row.map((i) => Math.max(blocks[i]!.h / 2, steps[i]?.below ?? 0)));
+    // A new scheme stands a little further off than a row that wraps.
+    if (r > 0) y += up + (steps[row[0]!] ? 0 : L);
     let x = 0;
     for (const i of row) {
-      if (i > 0) {
-        const { a, len } = steps[i - 1]!;
+      if (steps[i]) {
+        const { a, len } = steps[i]!;
         const tail = { x: x + L * 0.6, y }, head = { x: x + L * 0.6 + len, y };
         objects.push(makeArrow(tail, head, a.type === 'equilibrium' ? 'equilibrium' : a.type === 'retrosynthetic' ? 'retro' : 'reaction'));
         const mid = (tail.x + head.x) / 2;
@@ -349,13 +363,16 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
  * byproduct not drawn, or atoms from a reagent written above the arrow
  * (which is fine). Retrosynthetic arrows are skipped: they never balance.
  */
-export async function schemeBalance(input: Scheme): Promise<{ step: number; unbalanced: string }[]> {
-  const stages = await Promise.all(input.stages.map((t) => readStructure(t.trim(), { format: 'smiles' })));
-  const out: { step: number; unbalanced: string }[] = [];
-  for (let i = 1; i < stages.length; i++) {
-    if (input.arrows?.[i - 1]?.type === 'retrosynthetic') continue;
-    const x = imbalance(expanded(stages[i - 1]!), expanded(stages[i]!));
-    if (x) out.push({ step: i, unbalanced: describeImbalance(x) });
+export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; step: number; unbalanced: string }[]> {
+  const all = sequences(input);
+  const out: { scheme?: number; step: number; unbalanced: string }[] = [];
+  for (const [k, seq] of all.entries()) {
+    const stages = await Promise.all(seq.stages.map((t) => readStructure(t.trim(), { format: 'smiles' })));
+    for (let i = 1; i < stages.length; i++) {
+      if (seq.arrows?.[i - 1]?.type === 'retrosynthetic') continue;
+      const x = imbalance(expanded(stages[i - 1]!), expanded(stages[i]!));
+      if (x) out.push({ ...(all.length > 1 ? { scheme: k + 1 } : {}), step: i, unbalanced: describeImbalance(x) });
+    }
   }
   return out;
 }
