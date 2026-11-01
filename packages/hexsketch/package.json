@@ -4,48 +4,17 @@
   "license": "BUSL-1.1 AND MIT AND OFL-1.1",
   "description": "Chemical structures for AI agents and scripts: render, name, analyse, convert and check SMILES, molfiles and CDXML",
   "type": "module",
-  "bin": {
-    "hexsketch": "./dist/cli.js"
-  },
+  "bin": { "hexsketch": "./dist/cli.js" },
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./png": {
-      "types": "./dist/png.d.ts",
-      "default": "./dist/png.js"
-    }
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./png": { "types": "./dist/png.d.ts", "default": "./dist/png.js" }
   },
-  "files": [
-    "dist",
-    "fonts",
-    "README.md",
-    "LICENSE",
-    "LICENSE-MIT"
-  ],
-  "engines": {
-    "node": ">=20"
-  },
+  "files": ["dist", "fonts", "README.md", "LICENSE", "LICENSE-MIT"],
+  "engines": { "node": ">=20" },
   "homepage": "https://hexsketch.com",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/angus-e-mcmillan/HexSketch.git",
-    "directory": "packages/hexsketch"
-  },
+  "repository": { "type": "git", "url": "git+https://github.com/angus-e-mcmillan/HexSketch.git", "directory": "packages/hexsketch" },
   "bugs": "https://github.com/angus-e-mcmillan/HexSketch/issues",
-  "keywords": [
-    "chemistry",
-    "smiles",
-    "molfile",
-    "cdxml",
-    "iupac",
-    "structure",
-    "depiction",
-    "ai",
-    "agent",
-    "mcp"
-  ],
+  "keywords": ["chemistry", "smiles", "molfile", "cdxml", "iupac", "structure", "depiction", "ai", "agent", "mcp"],
   "scripts": {
     "prepack": "cp ../../LICENSE ../../LICENSE-MIT .",
     "build": "npm run build -w @hexsketch/mcp-app && vite build && cp ../../apps/mcp-app/dist/index.html dist/sketcher.html && rollup -c rollup.dts.config.js",
@@ -55,10 +24,10 @@
     "@resvg/resvg-wasm": "2.6.2"
   },
   "devDependencies": {
-    "@anthropic-ai/mcpb": "2.1.2",
     "@hexsketch/agent": "0.1.0",
     "@hexsketch/core": "0.1.0",
     "@hexsketch/mcp-app": "0.1.0",
+    "@anthropic-ai/mcpb": "2.1.2",
     "@modelcontextprotocol/ext-apps": "1.7.5",
     "@modelcontextprotocol/sdk": "1.32.1",
     "rollup-plugin-dts": "6.1.1",
