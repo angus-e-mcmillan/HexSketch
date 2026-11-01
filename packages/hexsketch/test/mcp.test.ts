@@ -10,6 +10,7 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { payloadFromPng } from '@hexsketch/core';
 import { createServer, SKETCHER_URI, type ServerOptions } from '../src/mcp.ts';
+import { findStructure, pageTools, PAGE_INSTRUCTIONS, PAGE_ONLY_TOOLS } from '../src/toolkit.ts';
 import { rasterize } from '../src/png.ts';
 
 const dir = mkdtempSync(join(tmpdir(), 'hexsketch-mcp-'));
@@ -434,4 +435,37 @@ test('every tool input is spelt out in full: no $ref, which directory clients ca
       assert.ok(v.type || v.enum || v.anyOf, `${t.name}.${k} has no type`);
     }
   }
+});
+
+test('a chat beside the editor (hexsketch.com) offers the same tools as the MCP server', async () => {
+  const { client } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const mcp = new Map((await client.listTools()).tools.map((t) => [t.name, t]));
+  for (const tool of pageTools().filter((t) => !PAGE_ONLY_TOOLS.includes(t.name))) {
+    const there = mcp.get(tool.name);
+    assert.ok(there, tool.name);
+    // The same inputs, as JSON Schema, but for the sketch id: the page has one editor.
+    const { $schema: _, ...schema } = there.inputSchema as Record<string, unknown> & { properties?: Record<string, unknown>; required?: string[] };
+    const props = { ...(schema.properties as Record<string, unknown> | undefined) };
+    delete props.sketch;
+    assert.deepEqual(tool.parameters, { ...schema, properties: props }, tool.name);
+    // The same description, but show_in_sketcher's editor is beside the chat rather than opened by open_sketcher.
+    if (tool.name === 'show_in_sketcher') assert.equal(tool.description, there.description!.replace('that is already open (after open_sketcher)', 'beside the chat'));
+    else assert.equal(tool.description, there.description, tool.name);
+  }
+  // Nothing about opening an editor or rendering pictures: the editor is on the page.
+  assert.doesNotMatch(PAGE_INSTRUCTIONS, /open_sketcher|render_structure/);
+  assert.ok(!pageTools().some((t) => /open_sketcher|render_structure/.test(t.description)));
+});
+
+test('find_structure reads PubChem\'s answer, old and new, and says when a name is unknown', async () => {
+  const answer = (status: number, body: unknown) => (async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
+  const seen: string[] = [];
+  const pubchem = (async (url: string) => { seen.push(url); return new Response(JSON.stringify({ PropertyTable: { Properties: [{ CID: 2244, SMILES: 'CC(=O)OC1=CC=CC=C1C(=O)O', MolecularFormula: 'C9H8O4', IUPACName: '2-acetyloxybenzoic acid', Title: 'Aspirin' }] } })); }) as unknown as typeof fetch;
+  const found = await findStructure(' aspirin ', pubchem);
+  assert.deepEqual(found, { query: 'aspirin', name: 'Aspirin', smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O', formula: 'C9H8O4', iupac: '2-acetyloxybenzoic acid', pubchem: 'https://pubchem.ncbi.nlm.nih.gov/compound/2244' });
+  assert.match(seen[0]!, /\/compound\/name\/aspirin\/property\/IsomericSMILES,MolecularFormula,IUPACName,Title\/JSON$/);
+  // Before PubChem renamed it, the SMILES came back under the name asked for.
+  assert.equal((await findStructure('x', answer(200, { PropertyTable: { Properties: [{ CID: 1, IsomericSMILES: 'CCO', MolecularFormula: 'C2H6O' }] } }))).smiles, 'CCO');
+  await assert.rejects(findStructure('nonsense', answer(404, { Fault: { Code: 'PUGREST.NotFound' } })), /PubChem has no compound called "nonsense"/);
+  await assert.rejects(findStructure('x', answer(503, {})), /PubChem did not answer \(503\)/);
 });

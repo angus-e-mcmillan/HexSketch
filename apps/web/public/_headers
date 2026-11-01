@@ -1,9 +1,11 @@
 # Response headers for static hosts that read _headers (Cloudflare Pages, Netlify).
-# connect-src 'self' keeps every drawing on the user's computer: the page cannot
-# send anything to another server. Strict-Transport-Security makes browsers
+# connect-src keeps every drawing on the user's computer: the page can send
+# nothing to another server, except when the user uses Ask AI: to OpenRouter
+# (their messages and drawing, to the model they picked, on their own
+# OpenRouter account) and to PubChem (only the names the AI looks up). Strict-Transport-Security makes browsers
 # use https for hexsketch.com after the first visit (the clipboard needs https).
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob: https://openrouter.ai https://pubchem.ncbi.nlm.nih.gov; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
   Permissions-Policy: camera=(), microphone=(), geolocation=(), interest-cohort=()

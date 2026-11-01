@@ -32,6 +32,7 @@
     "@modelcontextprotocol/sdk": "1.32.1",
     "rollup-plugin-dts": "6.1.1",
     "vite": "^6.3.5",
-    "zod": "3.25.76"
+    "zod": "3.25.76",
+    "zod-to-json-schema": "3.25.2"
   }
 }
