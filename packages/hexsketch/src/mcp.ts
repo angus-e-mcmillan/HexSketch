@@ -52,7 +52,7 @@ export interface ClientHello { capabilities?: unknown; clientInfo?: { name?: str
 /**
  * Whether a chat can show the in-chat editor: it says it supports MCP Apps,
  * or it is Claude (web, desktop, phone), which shows them; Claude Code in a
- * terminal cannot. Codex, Hermes Agent and other terminal agents get pictures
+ * terminal cannot. Codex and other terminal agents get pictures
  * and links instead.
  */
 export function canShowEditor(hello: ClientHello | undefined): boolean {
@@ -107,14 +107,14 @@ const INSTRUCTIONS = [
 
 /**
  * For chats that cannot show the editor (Codex and Claude Code in a terminal,
- * Hermes Agent...): pictures and links, and files where the server can write
+ * other agents): pictures and links, and files where the server can write
  * them.
  */
 const textInstructions = (saves: boolean) => [
   'HexSketch draws, names and checks chemical structures.',
   '',
   '- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.',
-  '- Show every structure and reaction you discuss with render_structure: it returns the picture with its name, formula and any problems found (check them against what you meant, so draw first rather than calling validate_structure first), and a link that opens it in HexSketch at hexsketch.com, in the browser, where the user can edit it by drawing. Always give the user the link. Where you can show a web page beside the chat (a preview pane, such as the Hermes app\'s desktop_preview, or a browser tool), open the link there as well, so the editor is open with the drawing as you talk. Use validate_structure for a SMILES you only give in text.',
+  '- Show every structure and reaction you discuss with render_structure: it returns the picture with its name, formula and any problems found (check them against what you meant, so draw first rather than calling validate_structure first), and a link that opens it in HexSketch at hexsketch.com, in the browser, where the user can edit it by drawing. Always give the user the link. Where you can show a web page beside the chat (a preview pane or a browser tool), open the link there as well, so the editor is open with the drawing as you talk. Use validate_structure for a SMILES you only give in text.',
   ...(saves ? ['- To save a drawing, give render_structure save_to, a path whose extension sets the format: .png or .svg for a picture, .pdf for a document, .cdxml for ChemDraw, .mol for other chemistry software.'] : []),
   ...CHEMISTRY,
   '- Draw a mechanism one render_structure call per step, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.',
@@ -262,7 +262,7 @@ export function createServer(opts: ServerOptions): McpServer {
 
   server.registerTool('render_structure', {
     title: 'Draw a structure',
-    // The essentials are here as well as in the instructions: some agents (Hermes) never show a server's instructions to the model.
+    // The essentials are here as well as in the instructions: some agents never show a server's instructions to the model.
     description: `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${opts.rasterize ? ' (PNG by default)' : ' (SVG)'}, with its name, SMILES, formula and a link that opens it in HexSketch at hexsketch.com, where the user can edit it by drawing. Give structures as SMILES, not names. Check the name and formula returned against what you meant, and always give the user the link; where you can show a web page beside the chat (a preview pane, a browser tool), open the link there too. Draw every reaction as a scheme: reagents above the arrow, solvent, temperature, time and yield below; a whole synthesis or retrosynthesis as one scheme (then).${opts.saveFile ? ' With save_to, also writes the file (format from the extension: .png .svg .pdf .cdxml .mol).' : ''}`,
     inputSchema: {
       structure: structure().optional(),

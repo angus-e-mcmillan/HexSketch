@@ -26,7 +26,7 @@ const MAX_BODY = 2_000_000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.text)?$/;
 /**
  * Ends the conversation id of a chat that can't show the editor (Codex or
- * Claude Code in a terminal, Hermes Agent...): every request makes a new
+ * Claude Code in a terminal...): every request makes a new
  * server, and this is how the later ones know, with nothing stored.
  */
 const TEXT_ONLY = '.text';

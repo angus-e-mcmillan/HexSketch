@@ -95,14 +95,12 @@ turn one of them off, so Claude doesn't see every tool twice.
 Check out the pull request's branch first (`git fetch`, `git checkout <branch>`,
 `npm ci`). Then:
 
-**On your computer** (Codex, Hermes Agent, Claude Code). `npm run dev:mcp`
+**On your computer** (Codex, Claude Code). `npm run dev:mcp`
 serves the branch at `http://127.0.0.1:8787/mcp`; keep it running and, in
 another terminal, connect the agent to it under a name of its own:
 
 ```sh
 codex mcp add hexsketch-dev --url http://127.0.0.1:8787/mcp
-hermes mcp add hexsketch-dev --url http://127.0.0.1:8787/mcp
-hermes config set tools.tool_search.enabled off
 claude mcp add --transport http hexsketch-dev http://127.0.0.1:8787/mcp
 ```
 

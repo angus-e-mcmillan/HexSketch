@@ -45,7 +45,6 @@ HexSketch. Everything runs on your computer.
 | Claude Desktop | Download `hexsketch.mcpb` from the [latest release](https://github.com/angus-e-mcmillan/HexSketch/releases) and open it (Settings > Extensions) |
 | Claude Code | `claude mcp add hexsketch -- npx -y hexsketch mcp` |
 | Codex | `codex mcp add hexsketch -- npx -y hexsketch mcp` |
-| Hermes Agent | `hermes mcp add hexsketch --command npx --args -y hexsketch mcp`, then `hermes config set tools.tool_search.enabled off` so the model sees the tools (Hermes otherwise keeps every MCP tool behind a search step) and start a new session |
 | Cursor, and apps with an `mcpServers` JSON config | `"hexsketch": { "command": "npx", "args": ["-y", "hexsketch", "mcp"] }` |
 
 **Draw in the chat, together.** `open_sketcher` opens the HexSketch editor
@@ -61,17 +60,16 @@ it stays open beside the chat while you talk. Both of you work in it:
   e.g. `C(=O)O`) and leaves notes in a Notes panel. Undo brings your drawing
   back.
 
-**Elsewhere** (Codex, Claude Code or Hermes Agent in a terminal, or Hermes
-in a chat app), the server leaves out the editor's tools and tells the
-assistant to draw with `render_structure` instead: a picture of each
-structure or scheme, a link that opens it on hexsketch.com for you to edit,
-and, when you ask, the file saved where you say (`save_to`). Hermes shows the
-pictures in the chat apps it answers in.
+**Elsewhere** (Codex or Claude Code in a terminal), the server leaves out
+the editor's tools and tells the assistant to draw with `render_structure`
+instead: a picture of each structure or scheme, a link that opens it on
+hexsketch.com for you to edit, and, when you ask, the file saved where you
+say (`save_to`).
 
 The [HexSketch skill](https://github.com/angus-e-mcmillan/HexSketch/tree/main/skills/hexsketch)
 teaches the assistant to draw chemistry well with these tools. Copy the
-`skills/hexsketch` folder to `~/.codex/skills/` (Codex), `~/.hermes/skills/`
-(Hermes Agent) or `~/.claude/skills/` (Claude Code).
+`skills/hexsketch` folder to `~/.codex/skills/` (Codex) or `~/.claude/skills/`
+(Claude Code).
 
 Tools: `open_sketcher`, `read_sketcher`, `show_in_sketcher`, `render_structure` (PNG shown in the chat, or SVG, PDF, CDXML, MOL, and
 `save_to` a file), `name_structure`, `analyze_structure`, `validate_structure`,

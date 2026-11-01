@@ -13,7 +13,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 const url = new URL(process.argv[2] ?? 'http://127.0.0.1:8787/mcp');
-// A chat that shows MCP Apps (as Claude does) says so; a terminal agent (Codex, Hermes) does not.
+// A chat that shows MCP Apps (as Claude does) says so; a terminal agent (Codex, Claude Code) does not.
 const MCP_APPS = { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } };
 const connect = async (name: string, apps = true) => {
   const client = new Client({ name, version: '1' }, apps ? { capabilities: MCP_APPS as never } : {});

@@ -28,22 +28,14 @@ plan, an owner adds the connector first.
 **Claude Code:** run
 `claude mcp add --transport http hexsketch https://mcp.hexsketch.com/mcp`
 
-**Codex and Hermes Agent:** use the same server from OpenAI's Codex or
-from Hermes Agent, with any model it runs, open-source ones included. They
-can't show the editor, so the AI draws pictures of structures and schemes,
-with a link that opens each in HexSketch to edit:
+**Codex:** run
+`codex mcp add hexsketch --url https://mcp.hexsketch.com/mcp`
 
-```sh
-codex mcp add hexsketch --url https://mcp.hexsketch.com/mcp
-hermes mcp add hexsketch --url https://mcp.hexsketch.com/mcp
-hermes config set tools.tool_search.enabled off
-```
-
-The last line lets Hermes's model see HexSketch's tools directly; otherwise
-Hermes keeps every MCP tool behind a search step, and models often miss them.
-
-To run it on your computer instead, and save drawings as files, see
-[packages/hexsketch](packages/hexsketch/README.md#with-claude-codex-cursor-and-other-ai-tools-mcp).
+Claude Code and Codex can't show the editor in a terminal, so the AI draws
+pictures of structures and schemes, each with a link that opens it in
+HexSketch to edit. For the best drawings, also add the
+[HexSketch skill](skills/hexsketch/SKILL.md): copy the `skills/hexsketch`
+folder to `~/.claude/skills/` (Claude Code) or `~/.codex/skills/` (Codex).
 
 **Keep everything on your computer:** download
 [hexsketch.mcpb](https://github.com/angus-e-mcmillan/HexSketch/releases/latest/download/hexsketch.mcpb),
@@ -100,8 +92,8 @@ What you draw stays in your browser.
 
 ## For developers
 
-Scripts, the command line and other AI tools (Codex, Hermes Agent, Cursor
-and any MCP client): see [packages/hexsketch](packages/hexsketch/README.md).
+Scripts, the command line and other AI tools (Codex, Cursor and any MCP
+client): see [packages/hexsketch](packages/hexsketch/README.md).
 [hexsketch.com/llms.txt](https://hexsketch.com/llms.txt) describes HexSketch
 for AI assistants, and [skills/hexsketch](skills/hexsketch/SKILL.md) is the
 same guidance the server gives, as a Claude skill.

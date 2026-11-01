@@ -17,7 +17,7 @@ const dir = mkdtempSync(join(tmpdir(), 'hexsketch-mcp-'));
 /** What a chat that shows MCP Apps (Claude, ChatGPT) says it supports. */
 const MCP_APPS = { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } };
 
-/** A server and a client: one that shows MCP Apps unless `as` names one that doesn't (Codex, Hermes...). */
+/** A server and a client: one that shows MCP Apps unless `as` names one that doesn't (Codex, Claude Code...). */
 async function connect(opts: Partial<ServerOptions> = {}, as?: string) {
   const [a, b] = InMemoryTransport.createLinkedPair();
   await createServer({ version: '0.0.0-test', rasterize, ...opts }).connect(a);
@@ -40,9 +40,9 @@ test('lists the tools, with instructions for the model', async () => {
   assert.ok(tools.filter((t) => t.name !== 'render_structure').every((t) => t.annotations?.readOnlyHint === true));
 });
 
-test('a chat that cannot show the editor (Codex, Hermes, Claude Code) gets pictures, links and files instead', async () => {
+test('a chat that cannot show the editor (Codex, Claude Code) gets pictures, links and files instead', async () => {
   const html = async () => '<!doctype html>';
-  for (const as of ['codex-mcp-client', 'hermes', 'claude-code']) {
+  for (const as of ['codex-mcp-client', 'claude-code']) {
     const { client } = await connect({ sketcherHtml: html, saveFile: async (p) => p }, as);
     const names = (await client.listTools()).tools.map((t) => t.name);
     assert.ok(names.includes('render_structure') && !names.includes('open_sketcher') && !names.includes('show_in_sketcher') && !names.includes('sketch_updates'), `${as}: ${names}`);
@@ -55,8 +55,8 @@ test('a chat that cannot show the editor (Codex, Hermes, Claude Code) gets pictu
     const { client } = await connect({ sketcherHtml: html }, as);
     assert.ok((await client.listTools()).tools.some((t) => t.name === 'open_sketcher'), as);
   }
-  // The guidance that matters is in render_structure's own description (Hermes never shows the instructions) ...
-  const { client } = await connect({ sketcherHtml: html }, 'hermes');
+  // The guidance that matters is in render_structure's own description (some agents never show the instructions) ...
+  const { client } = await connect({ sketcherHtml: html }, 'codex-mcp-client');
   const tools = (await client.listTools()).tools;
   const render = tools.find((t) => t.name === 'render_structure')!;
   assert.match(render.description ?? '', /give the user the link/);
