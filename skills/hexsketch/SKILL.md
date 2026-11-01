@@ -50,7 +50,9 @@ keep the chat for the short answer. How depends on the chat:
    drawing in text. The result has the picture, its name and formula.
 2. Always give the chemist the HexSketch link from the result: it opens the
    drawing at hexsketch.com, in the browser, where they can edit it by
-   drawing and copy it back to you with Edit › Copy for AI.
+   drawing and copy it back to you with Edit › Copy for AI. If you can show
+   a web page beside the chat (the Hermes app's `desktop_preview`, a browser
+   tool), open the link there too, so the editor is open as you talk.
 3. To keep a drawing, give `save_to` (on a local server): a path in the
    project whose extension sets the format, `.png` or `.svg` for a picture,
    `.pdf` for a document, `.cdxml` for ChemDraw, `.mol` for other software.
