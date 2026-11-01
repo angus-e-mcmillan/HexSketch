@@ -2,7 +2,7 @@ import './chat.css';
 import { aiSummary, structureLink, writeCdxml, HEXSKETCH_URL } from '@hexsketch/core';
 import { analyze, compare, convert, drawnOut, link, name, validate } from '@hexsketch/agent';
 import { nameMolecule } from '@hexsketch/naming';
-import { pageTools, prepare, prepareSteps, HIGHLIGHTS, PAGE_INSTRUCTIONS, SHOWN_NEXT, type Show } from '../../../packages/hexsketch/src/toolkit.ts';
+import { findStructure, pageTools, prepare, prepareSteps, HIGHLIGHTS, PAGE_INSTRUCTIONS, SHOWN_NEXT, type Show } from '../../../packages/hexsketch/src/toolkit.ts';
 import { createAiLayer, formatted, type AiLayer } from './ai.ts';
 import type { AppApi } from './app.ts';
 import * as openrouter from './openrouter.ts';
@@ -24,7 +24,7 @@ const tools = pageTools();
 const COLOURS = new Map<string, string>(HIGHLIGHTS.map((h) => [h.name, h.color]));
 /** What each tool is doing, for the line the chat shows while it works. */
 const DOING: Record<string, string> = {
-  show_in_sketcher: 'Drawing in the editor', read_sketcher: 'Reading your drawing', name_structure: 'Naming',
+  show_in_sketcher: 'Drawing in the editor', read_sketcher: 'Reading your drawing', find_structure: 'Looking it up in PubChem', name_structure: 'Naming',
   analyze_structure: 'Analysing', validate_structure: 'Checking a structure', compare_structures: 'Comparing', convert_structure: 'Converting',
 };
 
@@ -252,6 +252,7 @@ class Chat {
           this.lastSeen = (await this.describe()) ?? '';
           return now ? { ...(await analyze(now)), link: await link(now) } : { empty: true, note: 'The canvas is empty.' };
         }
+        case 'find_structure': return await findStructure(String(args.name ?? ''));
         case 'name_structure': return { ...(await name(s)), link: await link(s) };
         case 'analyze_structure': return { ...(await analyze(s)), link: await link(s) };
         case 'validate_structure': { const v = await validate(s); return v.smiles !== undefined ? { ...v, link: await link(s) } : v; }

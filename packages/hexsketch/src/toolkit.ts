@@ -330,7 +330,7 @@ export const SHOWN_NEXT = 'The user sees this in the editor now. Keep the note a
 export const PAGE_INSTRUCTIONS = [
   'HexSketch draws, names and checks chemical structures. You are chatting with a chemist on hexsketch.com, beside the HexSketch editor: the drawing they see is the one you work on.',
   '',
-  STRUCTURES,
+  '- Give structures to the tools as SMILES, molfile or CDXML text, or a HexSketch link. For a named compound (a drug, a development code such as AZD7594, a natural product, a CAS number), call find_structure, which looks it up in PubChem, rather than writing its SMILES from memory; then draw what it returns. Write SMILES yourself for intermediates, reagents and proposals PubChem would not know.',
   '- Show every structure and reaction you discuss in the editor with show_in_sketcher, never as text drawings or SMILES alone. Draw straight away: show_in_sketcher checks the structure and returns its name and formula, so do not call validate_structure, name_structure or analyze_structure before it; check what it returns against what you meant, and show it again if it is wrong. Each tool call is a round trip the user waits for: when you need several tools, call them together in one turn.',
   '- Highlight the parts you mean (each highlight one atom, one functional group or one monomer such as an amino acid, at one place), pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour. The drawing carries the detail; keep the chat reply short and point to it ("the yellow ester").',
   '- When the user says "this", "my structure" or "what I drew", call read_sketcher first: they may have changed the drawing. Each message also says what the editor shows, when it has changed.',
@@ -348,12 +348,43 @@ export const toJsonSchema = (shape: z.ZodRawShape): Record<string, unknown> => {
   return schema;
 };
 
-/** The tools a chat beside the editor offers: the MCP server's, less those for opening the editor or rendering pictures. */
+/** A compound found by name in PubChem. */
+export interface FoundStructure { query: string; name: string; smiles: string; formula: string; iupac?: string; pubchem: string }
+
+/**
+ * Look a compound up by name, code or CAS number in PubChem (the US National
+ * Library of Medicine's open chemistry database), which answers browsers and
+ * servers alike. Throws, with words for the model, when it isn't there.
+ */
+export async function findStructure(query: string, fetchImpl: typeof fetch = fetch): Promise<FoundStructure> {
+  const q = query.trim();
+  if (!q) throw new Error('Give a name to look up');
+  const url = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encodeURIComponent(q)}/property/IsomericSMILES,MolecularFormula,IUPACName,Title/JSON`;
+  const r = await fetchImpl(url);
+  if (r.status === 404) throw new Error(`PubChem has no compound called "${q}". Try another name, a code or the CAS number, or write the SMILES if you are sure of it.`);
+  if (!r.ok) throw new Error(`PubChem did not answer (${r.status}): try again in a moment`);
+  const body = await r.json() as { PropertyTable?: { Properties?: { CID: number; SMILES?: string; IsomericSMILES?: string; MolecularFormula?: string; IUPACName?: string; Title?: string }[] } };
+  // PubChem now answers IsomericSMILES as "SMILES"; older answers used the name asked for.
+  const p = body.PropertyTable?.Properties?.[0];
+  const smiles = p?.SMILES ?? p?.IsomericSMILES;
+  if (!p || !smiles) throw new Error(`PubChem has no structure for "${q}"`);
+  return { query: q, name: p.Title ?? q, smiles, formula: p.MolecularFormula ?? '', ...(p.IUPACName ? { iupac: p.IUPACName } : {}), pubchem: `https://pubchem.ncbi.nlm.nih.gov/compound/${p.CID}` };
+}
+
+/** Tools only a chat beside the editor has (the MCP server reaches no other site). */
+export const PAGE_ONLY_TOOLS = ['find_structure'];
+
+/** The tools a chat beside the editor offers: the MCP server's, less those for opening the editor or rendering pictures, and a PubChem lookup. */
 export function pageTools(): FunctionTool[] {
   const show = DESCRIPTIONS.show_in_sketcher.replace('that is already open (after open_sketcher)', 'beside the chat');
   return [
     { name: 'show_in_sketcher', description: show, parameters: toJsonSchema({ ...showFields(), steps: stepsField }) },
     { name: 'read_sketcher', description: DESCRIPTIONS.read_sketcher, parameters: toJsonSchema({}) },
+    {
+      name: 'find_structure',
+      description: 'Look a compound up by name in PubChem: a drug or trade name, a development code (AZD7594, LY3214996), a natural product, a common name, or a CAS number. Returns its SMILES (with stereochemistry), formula, IUPAC name and PubChem page. Use it for any named compound instead of writing its SMILES from memory, then draw the SMILES with show_in_sketcher and check the formula HexSketch gives matches. Not for new or proposed structures, which PubChem does not have.',
+      parameters: toJsonSchema({ name: z.string().min(1).max(200).describe('The name, code or CAS number, e.g. "AZD7594", "atorvastatin", "50-78-2".') }),
+    },
     { name: 'name_structure', description: DESCRIPTIONS.name_structure, parameters: toJsonSchema({ structure: structure() }) },
     { name: 'analyze_structure', description: DESCRIPTIONS.analyze_structure, parameters: toJsonSchema({ structure: structure() }) },
     { name: 'validate_structure', description: DESCRIPTIONS.validate_structure, parameters: toJsonSchema({ structure: structure() }) },
