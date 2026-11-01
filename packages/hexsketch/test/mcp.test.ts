@@ -54,6 +54,12 @@ test('a chat that cannot show the editor (Codex, Claude Code) gets pictures, lin
     const { client } = await connect({ sketcherHtml: html }, as);
     assert.ok((await client.listTools()).tools.some((t) => t.name === 'open_sketcher'), as);
   }
+  // Where the editor shows, render_structure points to it and doesn't read as the drawing tool: when it did,
+  // models drew a picture first and Claude's desktop app never showed the editor (docs/connector.md).
+  const { client: claude } = await connect({ sketcherHtml: html });
+  const forEditor = (await claude.listTools()).tools.find((t) => t.name === 'render_structure')!.description ?? '';
+  assert.match(forEditor, /use open_sketcher and show_in_sketcher instead/);
+  assert.doesNotMatch(forEditor, /always give the user the link|reagents above the arrow/);
   // A chat app may load the editor on a connection that is not the model's and says nothing of MCP Apps:
   // the page and the editor's own tools are there on every connection.
   const { client: loader, call } = await connect({ sketcherHtml: html }, 'some-host-loader');

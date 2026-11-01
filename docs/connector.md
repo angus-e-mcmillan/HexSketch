@@ -99,8 +99,8 @@ Claude Code). Others (Codex or Claude Code in a terminal) get the text-only
 server: pictures and links, and no `open_sketcher`, `show_in_sketcher` or
 `read_sketcher`.
 
-Three things about how chat apps connect make this easy to break, and all
-three broke it once (2026-11-01, on staging, before it shipped):
+Four things make this easy to break, and all four broke it once
+(2026-11-01, on staging, before it shipped):
 
 1. **One chat, several connections.** Claude's desktop app connected to the
    staging server four times for one chat: as `Anthropic/ClaudeAI` and
@@ -122,6 +122,14 @@ three broke it once (2026-11-01, on staging, before it shipped):
    `apps/mcp-worker/src/worker.ts`) is versioned: **change it whenever
    `canShowEditor` changes**, and every id from the old rules counts as an
    editor again.
+4. **Tool descriptions steer the model.** `render_structure`'s description
+   was made fuller for text-only chats, and in Claude the model then
+   sometimes drew a picture first and opened the editor second; the desktop
+   app showed the picture and never started the editor. So
+   `render_structure` has two descriptions: in a chat with the editor it
+   points to `open_sketcher` and stays short; the fuller one is only for
+   text-only chats. Keep anything that makes another tool look like *the*
+   way to show a structure out of what editor chats see.
 
 How to tell, in `npx wrangler tail` (staging or production):
 
@@ -132,11 +140,15 @@ How to tell, in `npx wrangler tail` (staging or production):
 - A working editor shows `Sketch.poll` soon after `Sketch.create`, then
   `Sketch.setDrawing` as the user draws. `Sketch.create` with no `Sketch.poll`
   after it means the model opened an editor that the chat never displayed.
+- `Conversation.latest` before `Sketch.create` means the model called another
+  HexSketch tool (usually `render_structure`) before opening the editor:
+  for "Open HexSketch with…" it should go straight to `open_sketcher`.
 
-Before merging any change to `canShowEditor`, the marker, or which tools are
-hidden: deploy it to staging, **remove and re-add** the staging connector in
+Before merging any change to `canShowEditor`, the marker, which tools are
+hidden, or the tools' descriptions or the instructions: deploy it to staging, **remove and re-add** the staging connector in
 Claude (so no old conversation ids are reused), and check both of the above
-in the desktop app and on claude.ai.
+in the desktop app and on claude.ai, over a few chats (the model doesn't
+pick the same tool every time).
 
 ## Try a change before it goes live
 

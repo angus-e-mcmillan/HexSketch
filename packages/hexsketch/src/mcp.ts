@@ -269,12 +269,21 @@ export function createServer(opts: ServerOptions): McpServer {
   const editorParts: { enabled: boolean }[] = [];
   let modelSeesEditor = withEditor;
   const read = (s?: 'hexsketch' | 'acs') => (s ? { style: s } : {});
+  const saves = opts.saveFile ? ' With save_to, also writes the file (format from the extension: .png .svg .pdf .cdxml .mol).' : '';
+  const image = opts.rasterize ? ' (PNG by default)' : ' (SVG)';
+  /**
+   * Where the editor shows, as it was before text-only chats: a fuller
+   * description here made models draw a picture before opening the editor,
+   * and Claude's desktop app then never showed the editor.
+   */
+  const renderForEditor = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES and a link that opens it in HexSketch for editing. Show the user the image and the link.${saves} In a chat that shows the HexSketch editor, use open_sketcher and show_in_sketcher instead, unless the user asks for an image or a file.`;
+  // Where it doesn't, it is the drawing tool, so it carries the essentials: some agents never show a server's instructions to the model.
+  const renderForText = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES, formula and a link that opens it in HexSketch at hexsketch.com, where the user can edit it by drawing. Give structures as SMILES, not names. Check the name and formula returned against what you meant, and always give the user the link; where you can show a web page beside the chat (a preview pane, a browser tool), open the link there too. Draw every reaction as a scheme: reagents above the arrow, solvent, temperature, time and yield below; a whole synthesis or retrosynthesis as one scheme (then).${saves}`;
   const formats: RenderFormat[] = opts.rasterize ? ['png', 'svg', 'pdf', 'cdxml', 'mol'] : ['svg', 'pdf', 'cdxml', 'mol'];
 
-  server.registerTool('render_structure', {
+  const renderTool = server.registerTool('render_structure', {
     title: 'Draw a structure',
-    // The essentials are here as well as in the instructions: some agents never show a server's instructions to the model.
-    description: `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${opts.rasterize ? ' (PNG by default)' : ' (SVG)'}, with its name, SMILES, formula and a link that opens it in HexSketch at hexsketch.com, where the user can edit it by drawing. Give structures as SMILES, not names. Check the name and formula returned against what you meant, and always give the user the link; where you can show a web page beside the chat (a preview pane, a browser tool), open the link there too. Draw every reaction as a scheme: reagents above the arrow, solvent, temperature, time and yield below; a whole synthesis or retrosynthesis as one scheme (then).${opts.saveFile ? ' With save_to, also writes the file (format from the extension: .png .svg .pdf .cdxml .mol).' : ''}`,
+    description: withEditor ? renderForEditor : renderForText,
     inputSchema: {
       structure: structure().optional(),
       reaction: reaction().optional(),
@@ -597,7 +606,11 @@ export function createServer(opts: ServerOptions): McpServer {
   }
 
   // A chat that can't show the editor doesn't list the model's editor tools, and its tool results don't look for one.
-  const textOnly = () => { modelSeesEditor = false; for (const part of editorParts) part.enabled = false; };
+  const textOnly = () => {
+    modelSeesEditor = false;
+    for (const part of editorParts) part.enabled = false;
+    renderTool.description = renderForText;
+  };
   if (opts.sketcherHtml && opts.editor === false) textOnly();
   else if (opts.sketcherHtml && opts.editor === undefined) {
     // Decided at initialize, before the tools are listed: its result carries the instructions that fit.
