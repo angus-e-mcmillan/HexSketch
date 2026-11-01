@@ -1054,11 +1054,13 @@ export function mountApp(opts: AppOptions = {}): AppApi {
 
   setZoom(zoom);
   wrapEl.focus();
+  // Someone arriving with a structure (a link from an AI, say) came to see it: the guide waits for a plain visit.
+  const fromLink = opts.openLinks && /^#(smiles|cdxml)=/.test(location.hash);
   if (opts.openLinks) {
     void openFromLink();
     window.addEventListener('hashchange', () => void openFromLink());
   }
-  if (opts.firstRunGuide && !guideSeen()) void openGuide().then(() => wrapEl.focus());
+  if (opts.firstRunGuide && !guideSeen() && !fromLink) void openGuide().then(() => wrapEl.focus());
   return api;
 
 }
