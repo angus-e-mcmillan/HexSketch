@@ -23,13 +23,21 @@ interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
 interface Env extends SketchEnv, BudgetEnv { LIMIT?: RateLimit; NEW_LIMIT?: RateLimit }
 
 const MAX_BODY = 2_000_000;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.text)?$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z0-9]{1,8})?$/;
 /**
  * Ends the conversation id of a chat that can't show the editor (Codex or
- * Claude Code in a terminal...): every request makes a new
- * server, and this is how the later ones know, with nothing stored.
+ * Claude Code in a terminal...): every request makes a new server, and this
+ * is how the later ones know, with nothing stored.
+ *
+ * Clients reuse a conversation id for as long as the connector exists,
+ * across chats and restarts, so a wrong decision sticks. Only this exact
+ * marker means text only: CHANGE IT whenever canShowEditor changes, and
+ * every id handed out under the old rules counts as an editor again (the
+ * safe side). See docs/connector.md, "Which chats get the editor".
+ * History: ".text" (rules of 2026-11-01, which wrongly made Claude's
+ * "Anthropic" connections text only), ".t2".
  */
-const TEXT_ONLY = '.text';
+const TEXT_ONLY = '.t2';
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, DELETE, OPTIONS',

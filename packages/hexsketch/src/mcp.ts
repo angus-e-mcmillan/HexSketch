@@ -50,6 +50,10 @@ export interface ServerOptions {
 export interface ClientHello { capabilities?: unknown; clientInfo?: { name?: string } }
 
 /**
+ * Before changing this, read docs/connector.md, "Which chats get the
+ * editor": chat apps connect several times per chat, not always saying they
+ * show MCP Apps, and a wrong answer sticks (change TEXT_ONLY in the worker).
+ *
  * Whether a chat can show the in-chat editor: it says it supports MCP Apps,
  * or it is Claude (web, desktop, phone: "Anthropic..."), which shows them; Claude Code in a
  * terminal cannot. Codex and other terminal agents get pictures

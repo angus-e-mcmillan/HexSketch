@@ -90,6 +90,54 @@ hexsketch-mcp > Logs).
 If you also installed HexSketch locally (the installer or the extension),
 turn one of them off, so Claude doesn't see every tool twice.
 
+## Which chats get the editor (read before changing it)
+
+The server shows the in-chat editor only to chats that can display it
+(`canShowEditor` in `packages/hexsketch/src/mcp.ts`): a client that announces
+MCP Apps support, or one named like Claude ("Anthropic…", "claude…", but not
+Claude Code). Others (Codex or Claude Code in a terminal) get the text-only
+server: pictures and links, and no `open_sketcher`, `show_in_sketcher` or
+`read_sketcher`.
+
+Three things about how chat apps connect make this easy to break, and all
+three broke it once (2026-11-01, on staging, before it shipped):
+
+1. **One chat, several connections.** Claude's desktop app connected to the
+   staging server four times for one chat: as `Anthropic/ClaudeAI` and
+   `Anthropic/Toolbox` (both said they show MCP Apps) and twice as plain
+   `Anthropic` (which said nothing). It loads the editor, or looks up how to
+   show a tool, through any of them. The plain `Anthropic` ones were treated
+   as text only, and the editor never appeared: Claude showed a small picture
+   instead.
+2. **Not every connection says it shows MCP Apps,** even in an app that does.
+   So the editor's page and the editor's own tools (`sketch_updates`,
+   `sketch_sync`) are served on **every** connection. Only the three tools the
+   model works the editor with are ever hidden, and when in doubt the server
+   shows the editor.
+3. **The decision sticks.** The hosted server is stateless, so the decision
+   rides in the conversation id it hands out (ending `.t2` for text only), and
+   clients keep reusing that id across chats and restarts. After the first
+   fix, the stale text-only ids still broke the editor until the connector
+   was removed and added again. So the marker (`TEXT_ONLY` in
+   `apps/mcp-worker/src/worker.ts`) is versioned: **change it whenever
+   `canShowEditor` changes**, and every id from the old rules counts as an
+   editor again.
+
+How to tell, in `npx wrangler tail` (staging or production):
+
+- Each new connection logs `initialize: <client name>, editor` or
+  `…, text only`. Claude's should all say `editor`; `claude-code` from a
+  terminal says `text only`, unless it says it shows MCP Apps (the desktop
+  app's chats do).
+- A working editor shows `Sketch.poll` soon after `Sketch.create`, then
+  `Sketch.setDrawing` as the user draws. `Sketch.create` with no `Sketch.poll`
+  after it means the model opened an editor that the chat never displayed.
+
+Before merging any change to `canShowEditor`, the marker, or which tools are
+hidden: deploy it to staging, **remove and re-add** the staging connector in
+Claude (so no old conversation ids are reused), and check both of the above
+in the desktop app and on claude.ai.
+
 ## Try a change before it goes live
 
 Check out the pull request's branch first (`git fetch`, `git checkout <branch>`,
