@@ -10,6 +10,7 @@
     "preview": "vite preview --port 5174"
   },
   "dependencies": {
+    "@hexsketch/agent": "0.1.0",
     "@hexsketch/core": "0.1.0",
     "@hexsketch/render": "0.1.0",
     "@hexsketch/editor": "0.1.0",
@@ -21,6 +22,7 @@
   "main": "./src/app.ts",
   "exports": {
     ".": "./src/app.ts",
+    "./ai": "./src/ai.ts",
     "./style.css": "./src/style.css"
   }
 }

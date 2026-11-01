@@ -119,8 +119,11 @@ packages/render    depiction to SVG and PDF
 packages/editor    tools, hotkeys, undo
 packages/naming    offline IUPAC naming
 packages/agent     for AI agents and scripts: render, name, analyze, convert, validate, compare, link, schemes
-packages/hexsketch the npm package, `hexsketch` command and local MCP server (docs/releasing.md)
-apps/web           hexsketch.com, plus worker.ts for the feedback endpoint
+packages/hexsketch the npm package, `hexsketch` command and local MCP server (docs/releasing.md);
+                   src/toolkit.ts is what the AI's tools are, apart from MCP (instructions,
+                   tool inputs, showing things in the editor), for every way an AI reaches HexSketch
+apps/web           hexsketch.com, plus worker.ts for the feedback endpoint; src/ai.ts is the AI's
+                   side of an editor (Notes, highlights, labels, steps), shared with apps/mcp-app
 apps/mcp-app       the editor as it appears inside the chat
 apps/mcp-worker    the Claude connector at mcp.hexsketch.com (docs/connector.md)
 ```
