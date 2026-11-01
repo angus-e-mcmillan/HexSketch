@@ -17,6 +17,37 @@ export interface AiUpdate {
   step?: { index: number; count: number };
 }
 
+/**
+ * A note's text, with the little Markdown models write (**bold**, *italic*,
+ * `code`, "- " lists) shown as such, and a bold highlight colour ("**Yellow**")
+ * shown in that colour, as the key to the drawing.
+ */
+export function formatted(text: string, colours: Map<string, string>): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'note-text';
+  let ul: HTMLUListElement | null = null;
+  for (const line of text.split('\n')) {
+    const item = /^\s*[-*•]\s+(.*)$/.exec(line);
+    if (item) { ul ??= box.appendChild(document.createElement('ul')); ul.append(inline(document.createElement('li'), item[1]!, colours)); continue; }
+    ul = null;
+    if (line.trim()) box.append(inline(document.createElement('p'), line, colours));
+  }
+  return box;
+}
+function inline<T extends HTMLElement>(el: T, text: string, colours: Map<string, string>): T {
+  // Text nodes only, so nothing the AI writes runs as HTML.
+  for (const part of text.split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`)/)) {
+    if (!part) continue;
+    const tag = part.startsWith('**') ? 'strong' : part.startsWith('*') ? 'em' : part.startsWith('`') ? 'code' : null;
+    const strip = tag === 'strong' ? 2 : tag ? 1 : 0;
+    const piece = tag ? Object.assign(document.createElement(tag), { textContent: part.slice(strip, -strip) }) : part;
+    const colour = tag === 'strong' ? colours.get(part.slice(2, -2).trim().toLowerCase()) : undefined;
+    if (colour && typeof piece !== 'string') { piece.className = 'swatch'; piece.style.background = colour; }
+    el.append(piece);
+  }
+  return el;
+}
+
 export interface AiLayer {
   /** Show an update: its note in the Notes panel, then the structure, highlights and labels in the drawing. */
   apply(u: AiUpdate): Promise<void>;
@@ -69,37 +100,6 @@ export function createAiLayer(ui: AppApi): AiLayer {
     notes.classList.add('has-notes');
     showNotes(true);
     return li;
-  }
-
-  /**
-   * A note's text, with the little Markdown models write (**bold**, *italic*,
-   * `code`, "- " lists) shown as such, and a bold highlight colour ("**Yellow**")
-   * shown in that colour, as the key to the drawing.
-   */
-  function formatted(text: string, colours: Map<string, string>): HTMLElement {
-    const box = document.createElement('div');
-    box.className = 'note-text';
-    let ul: HTMLUListElement | null = null;
-    for (const line of text.split('\n')) {
-      const item = /^\s*[-*•]\s+(.*)$/.exec(line);
-      if (item) { ul ??= box.appendChild(document.createElement('ul')); ul.append(inline(document.createElement('li'), item[1]!, colours)); continue; }
-      ul = null;
-      if (line.trim()) box.append(inline(document.createElement('p'), line, colours));
-    }
-    return box;
-  }
-  function inline<T extends HTMLElement>(el: T, text: string, colours: Map<string, string>): T {
-    // Text nodes only, so nothing the AI writes runs as HTML.
-    for (const part of text.split(/(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`)/)) {
-      if (!part) continue;
-      const tag = part.startsWith('**') ? 'strong' : part.startsWith('*') ? 'em' : part.startsWith('`') ? 'code' : null;
-      const strip = tag === 'strong' ? 2 : tag ? 1 : 0;
-      const piece = tag ? Object.assign(document.createElement(tag), { textContent: part.slice(strip, -strip) }) : part;
-      const colour = tag === 'strong' ? colours.get(part.slice(2, -2).trim().toLowerCase()) : undefined;
-      if (colour && typeof piece !== 'string') { piece.className = 'swatch'; piece.style.background = colour; }
-      el.append(piece);
-    }
-    return el;
   }
 
   // ------------------------------------------------- AI highlights and labels

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { analyze, compare, convert, link, name, readStructure, render, validate, type ElectronArrow, type Rasterizer, type RenderFormat, type Scheme } from '@hexsketch/agent';
 import type { Molecule } from '@hexsketch/core';
 import { memorySketchStore, type Sketch, type SketchStore } from './sketch-store.ts';
-import { balanceOf, checkOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, textInstructions, type Show } from './toolkit.ts';
+import { balanceOf, checkOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
 
 export { HIGHLIGHTS };
 
@@ -161,21 +161,21 @@ export function createServer(opts: ServerOptions): McpServer {
 
   server.registerTool('name_structure', {
     title: 'Name a structure',
-    description: 'The IUPAC name of a structure, generated offline. Returns name null with a reason when the structure is outside what HexSketch names.',
+    description: DESCRIPTIONS.name_structure,
     inputSchema: { structure: structure() },
     annotations: { title: 'Name a structure', ...READ_ONLY },
   }, ({ structure: s }) => tool(async () => text({ ...(await name(s)), link: await link(s) })));
 
   server.registerTool('analyze_structure', {
     title: 'Analyze a structure',
-    description: 'Name, SMILES (with stereochemistry), molecular formula, exact (monoisotopic) mass, molecular weight, elemental analysis and isotope pattern (m/z). Mixtures and salts are also given per structure.',
+    description: DESCRIPTIONS.analyze_structure,
     inputSchema: { structure: structure() },
     annotations: { title: 'Analyze a structure', ...READ_ONLY },
   }, ({ structure: s }) => tool(async () => text({ ...(await analyze(s)), link: await link(s) })));
 
   server.registerTool('validate_structure', {
     title: 'Check a structure',
-    description: 'Check a structure, typically a SMILES you wrote, before presenting it: catches unreadable SMILES, names given instead of SMILES, aromatic rings that cannot be kekulized, atoms over or under their valence, unusual charges and radicals. Returns ok, issues (error, warning or note), and the name and formula to compare with what you meant. Never fails on bad input; it reports it.',
+    description: DESCRIPTIONS.validate_structure,
     inputSchema: { structure: structure() },
     annotations: { title: 'Check a structure', ...READ_ONLY },
   }, ({ structure: s }) => tool(async () => {
@@ -185,14 +185,14 @@ export function createServer(opts: ServerOptions): McpServer {
 
   server.registerTool('convert_structure', {
     title: 'Convert a structure',
-    description: 'Convert a structure to SMILES (with stereochemistry), a molfile (V2000), CDXML (ChemDraw) or a HexSketch link.',
+    description: DESCRIPTIONS.convert_structure,
     inputSchema: { structure: structure(), to: z.enum(['smiles', 'mol', 'cdxml', 'link']).describe('Target format.') },
     annotations: { title: 'Convert a structure', ...READ_ONLY },
   }, ({ structure: s, to }) => tool(async () => ({ content: [{ type: 'text', text: await convert(s, to) }] })));
 
   server.registerTool('compare_structures', {
     title: 'Compare two structures',
-    description: 'Are two structures the same compound, and the same stereoisomer? The inputs may be in different formats (a SMILES against a drawing, for instance).',
+    description: DESCRIPTIONS.compare_structures,
     inputSchema: { a: structure(), b: structure() },
     annotations: { title: 'Compare two structures', ...READ_ONLY },
   }, ({ a, b }) => tool(async () => text(await compare(a, b))));
@@ -274,7 +274,7 @@ export function createServer(opts: ServerOptions): McpServer {
 
     editorParts.push(server.registerTool('read_sketcher', {
       title: 'Read the HexSketch editor',
-      description: 'What the user has drawn in the open HexSketch editor: name, SMILES (with stereochemistry), formula, masses and a link. Call it whenever the user refers to their drawing ("this", "what I drew", "my structure").',
+      description: DESCRIPTIONS.read_sketcher,
       inputSchema: { sketch: sketchId },
       annotations: { title: 'Read the HexSketch editor', ...READ_ONLY },
     }, ({ sketch: id }) => safely(async () => {
@@ -285,7 +285,7 @@ export function createServer(opts: ServerOptions): McpServer {
 
     editorParts.push(server.registerTool('show_in_sketcher', {
       title: 'Show in the HexSketch editor',
-      description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, give steps instead: the user steps through them with Back and Next. Draw a synthesis or retrosynthesis as one reaction instead (then adds the forward route below the analysis), so the whole route is on one page. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each highlight is one thing — one atom, one functional group or one monomer (an amino acid residue) — marked at one place: where the fragment fits best, or the one you pick with occurrence or an atom-map number; give the group itself, not its surroundings, and two highlights for two of a kind. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
+      description: DESCRIPTIONS.show_in_sketcher,
       inputSchema: {
         sketch: sketchId,
         ...showFields(),
@@ -302,7 +302,7 @@ export function createServer(opts: ServerOptions): McpServer {
       }
       const { update, report } = await prepare(one, before, sketch.drawing);
       await store.addUpdate(sketch.id, update);
-      return text({ shown: true, sketch: sketch.id, ...report, next: 'The user sees this in the editor now. Keep the note a short, organised summary; put the explanation in a short chat reply that points at the drawing by colour. For the next point, call show_in_sketcher again.' });
+      return text({ shown: true, sketch: sketch.id, ...report, next: SHOWN_NEXT });
     })));
 
     // For the editor itself (hidden from the model where the chat supports it).

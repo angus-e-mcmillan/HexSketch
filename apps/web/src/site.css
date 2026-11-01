@@ -1,0 +1,7 @@
+/* hexsketch.com only (not the in-chat editor): the Ask AI button and the credit. */
+.menu button.ask-ai { margin-left: 8px; border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+.menu button.ask-ai:hover { background: #2559b8; }
+body.chat-open .menu button.ask-ai { background: #fff; color: var(--accent); }
+.status .credit { margin-right: 16px; padding-right: 16px; border-right: 1px solid var(--line); white-space: nowrap; }
+@media (max-width: 520px) { .status .credit { display: none; } }
+.signin-return { font: 15px system-ui, sans-serif; margin: 40px auto; max-width: 420px; text-align: center; color: #333; }

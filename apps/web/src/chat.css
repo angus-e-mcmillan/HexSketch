@@ -1,0 +1,43 @@
+/* Ask AI: the chat beside the editor (chat.ts). */
+.chat { display: none; }
+body.chat-open .workspace { grid-template-columns: 76px 1fr 340px; }
+body.chat-open.notes-open .workspace { grid-template-columns: 76px 1fr 240px 340px; }
+body.chat-open .chat { display: flex; flex-direction: column; min-height: 0; border-left: 1px solid var(--line); background: var(--chrome); }
+.chat header { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.chat header .title { font-size: 13px; font-weight: 600; margin-right: auto; }
+.chat header .model { max-width: 150px; font-size: 12px; }
+.chat header button { border: 1px solid var(--line); background: #fff; border-radius: 5px; padding: 2px 8px; font-size: 12px; cursor: pointer; }
+.chat header .close { border: none; background: none; font-size: 16px; color: var(--muted); padding: 0 4px; }
+.chat .signin { padding: 12px; font-size: 13px; line-height: 1.45; overflow-y: auto; }
+.chat .signin p { margin: 0 0 10px; }
+.chat .signin details { margin: 10px 0; font-size: 12px; }
+.chat .signin .key { display: flex; gap: 6px; margin-top: 6px; }
+.chat .signin .key input { flex: 1; min-width: 0; font-size: 12px; padding: 4px 6px; }
+.chat button.primary { border: 1px solid var(--accent); background: var(--accent); color: #fff; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+.chat button.primary:hover { background: #2559b8; }
+.chat .messages { flex: 1; list-style: none; margin: 0; padding: 10px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.chat .messages li { font-size: 13px; line-height: 1.45; max-width: 92%; }
+.chat .messages li.user { align-self: flex-end; background: var(--accent); color: #fff; padding: 6px 10px; border-radius: 10px 10px 2px 10px; white-space: pre-wrap; }
+.chat .messages li.ai { align-self: flex-start; background: #fff; border: 1px solid var(--line); padding: 6px 10px; border-radius: 10px 10px 10px 2px; }
+.chat .messages li.ai p { margin: 0 0 4px; }
+.chat .messages li.ai p:last-child { margin-bottom: 0; }
+.chat .messages li.ai ul { margin: 0; padding-left: 16px; }
+.chat .messages li.ai code { font: 12px ui-monospace, monospace; background: var(--chrome); padding: 0 3px; border-radius: 3px; }
+.chat .messages li.doing { align-self: flex-start; font-size: 12px; color: var(--muted); }
+.chat .messages li.error { align-self: stretch; font-size: 12px; color: #7f2c28; background: #fbefee; border: 1px solid #e3a5a2; padding: 6px 10px; border-radius: 6px; }
+.chat .compose { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
+.chat .compose textarea { flex: 1; resize: none; font: inherit; font-size: 13px; line-height: 1.4; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
+.chat .fineprint { margin: 0; padding: 0 10px 8px; font-size: 11px; color: var(--muted); }
+.chat .signin .fineprint { padding: 0; }
+.chat .fineprint button { border: none; background: none; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; }
+/* Signed out: the sign-in; signed in: the conversation. */
+.chat .messages, .chat .compose, .chat .account { display: none; }
+.chat.signed-in .signin { display: none; }
+.chat.signed-in .messages, .chat.signed-in .compose { display: flex; }
+.chat.signed-in .account { display: block; }
+/* A narrow window: the chat over the drawing, full width. */
+@media (max-width: 760px) {
+  body.chat-open .workspace, body.chat-open.notes-open .workspace { grid-template-columns: 76px 1fr; }
+  body.chat-open .chat { position: fixed; z-index: 20; top: 44px; right: 0; bottom: 0; width: min(100vw, 380px); box-shadow: -4px 0 16px rgba(0,0,0,0.12); }
+}
+.chat .messages li.ai .swatch { padding: 0 4px; border-radius: 3px; color: #1d1d1f; }

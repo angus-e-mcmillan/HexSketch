@@ -84,9 +84,13 @@ browser:
 - copy into Word, PowerPoint or Google Docs and paste back to edit (the
   structure travels inside the picture);
 - names, formula and masses under each structure;
-- opens and saves CDXML and MOL.
+- opens and saves CDXML and MOL;
+- **Ask AI**: a chat beside the editor with any model on
+  [OpenRouter](https://openrouter.ai) (Claude, GPT, Gemini, open models), on
+  your own OpenRouter account. It sees what you draw and answers by drawing,
+  with the same tools as the Claude connector.
 
-What you draw stays in your browser.
+What you draw stays in your browser, unless you send it to Ask AI.
 
 ---
 

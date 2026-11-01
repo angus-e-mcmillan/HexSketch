@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 import { alignByMaps, analyze, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
 import { parsePattern, smilesAtomMaps, type Molecule } from '@hexsketch/core';
 import type { SketchUpdate } from './sketch-store.ts';
@@ -36,17 +37,22 @@ export const CHEMISTRY = [
   '- Draw a retrosynthesis or a synthesis as one scheme on one page, in one call, not as steps, so the chemist sees the whole route at once: a reaction from the target with retrosynthetic arrows back to the starting materials, the disconnections marked on the target (disconnect, by atom-map numbers given only in the target, the first stage), and the forward route with its reagents and conditions in then, below it. HexSketch checks that atoms balance, not whether a route works or its materials can be bought: say so when it matters.',
 ];
 
+/** Bullets every kind of chat is told. */
+const STRUCTURES = '- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.';
+const MECHANISM = '- Draw a mechanism one step per show_in_sketcher call, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.';
+const ORIENTATION = '- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.';
+
 export const INSTRUCTIONS = [
   'HexSketch draws, names and checks chemical structures.',
   '',
-  '- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.',
+  STRUCTURES,
   '- Check every SMILES you write against the name and formula HexSketch returns for it: open_sketcher, show_in_sketcher and render_structure return them with any problems found, so draw first rather than calling validate_structure first. Use validate_structure for a SMILES you only give in text.',
   '- Open the editor first. As soon as the conversation turns to a structure — drawing, showing, explaining, comparing or changing one — call open_sketcher before any other HexSketch tool, with the structure if you have one and empty if the user is about to draw, and in the same call the highlights, labels, note, arrows or steps you would show next. Do it on the first such message, not after answering in text once: the editor is the point of HexSketch, and it opens full screen beside the conversation. Only a request for a file or a bare number (a mass, a name, a formula) is answered without it.',
   '- To show a structure where the editor cannot be opened, call render_structure. Every result includes a link that opens the structure in HexSketch, where the user can edit it by drawing: always give the user that link.',
   '- Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher: highlight the parts you mean (each highlight one atom, one functional group or one monomer such as an amino acid, at one place), pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour — the drawing carries the detail, the note is a small summary beside it, and your answer stays in the chat. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").',
   ...CHEMISTRY,
-  '- Draw a mechanism one step per show_in_sketcher call, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.',
-  '- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.',
+  MECHANISM,
+  ORIENTATION,
   '- Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user\'s current drawing is also given to you in the same form.`;',
 ].join('\n');
 
@@ -58,7 +64,7 @@ export const INSTRUCTIONS = [
 export const textInstructions = (saves: boolean) => [
   'HexSketch draws, names and checks chemical structures.',
   '',
-  '- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.',
+  STRUCTURES,
   '- Show every structure and reaction you discuss with render_structure: it returns the picture with its name, formula and any problems found (check them against what you meant, so draw first rather than calling validate_structure first), and a link that opens it in HexSketch at hexsketch.com, in the browser, where the user can edit it by drawing. Always give the user the link. Where you can show a web page beside the chat (a preview pane or a browser tool), open the link there as well, so the editor is open with the drawing as you talk. Use validate_structure for a SMILES you only give in text.',
   ...(saves ? ['- To save a drawing, give render_structure save_to, a path whose extension sets the format: .png or .svg for a picture, .pdf for a document, .cdxml for ChemDraw, .mol for other chemistry software.'] : []),
   ...CHEMISTRY,
@@ -299,3 +305,59 @@ export const prepareSteps = async (steps: Show[], before: Molecule | undefined, 
   return { updates, report };
 };
 export const stepsField = z.array(z.object(showFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, a sequence of up to ${MAX_STEPS} steps the user steps through with Back and Next, starting at the first: a mechanism (each step its species with atom-map numbers, its curly arrows and a one-line note naming it, keeping the same map numbers throughout) or a before-and-after. Not for a synthesis or retrosynthesis: draw it as one reaction (with then), so all of it is on the page at once. Each step is drawn the same way round as the one before.`);
+
+/** What the tools do, as the model reads it: the same wherever HexSketch is reached. */
+export const DESCRIPTIONS = {
+  name_structure: 'The IUPAC name of a structure, generated offline. Returns name null with a reason when the structure is outside what HexSketch names.',
+  analyze_structure: 'Name, SMILES (with stereochemistry), molecular formula, exact (monoisotopic) mass, molecular weight, elemental analysis and isotope pattern (m/z). Mixtures and salts are also given per structure.',
+  validate_structure: 'Check a structure, typically a SMILES you wrote, before presenting it: catches unreadable SMILES, names given instead of SMILES, aromatic rings that cannot be kekulized, atoms over or under their valence, unusual charges and radicals. Returns ok, issues (error, warning or note), and the name and formula to compare with what you meant. Never fails on bad input; it reports it.',
+  convert_structure: 'Convert a structure to SMILES (with stereochemistry), a molfile (V2000), CDXML (ChemDraw) or a HexSketch link.',
+  compare_structures: 'Are two structures the same compound, and the same stereoisomer? The inputs may be in different formats (a SMILES against a drawing, for instance).',
+  read_sketcher: 'What the user has drawn in the open HexSketch editor: name, SMILES (with stereochemistry), formula, masses and a link. Call it whenever the user refers to their drawing ("this", "what I drew", "my structure").',
+  show_in_sketcher: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, give steps instead: the user steps through them with Back and Next. Draw a synthesis or retrosynthesis as one reaction instead (then adds the forward route below the analysis), so the whole route is on one page. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each highlight is one thing — one atom, one functional group or one monomer (an amino acid residue) — marked at one place: where the fragment fits best, or the one you pick with occurrence or an atom-map number; give the group itself, not its surroundings, and two highlights for two of a kind. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
+} as const;
+
+/** What show_in_sketcher tells the model once the editor shows its update. */
+export const SHOWN_NEXT = 'The user sees this in the editor now. Keep the note a short, organised summary; put the explanation in a short chat reply that points at the drawing by colour. For the next point, call show_in_sketcher again.';
+
+// ------------------------------------------------- a chat beside the editor
+
+/**
+ * For a chat on the same page as the editor (hexsketch.com): the editor is
+ * always open, so there is nothing to open, nothing to render as a picture,
+ * and the user's drawing is the one the model works on.
+ */
+export const PAGE_INSTRUCTIONS = [
+  'HexSketch draws, names and checks chemical structures. You are chatting with a chemist on hexsketch.com, beside the HexSketch editor: the drawing they see is the one you work on.',
+  '',
+  STRUCTURES,
+  '- Show every structure and reaction you discuss in the editor with show_in_sketcher, never as text drawings or SMILES alone. Check the name and formula it returns against what you meant, and show it again if they are wrong.',
+  '- Highlight the parts you mean (each highlight one atom, one functional group or one monomer such as an amino acid, at one place), pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour. The drawing carries the detail; keep the chat reply short and point to it ("the yellow ester").',
+  '- When the user says "this", "my structure" or "what I drew", call read_sketcher first: they may have changed the drawing. Each message also says what the editor shows, when it has changed.',
+  ...CHEMISTRY,
+  MECHANISM,
+  ORIENTATION,
+].join('\n');
+
+/** A tool as an OpenAI-style function: what OpenRouter and most model APIs take. */
+export interface FunctionTool { name: string; description: string; parameters: Record<string, unknown> }
+
+/** JSON Schema of a tool's inputs, made exactly as the MCP server makes it (so every front end offers the same tool). */
+export const toJsonSchema = (shape: z.ZodRawShape): Record<string, unknown> => {
+  const { $schema: _, ...schema } = zodToJsonSchema(z.object(shape), { strictUnions: true, pipeStrategy: 'input' }) as Record<string, unknown>;
+  return schema;
+};
+
+/** The tools a chat beside the editor offers: the MCP server's, less those for opening the editor or rendering pictures. */
+export function pageTools(): FunctionTool[] {
+  const show = DESCRIPTIONS.show_in_sketcher.replace('that is already open (after open_sketcher)', 'beside the chat');
+  return [
+    { name: 'show_in_sketcher', description: show, parameters: toJsonSchema({ ...showFields(), steps: stepsField }) },
+    { name: 'read_sketcher', description: DESCRIPTIONS.read_sketcher, parameters: toJsonSchema({}) },
+    { name: 'name_structure', description: DESCRIPTIONS.name_structure, parameters: toJsonSchema({ structure: structure() }) },
+    { name: 'analyze_structure', description: DESCRIPTIONS.analyze_structure, parameters: toJsonSchema({ structure: structure() }) },
+    { name: 'validate_structure', description: DESCRIPTIONS.validate_structure, parameters: toJsonSchema({ structure: structure() }) },
+    { name: 'compare_structures', description: DESCRIPTIONS.compare_structures, parameters: toJsonSchema({ a: structure(), b: structure() }) },
+    { name: 'convert_structure', description: DESCRIPTIONS.convert_structure, parameters: toJsonSchema({ structure: structure(), to: z.enum(['smiles', 'mol', 'cdxml', 'link']).describe('Target format.') }) },
+  ];
+}
