@@ -47,6 +47,8 @@ class Chat {
   /** The drawing as the model last saw it, so a message only carries it when it has changed. */
   private lastSeen: string | null = null;
   private busy: AbortController | null = null;
+  /** Takes away the status line of the turn under way. */
+  private stopStatus = () => {};
   private readonly ui: AppApi;
 
   constructor(ui: AppApi) {
@@ -134,7 +136,7 @@ class Chat {
   }
 
   /** A line in the chat: the user's message, the AI's reply, what a tool is doing, or an error. */
-  private say(kind: 'user' | 'ai' | 'doing' | 'error', text: string): HTMLLIElement {
+  private say(kind: 'user' | 'ai' | 'doing' | 'error' | 'cost', text: string): HTMLLIElement {
     const li = Object.assign(document.createElement('li'), { className: kind });
     if (kind === 'ai') li.append(formatted(text, COLOURS));
     else li.textContent = text;
@@ -176,19 +178,52 @@ class Chat {
     this.busy = new AbortController();
     this.el.classList.add('busy');
     this.sendButton.textContent = 'Stop';
-    const thinking = this.say('doing', 'Thinking…');
+    // One status line at the bottom, with the time so far, so a slow model never looks stuck.
+    const status = this.say('doing', 'Thinking…');
+    const started = Date.now();
+    let doing = 'Thinking';
+    const tick = () => { status.textContent = `${doing}… ${Math.round((Date.now() - started) / 1000)} s`; };
+    const timer = setInterval(tick, 1000);
+    const toBottom = () => { this.list.append(status); status.scrollIntoView({ block: 'end' }); };
+    // What the whole answer cost, every round of it, on the user's OpenRouter account.
+    let cost = 0;
+    this.stopStatus = () => { clearInterval(timer); status.remove(); };
     try {
       for (let round = 0; round < MAX_ROUNDS; round++) {
-        const reply = await openrouter.complete(this.model.value, this.messages, tools, this.busy.signal);
+        doing = 'Thinking';
+        tick();
+        // The reply appears as the model writes it, then is set out properly (bold, lists, colours) when it ends.
+        const view: { bubble?: HTMLLIElement } = {};
+        const reply = await openrouter.complete(this.model.value, this.messages, tools, {
+          signal: this.busy.signal,
+          onCost: (usd) => { cost += usd; },
+          onText: (soFar) => {
+            view.bubble ??= Object.assign(document.createElement('li'), { className: 'ai' });
+            view.bubble.textContent = soFar;
+            this.list.append(view.bubble);
+            toBottom();
+          },
+        });
         this.messages.push(reply);
-        if (reply.content?.trim()) this.say('ai', reply.content.trim());
+        const final = reply.content?.trim();
+        if (final) {
+          view.bubble ??= Object.assign(document.createElement('li'), { className: 'ai' });
+          view.bubble.replaceChildren(formatted(final, COLOURS));
+          this.list.append(view.bubble);
+        } else view.bubble?.remove();
         if (!reply.tool_calls?.length) break;
         for (const call of reply.tool_calls) {
-          this.say('doing', `${DOING[call.function.name] ?? call.function.name}…`);
+          doing = DOING[call.function.name] ?? call.function.name;
+          this.say('doing', `${doing}…`);
+          toBottom();
+          tick();
           const result = await this.run(call.function.name, call.function.arguments);
           this.messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
         }
+        toBottom();
       }
+      const took = Math.round((Date.now() - started) / 1000);
+      this.say('cost', `${this.model.selectedOptions[0]?.textContent ?? this.model.value} · ${took} s${cost ? ` · $${cost < 0.01 ? cost.toFixed(4) : cost.toFixed(3)}` : ''}`);
       // What the AI drew it knows already: only the user's own changes go with the next message.
       this.lastSeen = (await this.describe()) ?? '';
     } catch (err) {
@@ -197,7 +232,7 @@ class Chat {
         if (err instanceof openrouter.OpenRouterError && err.signOut) openrouter.setApiKey(null);
       }
     } finally {
-      thinking.remove();
+      this.stopStatus();
       this.busy = null;
       this.el.classList.remove('busy');
       this.sendButton.textContent = 'Send';

@@ -41,3 +41,4 @@ body.chat-open .chat { display: flex; flex-direction: column; min-height: 0; bor
   body.chat-open .chat { position: fixed; z-index: 20; top: 44px; right: 0; bottom: 0; width: min(100vw, 380px); box-shadow: -4px 0 16px rgba(0,0,0,0.12); }
 }
 .chat .messages li.ai .swatch { padding: 0 4px; border-radius: 3px; color: #1d1d1f; }
+.chat .messages li.cost { align-self: flex-start; font-size: 11px; color: var(--muted); margin-top: -4px; }

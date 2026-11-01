@@ -98,17 +98,45 @@ export class OpenRouterError extends Error {
   constructor(message: string, signOut = false) { super(message); this.signOut = signOut; }
 }
 
-/** One turn of the model: its reply, which may ask for tools. */
-export async function complete(model: string, messages: Message[], tools: { name: string; description: string; parameters: unknown }[], signal?: AbortSignal): Promise<Extract<Message, { role: 'assistant' }>> {
+/**
+ * What goes to the model, with Claude's prompt cache marked: the tools and
+ * instructions (most of every request, the same each time) and the
+ * conversation up to the latest message are kept for the next request, so
+ * each round of tool calls is quicker and cheaper. Other providers cache on
+ * their own; Claude only where asked.
+ */
+function cached(model: string, messages: Message[]): unknown[] {
+  if (!model.startsWith('anthropic/')) return messages;
+  const lastUser = messages.map((m) => m.role).lastIndexOf('user');
+  return messages.map((m, i) => (m.role === 'system' || i === lastUser) && typeof m.content === 'string'
+    ? { ...m, content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral' } }] }
+    : m);
+}
+
+/**
+ * One turn of the model: its reply, which may ask for tools. Streamed, so
+ * `onText` sees the reply as it is written rather than all at once at the end.
+ */
+export async function complete(
+  model: string, messages: Message[], tools: { name: string; description: string; parameters: unknown }[],
+  opts: { signal?: AbortSignal; onText?: (soFar: string) => void; onCost?: (usd: number) => void } = {},
+): Promise<Extract<Message, { role: 'assistant' }>> {
   const key = apiKey();
   if (!key) throw new OpenRouterError('Sign in to OpenRouter first', true);
   const r = await fetch(`${API}/chat/completions`, {
     method: 'POST',
-    signal,
+    signal: opts.signal,
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': 'https://hexsketch.com', 'X-Title': 'HexSketch' },
-    body: JSON.stringify({ model, messages, tools: tools.map((t) => ({ type: 'function', function: t })) }),
+    body: JSON.stringify({
+      model, messages: cached(model, messages), tools: tools.map((t) => ({ type: 'function', function: t })), stream: true,
+      // Drawing a structure needs little thought: unchecked, Opus thought 6,000 tokens a step, a minute or two and most of the cost.
+      // Low effort with this cap leaves it about 1,000 (the least Claude takes); the drawing's name and formula catch mistakes.
+      reasoning: { effort: 'low' }, max_tokens: 4096,
+      // What each turn cost, sent with the last chunk, for the chat to show.
+      usage: { include: true },
+    }),
   });
-  if (!r.ok) {
+  if (!r.ok || !r.body) {
     let why = '';
     try { why = ((await r.json()) as { error?: { message?: string } }).error?.message ?? ''; } catch { /* not JSON */ }
     if (r.status === 401) throw new OpenRouterError('OpenRouter no longer accepts this sign-in: sign in again', true);
@@ -116,8 +144,37 @@ export async function complete(model: string, messages: Message[], tools: { name
     if (r.status === 429) throw new OpenRouterError('Too many requests just now: wait a moment and try again');
     throw new OpenRouterError(`OpenRouter: ${why || r.statusText || r.status}`);
   }
-  const body = await r.json() as { choices?: { message?: Extract<Message, { role: 'assistant' }> }[]; error?: { message?: string } };
-  const message = body.choices?.[0]?.message;
-  if (!message) throw new OpenRouterError(`OpenRouter: ${body.error?.message ?? 'no reply'}`);
-  return { role: 'assistant', content: message.content ?? null, ...(message.tool_calls?.length ? { tool_calls: message.tool_calls } : {}) };
+  // Server-sent events: "data: {chunk}" lines, ": comment" lines while OpenRouter waits, "data: [DONE]" at the end.
+  let text = '';
+  const calls: ToolCall[] = [];
+  const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
+  let pending = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    pending += value;
+    const lines = pending.split('\n');
+    pending = lines.pop()!;
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6).trim();
+      if (data === '[DONE]') continue;
+      let chunk: { choices?: { delta?: { content?: string | null; tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[] } }[]; error?: { message?: string }; usage?: { cost?: number; prompt_tokens?: number; completion_tokens?: number } };
+      try { chunk = JSON.parse(data); } catch { continue; }
+      if (chunk.error) throw new OpenRouterError(`OpenRouter: ${chunk.error.message ?? 'the model stopped'}`);
+      if (typeof chunk.usage?.cost === 'number') opts.onCost?.(chunk.usage.cost);
+      const delta = chunk.choices?.[0]?.delta;
+      if (delta?.content) { text += delta.content; opts.onText?.(text); }
+      // A tool call arrives in pieces: its id and name first, then its arguments a few characters at a time.
+      for (const d of delta?.tool_calls ?? []) {
+        const call = calls[d.index] ??= { id: '', type: 'function', function: { name: '', arguments: '' } };
+        if (d.id) call.id = d.id;
+        if (d.function?.name) call.function.name += d.function.name;
+        if (d.function?.arguments) call.function.arguments += d.function.arguments;
+      }
+    }
+  }
+  const toolCalls = calls.filter(Boolean);
+  if (!text && !toolCalls.length) throw new OpenRouterError('OpenRouter: the model sent an empty reply');
+  return { role: 'assistant', content: text || null, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) };
 }
