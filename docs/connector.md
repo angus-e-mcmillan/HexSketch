@@ -90,7 +90,32 @@ hexsketch-mcp > Logs).
 If you also installed HexSketch locally (the installer or the extension),
 turn one of them off, so Claude doesn't see every tool twice.
 
-## Try it locally
+## Try a change before it goes live
 
-`npm run dev:mcp` serves it at `http://127.0.0.1:8787/mcp`, and
-`npm run smoke:mcp` checks it there. CI runs both on every pull request.
+Check out the pull request's branch first (`git fetch`, `git checkout <branch>`,
+`npm ci`). Then:
+
+**On your computer** (Codex, Hermes Agent, Claude Code). `npm run dev:mcp`
+serves the branch at `http://127.0.0.1:8787/mcp`; keep it running and, in
+another terminal, connect the agent to it under a name of its own:
+
+```sh
+codex mcp add hexsketch-dev --url http://127.0.0.1:8787/mcp
+hermes mcp add hexsketch-dev --url http://127.0.0.1:8787/mcp
+claude mcp add --transport http hexsketch-dev http://127.0.0.1:8787/mcp
+```
+
+`npm run smoke:mcp` checks it end to end (CI runs it on every pull request).
+
+**In Claude** (claude.ai and the apps reach a connector from Anthropic's
+servers, so it needs a public address). `npm run deploy:mcp:staging` deploys
+the branch as a second Worker, `hexsketch-mcp-staging`, and prints its address
+(`https://hexsketch-mcp-staging.<your subdomain>.workers.dev`). It is not on
+mcp.hexsketch.com and keeps its own editors, so nobody else sees it. In Claude,
+add a custom connector named `HexSketch staging` with that address plus `/mcp`,
+and turn the HexSketch connector off while you test, so the chat has one of
+them. Check it with `npm run smoke:mcp -- <address>/mcp` and watch it with
+`npx wrangler tail hexsketch-mcp-staging`.
+
+When it all works, merge and `npm run deploy:mcp`. The staging Worker can stay
+(it costs nothing idle) or go: `npx wrangler delete hexsketch-mcp-staging`.

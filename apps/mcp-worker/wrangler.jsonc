@@ -36,5 +36,34 @@
     { "type": "CompiledWasm", "globs": ["**/*.wasm"] },
     { "type": "Data", "globs": ["**/*.ttf"] },
     { "type": "Text", "globs": ["**/*.html"] }
-  ]
+  ],
+  "env": {
+    // A second server for trying a branch before it goes live (npm run
+    // deploy:mcp:staging): the same code at its own address,
+    // https://hexsketch-mcp-staging.<your subdomain>.workers.dev/mcp (the
+    // deploy prints it), with its own editors. Not on mcp.hexsketch.com, and
+    // no spending-cap cron: it is only for you.
+    "staging": {
+      "name": "hexsketch-mcp-staging",
+      "routes": [],
+      "workers_dev": true,
+      "durable_objects": {
+        "bindings": [
+          { "name": "SKETCHES", "class_name": "Sketch" },
+          { "name": "CONVERSATIONS", "class_name": "Conversation" },
+          { "name": "BUDGET", "class_name": "Budget" }
+        ]
+      },
+      "migrations": [
+        { "tag": "v1", "new_sqlite_classes": ["Sketch", "Conversation"] },
+        { "tag": "v2", "new_sqlite_classes": ["Budget"] }
+      ],
+      "vars": { "DAILY_CAP_USD": "5" },
+      "triggers": { "crons": [] },
+      "ratelimits": [
+        { "name": "LIMIT", "namespace_id": "2002", "simple": { "limit": 300, "period": 60 } },
+        { "name": "NEW_LIMIT", "namespace_id": "2003", "simple": { "limit": 600, "period": 60 } }
+      ]
+    }
+  }
 }
