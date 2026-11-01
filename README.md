@@ -26,21 +26,50 @@ Works on claude.ai and in the Claude desktop app. On a Team or Enterprise
 plan, an owner adds the connector first.
 
 **Claude Code:** run
-`claude mcp add --transport http hexsketch https://mcp.hexsketch.com/mcp`
-
-**Codex:** run
-`codex mcp add hexsketch --url https://mcp.hexsketch.com/mcp`
-
-Claude Code and Codex can't show the editor in a terminal, so the AI draws
-pictures of structures and schemes, each with a link that opens it in
-HexSketch to edit. For the best drawings, also add the
+`claude mcp add --transport http hexsketch https://mcp.hexsketch.com/mcp`.
+For the best drawings, also add the
 [HexSketch skill](skills/hexsketch/SKILL.md): copy the `skills/hexsketch`
-folder to `~/.claude/skills/` (Claude Code) or `~/.codex/skills/` (Codex).
+folder to `~/.claude/skills/`.
 
 **Keep everything on your computer:** download
 [hexsketch.mcpb](https://github.com/angus-e-mcmillan/HexSketch/releases/latest/download/hexsketch.mcpb),
 double-click it and click **Install** in Claude Desktop. It works offline.
 Use either this or the connector, not both.
+
+## Add it to Codex
+
+OpenAI's Codex uses the same connector. Codex in a terminal can't show the
+editor, so it draws a picture of each structure or reaction scheme and gives
+you a link that opens it in HexSketch, in your browser, to edit by drawing.
+
+1. If you don't have Codex yet, install it and sign in (the first run opens
+   your browser):
+   ```sh
+   npm install -g @openai/codex
+   codex
+   ```
+2. Add HexSketch:
+   ```sh
+   codex mcp add hexsketch --url https://mcp.hexsketch.com/mcp
+   ```
+3. For the best drawings, add the HexSketch skill, which teaches Codex how
+   chemists draw (reactions as schemes, reagents above the arrow, checking
+   its own SMILES):
+   ```sh
+   mkdir -p ~/.codex/skills/hexsketch/agents
+   curl -fsSL https://raw.githubusercontent.com/angus-e-mcmillan/HexSketch/main/skills/hexsketch/SKILL.md -o ~/.codex/skills/hexsketch/SKILL.md
+   curl -fsSL https://raw.githubusercontent.com/angus-e-mcmillan/HexSketch/main/skills/hexsketch/agents/openai.yaml -o ~/.codex/skills/hexsketch/agents/openai.yaml
+   ```
+4. Start `codex` and ask: *Draw the synthesis of aspirin from salicylic acid*.
+   Open the link to edit the drawing.
+
+The same setting works in the Codex IDE extension. To check it's connected,
+run `codex mcp list`.
+
+To save drawings as files in your project (PNG, SVG, PDF, CDXML for ChemDraw,
+MOL), run HexSketch on your computer instead of the connector (needs
+Node.js): `codex mcp add hexsketch -- npx -y hexsketch mcp`, then ask, for
+example, *save it as aspirin.png*.
 
 ## Things to ask
 
