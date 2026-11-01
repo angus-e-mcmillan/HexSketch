@@ -60,8 +60,16 @@ it stays open beside the chat while you talk. Both of you work in it:
   e.g. `C(=O)O`) and leaves notes in a Notes panel. Undo brings your drawing
   back.
 
-Elsewhere the tool answers with a link that opens the structure on
-hexsketch.com.
+**Elsewhere** (Codex or Claude Code in a terminal), the server leaves out
+the editor's tools and tells the assistant to draw with `render_structure`
+instead: a picture of each structure or scheme, a link that opens it on
+hexsketch.com for you to edit, and, when you ask, the file saved where you
+say (`save_to`).
+
+The [HexSketch skill](https://github.com/angus-e-mcmillan/HexSketch/tree/main/skills/hexsketch)
+teaches the assistant to draw chemistry well with these tools. Copy the
+`skills/hexsketch` folder to `~/.codex/skills/` (Codex) or `~/.claude/skills/`
+(Claude Code).
 
 Tools: `open_sketcher`, `read_sketcher`, `show_in_sketcher`, `render_structure` (PNG shown in the chat, or SVG, PDF, CDXML, MOL, and
 `save_to` a file), `name_structure`, `analyze_structure`, `validate_structure`,

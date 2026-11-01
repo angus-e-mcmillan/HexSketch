@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { getUiCapability, registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
+import { InitializeRequestSchema, type CallToolResult, type InitializeRequest, type InitializeResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import { alignByMaps, analyze, arrangeForArrows, compare, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, link, name, orientLike, readStructure, render, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Rasterizer, type RenderFormat, type Scheme, type Structure } from '@hexsketch/agent';
 import { parsePattern, smilesAtomMaps, type Molecule } from '@hexsketch/core';
@@ -37,6 +37,33 @@ export interface ServerOptions {
   sketchesPerConversation?: boolean;
   /** The largest drawing (CDXML) an editor may report, in characters. */
   maxDrawing?: number;
+  /**
+   * Whether this chat can show the editor. Left out, the server decides when
+   * the client connects, from what it says it supports (canShowEditor); a
+   * hosted server that makes a new server for every request passes what was
+   * decided when the conversation began.
+   */
+  editor?: boolean;
+}
+
+/** The client, as it introduces itself in initialize. */
+export interface ClientHello { capabilities?: unknown; clientInfo?: { name?: string } }
+
+/**
+ * Before changing this, read docs/connector.md, "Which chats get the
+ * editor": chat apps connect several times per chat, not always saying they
+ * show MCP Apps, and a wrong answer sticks (change TEXT_ONLY in the worker).
+ *
+ * Whether a chat can show the in-chat editor: it says it supports MCP Apps,
+ * or it is Claude (web, desktop, phone: "Anthropic..."), which shows them; Claude Code in a
+ * terminal cannot. Codex and other terminal agents get pictures
+ * and links instead.
+ */
+export function canShowEditor(hello: ClientHello | undefined): boolean {
+  if (getUiCapability(hello?.capabilities as Parameters<typeof getUiCapability>[0])) return true;
+  // Claude's apps connect under several names ("Anthropic", "Anthropic/ClaudeAI"...), not all of which say so.
+  const name = hello?.clientInfo?.name ?? '';
+  return /anthropic|claude/i.test(name) && !/claude[-_ ]?code/i.test(name);
 }
 
 /** Where the in-chat editor is served from. */
@@ -61,20 +88,44 @@ const MAX_WAIT = 20_000;
 /** At most this many steps in one show_in_sketcher call. */
 const MAX_STEPS = 10;
 
-const INSTRUCTIONS = `HexSketch draws, names and checks chemical structures.
+/** What HexSketch draws for any chat, editor or not. */
+const CHEMISTRY = [
+  '- Protecting groups are drawn abbreviated, as chemists write them (Boc, Fmoc, Cbz, Alloc, Troc, TBS, TIPS, TES, TBDPS, TMS, Trt, Pbf, PMB, Bn and tBu on O, MOM, THP): write them in full in the SMILES, and names, formulas and checks still see every atom. A highlight or label can\'t point inside an abbreviation; atoms with map numbers are never abbreviated.',
+  '- Peptides are drawn as chemists draw them, from the SMILES alone: N-terminus on the left, the backbone a flat zigzag, the side chains on wedges showing their configuration. Write their stereocentres in the SMILES.',
+  '- Draw every reaction as a scheme, with the reaction input: starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.',
+  '- Draw a retrosynthesis or a synthesis as one scheme on one page, in one call, not as steps, so the chemist sees the whole route at once: a reaction from the target with retrosynthetic arrows back to the starting materials, the disconnections marked on the target (disconnect, by atom-map numbers given only in the target, the first stage), and the forward route with its reagents and conditions in then, below it. HexSketch checks that atoms balance, not whether a route works or its materials can be bought: say so when it matters.',
+];
 
-- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.
-- Check every SMILES you write against the name and formula HexSketch returns for it: open_sketcher, show_in_sketcher and render_structure return them with any problems found, so draw first rather than calling validate_structure first. Use validate_structure for a SMILES you only give in text.
-- Open the editor first. As soon as the conversation turns to a structure — drawing, showing, explaining, comparing or changing one — call open_sketcher before any other HexSketch tool, with the structure if you have one and empty if the user is about to draw, and in the same call the highlights, labels, note, arrows or steps you would show next. Do it on the first such message, not after answering in text once: the editor is the point of HexSketch, and it opens full screen beside the conversation. Only a request for a file or a bare number (a mass, a name, a formula) is answered without it.
-- To show a structure where the editor cannot be opened, call render_structure. Every result includes a link that opens the structure in HexSketch, where the user can edit it by drawing: always give the user that link.
-- Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher: highlight the parts you mean (each highlight one atom, one functional group or one monomer such as an amino acid, at one place), pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour — the drawing carries the detail, the note is a small summary beside it, and your answer stays in the chat. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").
-- Protecting groups are drawn abbreviated, as chemists write them (Boc, Fmoc, Cbz, Alloc, Troc, TBS, TIPS, TES, TBDPS, TMS, Trt, Pbf, PMB, Bn and tBu on O, MOM, THP): write them in full in the SMILES, and names, formulas and checks still see every atom. A highlight or label can't point inside an abbreviation; atoms with map numbers are never abbreviated.
-- Peptides are drawn as chemists draw them, from the SMILES alone: N-terminus on the left, the backbone a flat zigzag, the side chains on wedges showing their configuration. Write their stereocentres in the SMILES.
-- Draw every reaction as a scheme, with the reaction input (render_structure, open_sketcher, show_in_sketcher): starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.
-- Draw a mechanism one step per show_in_sketcher call, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.
-- Draw a retrosynthesis or a synthesis as one scheme on one page, in one call, not as steps, so the chemist sees the whole route at once: a reaction from the target with retrosynthetic arrows back to the starting materials, the disconnections marked on the target (disconnect, by atom-map numbers given only in the target, the first stage), and the forward route with its reagents and conditions in then, below it. HexSketch checks that atoms balance, not whether a route works or its materials can be bought: say so when it matters.
-- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.
-- Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user's current drawing is also given to you in the same form.`;
+const INSTRUCTIONS = [
+  'HexSketch draws, names and checks chemical structures.',
+  '',
+  '- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.',
+  '- Check every SMILES you write against the name and formula HexSketch returns for it: open_sketcher, show_in_sketcher and render_structure return them with any problems found, so draw first rather than calling validate_structure first. Use validate_structure for a SMILES you only give in text.',
+  '- Open the editor first. As soon as the conversation turns to a structure — drawing, showing, explaining, comparing or changing one — call open_sketcher before any other HexSketch tool, with the structure if you have one and empty if the user is about to draw, and in the same call the highlights, labels, note, arrows or steps you would show next. Do it on the first such message, not after answering in text once: the editor is the point of HexSketch, and it opens full screen beside the conversation. Only a request for a file or a bare number (a mass, a name, a formula) is answered without it.',
+  '- To show a structure where the editor cannot be opened, call render_structure. Every result includes a link that opens the structure in HexSketch, where the user can edit it by drawing: always give the user that link.',
+  '- Once the editor is open, it is where you and the user look at structures, for the rest of the conversation. Call read_sketcher to see what they have drawn. Show every structure you discuss with show_in_sketcher: highlight the parts you mean (each highlight one atom, one functional group or one monomer such as an amino acid, at one place), pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour — the drawing carries the detail, the note is a small summary beside it, and your answer stays in the chat. Do not instead show structures as images (render_structure), pictures from the web, links or text drawings, and do not open another editor; only render or search when the user asks for an image or a file. Keep the chat reply short and point to the editor ("the yellow ester").',
+  ...CHEMISTRY,
+  '- Draw a mechanism one step per show_in_sketcher call, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.',
+  '- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.',
+  '- Text that starts "Structure from HexSketch", or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools. While the editor is open, the user\'s current drawing is also given to you in the same form.`;',
+].join('\n');
+
+/**
+ * For chats that cannot show the editor (Codex and Claude Code in a terminal,
+ * other agents): pictures and links, and files where the server can write
+ * them.
+ */
+const textInstructions = (saves: boolean) => [
+  'HexSketch draws, names and checks chemical structures.',
+  '',
+  '- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.',
+  '- Show every structure and reaction you discuss with render_structure: it returns the picture with its name, formula and any problems found (check them against what you meant, so draw first rather than calling validate_structure first), and a link that opens it in HexSketch at hexsketch.com, in the browser, where the user can edit it by drawing. Always give the user the link. Where you can show a web page beside the chat (a preview pane or a browser tool), open the link there as well, so the editor is open with the drawing as you talk. Use validate_structure for a SMILES you only give in text.',
+  ...(saves ? ['- To save a drawing, give render_structure save_to, a path whose extension sets the format: .png or .svg for a picture, .pdf for a document, .cdxml for ChemDraw, .mol for other chemistry software.'] : []),
+  ...CHEMISTRY,
+  '- Draw a mechanism one render_structure call per step, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.',
+  '- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it, so the same compound is drawn identically.',
+  '- Text that starts "Structure from HexSketch" (from Edit › Copy for AI in HexSketch), or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools.',
+].join('\n');
 
 /**
  * Input schemas are made fresh for each use: a schema object used twice in
@@ -92,7 +143,11 @@ const sequence = () => ({
 });
 const reaction = () => z.object({
   ...sequence(),
-  then: z.array(z.object(sequence())).max(3).optional().describe('More schemes drawn below this one, in the same drawing, each starting on a new row: for a retrosynthesis, the forward route (with its reagents and conditions) below the retrosynthetic analysis, so the whole route is on one page.'),
+  // Without descriptions of their own (those above say it): Codex drops every description from a tool over 5,000 bytes.
+  then: z.array(z.object({
+    stages: z.array(z.string().min(1)).min(2).max(8),
+    arrows: z.array(z.object({ reagents: z.string().max(200).optional(), conditions: z.string().max(200).optional(), type: z.enum(['forward', 'equilibrium', 'retrosynthetic']).optional() })).optional(),
+  })).max(3).optional().describe('More schemes, given as stages and arrows like this one, drawn below it in the same drawing, each starting on a new row: for a retrosynthesis, the forward route (with its reagents and conditions) below the retrosynthetic analysis, so the whole route is on one page.'),
 }).describe('A reaction scheme instead of a single structure: starting materials, an arrow with the reagents above it and the solvent and conditions below, and the products. Use it for every reaction or synthetic step.');
 
 const atomRef = () => z.array(z.number().int().min(0)).min(1).max(2);
@@ -197,19 +252,38 @@ export function createServer(opts: ServerOptions): McpServer {
    * drift back to images and long chat answers otherwise.
    */
   const inEditor = async (r: CallToolResult): Promise<CallToolResult> => {
-    const id = !r.isError && sketches ? await sketches.live(ON_SCREEN_MS) : null;
+    const id = !r.isError && sketches && modelSeesEditor ? await sketches.live(ON_SCREEN_MS) : null;
     if (!id || (!opts.sketchesPerConversation && !opened.has(id))) return r;
     return { ...r, content: [...r.content, { type: 'text', text: `The HexSketch editor is open in this chat (sketch "${id}"): show this there with show_in_sketcher (a structure, highlights, short labels on atoms and a note of a few bullets summing them up) rather than as an image, a picture from the web or a text drawing, and keep your chat reply short.` }] };
   };
   /** A model tool's body: a bad structure becomes a tool error the assistant can read and fix; results point to an open editor. */
   const tool = (fn: () => Promise<CallToolResult>) => safely(fn).then(inEditor);
-  const server = new McpServer({ name: 'hexsketch', title: 'HexSketch', version: opts.version, websiteUrl: 'https://hexsketch.com' }, { instructions: INSTRUCTIONS });
+  const withEditor = !!opts.sketcherHtml && opts.editor !== false;
+  const server = new McpServer({ name: 'hexsketch', title: 'HexSketch', version: opts.version, websiteUrl: 'https://hexsketch.com' }, { instructions: withEditor ? INSTRUCTIONS : textInstructions(!!opts.saveFile) });
+  /**
+   * The tools the model works the editor with, hidden from a chat that can't
+   * show it. The editor's page and its own tools stay on every connection: a
+   * chat app may load the editor through a connection other than the
+   * model's, one that doesn't say it shows MCP Apps (Claude's desktop app does).
+   */
+  const editorParts: { enabled: boolean }[] = [];
+  let modelSeesEditor = withEditor;
   const read = (s?: 'hexsketch' | 'acs') => (s ? { style: s } : {});
+  const saves = opts.saveFile ? ' With save_to, also writes the file (format from the extension: .png .svg .pdf .cdxml .mol).' : '';
+  const image = opts.rasterize ? ' (PNG by default)' : ' (SVG)';
+  /**
+   * Where the editor shows, as it was before text-only chats: a fuller
+   * description here made models draw a picture before opening the editor,
+   * and Claude's desktop app then never showed the editor.
+   */
+  const renderForEditor = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES and a link that opens it in HexSketch for editing. Show the user the image and the link.${saves} In a chat that shows the HexSketch editor, use open_sketcher and show_in_sketcher instead, unless the user asks for an image or a file.`;
+  // Where it doesn't, it is the drawing tool, so it carries the essentials: some agents never show a server's instructions to the model.
+  const renderForText = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES, formula and a link that opens it in HexSketch at hexsketch.com, where the user can edit it by drawing. Give structures as SMILES, not names. Check the name and formula returned against what you meant, and always give the user the link; where you can show a web page beside the chat (a preview pane, a browser tool), open the link there too. Draw every reaction as a scheme: reagents above the arrow, solvent, temperature, time and yield below; a whole synthesis or retrosynthesis as one scheme (then).${saves}`;
   const formats: RenderFormat[] = opts.rasterize ? ['png', 'svg', 'pdf', 'cdxml', 'mol'] : ['svg', 'pdf', 'cdxml', 'mol'];
 
-  server.registerTool('render_structure', {
+  const renderTool = server.registerTool('render_structure', {
     title: 'Draw a structure',
-    description: `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${opts.rasterize ? ' (PNG by default)' : ' (SVG)'}, with its name, SMILES and a link that opens it in HexSketch for editing. Show the user the image and the link.${opts.saveFile ? ' With save_to, also writes the file (format from the extension: .png .svg .pdf .cdxml .mol).' : ''}`,
+    description: withEditor ? renderForEditor : renderForText,
     inputSchema: {
       structure: structure().optional(),
       reaction: reaction().optional(),
@@ -428,7 +502,7 @@ export function createServer(opts: ServerOptions): McpServer {
     };
     const stepsField = z.array(z.object(showFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, a sequence of up to ${MAX_STEPS} steps the user steps through with Back and Next, starting at the first: a mechanism (each step its species with atom-map numbers, its curly arrows and a one-line note naming it, keeping the same map numbers throughout) or a before-and-after. Not for a synthesis or retrosynthesis: draw it as one reaction (with then), so all of it is on the page at once. Each step is drawn the same way round as the one before.`);
 
-    registerAppTool(server, 'open_sketcher', {
+    editorParts.push(registerAppTool(server, 'open_sketcher', {
       title: 'Open the HexSketch editor',
       description: 'Open HexSketch\'s drawing editor in the chat, so the user can draw a structure by hand or edit one you give. This is the first tool to call whenever the conversation involves a structure — drawing, sketching, showing, explaining, comparing, correcting one — before render_structure or structure_link, and on the first such message rather than after an answer in text. It opens full screen, beside the conversation. Give, in this same call, what you would show next (highlight, labels, note, arrows, disconnect, or steps), so the user sees your answer as the editor opens rather than after another round. Then keep working in that editor: read_sketcher shows what the user drew, and show_in_sketcher changes, highlights and annotates it. The result gives the name and formula of what was drawn, with any problems found: check them against what you meant. The user\'s drawing also comes back as a message starting "Structure from HexSketch" when they press Send to chat. In chats that cannot show the editor, give the user the link in the result instead.',
       inputSchema: {
@@ -460,9 +534,9 @@ export function createServer(opts: ServerOptions): McpServer {
         content: [{ type: 'text', text: JSON.stringify({ ...info, next, fallback: 'If the chat cannot show the editor, the link opens the same structure on hexsketch.com.' }, null, 2) }],
         structuredContent: { ...shared, ...info },
       };
-    }));
+    })));
 
-    server.registerTool('read_sketcher', {
+    editorParts.push(server.registerTool('read_sketcher', {
       title: 'Read the HexSketch editor',
       description: 'What the user has drawn in the open HexSketch editor: name, SMILES (with stereochemistry), formula, masses and a link. Call it whenever the user refers to their drawing ("this", "what I drew", "my structure").',
       inputSchema: { sketch: sketchId },
@@ -471,9 +545,9 @@ export function createServer(opts: ServerOptions): McpServer {
       const sketch = await target(id);
       if (!sketch.drawing) return text({ sketch: sketch.id, empty: true, note: 'The canvas is empty.' });
       return text({ sketch: sketch.id, ...(await analyze(sketch.drawing)), link: await link(sketch.drawing), next: 'Show what you say about this drawing in the editor with show_in_sketcher (highlight the parts you mean, explain in the note).' });
-    }));
+    })));
 
-    server.registerTool('show_in_sketcher', {
+    editorParts.push(server.registerTool('show_in_sketcher', {
       title: 'Show in the HexSketch editor',
       description: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, give steps instead: the user steps through them with Back and Next. Draw a synthesis or retrosynthesis as one reaction instead (then adds the forward route below the analysis), so the whole route is on one page. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each highlight is one thing — one atom, one functional group or one monomer (an amino acid residue) — marked at one place: where the fragment fits best, or the one you pick with occurrence or an atom-map number; give the group itself, not its surroundings, and two highlights for two of a kind. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
       inputSchema: {
@@ -493,7 +567,7 @@ export function createServer(opts: ServerOptions): McpServer {
       const { update, report } = await prepare(one, before, sketch.drawing);
       await store.addUpdate(sketch.id, update);
       return text({ shown: true, sketch: sketch.id, ...report, next: 'The user sees this in the editor now. Keep the note a short, organised summary; put the explanation in a short chat reply that points at the drawing by colour. For the next point, call show_in_sketcher again.' });
-    }));
+    })));
 
     // For the editor itself (hidden from the model where the chat supports it).
     registerAppTool(server, 'sketch_updates', {
@@ -531,5 +605,22 @@ export function createServer(opts: ServerOptions): McpServer {
     }));
   }
 
+  // A chat that can't show the editor doesn't list the model's editor tools, and its tool results don't look for one.
+  const textOnly = () => {
+    modelSeesEditor = false;
+    for (const part of editorParts) part.enabled = false;
+    renderTool.description = renderForText;
+  };
+  if (opts.sketcherHtml && opts.editor === false) textOnly();
+  else if (opts.sketcherHtml && opts.editor === undefined) {
+    // Decided at initialize, before the tools are listed: its result carries the instructions that fit.
+    const base = server.server as unknown as { _oninitialize(request: InitializeRequest): Promise<InitializeResult> };
+    server.server.setRequestHandler(InitializeRequestSchema, async (request) => {
+      const result = await base._oninitialize(request);
+      if (canShowEditor(request.params)) return result;
+      textOnly();
+      return { ...result, instructions: textInstructions(!!opts.saveFile) };
+    });
+  }
   return server;
 }

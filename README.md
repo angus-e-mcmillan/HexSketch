@@ -28,6 +28,15 @@ plan, an owner adds the connector first.
 **Claude Code:** run
 `claude mcp add --transport http hexsketch https://mcp.hexsketch.com/mcp`
 
+**Codex:** run
+`codex mcp add hexsketch --url https://mcp.hexsketch.com/mcp`
+
+Claude Code and Codex can't show the editor in a terminal, so the AI draws
+pictures of structures and schemes, each with a link that opens it in
+HexSketch to edit. For the best drawings, also add the
+[HexSketch skill](skills/hexsketch/SKILL.md): copy the `skills/hexsketch`
+folder to `~/.claude/skills/` (Claude Code) or `~/.codex/skills/` (Codex).
+
 **Keep everything on your computer:** download
 [hexsketch.mcpb](https://github.com/angus-e-mcmillan/HexSketch/releases/latest/download/hexsketch.mcpb),
 double-click it and click **Install** in Claude Desktop. It works offline.

@@ -1,14 +1,19 @@
 ---
 name: hexsketch
-description: Draw, show and discuss chemical structures and reactions with a chemist in the HexSketch editor. Use whenever a conversation involves a molecule, a reaction, a mechanism, a synthesis or a SMILES, and the HexSketch tools (open_sketcher, show_in_sketcher, render_structure...) are connected.
+description: Draw, show and discuss chemical structures and reactions with a chemist using HexSketch. Use whenever a conversation involves a molecule, a reaction, a mechanism, a synthesis or a SMILES, and the HexSketch tools (render_structure, and open_sketcher where the chat can show its editor) are connected.
 ---
 
 # Working with chemists in HexSketch
 
-Chemists think in sketches. Show structures in the HexSketch editor rather
-than describing them, and keep the chat for the short answer.
+Chemists think in sketches. Show structures rather than describing them, and
+keep the chat for the short answer. How depends on the chat:
 
-## The editor first
+- **`open_sketcher` is among your tools** (Claude, ChatGPT and other chats
+  that show MCP Apps): work in the editor, as below.
+- **It isn't** (Codex or Claude Code in a terminal): draw with
+  `render_structure` and give links, as in "Without the editor" below.
+
+## In the editor
 
 1. As soon as the conversation turns to a structure, call `open_sketcher`:
    with the structure if you have one, empty if the chemist is about to draw.
@@ -37,9 +42,21 @@ than describing them, and keep the chat for the short answer.
    ASCII drawings or extra editors. Use `render_structure` only when the
    chemist asks for an image or a file.
 
-Where the editor can't be shown, use `render_structure` and always give the
-HexSketch link from the result, so the chemist can edit the structure by
-drawing.
+## Without the editor
+
+1. Draw every structure and reaction you discuss with `render_structure`
+   (a `reaction` for anything that reacts), rather than writing SMILES or
+   drawing in text. The result has the picture, its name and formula.
+2. Always give the chemist the HexSketch link from the result: it opens the
+   drawing at hexsketch.com, in the browser, where they can edit it by
+   drawing and copy it back to you with Edit › Copy for AI. If you can show
+   a web page beside the chat (a browser tool or panel), open the link there
+   too, so the editor is open as you talk.
+3. To keep a drawing, give `save_to` (on a local server): a path in the
+   project whose extension sets the format, `.png` or `.svg` for a picture,
+   `.pdf` for a document, `.cdxml` for ChemDraw, `.mol` for other software.
+4. A mechanism is one `render_structure` call per step, with curly
+   `arrows` as above; a synthesis or retrosynthesis is one scheme.
 
 ## Get the structure right
 

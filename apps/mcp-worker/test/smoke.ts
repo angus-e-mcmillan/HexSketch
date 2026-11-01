@@ -13,8 +13,10 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 const url = new URL(process.argv[2] ?? 'http://127.0.0.1:8787/mcp');
-const connect = async (name: string) => {
-  const client = new Client({ name, version: '1' });
+// A chat that shows MCP Apps (as Claude does) says so; a terminal agent (Codex, Claude Code) does not.
+const MCP_APPS = { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } };
+const connect = async (name: string, apps = true) => {
+  const client = new Client({ name, version: '1' }, apps ? { capabilities: MCP_APPS as never } : {});
   const transport = new StreamableHTTPClientTransport(url);
   await client.connect(transport);
   return { client, session: transport.sessionId, call: async (tool: string, args: Record<string, unknown>) => (await client.callTool({ name: tool, arguments: args })) as CallToolResult };
@@ -81,5 +83,31 @@ await step('another conversation does not see this editor', async () => {
   const other = await connect('smoke-other');
   assert.equal((await other.call('read_sketcher', {})).isError, true);
   assert.equal(JSON.parse(text(await other.call('read_sketcher', { sketch }))).name, 'phenol');
+});
+await step('a chat without MCP Apps (Codex in a terminal) gets pictures and links, no editor', async () => {
+  const codex = await connect('codex-mcp-client', false);
+  assert.ok(codex.session?.endsWith('.t2'));
+  const names = (await codex.client.listTools()).tools.map((t) => t.name);
+  assert.ok(names.includes('render_structure') && !names.includes('open_sketcher') && !names.includes('show_in_sketcher'), names.join(' '));
+  // The editor's page is still served on it: a chat app may load the editor on a connection that isn't the model's.
+  const page = await codex.client.readResource({ uri: 'ui://hexsketch/sketcher.html' });
+  assert.ok(((page.contents[0] as { text?: string }).text ?? '').length > 100_000);
+  assert.match(codex.client.getInstructions() ?? '', /render_structure/);
+  const r = await codex.call('render_structure', { structure: 'CC(=O)Oc1ccccc1C(=O)O' });
+  assert.equal(r.content[0]?.type, 'image');
+});
+await step('Claude\'s connections that don\'t say they show MCP Apps ("Anthropic") still get the editor', async () => {
+  const plain = await connect('Anthropic', false);
+  assert.ok(!plain.session?.includes('.'));
+  assert.ok((await plain.client.listTools()).tools.some((t) => t.name === 'open_sketcher'));
+});
+await step('a conversation id from older rules (".text") counts as an editor again', async () => {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream', 'Mcp-Session-Id': `${crypto.randomUUID()}.text` },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list' }),
+  });
+  const names = ((await res.json()) as { result: { tools: { name: string }[] } }).result.tools.map((t) => t.name);
+  assert.ok(names.includes('open_sketcher'), names.join(' '));
 });
 console.log('All good.');

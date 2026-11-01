@@ -90,7 +90,91 @@ hexsketch-mcp > Logs).
 If you also installed HexSketch locally (the installer or the extension),
 turn one of them off, so Claude doesn't see every tool twice.
 
-## Try it locally
+## Which chats get the editor (read before changing it)
 
-`npm run dev:mcp` serves it at `http://127.0.0.1:8787/mcp`, and
-`npm run smoke:mcp` checks it there. CI runs both on every pull request.
+The server shows the in-chat editor only to chats that can display it
+(`canShowEditor` in `packages/hexsketch/src/mcp.ts`): a client that announces
+MCP Apps support, or one named like Claude ("Anthropic…", "claude…", but not
+Claude Code). Others (Codex or Claude Code in a terminal) get the text-only
+server: pictures and links, and no `open_sketcher`, `show_in_sketcher` or
+`read_sketcher`.
+
+Four things make this easy to break, and all four broke it once
+(2026-11-01, on staging, before it shipped):
+
+1. **One chat, several connections.** Claude's desktop app connected to the
+   staging server four times for one chat: as `Anthropic/ClaudeAI` and
+   `Anthropic/Toolbox` (both said they show MCP Apps) and twice as plain
+   `Anthropic` (which said nothing). It loads the editor, or looks up how to
+   show a tool, through any of them. The plain `Anthropic` ones were treated
+   as text only, and the editor never appeared: Claude showed a small picture
+   instead.
+2. **Not every connection says it shows MCP Apps,** even in an app that does.
+   So the editor's page and the editor's own tools (`sketch_updates`,
+   `sketch_sync`) are served on **every** connection. Only the three tools the
+   model works the editor with are ever hidden, and when in doubt the server
+   shows the editor.
+3. **The decision sticks.** The hosted server is stateless, so the decision
+   rides in the conversation id it hands out (ending `.t2` for text only), and
+   clients keep reusing that id across chats and restarts. After the first
+   fix, the stale text-only ids still broke the editor until the connector
+   was removed and added again. So the marker (`TEXT_ONLY` in
+   `apps/mcp-worker/src/worker.ts`) is versioned: **change it whenever
+   `canShowEditor` changes**, and every id from the old rules counts as an
+   editor again.
+4. **Tool descriptions steer the model.** `render_structure`'s description
+   was made fuller for text-only chats, and in Claude the model then
+   sometimes drew a picture first and opened the editor second; the desktop
+   app showed the picture and never started the editor. So
+   `render_structure` has two descriptions: in a chat with the editor it
+   points to `open_sketcher` and stays short; the fuller one is only for
+   text-only chats. Keep anything that makes another tool look like *the*
+   way to show a structure out of what editor chats see.
+
+How to tell, in `npx wrangler tail` (staging or production):
+
+- Each new connection logs `initialize: <client name>, editor` or
+  `…, text only`. Claude's should all say `editor`; `claude-code` from a
+  terminal says `text only`, unless it says it shows MCP Apps (the desktop
+  app's chats do).
+- A working editor shows `Sketch.poll` soon after `Sketch.create`, then
+  `Sketch.setDrawing` as the user draws. `Sketch.create` with no `Sketch.poll`
+  after it means the model opened an editor that the chat never displayed.
+- `Conversation.latest` before `Sketch.create` means the model called another
+  HexSketch tool (usually `render_structure`) before opening the editor:
+  for "Open HexSketch with…" it should go straight to `open_sketcher`.
+
+Before merging any change to `canShowEditor`, the marker, which tools are
+hidden, or the tools' descriptions or the instructions: deploy it to staging, **remove and re-add** the staging connector in
+Claude (so no old conversation ids are reused), and check both of the above
+in the desktop app and on claude.ai, over a few chats (the model doesn't
+pick the same tool every time).
+
+## Try a change before it goes live
+
+Check out the pull request's branch first (`git fetch`, `git checkout <branch>`,
+`npm ci`). Then:
+
+**On your computer** (Codex, Claude Code). `npm run dev:mcp`
+serves the branch at `http://127.0.0.1:8787/mcp`; keep it running and, in
+another terminal, connect the agent to it under a name of its own:
+
+```sh
+codex mcp add hexsketch-dev --url http://127.0.0.1:8787/mcp
+claude mcp add --transport http hexsketch-dev http://127.0.0.1:8787/mcp
+```
+
+`npm run smoke:mcp` checks it end to end (CI runs it on every pull request).
+
+**In Claude** (claude.ai and the apps reach a connector from Anthropic's
+servers, so it needs a public address). `npm run deploy:mcp:staging` deploys
+the branch as a second Worker, `hexsketch-mcp-staging`, and prints its address
+(`https://hexsketch-mcp-staging.<your subdomain>.workers.dev`). It is not on
+mcp.hexsketch.com and keeps its own editors, so nobody else sees it. In Claude,
+add a custom connector named `HexSketch staging` with that address plus `/mcp`,
+and turn the HexSketch connector off while you test, so the chat has one of
+them. Check it with `npm run smoke:mcp -- <address>/mcp` and watch it with
+`npx wrangler tail hexsketch-mcp-staging`.
+
+When it all works, merge and `npm run deploy:mcp`. The staging Worker can stay
+(it costs nothing idle) or go: `npx wrangler delete hexsketch-mcp-staging`.

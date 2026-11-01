@@ -1,0 +1,14 @@
+# For Codex: how the skill appears, and the MCP server it needs (Codex offers to
+# connect it when the skill is first used). Other agents read only SKILL.md.
+interface:
+  display_name: "HexSketch"
+  short_description: "Draw, name and check chemical structures"
+  default_prompt: "Use $hexsketch to draw the structure and give me the link to edit it."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "hexsketch"
+      description: "HexSketch: draws, names and checks chemical structures"
+      transport: "streamable_http"
+      url: "https://mcp.hexsketch.com/mcp"
