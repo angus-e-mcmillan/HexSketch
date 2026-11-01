@@ -45,16 +45,21 @@ test('a chat that cannot show the editor (Codex, Claude Code) gets pictures, lin
   for (const as of ['codex-mcp-client', 'claude-code']) {
     const { client } = await connect({ sketcherHtml: html, saveFile: async (p) => p }, as);
     const names = (await client.listTools()).tools.map((t) => t.name);
-    assert.ok(names.includes('render_structure') && !names.includes('open_sketcher') && !names.includes('show_in_sketcher') && !names.includes('sketch_updates'), `${as}: ${names}`);
-    assert.equal(client.getServerCapabilities()?.resources !== undefined && (await client.listResources()).resources.length > 0, false, `${as} sees the editor page`);
+    assert.ok(names.includes('render_structure') && !names.includes('open_sketcher') && !names.includes('show_in_sketcher') && !names.includes('read_sketcher'), `${as}: ${names}`);
     assert.doesNotMatch(client.getInstructions() ?? '', /open_sketcher|show_in_sketcher/);
     assert.match(client.getInstructions() ?? '', /save_to/);
   }
-  // Claude in the browser or the app shows it, whether or not it says so.
-  for (const as of ['claude-ai', 'Claude Desktop']) {
+  // Claude in the browser or the app shows it, whether or not it says so, under any of its names.
+  for (const as of ['claude-ai', 'Claude Desktop', 'Anthropic', 'Anthropic/ClaudeAI']) {
     const { client } = await connect({ sketcherHtml: html }, as);
     assert.ok((await client.listTools()).tools.some((t) => t.name === 'open_sketcher'), as);
   }
+  // A chat app may load the editor on a connection that is not the model's and says nothing of MCP Apps:
+  // the page and the editor's own tools are there on every connection.
+  const { client: loader, call } = await connect({ sketcherHtml: html }, 'some-host-loader');
+  assert.equal(((await loader.readResource({ uri: SKETCHER_URI })).contents[0] as { text: string }).text, '<!doctype html>');
+  assert.ok((await loader.listTools()).tools.some((t) => t.name === 'sketch_updates'));
+  assert.notEqual((await call('sketch_updates', { sketch: 'not-open', since: 0 })).isError, true);
   // The guidance that matters is in render_structure's own description (some agents never show the instructions) ...
   const { client } = await connect({ sketcherHtml: html }, 'codex-mcp-client');
   const tools = (await client.listTools()).tools;

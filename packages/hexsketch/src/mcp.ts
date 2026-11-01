@@ -51,14 +51,15 @@ export interface ClientHello { capabilities?: unknown; clientInfo?: { name?: str
 
 /**
  * Whether a chat can show the in-chat editor: it says it supports MCP Apps,
- * or it is Claude (web, desktop, phone), which shows them; Claude Code in a
+ * or it is Claude (web, desktop, phone: "Anthropic..."), which shows them; Claude Code in a
  * terminal cannot. Codex and other terminal agents get pictures
  * and links instead.
  */
 export function canShowEditor(hello: ClientHello | undefined): boolean {
   if (getUiCapability(hello?.capabilities as Parameters<typeof getUiCapability>[0])) return true;
+  // Claude's apps connect under several names ("Anthropic", "Anthropic/ClaudeAI"...), not all of which say so.
   const name = hello?.clientInfo?.name ?? '';
-  return /claude/i.test(name) && !/claude[-_ ]?code/i.test(name);
+  return /anthropic|claude/i.test(name) && !/claude[-_ ]?code/i.test(name);
 }
 
 /** Where the in-chat editor is served from. */
@@ -247,7 +248,7 @@ export function createServer(opts: ServerOptions): McpServer {
    * drift back to images and long chat answers otherwise.
    */
   const inEditor = async (r: CallToolResult): Promise<CallToolResult> => {
-    const id = !r.isError && sketches ? await sketches.live(ON_SCREEN_MS) : null;
+    const id = !r.isError && sketches && modelSeesEditor ? await sketches.live(ON_SCREEN_MS) : null;
     if (!id || (!opts.sketchesPerConversation && !opened.has(id))) return r;
     return { ...r, content: [...r.content, { type: 'text', text: `The HexSketch editor is open in this chat (sketch "${id}"): show this there with show_in_sketcher (a structure, highlights, short labels on atoms and a note of a few bullets summing them up) rather than as an image, a picture from the web or a text drawing, and keep your chat reply short.` }] };
   };
@@ -255,8 +256,14 @@ export function createServer(opts: ServerOptions): McpServer {
   const tool = (fn: () => Promise<CallToolResult>) => safely(fn).then(inEditor);
   const withEditor = !!opts.sketcherHtml && opts.editor !== false;
   const server = new McpServer({ name: 'hexsketch', title: 'HexSketch', version: opts.version, websiteUrl: 'https://hexsketch.com' }, { instructions: withEditor ? INSTRUCTIONS : textInstructions(!!opts.saveFile) });
-  /** The editor's tools and page, hidden from a chat that can't show it. */
+  /**
+   * The tools the model works the editor with, hidden from a chat that can't
+   * show it. The editor's page and its own tools stay on every connection: a
+   * chat app may load the editor through a connection other than the
+   * model's, one that doesn't say it shows MCP Apps (Claude's desktop app does).
+   */
   const editorParts: { enabled: boolean }[] = [];
+  let modelSeesEditor = withEditor;
   const read = (s?: 'hexsketch' | 'acs') => (s ? { style: s } : {});
   const formats: RenderFormat[] = opts.rasterize ? ['png', 'svg', 'pdf', 'cdxml', 'mol'] : ['svg', 'pdf', 'cdxml', 'mol'];
 
@@ -362,12 +369,12 @@ export function createServer(opts: ServerOptions): McpServer {
     };
     const appOnly = { ui: { resourceUri: SKETCHER_URI, visibility: ['app'] as ('app' | 'model')[] } };
 
-    editorParts.push(registerAppResource(server, 'HexSketch editor', SKETCHER_URI, {
+    registerAppResource(server, 'HexSketch editor', SKETCHER_URI, {
       description: 'The HexSketch structure editor, for drawing and editing structures in the chat.',
       _meta: { ui: { prefersBorder: true } },
     }, async () => ({
       contents: [{ uri: SKETCHER_URI, mimeType: RESOURCE_MIME_TYPE, text: await html(), _meta: { ui: { prefersBorder: true, permissions: { clipboardWrite: {} } } } }],
-    })));
+    }));
 
     /** What the model checks a structure it wrote against: its name and formula, and anything that looks wrong. */
     const checkOf = async (drawing: string | Structure): Promise<Record<string, unknown>> => {
@@ -550,7 +557,7 @@ export function createServer(opts: ServerOptions): McpServer {
     })));
 
     // For the editor itself (hidden from the model where the chat supports it).
-    editorParts.push(registerAppTool(server, 'sketch_updates', {
+    registerAppTool(server, 'sketch_updates', {
       description: 'Used by the HexSketch editor to fetch what show_in_sketcher asked it to show. Not for the model.',
       inputSchema: { sketch: z.string(), since: z.number().int(), wait: z.number().int().min(0).max(MAX_WAIT).optional() },
       annotations: { title: 'Fetch editor updates', ...READ_ONLY },
@@ -572,9 +579,9 @@ export function createServer(opts: ServerOptions): McpServer {
         if (!sketch || updates.length || Date.now() >= until) return { content: [{ type: 'text', text: `${updates.length} updates` }], structuredContent: { live: !!sketch, updates, waits: true } };
         await new Promise((r) => setTimeout(r, 250));
       }
-    })));
+    }));
 
-    editorParts.push(registerAppTool(server, 'sketch_sync', {
+    registerAppTool(server, 'sketch_sync', {
       description: 'Used by the HexSketch editor to report the user\'s drawing, so read_sketcher can see it. Not for the model.',
       inputSchema: { sketch: z.string(), cdxml: z.string().max(opts.maxDrawing ?? 4_000_000) },
       annotations: { title: 'Report the drawing', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
@@ -582,11 +589,11 @@ export function createServer(opts: ServerOptions): McpServer {
     }, ({ sketch: id, cdxml }) => safely(async () => {
       await store.setDrawing(id, cdxml);
       return { content: [{ type: 'text', text: 'ok' }] };
-    })));
+    }));
   }
 
-  // A chat that can't show the editor doesn't list its tools, or its 770 KB page (which some agents offer the model to read).
-  const textOnly = () => { for (const part of editorParts) part.enabled = false; };
+  // A chat that can't show the editor doesn't list the model's editor tools, and its tool results don't look for one.
+  const textOnly = () => { modelSeesEditor = false; for (const part of editorParts) part.enabled = false; };
   if (opts.sketcherHtml && opts.editor === false) textOnly();
   else if (opts.sketcherHtml && opts.editor === undefined) {
     // Decided at initialize, before the tools are listed: its result carries the instructions that fit.

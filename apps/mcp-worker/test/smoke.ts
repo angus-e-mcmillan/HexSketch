@@ -89,8 +89,9 @@ await step('a chat without MCP Apps (Codex in a terminal) gets pictures and link
   assert.ok(codex.session?.endsWith('.text'));
   const names = (await codex.client.listTools()).tools.map((t) => t.name);
   assert.ok(names.includes('render_structure') && !names.includes('open_sketcher') && !names.includes('show_in_sketcher'), names.join(' '));
-  // Nor the editor's page as a resource, which an agent might read into the model.
-  assert.equal(codex.client.getServerCapabilities()?.resources, undefined);
+  // The editor's page is still served on it: a chat app may load the editor on a connection that isn't the model's.
+  const page = await codex.client.readResource({ uri: 'ui://hexsketch/sketcher.html' });
+  assert.ok(((page.contents[0] as { text?: string }).text ?? '').length > 100_000);
   assert.match(codex.client.getInstructions() ?? '', /render_structure/);
   const r = await codex.call('render_structure', { structure: 'CC(=O)Oc1ccccc1C(=O)O' });
   assert.equal(r.content[0]?.type, 'image');

@@ -96,16 +96,15 @@ async function mcp(req: Request, env: Env): Promise<Response> {
   if (env.LIMIT && !(await env.LIMIT.limit({ key: conversation ?? `no-session:${ip}` })).success) return rpcError(429, 'Too many requests: try again in a minute');
   if (messages.some((m) => m?.method === 'tools/call') && await isPaused(env)) return paused(messages, Array.isArray(message), conversation);
 
-  // A chat without the editor gets no sketch store either: its tool calls never touch a Durable Object.
+  // Every connection serves the editor (a chat app may load it on one that isn't the model's); `editor`
+  // only decides whether the model gets the tools to work it. A text-only chat's tool calls touch no Durable Object.
   const server = createServer({
     version: pkg.version,
     rasterize,
-    ...(editor ? {
-      sketcherHtml: async () => sketcherHtml,
-      sketches: hostedSketchStore(env, conversation),
-      sketchesPerConversation: !!conversation,
-      maxDrawing: 1_000_000,
-    } : {}),
+    sketcherHtml: async () => sketcherHtml,
+    sketches: hostedSketchStore(env, conversation),
+    sketchesPerConversation: !!conversation,
+    maxDrawing: 1_000_000,
     editor,
   });
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
