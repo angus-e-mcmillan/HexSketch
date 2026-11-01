@@ -36,7 +36,11 @@ with a link that opens each in HexSketch to edit:
 ```sh
 codex mcp add hexsketch --url https://mcp.hexsketch.com/mcp
 hermes mcp add hexsketch --url https://mcp.hexsketch.com/mcp
+hermes config set tools.tool_search.enabled off
 ```
+
+The last line lets Hermes's model see HexSketch's tools directly; otherwise
+Hermes keeps every MCP tool behind a search step, and models often miss them.
 
 To run it on your computer instead, and save drawings as files, see
 [packages/hexsketch](packages/hexsketch/README.md#with-claude-codex-cursor-and-other-ai-tools-mcp).

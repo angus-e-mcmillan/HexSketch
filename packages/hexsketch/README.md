@@ -45,7 +45,7 @@ HexSketch. Everything runs on your computer.
 | Claude Desktop | Download `hexsketch.mcpb` from the [latest release](https://github.com/angus-e-mcmillan/HexSketch/releases) and open it (Settings > Extensions) |
 | Claude Code | `claude mcp add hexsketch -- npx -y hexsketch mcp` |
 | Codex | `codex mcp add hexsketch -- npx -y hexsketch mcp` |
-| Hermes Agent | `hermes mcp add hexsketch --command npx --args -y hexsketch mcp`, then `hermes mcp test hexsketch` |
+| Hermes Agent | `hermes mcp add hexsketch --command npx --args -y hexsketch mcp`, then `hermes config set tools.tool_search.enabled off` so the model sees the tools (Hermes otherwise keeps every MCP tool behind a search step) and start a new session |
 | Cursor, and apps with an `mcpServers` JSON config | `"hexsketch": { "command": "npx", "args": ["-y", "hexsketch", "mcp"] }` |
 
 **Draw in the chat, together.** `open_sketcher` opens the HexSketch editor

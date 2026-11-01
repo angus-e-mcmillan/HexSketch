@@ -102,6 +102,7 @@ another terminal, connect the agent to it under a name of its own:
 ```sh
 codex mcp add hexsketch-dev --url http://127.0.0.1:8787/mcp
 hermes mcp add hexsketch-dev --url http://127.0.0.1:8787/mcp
+hermes config set tools.tool_search.enabled off
 claude mcp add --transport http hexsketch-dev http://127.0.0.1:8787/mcp
 ```
 
