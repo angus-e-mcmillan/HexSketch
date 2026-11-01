@@ -13,8 +13,10 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 const url = new URL(process.argv[2] ?? 'http://127.0.0.1:8787/mcp');
-const connect = async (name: string) => {
-  const client = new Client({ name, version: '1' });
+// A chat that shows MCP Apps (as Claude does) says so; a terminal agent (Codex, Hermes) does not.
+const MCP_APPS = { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } };
+const connect = async (name: string, apps = true) => {
+  const client = new Client({ name, version: '1' }, apps ? { capabilities: MCP_APPS as never } : {});
   const transport = new StreamableHTTPClientTransport(url);
   await client.connect(transport);
   return { client, session: transport.sessionId, call: async (tool: string, args: Record<string, unknown>) => (await client.callTool({ name: tool, arguments: args })) as CallToolResult };
@@ -81,5 +83,16 @@ await step('another conversation does not see this editor', async () => {
   const other = await connect('smoke-other');
   assert.equal((await other.call('read_sketcher', {})).isError, true);
   assert.equal(JSON.parse(text(await other.call('read_sketcher', { sketch }))).name, 'phenol');
+});
+await step('a chat without MCP Apps (Codex in a terminal) gets pictures and links, no editor', async () => {
+  const codex = await connect('codex-mcp-client', false);
+  assert.ok(codex.session?.endsWith('.text'));
+  const names = (await codex.client.listTools()).tools.map((t) => t.name);
+  assert.ok(names.includes('render_structure') && !names.includes('open_sketcher') && !names.includes('show_in_sketcher'), names.join(' '));
+  // Nor the editor's page as a resource, which an agent might read into the model.
+  assert.equal(codex.client.getServerCapabilities()?.resources, undefined);
+  assert.match(codex.client.getInstructions() ?? '', /render_structure/);
+  const r = await codex.call('render_structure', { structure: 'CC(=O)Oc1ccccc1C(=O)O' });
+  assert.equal(r.content[0]?.type, 'image');
 });
 console.log('All good.');

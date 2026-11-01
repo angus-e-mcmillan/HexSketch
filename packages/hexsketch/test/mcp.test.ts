@@ -14,10 +14,14 @@ import { rasterize } from '../src/png.ts';
 
 const dir = mkdtempSync(join(tmpdir(), 'hexsketch-mcp-'));
 
-async function connect(opts: Partial<ServerOptions> = {}) {
+/** What a chat that shows MCP Apps (Claude, ChatGPT) says it supports. */
+const MCP_APPS = { extensions: { 'io.modelcontextprotocol/ui': { mimeTypes: ['text/html;profile=mcp-app'] } } };
+
+/** A server and a client: one that shows MCP Apps unless `as` names one that doesn't (Codex, Hermes...). */
+async function connect(opts: Partial<ServerOptions> = {}, as?: string) {
   const [a, b] = InMemoryTransport.createLinkedPair();
   await createServer({ version: '0.0.0-test', rasterize, ...opts }).connect(a);
-  const client = new Client({ name: 'test', version: '1' });
+  const client = new Client({ name: as ?? 'test', version: '1' }, as ? {} : { capabilities: MCP_APPS as never });
   await client.connect(b);
   const call = async (name: string, args: Record<string, unknown>) => (await client.callTool({ name, arguments: args })) as CallToolResult;
   return { client, call };
@@ -29,9 +33,36 @@ test('lists the tools, with instructions for the model', async () => {
   const names = (await client.listTools()).tools.map((t) => t.name).sort();
   assert.deepEqual(names, ['analyze_structure', 'compare_structures', 'convert_structure', 'name_structure', 'render_structure', 'structure_link', 'validate_structure']);
   assert.match(client.getInstructions() ?? '', /validate_structure/);
-  assert.match(client.getInstructions() ?? '', /always give the user that link/);
+  assert.match(client.getInstructions() ?? '', /Always give the user the link/);
+  // No editor here, so nothing about one.
+  assert.doesNotMatch(client.getInstructions() ?? '', /open_sketcher/);
   const tools = (await client.listTools()).tools;
   assert.ok(tools.filter((t) => t.name !== 'render_structure').every((t) => t.annotations?.readOnlyHint === true));
+});
+
+test('a chat that cannot show the editor (Codex, Hermes, Claude Code) gets pictures, links and files instead', async () => {
+  const html = async () => '<!doctype html>';
+  for (const as of ['codex-mcp-client', 'hermes', 'claude-code']) {
+    const { client } = await connect({ sketcherHtml: html, saveFile: async (p) => p }, as);
+    const names = (await client.listTools()).tools.map((t) => t.name);
+    assert.ok(names.includes('render_structure') && !names.includes('open_sketcher') && !names.includes('show_in_sketcher') && !names.includes('sketch_updates'), `${as}: ${names}`);
+    assert.equal(client.getServerCapabilities()?.resources !== undefined && (await client.listResources()).resources.length > 0, false, `${as} sees the editor page`);
+    assert.doesNotMatch(client.getInstructions() ?? '', /open_sketcher|show_in_sketcher/);
+    assert.match(client.getInstructions() ?? '', /save_to/);
+  }
+  // Claude in the browser or the app shows it, whether or not it says so.
+  for (const as of ['claude-ai', 'Claude Desktop']) {
+    const { client } = await connect({ sketcherHtml: html }, as);
+    assert.ok((await client.listTools()).tools.some((t) => t.name === 'open_sketcher'), as);
+  }
+  // The guidance that matters is in render_structure's own description (Hermes never shows the instructions) ...
+  const { client } = await connect({ sketcherHtml: html }, 'hermes');
+  const tools = (await client.listTools()).tools;
+  const render = tools.find((t) => t.name === 'render_structure')!;
+  assert.match(render.description ?? '', /give the user the link/);
+  assert.match(render.description ?? '', /reagents above the arrow/);
+  // ... and every tool fits Codex's 5,000 bytes, past which it drops all of a schema's descriptions.
+  for (const t of tools) assert.ok(JSON.stringify(t.inputSchema).length < 5000, `${t.name}: ${JSON.stringify(t.inputSchema).length} bytes`);
 });
 
 test('render_structure returns a PNG that stays editable, with name and link', async () => {

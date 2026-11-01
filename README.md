@@ -28,6 +28,19 @@ plan, an owner adds the connector first.
 **Claude Code:** run
 `claude mcp add --transport http hexsketch https://mcp.hexsketch.com/mcp`
 
+**Codex and Hermes Agent:** use the same server from OpenAI's Codex or
+from Hermes Agent, with any model it runs, open-source ones included. They
+can't show the editor, so the AI draws pictures of structures and schemes,
+with a link that opens each in HexSketch to edit:
+
+```sh
+codex mcp add hexsketch --url https://mcp.hexsketch.com/mcp
+hermes mcp add hexsketch --url https://mcp.hexsketch.com/mcp
+```
+
+To run it on your computer instead, and save drawings as files, see
+[packages/hexsketch](packages/hexsketch/README.md#with-claude-codex-cursor-and-other-ai-tools-mcp).
+
 **Keep everything on your computer:** download
 [hexsketch.mcpb](https://github.com/angus-e-mcmillan/HexSketch/releases/latest/download/hexsketch.mcpb),
 double-click it and click **Install** in Claude Desktop. It works offline.
@@ -83,8 +96,8 @@ What you draw stays in your browser.
 
 ## For developers
 
-Scripts, the command line and other AI tools (Codex, Cursor and any MCP
-client): see [packages/hexsketch](packages/hexsketch/README.md).
+Scripts, the command line and other AI tools (Codex, Hermes Agent, Cursor
+and any MCP client): see [packages/hexsketch](packages/hexsketch/README.md).
 [hexsketch.com/llms.txt](https://hexsketch.com/llms.txt) describes HexSketch
 for AI assistants, and [skills/hexsketch](skills/hexsketch/SKILL.md) is the
 same guidance the server gives, as a Claude skill.

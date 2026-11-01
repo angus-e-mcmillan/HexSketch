@@ -1,5 +1,5 @@
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js';
-import { createServer } from '../../../packages/hexsketch/src/mcp.ts';
+import { canShowEditor, createServer, type ClientHello } from '../../../packages/hexsketch/src/mcp.ts';
 import pkg from '../../../packages/hexsketch/package.json';
 import sketcherHtml from '../../mcp-app/dist/index.html';
 import { type BudgetEnv, checkBudget, isPaused, pausedText } from './budget.ts';
@@ -23,7 +23,13 @@ interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
 interface Env extends SketchEnv, BudgetEnv { LIMIT?: RateLimit; NEW_LIMIT?: RateLimit }
 
 const MAX_BODY = 2_000_000;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.text)?$/;
+/**
+ * Ends the conversation id of a chat that can't show the editor (Codex or
+ * Claude Code in a terminal, Hermes Agent...): every request makes a new
+ * server, and this is how the later ones know, with nothing stored.
+ */
+const TEXT_ONLY = '.text';
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, GET, DELETE, OPTIONS',
@@ -46,7 +52,7 @@ custom connector, with this address:
 More: https://hexsketch.com · Privacy: https://hexsketch.com/privacy
 `;
 
-type Message = { method?: unknown; id?: unknown; params?: { name?: unknown } } | null;
+type Message = { method?: unknown; id?: unknown; params?: { name?: unknown } & ClientHello } | null;
 
 /**
  * While the daily cap is reached (budget.ts): every tool call gets the
@@ -75,10 +81,14 @@ async function mcp(req: Request, env: Env): Promise<Response> {
   let message: unknown;
   try { message = JSON.parse(body); } catch { return rpcError(400, 'Parse error: the body is not JSON'); }
   const messages = (Array.isArray(message) ? message : [message]) as Message[];
-  const initializing = messages.some((m) => m?.method === 'initialize');
+  const hello = messages.find((m) => m?.method === 'initialize')?.params;
+  const initializing = hello !== undefined;
   // The conversation: a new one at initialize, then whatever the client sends back.
   const given = req.headers.get('Mcp-Session-Id');
-  const conversation = initializing ? crypto.randomUUID() : given && UUID.test(given) ? given : null;
+  const editor = initializing ? canShowEditor(hello) : !given?.endsWith(TEXT_ONLY);
+  const conversation = initializing ? crypto.randomUUID() + (editor ? '' : TEXT_ONLY) : given && UUID.test(given) ? given : null;
+  // Which apps connect, and whether they show the editor: no one's drawings, just the client's name.
+  if (initializing) console.log(`initialize: ${String(hello?.clientInfo?.name ?? '?').slice(0, 60)}, ${editor ? 'editor' : 'text only'}`);
   // New conversations per address (Claude's traffic arrives from a few shared addresses, so this is generous);
   // then requests per conversation, or per address for clients that keep no session.
   const ip = req.headers.get('CF-Connecting-IP') ?? 'unknown';
@@ -86,13 +96,17 @@ async function mcp(req: Request, env: Env): Promise<Response> {
   if (env.LIMIT && !(await env.LIMIT.limit({ key: conversation ?? `no-session:${ip}` })).success) return rpcError(429, 'Too many requests: try again in a minute');
   if (messages.some((m) => m?.method === 'tools/call') && await isPaused(env)) return paused(messages, Array.isArray(message), conversation);
 
+  // A chat without the editor gets no sketch store either: its tool calls never touch a Durable Object.
   const server = createServer({
     version: pkg.version,
     rasterize,
-    sketcherHtml: async () => sketcherHtml,
-    sketches: hostedSketchStore(env, conversation),
-    sketchesPerConversation: !!conversation,
-    maxDrawing: 1_000_000,
+    ...(editor ? {
+      sketcherHtml: async () => sketcherHtml,
+      sketches: hostedSketchStore(env, conversation),
+      sketchesPerConversation: !!conversation,
+      maxDrawing: 1_000_000,
+    } : {}),
+    editor,
   });
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await server.connect(transport);
