@@ -43,7 +43,7 @@ const RANK: Record<HazardLevel, number> = { danger: 0, warning: 1, note: 2 };
 const worse = (a: HazardLevel, b: HazardLevel): HazardLevel => (RANK[a] <= RANK[b] ? a : b);
 
 /** What every message ends with. */
-export const HAZARD_DISCLAIMER = 'Screening rules only, not a safety assessment: check the SDS, and test thermal stability (DSC) before heating or scaling up anything energetic.';
+export const HAZARD_DISCLAIMER = 'Screening rules only: check the SDS.';
 
 // ------------------------------------------------------------- energetic groups
 
@@ -55,8 +55,6 @@ interface Group {
   inherent?: boolean;
   /** A nitrogen-rich group, judged by (C + O)/N. */
   nitrogenRich?: boolean;
-  /** What the literature adds for this group, after the rules. */
-  also?: string;
 }
 
 /**
@@ -67,12 +65,12 @@ interface Group {
 const GROUPS: Group[] = [
   {
     name: 'sulfonyl azide', patterns: ['S(=O)(=O)N=[N+]=[N-]', 'S(=O)(=O)N=N#N'], inherent: true, nitrogenRich: true,
-    also: 'Sulfonyl azides release about twice the energy of a diazo compound when they decompose (Green et al., Org. Process Res. Dev. 2020, 24, 67): keep diazo transfers well below the reagent\'s onset (about 100 °C for p-ABSA).',
+    // Green et al., Org. Process Res. Dev. 2020, 24, 67: about twice the decomposition energy of a diazo compound.
   },
   { name: 'azide', patterns: ['N=[N+]=[N-]', 'N=N#N', '[N-][N+]#N'], inherent: true, nitrogenRich: true },
   {
     name: 'diazo group', patterns: ['C=[N+]=[N-]', '[C-][N+]#N', 'C=N#N'], inherent: true, nitrogenRich: true,
-    also: 'Many donor–acceptor diazo compounds are impact-sensitive and can start to decompose from about 60 °C (Green et al., Org. Process Res. Dev. 2020, 24, 67).',
+    // Green et al., 2020: many donor–acceptor diazo compounds are impact-sensitive, onsets from about 60 °C.
   },
   { name: 'diazonium group', patterns: ['c[N+]#N', 'C[N+]#N'], inherent: true, nitrogenRich: true },
   { name: 'nitrate', patterns: ['O[N+](=O)[O-]', 'ON(=O)=O'], inherent: true },
@@ -147,12 +145,12 @@ function energetic(mol: Molecule): Hazard[] {
     const organic = C > 0 || (N > 0 && H > 0 && elements.every((e) => ['C', 'H', 'N', 'O', 'Cl'].includes(e)));
     const azideOrAcetylide = names.some((n) => n === 'azide' || n === 'metal acetylide' || n === 'fulminate or nitrile oxide');
     if (!organic && elements.some((e) => HEAVY_METALS.has(e)) && azideOrAcetylide) {
-      out.push({ kind: 'energetic', level: 'danger', title: `Primary explosive: heavy-metal ${names[0]}`, detail: `Heavy-metal ${names[0]}s detonate on friction, shock or heat, even in small amounts. They also form unseen in drains and on metal spatulas.`, atoms });
+      out.push({ kind: 'energetic', level: 'danger', title: `Primary explosive: heavy-metal ${names[0]}`, detail: 'Shock- and friction-sensitive.', atoms });
       continue;
     }
     if (C === 0 && !elements.includes('H') && names.every((n) => n === 'azide')) continue; // sodium azide and the like: toxic, listed below
     if (C === 0 && names.every((n) => n === 'nitrate' || n === 'perchlorate or chlorate') && !(N > (names.includes('nitrate') ? found.length : 0) && H > 0)) {
-      out.push({ kind: 'reactive', level: 'warning', title: `Strong oxidiser: ${what}`, detail: 'Keep away from organic material and reducing agents: mixtures can burn violently or explode.', atoms });
+      out.push({ kind: 'reactive', level: 'warning', title: `Strong oxidiser: ${what}`, detail: 'Keep from organics.', atoms });
       continue;
     }
 
@@ -162,14 +160,14 @@ function energetic(mol: Molecule): Hazard[] {
 
     if (found.some((f) => f.group.nitrogenRich) && N > 0) {
       const ratio = (C + O) / N;
-      if (ratio < 1) { level = 'danger'; reasons.push(`(C + O)/N = ${num(ratio)}, below 1: should never be isolated`); }
-      else if (ratio < 3) { level = worse(level, 'warning'); reasons.push(`(C + O)/N = ${num(ratio)}, below 3: make and store only small amounts, in solution, cold`); }
+      if (ratio < 1) { level = 'danger'; reasons.push(`(C + O)/N ${num(ratio)}`); }
+      else if (ratio < 3) { level = worse(level, 'warning'); reasons.push(`(C + O)/N ${num(ratio)}`); }
     }
     const perGroup = C / n;
     if (perGroup < 6) {
       const tooFew = perGroup < 3 && (n > 1 || found.some((f) => f.group.inherent) || C <= 2);
       level = worse(level, tooFew ? 'danger' : 'warning');
-      reasons.push(`${num(perGroup)} carbon${perGroup === 1 ? '' : 's'} per energetic group, fewer than the six the rule of six asks for`);
+      reasons.push(`${num(perGroup)} C per group`);
     }
     if (mass.molecularWeight > 0) {
       const ob = (-1600 * (2 * C + H / 2 - O)) / mass.molecularWeight;
@@ -177,18 +175,17 @@ function energetic(mol: Molecule): Hazard[] {
         // Above −100% like most detonating explosives; one nitro group in a big molecule is a thermal hazard rather than an explosive.
         const explosive = n > 1 || perGroup < 6 || found.some((f) => f.group.inherent);
         level = worse(level, explosive ? 'danger' : 'warning');
-        reasons.push(`oxygen balance ${pct(ob)}, above −100% like most explosives`);
+        reasons.push(`oxygen balance ${pct(ob)}`);
       } else if (ob > -200) {
         level = worse(level, found.some((f) => f.group.inherent) ? 'warning' : 'note');
-        reasons.push(`oxygen balance ${pct(ob)}, above the −200% the UN screening clears`);
+        reasons.push(`oxygen balance ${pct(ob)}`);
       }
     }
     if (!reasons.length && level === 'note') continue; // a nitro group or tetrazole in a large molecule that passes every rule
 
     const titles: Record<HazardLevel, string> = { danger: 'Likely explosive', warning: 'Energetic', note: 'Energetic group' };
-    const why = reasons.length ? `${reasons.join('; ')}.` : `${capital(what)}: energetic whatever the rest of the molecule, though this one passes the (C + O)/N, rule-of-six and oxygen-balance checks. Avoid heat, shock and distilling to dryness.`;
-    const also = [...new Set(found.flatMap((f) => (f.group.also ? [f.group.also] : [])))].join(' ');
-    out.push({ kind: 'energetic', level, title: `${titles[level]}: ${what}`, detail: `${capital(why)}${level === 'note' ? ' Probably safe in normal use, but test thermal stability before heating or scaling up.' : ''}${also ? ` ${also}` : ''}`, atoms });
+    const why = reasons.length ? `${reasons.join(', ')}.` : 'Energetic group.';
+    out.push({ kind: 'energetic', level, title: `${titles[level]}: ${what}`, detail: capital(why), atoms });
   }
   return out;
 }
@@ -201,70 +198,70 @@ interface Listed { smiles: string; name: string; kind: HazardKind; level: Hazard
 
 /** Whole compounds, matched exactly (one fragment of a drawing, or all the ions of a salt). */
 const COMPOUNDS: Listed[] = [
-  { smiles: 'O=C(Cl)Cl', name: 'phosgene', kind: 'toxic', level: 'danger', why: 'Highly toxic gas; lung damage can appear hours later. Triphosgene or CDI are safer to handle.' },
-  { smiles: 'ClC(=O)OC(Cl)(Cl)Cl', name: 'diphosgene', kind: 'toxic', level: 'danger', why: 'Toxic liquid that releases phosgene.' },
-  { smiles: 'O=C(OC(Cl)(Cl)Cl)OC(Cl)(Cl)Cl', name: 'triphosgene', kind: 'toxic', level: 'warning', why: 'A solid, but releases phosgene with nucleophiles, moisture or heat: handle in a fume hood.' },
-  { smiles: 'C#N', name: 'hydrogen cyanide', kind: 'toxic', level: 'danger', why: 'Highly toxic, volatile gas.' },
-  { smiles: '[C-]#N', name: 'cyanide', kind: 'toxic', level: 'danger', why: 'Highly toxic; acid releases hydrogen cyanide gas. Keep bleach or a basic quench for waste and spills.' },
-  { smiles: 'C[Si](C)(C)C#N', name: 'trimethylsilyl cyanide', kind: 'toxic', level: 'danger', why: 'Releases hydrogen cyanide with water or alcohols.' },
-  { smiles: 'CC(C)(O)C#N', name: 'acetone cyanohydrin', kind: 'toxic', level: 'danger', why: 'Releases hydrogen cyanide readily.' },
-  { smiles: 'BrC#N', name: 'cyanogen bromide', kind: 'toxic', level: 'danger', why: 'Highly toxic and volatile; releases hydrogen cyanide.' },
-  { smiles: 'F', name: 'hydrogen fluoride', kind: 'toxic', level: 'danger', why: 'Burns penetrate the skin painlessly at first and can be fatal: keep calcium gluconate gel at hand.' },
-  { smiles: '[N-]=[N+]=[N-]', name: 'azide salt', kind: 'toxic', level: 'warning', why: 'Highly toxic. With acid it gives hydrazoic acid (toxic and explosive); with heavy metals, and with dichloromethane, it gives explosive azides.' },
-  { smiles: 'NN', name: 'hydrazine', kind: 'toxic', level: 'warning', why: 'Toxic and carcinogenic; anhydrous hydrazine is also unstable. Use the hydrate where possible.' },
-  { smiles: 'COS(=O)(=O)OC', name: 'dimethyl sulfate', kind: 'toxic', level: 'danger', why: 'Potent alkylating agent, toxic and carcinogenic; symptoms can be delayed. Destroy excess with aqueous ammonia.' },
-  { smiles: 'COS(=O)(=O)C(F)(F)F', name: 'methyl triflate', kind: 'toxic', level: 'danger', why: 'Very potent alkylating agent, toxic by inhalation.' },
-  { smiles: 'COS(=O)(=O)F', name: 'methyl fluorosulfonate', kind: 'toxic', level: 'danger', why: 'Very potent alkylating agent; inhalation has been fatal.' },
-  { smiles: 'CI', name: 'iodomethane', kind: 'toxic', level: 'note', why: 'Volatile alkylating agent, suspected carcinogen.' },
-  { smiles: 'O=[Os](=O)(=O)=O', name: 'osmium tetroxide', kind: 'toxic', level: 'danger', why: 'Volatile and highly toxic; the vapour damages the eyes. Use catalytic amounts, or K2OsO4 as a non-volatile source.' },
-  { smiles: 'S=C=S', name: 'carbon disulfide', kind: 'toxic', level: 'warning', why: 'Neurotoxic, and ignites around 90 °C, from a hot plate or steam pipe.' },
-  { smiles: 'c1ccccc1', name: 'benzene', kind: 'toxic', level: 'warning', why: 'Carcinogen: use toluene instead where possible.' },
-  { smiles: '[C-]#[O+]', name: 'carbon monoxide', kind: 'toxic', level: 'danger', why: 'Toxic, odourless gas: use a CO detector.' },
-  { smiles: 'S', name: 'hydrogen sulfide', kind: 'toxic', level: 'danger', why: 'Toxic gas that soon deadens the sense of smell, so the smell is no warning.' },
+  { smiles: 'O=C(Cl)Cl', name: 'phosgene', kind: 'toxic', level: 'danger', why: 'Highly toxic gas.' },
+  { smiles: 'ClC(=O)OC(Cl)(Cl)Cl', name: 'diphosgene', kind: 'toxic', level: 'danger', why: 'Releases phosgene.' },
+  { smiles: 'O=C(OC(Cl)(Cl)Cl)OC(Cl)(Cl)Cl', name: 'triphosgene', kind: 'toxic', level: 'warning', why: 'Releases phosgene.' },
+  { smiles: 'C#N', name: 'hydrogen cyanide', kind: 'toxic', level: 'danger', why: 'Highly toxic gas.' },
+  { smiles: '[C-]#N', name: 'cyanide', kind: 'toxic', level: 'danger', why: 'Acid releases HCN.' },
+  { smiles: 'C[Si](C)(C)C#N', name: 'trimethylsilyl cyanide', kind: 'toxic', level: 'danger', why: 'Releases HCN with water.' },
+  { smiles: 'CC(C)(O)C#N', name: 'acetone cyanohydrin', kind: 'toxic', level: 'danger', why: 'Releases HCN.' },
+  { smiles: 'BrC#N', name: 'cyanogen bromide', kind: 'toxic', level: 'danger', why: 'Releases HCN.' },
+  { smiles: 'F', name: 'hydrogen fluoride', kind: 'toxic', level: 'danger', why: 'Severe burns: keep calcium gluconate at hand.' },
+  { smiles: '[N-]=[N+]=[N-]', name: 'azide salt', kind: 'toxic', level: 'warning', why: 'Never with acid, heavy metals or DCM.' },
+  { smiles: 'NN', name: 'hydrazine', kind: 'toxic', level: 'warning', why: 'Toxic, carcinogenic.' },
+  { smiles: 'COS(=O)(=O)OC', name: 'dimethyl sulfate', kind: 'toxic', level: 'danger', why: 'Potent alkylating agent.' },
+  { smiles: 'COS(=O)(=O)C(F)(F)F', name: 'methyl triflate', kind: 'toxic', level: 'danger', why: 'Potent alkylating agent.' },
+  { smiles: 'COS(=O)(=O)F', name: 'methyl fluorosulfonate', kind: 'toxic', level: 'danger', why: 'Potent alkylating agent.' },
+  { smiles: 'CI', name: 'iodomethane', kind: 'toxic', level: 'note', why: 'Alkylating agent.' },
+  { smiles: 'O=[Os](=O)(=O)=O', name: 'osmium tetroxide', kind: 'toxic', level: 'danger', why: 'Volatile, highly toxic.' },
+  { smiles: 'S=C=S', name: 'carbon disulfide', kind: 'toxic', level: 'warning', why: 'Ignites around 90 °C.' },
+  { smiles: 'c1ccccc1', name: 'benzene', kind: 'toxic', level: 'warning', why: 'Carcinogen.' },
+  { smiles: '[C-]#[O+]', name: 'carbon monoxide', kind: 'toxic', level: 'danger', why: 'Toxic, odourless gas.' },
+  { smiles: 'S', name: 'hydrogen sulfide', kind: 'toxic', level: 'danger', why: 'Toxic gas.' },
   { smiles: 'ClCl', name: 'chlorine', kind: 'toxic', level: 'warning', why: 'Toxic, corrosive gas.' },
-  { smiles: 'BrBr', name: 'bromine', kind: 'toxic', level: 'warning', why: 'Toxic, corrosive and volatile: handle in a fume hood and keep thiosulfate at hand.' },
-  { smiles: 'C=CC=O', name: 'acrolein', kind: 'toxic', level: 'danger', why: 'Highly toxic, volatile lachrymator.' },
-  { smiles: 'CN=C=O', name: 'methyl isocyanate', kind: 'toxic', level: 'danger', why: 'Highly toxic, volatile.' },
-  { smiles: 'COCCl', name: 'chloromethyl methyl ether (MOMCl)', kind: 'toxic', level: 'danger', why: 'Carcinogen, often containing the more potent bis(chloromethyl) ether: make it in situ or use another protecting group.' },
+  { smiles: 'BrBr', name: 'bromine', kind: 'toxic', level: 'warning', why: 'Toxic, corrosive.' },
+  { smiles: 'C=CC=O', name: 'acrolein', kind: 'toxic', level: 'danger', why: 'Highly toxic lachrymator.' },
+  { smiles: 'CN=C=O', name: 'methyl isocyanate', kind: 'toxic', level: 'danger', why: 'Highly toxic.' },
+  { smiles: 'COCCl', name: 'chloromethyl methyl ether (MOMCl)', kind: 'toxic', level: 'danger', why: 'Carcinogen.' },
   { smiles: 'ClCOCCl', name: 'bis(chloromethyl) ether', kind: 'toxic', level: 'danger', why: 'Potent carcinogen.' },
-  { smiles: 'CN(C)P(=O)(N(C)C)N(C)C', name: 'HMPA', kind: 'toxic', level: 'warning', why: 'Carcinogen: DMPU often works instead.' },
-  { smiles: 'C1CO1', name: 'ethylene oxide', kind: 'toxic', level: 'danger', why: 'Toxic, carcinogenic and very flammable gas.' },
-  { smiles: 'C=CC#N', name: 'acrylonitrile', kind: 'toxic', level: 'warning', why: 'Toxic and carcinogenic.' },
-  { smiles: 'C=[N+]=[N-]', name: 'diazomethane', kind: 'toxic', level: 'danger', why: 'Highly toxic as well as explosive: avoid ground-glass joints and scratched glass. Trimethylsilyldiazomethane is not explosive, but is also highly toxic by inhalation.' },
-  { smiles: 'C[Si](C)(C)C=[N+]=[N-]', name: 'trimethylsilyldiazomethane', kind: 'toxic', level: 'danger', why: 'Fatal by inhalation: implicated in the deaths of at least two chemists. Not explosive like diazomethane, but use only in a fume hood.' },
-  { smiles: 'NO', name: 'hydroxylamine', kind: 'energetic', level: 'warning', why: 'Concentrated or heated hydroxylamine decomposes explosively, catalysed by metal ions and base (Concept Sciences 1999 and Nissin 2000, nine deaths). Keep it dilute and cool, keep metals out, and never distil it.' },
-  { smiles: 'On1nnc2ccccc21', name: 'HOBt', kind: 'energetic', level: 'warning', why: 'Anhydrous HOBt is explosive: use the hydrate, or Oxyma (Org. Process Res. Dev. 2018, 22, 1262).' },
-  { smiles: 'On1nnc2cccnc21', name: 'HOAt', kind: 'energetic', level: 'warning', why: 'Potentially explosive by DSC (Org. Process Res. Dev. 2018, 22, 1262): avoid heating it dry.' },
-  { smiles: 'CC(C)(C)[Li]', name: 'tert-butyllithium', kind: 'reactive', level: 'danger', why: 'Ignites in air: transfer by cannula or syringe under inert gas, with a fire extinguisher (class D) and quench at hand.' },
-  { smiles: '[H-].[Na+]', name: 'sodium hydride', kind: 'reactive', level: 'note', why: 'Reacts with water to give hydrogen, which can ignite.' },
-  { smiles: '[H-].[K+]', name: 'potassium hydride', kind: 'reactive', level: 'warning', why: 'Reacts violently with water; the dry powder can ignite in air.' },
-  { smiles: '[NaH]', name: 'sodium hydride', kind: 'reactive', level: 'note', why: 'Reacts with water to give hydrogen, which can ignite.' },
-  { smiles: '[KH]', name: 'potassium hydride', kind: 'reactive', level: 'warning', why: 'Reacts violently with water; the dry powder can ignite in air.' },
-  { smiles: '[Li+].[AlH4-]', name: 'lithium aluminium hydride', kind: 'reactive', level: 'note', why: 'Reacts violently with water: quench slowly at 0 °C (the Fieser work-up).' },
+  { smiles: 'CN(C)P(=O)(N(C)C)N(C)C', name: 'HMPA', kind: 'toxic', level: 'warning', why: 'Carcinogen.' },
+  { smiles: 'C1CO1', name: 'ethylene oxide', kind: 'toxic', level: 'danger', why: 'Toxic, carcinogenic gas.' },
+  { smiles: 'C=CC#N', name: 'acrylonitrile', kind: 'toxic', level: 'warning', why: 'Toxic, carcinogenic.' },
+  { smiles: 'C=[N+]=[N-]', name: 'diazomethane', kind: 'toxic', level: 'danger', why: 'Also explosive.' },
+  { smiles: 'C[Si](C)(C)C=[N+]=[N-]', name: 'trimethylsilyldiazomethane', kind: 'toxic', level: 'danger', why: 'Fatal by inhalation.' },
+  { smiles: 'NO', name: 'hydroxylamine', kind: 'energetic', level: 'warning', why: 'Explosive when concentrated or heated.' },
+  { smiles: 'On1nnc2ccccc21', name: 'HOBt', kind: 'energetic', level: 'warning', why: 'Explosive when anhydrous.' },
+  { smiles: 'On1nnc2cccnc21', name: 'HOAt', kind: 'energetic', level: 'warning', why: 'Potentially explosive.' },
+  { smiles: 'CC(C)(C)[Li]', name: 'tert-butyllithium', kind: 'reactive', level: 'danger', why: 'Ignites in air.' },
+  { smiles: '[H-].[Na+]', name: 'sodium hydride', kind: 'reactive', level: 'note', why: 'Reacts with water.' },
+  { smiles: '[H-].[K+]', name: 'potassium hydride', kind: 'reactive', level: 'warning', why: 'Reacts violently with water.' },
+  { smiles: '[NaH]', name: 'sodium hydride', kind: 'reactive', level: 'note', why: 'Reacts with water.' },
+  { smiles: '[KH]', name: 'potassium hydride', kind: 'reactive', level: 'warning', why: 'Reacts violently with water.' },
+  { smiles: '[Li+].[AlH4-]', name: 'lithium aluminium hydride', kind: 'reactive', level: 'note', why: 'Reacts violently with water.' },
 ];
 
 /** Groups that make a compound toxic, wherever they are in it. */
 const TOXIC_GROUPS: { patterns: string[]; name: string; level: HazardLevel; why: string; accept?: (m: Molecule, map: Map<AtomId, AtomId>, pattern: Molecule) => boolean }[] = [
   // The nitroso nitrogen has only its two neighbours (a nitramine's has three).
-  { patterns: ['NN=O'], name: 'N-nitrosamine', level: 'warning', why: 'Probable human carcinogens, controlled as impurities in medicines.', accept: (m, map, p) => [...map.entries()].every(([pa, ta]) => p.atom(pa).element !== 'N' || p.neighbours(pa).length !== 2 || (m.neighbours(ta).length === 2 && m.atom(ta).charge === 0)) },
-  { patterns: ['N=C=O'], name: 'isocyanate', level: 'warning', why: 'Toxic and a respiratory sensitiser.' },
-  { patterns: ['ClCCNCCCl'], name: 'nitrogen mustard', level: 'danger', why: 'Vesicant alkylating agent; some are Schedule 1 chemicals under the Chemical Weapons Convention.' },
-  { patterns: ['ClCCSCCCl'], name: 'sulfur mustard', level: 'danger', why: 'Vesicant alkylating agent; a Schedule 1 chemical under the Chemical Weapons Convention.' },
-  { patterns: ['P(=O)F', 'P(=S)F'], name: 'phosphorus fluoride ester', level: 'danger', why: 'May be a potent acetylcholinesterase inhibitor; this class includes nerve agents controlled under the Chemical Weapons Convention.' },
-  { patterns: ['COS(=O)(=O)'], name: 'alkyl sulfonate or sulfate ester', level: 'warning', why: 'Alkylating agent: a potential genotoxic impurity.' },
-  { patterns: ['C[Hg]'], name: 'organomercury compound', level: 'danger', why: 'Extremely toxic; dimethylmercury passes through standard gloves.' },
-  { patterns: ['C[Sn](C)C'], name: 'trialkyltin compound', level: 'warning', why: 'Toxic, and hard to remove from products.' },
+  { patterns: ['NN=O'], name: 'N-nitrosamine', level: 'warning', why: 'Probable carcinogen.', accept: (m, map, p) => [...map.entries()].every(([pa, ta]) => p.atom(pa).element !== 'N' || p.neighbours(pa).length !== 2 || (m.neighbours(ta).length === 2 && m.atom(ta).charge === 0)) },
+  { patterns: ['N=C=O'], name: 'isocyanate', level: 'warning', why: 'Sensitiser.' },
+  { patterns: ['ClCCNCCCl'], name: 'nitrogen mustard', level: 'danger', why: 'Vesicant; CWC-controlled class.' },
+  { patterns: ['ClCCSCCCl'], name: 'sulfur mustard', level: 'danger', why: 'Vesicant; CWC Schedule 1.' },
+  { patterns: ['P(=O)F', 'P(=S)F'], name: 'phosphorus fluoride ester', level: 'danger', why: 'Possible nerve-agent class (CWC).' },
+  { patterns: ['COS(=O)(=O)'], name: 'alkyl sulfonate or sulfate ester', level: 'warning', why: 'Alkylating agent (genotoxic impurity).' },
+  { patterns: ['C[Hg]'], name: 'organomercury compound', level: 'danger', why: 'Extremely toxic.' },
+  { patterns: ['C[Sn](C)C'], name: 'trialkyltin compound', level: 'warning', why: 'Toxic.' },
 ];
 
 /** Elements whose compounds are toxic whatever their form. */
 const TOXIC_ELEMENTS: { element: string; level: HazardLevel; why: string }[] = [
-  { element: 'Hg', level: 'danger', why: 'Mercury compounds are highly toxic.' },
-  { element: 'Tl', level: 'danger', why: 'Thallium compounds are highly toxic, with delayed symptoms.' },
-  { element: 'Cd', level: 'danger', why: 'Cadmium compounds are toxic and carcinogenic.' },
-  { element: 'As', level: 'danger', why: 'Arsenic compounds are toxic and carcinogenic.' },
-  { element: 'Be', level: 'danger', why: 'Beryllium compounds are toxic and carcinogenic.' },
-  { element: 'Pb', level: 'warning', why: 'Lead compounds are toxic.' },
-  { element: 'Se', level: 'warning', why: 'Selenium compounds are toxic; hydrogen selenide is highly toxic.' },
+  { element: 'Hg', level: 'danger', why: 'Highly toxic.' },
+  { element: 'Tl', level: 'danger', why: 'Highly toxic.' },
+  { element: 'Cd', level: 'danger', why: 'Toxic, carcinogenic.' },
+  { element: 'As', level: 'danger', why: 'Toxic, carcinogenic.' },
+  { element: 'Be', level: 'danger', why: 'Toxic, carcinogenic.' },
+  { element: 'Pb', level: 'warning', why: 'Toxic.' },
+  { element: 'Se', level: 'warning', why: 'Toxic.' },
 ];
 
 /** Reactive atoms: pyrophoric organometallics and alkali metals. */
@@ -273,11 +270,11 @@ function reactiveAtoms(m: Molecule): Hazard[] {
   for (const a of m.atoms()) {
     const carbons = m.neighbours(a.id).filter((n) => m.atom(n).element === 'C').length;
     const bonded = m.neighbours(a.id).length;
-    if (a.element === 'Li' && carbons) out.push({ kind: 'reactive', level: 'note', title: 'Reactive: organolithium', detail: 'Can ignite in air (t-BuLi does): handle under inert gas.', atoms: [a.id] });
-    else if (a.element === 'Al' && carbons >= 2) out.push({ kind: 'reactive', level: 'danger', title: 'Pyrophoric: alkylaluminium', detail: 'Ignites in air and reacts violently with water.', atoms: [a.id] });
-    else if (a.element === 'Zn' && carbons >= 2) out.push({ kind: 'reactive', level: 'danger', title: 'Pyrophoric: dialkylzinc', detail: 'Ignites in air and reacts violently with water.', atoms: [a.id] });
-    else if (a.element === 'B' && carbons === 3 && bonded === 3) out.push({ kind: 'reactive', level: 'warning', title: 'Pyrophoric: trialkylborane', detail: 'Can ignite in air (Et3B does): handle under inert gas.', atoms: [a.id] });
-    else if (['Li', 'Na', 'K', 'Cs'].includes(a.element) && !bonded && a.charge === 0 && !m.implicitHydrogens(a.id) && !a.explicitHydrogens) out.push({ kind: 'reactive', level: 'warning', title: `Water-reactive: ${a.element} metal`, detail: 'Reacts violently with water, giving hydrogen that can ignite.', atoms: [a.id] });
+    if (a.element === 'Li' && carbons) out.push({ kind: 'reactive', level: 'note', title: 'Reactive: organolithium', detail: 'Reacts with water and air.', atoms: [a.id] });
+    else if (a.element === 'Al' && carbons >= 2) out.push({ kind: 'reactive', level: 'danger', title: 'Pyrophoric: alkylaluminium', detail: 'Ignites in air.', atoms: [a.id] });
+    else if (a.element === 'Zn' && carbons >= 2) out.push({ kind: 'reactive', level: 'danger', title: 'Pyrophoric: dialkylzinc', detail: 'Ignites in air.', atoms: [a.id] });
+    else if (a.element === 'B' && carbons === 3 && bonded === 3) out.push({ kind: 'reactive', level: 'warning', title: 'Pyrophoric: trialkylborane', detail: 'Can ignite in air.', atoms: [a.id] });
+    else if (['Li', 'Na', 'K', 'Cs'].includes(a.element) && !bonded && a.charge === 0 && !m.implicitHydrogens(a.id) && !a.explicitHydrogens) out.push({ kind: 'reactive', level: 'warning', title: `Water-reactive: ${a.element} metal`, detail: 'Reacts violently with water.', atoms: [a.id] });
   }
   return out;
 }
@@ -313,7 +310,7 @@ function toxic(mol: Molecule): Hazard[] {
   }
   for (const a of mol.atoms()) {
     if (a.element === 'Cr' && mol.neighbours(a.id).filter((n) => mol.atom(n).element === 'O' && mol.bondBetween(a.id, n)!.order === 2).length >= 2) {
-      out.push({ kind: 'toxic', level: 'danger', title: 'Highly toxic: chromium(VI)', detail: 'Chromium(VI) reagents (CrO3, dichromate, PCC, Jones) are carcinogenic: Dess–Martin, Swern or TEMPO oxidations avoid them.', atoms: [a.id] });
+      out.push({ kind: 'toxic', level: 'danger', title: 'Highly toxic: chromium(VI)', detail: 'Carcinogen.', atoms: [a.id] });
     }
   }
   return [...out, ...reactiveAtoms(mol).filter((h) => !h.atoms.some((id) => named.has(id)))];
@@ -344,34 +341,34 @@ export function hazardsOf(mol: Molecule): Hazard[] {
  * "NaH" is not found in "NaHCO3".
  */
 const REAGENTS: { names: string[]; level: HazardLevel; kind: HazardKind; title: string; why: string }[] = [
-  { names: ['CH2N2', 'diazomethane'], level: 'danger', kind: 'energetic', title: 'Explosive and highly toxic: diazomethane', why: 'Use a dedicated kit without ground-glass joints, behind a shield. TMSCHN2 is not explosive, but is also highly toxic by inhalation.' },
-  { names: ['TMSCHN2', 'TMS-diazomethane', 'TMSdiazomethane', 'trimethylsilyldiazomethane'], level: 'danger', kind: 'toxic', title: 'Highly toxic: trimethylsilyldiazomethane', why: 'Fatal by inhalation: implicated in the deaths of at least two chemists. Not explosive like diazomethane, but use only in a fume hood.' },
-  { names: ['TsN3', 'MsN3', 'NsN3', 'p-ABSA', 'pABSA', 'tosyl azide', 'mesyl azide'], level: 'warning', kind: 'energetic', title: 'Sulfonyl azide (diazo transfer)', why: 'Sulfonyl azides release about twice the energy of a diazo compound when they decompose, and the diazo products can be impact-sensitive (Green et al., Org. Process Res. Dev. 2020, 24, 67). Keep well below the reagent\'s onset (about 100 °C for p-ABSA).' },
-  { names: ['TfN3', 'triflyl azide'], level: 'danger', kind: 'energetic', title: 'Triflyl azide', why: 'Explosive: make and use it only in solution, never isolated.' },
-  { names: ['HOBt', 'HOAt', 'HATU', 'HBTU', 'HCTU', 'TBTU', 'PyBOP'], level: 'note', kind: 'energetic', title: 'Benzotriazole coupling reagent', why: 'Several are potentially explosive by DSC (anhydrous HOBt especially), and HATU, HBTU and HCTU are skin sensitisers (Org. Process Res. Dev. 2018, 22, 1262). Oxyma-based reagents avoid the benzotriazole.' },
-  { names: ['NH2OH', 'hydroxylamine'], level: 'note', kind: 'energetic', title: 'Hydroxylamine', why: 'The free base decomposes explosively when concentrated or heated, catalysed by metal ions and base (Concept Sciences 1999, Nissin 2000). Salts are safer; keep solutions dilute and never distil.' },
-  { names: ['Raney Ni', 'Raney nickel', 'Raney-Ni', 'Ra-Ni'], level: 'warning', kind: 'reactive', title: 'Raney nickel', why: 'Pyrophoric when dry: keep it under water and never let the filter cake dry.' },
-  { names: ['NaN3', 'HN3', 'sodium azide'], level: 'warning', kind: 'toxic', title: 'Toxic, and forms explosive azides: sodium azide', why: 'Never with acid (hydrazoic acid), heavy metals or halogenated solvents; check the product azide against (C + O)/N ≥ 3.' },
-  { names: ['TMSN3', 'DPPA'], level: 'warning', kind: 'energetic', title: 'Azide reagent', why: 'Gives organic azides: check the product against (C + O)/N ≥ 3 and the rule of six.' },
-  { names: ['HNO3', 'nitric acid', 'NO2BF4', 'fuming nitric acid'], level: 'warning', kind: 'energetic', title: 'Nitration: exothermic', why: 'Mixed-acid nitrations can run away: add slowly with cooling and watch the temperature. Each nitro group added makes the product more energetic.' },
-  { names: ['HF', 'HF·pyridine', 'HF·py', 'Olah\'s reagent', 'Et3N·3HF'], level: 'danger', kind: 'toxic', title: 'Hydrogen fluoride', why: 'HF burns are painless at first and can be fatal: keep calcium gluconate gel at hand and use plastic ware.' },
-  { names: ['NaCN', 'KCN', 'CuCN', 'Zn(CN)2', 'TMSCN', 'HCN', 'acetone cyanohydrin'], level: 'danger', kind: 'toxic', title: 'Cyanide', why: 'Acid releases hydrogen cyanide: keep the reaction and its work-up basic, and quench waste with bleach.' },
-  { names: ['COCl2', 'phosgene', 'diphosgene', 'triphosgene'], level: 'danger', kind: 'toxic', title: 'Phosgene or a phosgene source', why: 'Work in a fume hood with a phosgene indicator; CDI is a safer alternative for many couplings.' },
-  { names: ['OsO4', 'K2OsO4'], level: 'danger', kind: 'toxic', title: 'Osmium', why: 'OsO4 is volatile and highly toxic: use catalytic amounts and quench with sodium sulfite or thiosulfate.' },
-  { names: ['Me2SO4', 'dimethyl sulfate', 'MeOTf', 'methyl triflate', 'Meerwein\'s salt'], level: 'danger', kind: 'toxic', title: 'Potent alkylating agent', why: 'Toxic and carcinogenic: destroy excess with aqueous ammonia.' },
-  { names: ['MeI', 'CH3I'], level: 'note', kind: 'toxic', title: 'Iodomethane', why: 'Volatile alkylating agent, suspected carcinogen.' },
-  { names: ['t-BuLi', 'tBuLi', 'tert-BuLi', 'AlMe3', 'Me3Al', 'AlEt3', 'Et2Zn', 'ZnEt2', 'Et3B'], level: 'danger', kind: 'reactive', title: 'Pyrophoric reagent', why: 'Ignites in air: transfer under inert gas by syringe or cannula, with a class D extinguisher at hand.' },
-  { names: ['n-BuLi', 'nBuLi', 'BuLi', 's-BuLi', 'sBuLi'], level: 'note', kind: 'reactive', title: 'Organolithium', why: 'Reacts violently with water and can ignite: handle under inert gas.' },
-  { names: ['LiAlH4', 'LAH'], level: 'note', kind: 'reactive', title: 'Lithium aluminium hydride', why: 'Reacts violently with water: quench slowly at 0 °C (Fieser work-up).' },
-  { names: ['H2O2', 'mCPBA', 'm-CPBA', 'TBHP', 't-BuOOH', 'peracetic acid', 'AcOOH', 'DMDO', 'Oxone'], level: 'note', kind: 'energetic', title: 'Peroxide', why: 'Oxidants that can decompose violently, especially when concentrated or heated: quench before work-up and never distil to dryness.' },
-  { names: ['DEAD', 'DIAD'], level: 'note', kind: 'energetic', title: 'Azodicarboxylate', why: 'Shock- and heat-sensitive when neat (DEAD especially): use as a solution.' },
-  { names: ['CrO3', 'PCC', 'PDC', 'K2Cr2O7', 'Na2Cr2O7', 'Jones reagent', 'Jones'], level: 'danger', kind: 'toxic', title: 'Chromium(VI)', why: 'Carcinogenic: Dess–Martin, Swern or TEMPO oxidations avoid it.' },
-  { names: ['HMPA'], level: 'warning', kind: 'toxic', title: 'HMPA', why: 'Carcinogen: DMPU often works instead.' },
-  { names: ['benzene', 'C6H6'], level: 'warning', kind: 'toxic', title: 'Benzene', why: 'Carcinogen: use toluene instead where possible.' },
-  { names: ['CS2'], level: 'warning', kind: 'toxic', title: 'Carbon disulfide', why: 'Neurotoxic, and ignites around 90 °C.' },
-  { names: ['MOMCl', 'MOM-Cl'], level: 'danger', kind: 'toxic', title: 'Chloromethyl methyl ether', why: 'Carcinogen: make it in situ or use another protecting group.' },
-  { names: ['Hg(OAc)2', 'HgCl2', 'HgO', 'Hg(OTf)2'], level: 'danger', kind: 'toxic', title: 'Mercury salt', why: 'Highly toxic: collect all mercury waste separately.' },
-  { names: ['Bu3SnH', 'nBu3SnH', 'Bu3SnCl', 'Me3SnCl'], level: 'note', kind: 'toxic', title: 'Organotin', why: 'Toxic and hard to remove from products; tris(trimethylsilyl)silane can often replace Bu3SnH.' },
+  { names: ['CH2N2', 'diazomethane'], level: 'danger', kind: 'energetic', title: 'Diazomethane', why: 'Explosive and highly toxic.' },
+  { names: ['TMSCHN2', 'TMS-diazomethane', 'TMSdiazomethane', 'trimethylsilyldiazomethane'], level: 'danger', kind: 'toxic', title: 'Highly toxic: trimethylsilyldiazomethane', why: 'Fatal by inhalation.' },
+  { names: ['TsN3', 'MsN3', 'NsN3', 'p-ABSA', 'pABSA', 'tosyl azide', 'mesyl azide'], level: 'warning', kind: 'energetic', title: 'Sulfonyl azide (diazo transfer)', why: 'Energetic: keep well below its decomposition onset.' },
+  { names: ['TfN3', 'triflyl azide'], level: 'danger', kind: 'energetic', title: 'Triflyl azide', why: 'Explosive: never isolate.' },
+  { names: ['HOBt', 'HOAt', 'HATU', 'HBTU', 'HCTU', 'TBTU', 'PyBOP'], level: 'note', kind: 'energetic', title: 'Benzotriazole coupling reagent', why: 'Some potentially explosive; HATU, HBTU, HCTU are sensitisers.' },
+  { names: ['NH2OH', 'hydroxylamine'], level: 'note', kind: 'energetic', title: 'Hydroxylamine', why: 'Explosive when concentrated or heated.' },
+  { names: ['Raney Ni', 'Raney nickel', 'Raney-Ni', 'Ra-Ni'], level: 'warning', kind: 'reactive', title: 'Raney nickel', why: 'Pyrophoric when dry.' },
+  { names: ['NaN3', 'HN3', 'sodium azide'], level: 'warning', kind: 'toxic', title: 'Sodium azide', why: 'Never with acid, heavy metals or DCM.' },
+  { names: ['TMSN3', 'DPPA'], level: 'warning', kind: 'energetic', title: 'Azide reagent', why: 'Check the product azide.' },
+  { names: ['HNO3', 'nitric acid', 'NO2BF4', 'fuming nitric acid'], level: 'warning', kind: 'energetic', title: 'Nitration: exothermic', why: 'Exothermic: can run away.' },
+  { names: ['HF', 'HF·pyridine', 'HF·py', 'Olah\'s reagent', 'Et3N·3HF'], level: 'danger', kind: 'toxic', title: 'Hydrogen fluoride', why: 'Severe burns: keep calcium gluconate at hand.' },
+  { names: ['NaCN', 'KCN', 'CuCN', 'Zn(CN)2', 'TMSCN', 'HCN', 'acetone cyanohydrin'], level: 'danger', kind: 'toxic', title: 'Cyanide', why: 'Keep basic: acid releases HCN.' },
+  { names: ['COCl2', 'phosgene', 'diphosgene', 'triphosgene'], level: 'danger', kind: 'toxic', title: 'Phosgene or a phosgene source', why: 'Highly toxic.' },
+  { names: ['OsO4', 'K2OsO4'], level: 'danger', kind: 'toxic', title: 'Osmium', why: 'Volatile, highly toxic.' },
+  { names: ['Me2SO4', 'dimethyl sulfate', 'MeOTf', 'methyl triflate', 'Meerwein\'s salt'], level: 'danger', kind: 'toxic', title: 'Potent alkylating agent', why: 'Toxic, carcinogenic.' },
+  { names: ['MeI', 'CH3I'], level: 'note', kind: 'toxic', title: 'Iodomethane', why: 'Alkylating agent.' },
+  { names: ['t-BuLi', 'tBuLi', 'tert-BuLi', 'AlMe3', 'Me3Al', 'AlEt3', 'Et2Zn', 'ZnEt2', 'Et3B'], level: 'danger', kind: 'reactive', title: 'Pyrophoric reagent', why: 'Ignites in air.' },
+  { names: ['n-BuLi', 'nBuLi', 'BuLi', 's-BuLi', 'sBuLi'], level: 'note', kind: 'reactive', title: 'Organolithium', why: 'Reacts with water and air.' },
+  { names: ['LiAlH4', 'LAH'], level: 'note', kind: 'reactive', title: 'Lithium aluminium hydride', why: 'Reacts violently with water.' },
+  { names: ['H2O2', 'mCPBA', 'm-CPBA', 'TBHP', 't-BuOOH', 'peracetic acid', 'AcOOH', 'DMDO', 'Oxone'], level: 'note', kind: 'energetic', title: 'Peroxide', why: 'Oxidant: never concentrate to dryness.' },
+  { names: ['DEAD', 'DIAD'], level: 'note', kind: 'energetic', title: 'Azodicarboxylate', why: 'Shock-sensitive when neat.' },
+  { names: ['CrO3', 'PCC', 'PDC', 'K2Cr2O7', 'Na2Cr2O7', 'Jones reagent', 'Jones'], level: 'danger', kind: 'toxic', title: 'Chromium(VI)', why: 'Carcinogen.' },
+  { names: ['HMPA'], level: 'warning', kind: 'toxic', title: 'HMPA', why: 'Carcinogen.' },
+  { names: ['benzene', 'C6H6'], level: 'warning', kind: 'toxic', title: 'Benzene', why: 'Carcinogen.' },
+  { names: ['CS2'], level: 'warning', kind: 'toxic', title: 'Carbon disulfide', why: 'Ignites around 90 °C.' },
+  { names: ['MOMCl', 'MOM-Cl'], level: 'danger', kind: 'toxic', title: 'Chloromethyl methyl ether', why: 'Carcinogen.' },
+  { names: ['Hg(OAc)2', 'HgCl2', 'HgO', 'Hg(OTf)2'], level: 'danger', kind: 'toxic', title: 'Mercury salt', why: 'Highly toxic.' },
+  { names: ['Bu3SnH', 'nBu3SnH', 'Bu3SnCl', 'Me3SnCl'], level: 'note', kind: 'toxic', title: 'Organotin', why: 'Toxic.' },
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -388,7 +385,7 @@ export function reagentHazards(text: string): Hazard[] {
 // ------------------------------------------------------- dangerous combinations
 
 /** What is present, drawn as a structure or written as text: the halves of the pairs below. */
-type Tag = 'NaH' | 'amide or sulfoxide solvent' | 'azide salt' | 'halogenated solvent' | 'DMF' | 'DMSO' | 'POCl3' | 'acid chloride reagent' | 'DMSO activator' | 'HNO3' | 'Ac2O' | 'hydrogenation catalyst' | 'alcohol solvent';
+type Tag = 'NaH' | 'amide or sulfoxide solvent' | 'azide salt' | 'halogenated solvent' | 'DMF' | 'DMSO' | 'POCl3' | 'acid chloride reagent' | 'DMSO activator' | 'HNO3' | 'Ac2O';
 const TAG_TEXT: Record<Tag, RegExp> = {
   'NaH': /(?<![A-Za-z])(NaH|sodium hydride)(?![A-Za-z0-9])/,
   'amide or sulfoxide solvent': /(?<![A-Za-z])(DMF|DMAc|DMA|DMSO|NMP|dimethylformamide|dimethylacetamide|dimethyl sulfoxide)(?![A-Za-z])/i,
@@ -401,8 +398,6 @@ const TAG_TEXT: Record<Tag, RegExp> = {
   'DMSO activator': /(?<![A-Za-z])(\(COCl\)2|oxalyl chloride|TFAA|Tf2O|SOCl2|thionyl chloride|AcCl|acetyl chloride|cyanuric chloride)(?![A-Za-z0-9])/i,
   'HNO3': /(?<![A-Za-z])(HNO3|nitric acid)(?![A-Za-z0-9])/i,
   'Ac2O': /(?<![A-Za-z])(Ac2O|acetic anhydride)(?![A-Za-z0-9])/i,
-  'hydrogenation catalyst': /(?<![A-Za-z])(Pd\/C|Pd\(OH\)2|Pt\/C|PtO2|Rh\/C|Ru\/C|Pd\/Al2O3|Raney)/i,
-  'alcohol solvent': /(?<![A-Za-z])(MeOH|EtOH|iPrOH|i-PrOH|IPA|methanol|ethanol|isopropanol|2-propanol)(?![A-Za-z])/i,
 };
 const TAG_SMILES: Record<Tag, string[]> = {
   'NaH': ['[H-].[Na+]', '[NaH]'],
@@ -416,54 +411,22 @@ const TAG_SMILES: Record<Tag, string[]> = {
   'DMSO activator': ['ClC(=O)C(=O)Cl', 'O=C(OC(=O)C(F)(F)F)C(F)(F)F', 'ClS(Cl)=O'],
   'HNO3': ['O[N+](=O)[O-]', 'ON(=O)=O'],
   'Ac2O': ['CC(=O)OC(C)=O'],
-  'hydrogenation catalyst': [],
-  'alcohol solvent': ['CO', 'CCO', 'CC(C)O'],
 };
-/** Dangerous combinations; `hot`, when the text gives a temperature at or above it (°C), or reflux. */
-const PAIRS: { tags: Tag[]; hot?: number; level: HazardLevel; kind: HazardKind; title: string; detail: string }[] = [
-  {
-    tags: ['NaH', 'amide or sulfoxide solvent'], level: 'warning', kind: 'reactive', title: 'NaH with DMF, DMAc or DMSO',
-    detail: 'NaH decomposes these solvents exothermically, from well below their boiling points, and the combination has caused runaway reactions and explosions (Yang et al., Org. Process Res. Dev. 2019, 23, 2210). Keep it cold and small, or use another base or solvent (THF, MeCN, or Cs2CO3 or KOtBu).',
-  },
-  {
-    tags: ['azide salt', 'halogenated solvent'], level: 'danger', kind: 'energetic', title: 'Azide salt with DCM or chloroform',
-    detail: 'Azide ion substitutes dichloromethane and chloroform, giving diazidomethane and triazidomethane, which are extremely explosive, also in the work-up and waste (Conrow and Dean, Org. Process Res. Dev. 2008, 12, 1285). Use another solvent, and keep azide waste out of halogenated waste.',
-  },
-  {
-    tags: ['HNO3', 'Ac2O'], level: 'danger', kind: 'energetic', title: 'Nitric acid with acetic anhydride (acetyl nitrate)',
-    detail: 'These form acetyl nitrate, which is explosive, and the mixtures can decompose violently (Andreozzi et al., 2002): make it in situ, cold, in small portions, with the substrate present.',
-  },
-  {
-    tags: ['POCl3', 'DMF'], level: 'warning', kind: 'reactive', title: 'Vilsmeier reagent (POCl3 with DMF)',
-    detail: 'The Vilsmeier complex decomposes exothermically, worst when it builds up without substrate (Org. Process Res. Dev. 2002, 6, 922): add POCl3 to the substrate in DMF so it is used as it forms. It also gives dimethylcarbamoyl chloride, a carcinogen, at ppm levels.',
-  },
-  {
-    tags: ['acid chloride reagent', 'DMF'], level: 'note', kind: 'toxic', title: 'Dimethylcarbamoyl chloride from DMF',
-    detail: 'Thionyl or oxalyl chloride with DMF gives traces of dimethylcarbamoyl chloride, a carcinogen; it hydrolyses fast in an aqueous work-up (Stare et al., Org. Process Res. Dev. 2009, 13, 857).',
-  },
-  {
-    tags: ['DMSO activator', 'DMSO'], level: 'warning', kind: 'reactive', title: 'Activated DMSO (Swern-type)',
-    detail: 'Activating DMSO is violently exothermic and gives off gas, and the activated species decomposes above about −60 °C: keep it cold and add slowly (DMSO hazards review, Org. Process Res. Dev. 2020, 24, 916).',
-  },
-  {
-    tags: ['DMSO'], hot: 100, level: 'warning', kind: 'reactive', title: 'Hot DMSO',
-    detail: 'DMSO decomposes autocatalytically, and acids, bases, halides, metals and electrophiles bring the onset far below its 189 °C boiling point (Org. Process Res. Dev. 2020, 24, 916): check the mixture by DSC or ARC before heating on scale.',
-  },
-  {
-    tags: ['hydrogenation catalyst', 'alcohol solvent'], level: 'warning', kind: 'reactive', title: 'Hydrogenation catalyst in an alcohol',
-    detail: 'Spent Pd/C and similar catalysts can self-ignite, especially with alcohol solvents (Org. Process Res. Dev. 2021, 25, 2438): add the catalyst under nitrogen, keep the filter cake wet, and rinse it with water.',
-  },
+/**
+ * Dangerous combinations. Sources: NaH, Yang et al., Org. Process Res. Dev.
+ * 2019, 23, 2210; azide and DCM, Conrow and Dean, Org. Process Res. Dev. 2008,
+ * 12, 1285; acetyl nitrate, Andreozzi et al., 2002; Vilsmeier, Org. Process
+ * Res. Dev. 2002, 6, 922; DMCC, Stare et al., Org. Process Res. Dev. 2009, 13,
+ * 857; activated DMSO, Org. Process Res. Dev. 2020, 24, 916.
+ */
+const PAIRS: { tags: Tag[]; level: HazardLevel; kind: HazardKind; title: string; detail: string }[] = [
+  { tags: ['NaH', 'amide or sulfoxide solvent'], level: 'warning', kind: 'reactive', title: 'NaH with DMF, DMAc or DMSO', detail: 'Can run away.' },
+  { tags: ['azide salt', 'halogenated solvent'], level: 'danger', kind: 'energetic', title: 'Azide salt with DCM or chloroform', detail: 'Forms explosive di- and triazidomethane.' },
+  { tags: ['HNO3', 'Ac2O'], level: 'danger', kind: 'energetic', title: 'HNO3 with Ac2O', detail: 'Forms explosive acetyl nitrate.' },
+  { tags: ['POCl3', 'DMF'], level: 'warning', kind: 'reactive', title: 'Vilsmeier reagent (POCl3 with DMF)', detail: 'Thermal hazard: add POCl3 to the substrate.' },
+  { tags: ['acid chloride reagent', 'DMF'], level: 'note', kind: 'toxic', title: 'SOCl2 or (COCl)2 with DMF', detail: 'Traces of DMCC, a carcinogen.' },
+  { tags: ['DMSO activator', 'DMSO'], level: 'warning', kind: 'reactive', title: 'Activated DMSO (Swern-type)', detail: 'Exothermic: keep cold.' },
 ];
-
-/** The highest temperature the text gives, in °C (reflux counts as very hot); null if none. */
-function hottest(text: string): number | null {
-  let max: number | null = /\breflux/i.test(text) ? Infinity : null;
-  for (const m of text.matchAll(/([−–-]?\d+(?:\.\d+)?)\s*[°º]\s*C/g)) {
-    const t = Number(m[1]!.replace(/[−–]/, '-'));
-    if (max === null || t > max) max = t;
-  }
-  return max;
-}
 
 let tagMols: { tag: Tag; mol: Molecule }[] | null = null;
 
@@ -487,8 +450,7 @@ function tagsOf(mol: Molecule, text: string): Set<Tag> {
  */
 export function screenHazards(mol: Molecule, text = ''): Hazard[] {
   const tags = tagsOf(mol, text);
-  const hot = hottest(text);
-  const pairs: Hazard[] = PAIRS.filter((p) => p.tags.every((t) => tags.has(t)) && (p.hot === undefined || (hot !== null && hot >= p.hot))).map((p) => ({ kind: p.kind, level: p.level, title: p.title, detail: p.detail, atoms: [] }));
+  const pairs: Hazard[] = PAIRS.filter((p) => p.tags.every((t) => tags.has(t))).map((p) => ({ kind: p.kind, level: p.level, title: p.title, detail: p.detail, atoms: [] }));
   const all = [...pairs, ...hazardsOf(mol), ...(text ? reagentHazards(text) : [])];
   return all.filter((h, i) => all.findIndex((x) => x.title === h.title) === i).sort((a, b) => RANK[a.level] - RANK[b.level]);
 }

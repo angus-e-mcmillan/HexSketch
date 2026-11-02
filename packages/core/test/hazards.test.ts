@@ -12,7 +12,7 @@ const check = (smiles: string) => {
 test('azides are judged by (C + O)/N and the rule of six', () => {
   const methyl = check('CN=[N+]=[N-]');
   assert.equal(methyl.worst, 'danger');
-  assert.match(methyl.found[0]!.detail, /\(C \+ O\)\/N = 0\.33, below 1/);
+  assert.equal(methyl.found[0]!.detail, '(C + O)/N 0.33, 1 C per group, oxygen balance −98%.');
   assert.equal(check('[N-]=[N+]=NCc1ccccc1').worst, 'warning'); // benzyl azide: 2.33
   assert.equal(check('CCCCCCCCCN=[N+]=[N-]').worst, 'warning'); // nonyl azide passes the rules, but an azide is never just a note
   assert.equal(check('N=[N+]=[N-]').worst, 'danger'); // hydrazoic acid
@@ -95,23 +95,18 @@ test('process-safety findings from OPRD', () => {
   // Sulfonyl azides and diazo compounds carry the literature's numbers.
   const tsn3 = check('Cc1ccc(cc1)S(=O)(=O)N=[N+]=[N-]').found[0]!;
   assert.match(tsn3.title, /sulfonyl azide/);
-  assert.match(tsn3.detail, /twice the energy of a diazo compound/);
-  assert.match(check('CCOC(=O)C(=[N+]=[N-])c1ccccc1').found[0]!.detail, /impact-sensitive/);
+  assert.match(check('CCOC(=O)C(=[N+]=[N-])c1ccccc1').titles[0]!, /diazo group/);
   assert.ok(titles('', 'TsN3, Et3N, MeCN').includes('Sulfonyl azide (diazo transfer)'));
   // Exact compounds.
   assert.ok(check('C[Si](C)(C)C=[N+]=[N-]').titles.includes('Highly toxic: trimethylsilyldiazomethane'));
   assert.deepEqual(check('On1nnc2ccccc21').titles, ['Energetic: HOBt']);
   assert.deepEqual(check('NO').titles, ['Energetic: hydroxylamine']);
   // Pairs, from text or structures.
-  assert.ok(titles('', 'HNO3, Ac2O, 0 °C').includes('Nitric acid with acetic anhydride (acetyl nitrate)'));
+  assert.ok(titles('', 'HNO3, Ac2O, 0 °C').includes('HNO3 with Ac2O'));
   assert.ok(titles('', 'POCl3, DMF, 80 °C').includes('Vilsmeier reagent (POCl3 with DMF)'));
-  assert.ok(titles('', 'SOCl2, DMF (cat.), DCM').includes('Dimethylcarbamoyl chloride from DMF'));
+  assert.ok(titles('', 'SOCl2, DMF (cat.), DCM').includes('SOCl2 or (COCl)2 with DMF'));
   assert.ok(titles('', '(COCl)2, DMSO, then Et3N, −78 °C').includes('Activated DMSO (Swern-type)'));
-  assert.ok(titles('', 'H2, Pd/C, MeOH').includes('Hydrogenation catalyst in an alcohol'));
-  assert.ok(!titles('', 'H2, Pd/C, EtOAc').includes('Hydrogenation catalyst in an alcohol'));
-  // Hot DMSO only when the text says hot.
-  assert.ok(titles('', 'K2CO3, DMSO, 120 °C').includes('Hot DMSO'));
-  assert.ok(titles('', 'CuI, DMSO, reflux').includes('Hot DMSO'));
-  assert.ok(!titles('', 'K2CO3, DMSO, rt').includes('Hot DMSO'));
-  assert.ok(!titles('', 'DMSO, −78 °C to 25 °C').includes('Hot DMSO'));
+  // Routine: no flag for Pd/C in methanol or hot DMSO.
+  assert.deepEqual(titles('', 'H2, Pd/C, MeOH'), []);
+  assert.deepEqual(titles('', 'K2CO3, DMSO, 120 °C'), []);
 });
