@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { analyze, compare, convert, link, name, readStructure, render, validate, type ElectronArrow, type Rasterizer, type RenderFormat, type Scheme } from '@hexsketch/agent';
 import type { Molecule } from '@hexsketch/core';
 import { memorySketchStore, type Sketch, type SketchStore } from './sketch-store.ts';
-import { balanceOf, checkOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
+import { balanceOf, checkOf, safetyOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
 
 export { HIGHLIGHTS };
 
@@ -151,7 +151,7 @@ export function createServer(opts: ServerOptions): McpServer {
     const about = await analyze(input, read(a.style));
     const saved = a.save_to && opts.saveFile ? await opts.saveFile(a.save_to, r.data, a.overwrite ?? false) : undefined;
     const issues = (await validate(input, read(a.style))).issues.filter((x) => x.severity !== 'note').map((x) => x.message);
-    const info = { name: about.name, smiles: about.smiles, formula: about.formula, ...(issues.length ? { issues } : {}), link: await link(input, read(a.style)), ...(saved ? { saved } : {}), ...(await balanceOf(a.reaction)) };
+    const info = { name: about.name, smiles: about.smiles, formula: about.formula, ...(issues.length ? { issues } : {}), link: await link(input, read(a.style)), ...(saved ? { saved } : {}), ...(await balanceOf(a.reaction)), ...(await safetyOf(input)) };
     const content: CallToolResult['content'] = [];
     if (to === 'png') content.push({ type: 'image', data: toBase64(r.data as Uint8Array), mimeType: 'image/png' });
     else if (typeof r.data === 'string' && !saved) content.push({ type: 'text', text: r.data });
@@ -265,7 +265,7 @@ export function createServer(opts: ServerOptions): McpServer {
       if (sequence) return { content: [{ type: 'text', text: JSON.stringify({ opened: `${steps!.length} steps`, ...sequence, next: `${sequence.next} ${next}` }, null, 2) }], structuredContent: shared };
       if (!s) return { content: [{ type: 'text', text: JSON.stringify({ opened: 'an empty canvas', next, fallback: 'In a chat that cannot show the editor, the user can draw at https://hexsketch.com and paste what Edit › Copy for AI gives them.' }, null, 2) }], structuredContent: shared };
       const [check, url] = await Promise.all([checkOf(s), link(s)]);
-      const info = { opened: (check.name as string | null) ?? 'the structure', drawn: check, link: url, ...(shown ? shown.report : {}), ...(await balanceOf(r)) };
+      const info = { opened: (check.name as string | null) ?? 'the structure', drawn: check, link: url, ...(shown ? shown.report : {}), ...(await balanceOf(r)), ...(await safetyOf(s)) };
       return {
         content: [{ type: 'text', text: JSON.stringify({ ...info, next, fallback: 'If the chat cannot show the editor, the link opens the same structure on hexsketch.com.' }, null, 2) }],
         structuredContent: { ...shared, ...info },
@@ -280,7 +280,7 @@ export function createServer(opts: ServerOptions): McpServer {
     }, ({ sketch: id }) => safely(async () => {
       const sketch = await target(id);
       if (!sketch.drawing) return text({ sketch: sketch.id, empty: true, note: 'The canvas is empty.' });
-      return text({ sketch: sketch.id, ...(await analyze(sketch.drawing)), link: await link(sketch.drawing), next: 'Show what you say about this drawing in the editor with show_in_sketcher (highlight the parts you mean, explain in the note).' });
+      return text({ sketch: sketch.id, ...(await analyze(sketch.drawing)), ...(await safetyOf(sketch.drawing)), link: await link(sketch.drawing), next: 'Show what you say about this drawing in the editor with show_in_sketcher (highlight the parts you mean, explain in the note).' });
     })));
 
     editorParts.push(server.registerTool('show_in_sketcher', {

@@ -3,11 +3,14 @@ import {
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
+  hazardLine, screenHazards, type Hazard,
 } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
 import '@hexsketch/naming/rings';
+
+export { HAZARD_DISCLAIMER, alarming, hazardLine, hazardsOf, reagentHazards, screenHazards, type Hazard, type HazardKind, type HazardLevel } from '@hexsketch/core';
 
 import { abbreviateGroups } from './abbreviate.ts';
 export { abbreviateGroups, PROTECTING_GROUPS } from './abbreviate.ts';
@@ -580,6 +583,8 @@ export interface Validation {
   smiles?: string;
   name?: string | null;
   formula?: string;
+  /** Energetic groups, toxic or reactive compounds and hazardous reagents found, worst first, one line each. */
+  hazards?: string[];
 }
 
 /** Elements LLM-written SMILES most often overload: a valence error here is almost always a mistake. */
@@ -615,6 +620,7 @@ export async function validate(input: string | Structure, opts: ReadOptions = {}
   const pieces = mol.fragments().length;
   if (pieces > 1) issues.push({ severity: 'note', message: `${pieces} separate structures (salt, mixture or reaction)` });
   const named = safeName(mol, s.smiles === undefined);
+  const risks = found(s, mol);
   if (!named.name) issues.push({ severity: 'note', message: `No IUPAC name generated${named.reason ? `: ${named.reason}` : ''}` });
   return {
     ok: !issues.some((i) => i.severity === 'error'),
@@ -622,7 +628,23 @@ export async function validate(input: string | Structure, opts: ReadOptions = {}
     smiles: writeSmiles(mol),
     name: named.name,
     formula: computeMass(mol).formulaWithCharge,
+    ...(risks.length ? { hazards: risks.map(hazardLine) } : {}),
   };
+}
+
+/** The drawing's hazards: its structures (abbreviations drawn out) and the reagents written as text, such as above an arrow. */
+function found(s: Structure, mol: Molecule = expanded(s)): Hazard[] {
+  return screenHazards(mol, s.objects.flatMap((o) => (o.kind === 'text' && !o.analysis ? [o.text] : [])).join('\n'));
+}
+
+/**
+ * What could make a drawing dangerous to make or handle: energetic groups
+ * judged by (C + O)/N, the rule of six and oxygen balance; highly toxic and
+ * pyrophoric compounds; hazardous reagents written above an arrow. Screening
+ * rules, not a safety assessment.
+ */
+export async function hazards(input: string | Structure, opts: ReadOptions = {}): Promise<Hazard[]> {
+  return found(await readStructure(input, opts));
 }
 
 export interface Comparison {

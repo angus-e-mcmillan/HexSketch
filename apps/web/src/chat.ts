@@ -2,7 +2,7 @@ import './chat.css';
 import { aiSummary, structureLink, writeCdxml, HEXSKETCH_URL } from '@hexsketch/core';
 import { analyze, compare, convert, drawnOut, link, name, validate } from '@hexsketch/agent';
 import { nameMolecule } from '@hexsketch/naming';
-import { findStructure, pageTools, prepare, prepareSteps, HIGHLIGHTS, PAGE_INSTRUCTIONS, SHOWN_NEXT, type Show } from '../../../packages/hexsketch/src/toolkit.ts';
+import { findStructure, pageTools, prepare, prepareSteps, safetyOf, HIGHLIGHTS, PAGE_INSTRUCTIONS, SHOWN_NEXT, type Show } from '../../../packages/hexsketch/src/toolkit.ts';
 import { createAiLayer, formatted, type AiLayer } from './ai.ts';
 import type { AppApi } from './app.ts';
 import * as openrouter from './openrouter.ts';
@@ -250,7 +250,7 @@ class Chat {
         case 'read_sketcher': {
           const now = this.drawing();
           this.lastSeen = (await this.describe()) ?? '';
-          return now ? { ...(await analyze(now)), link: await link(now) } : { empty: true, note: 'The canvas is empty.' };
+          return now ? { ...(await analyze(now)), ...(await safetyOf(now)), link: await link(now) } : { empty: true, note: 'The canvas is empty.' };
         }
         case 'find_structure': return await findStructure(String(args.name ?? ''));
         case 'name_structure': return { ...(await name(s)), link: await link(s) };

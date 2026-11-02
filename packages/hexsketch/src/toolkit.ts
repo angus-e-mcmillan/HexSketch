@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { alignByMaps, analyze, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
+import { alignByMaps, analyze, hazards, hazardLine, HAZARD_DISCLAIMER, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
 import { parsePattern, smilesAtomMaps, type Molecule } from '@hexsketch/core';
 import type { SketchUpdate } from './sketch-store.ts';
 
@@ -182,6 +182,17 @@ export async function balanceOf(r: Scheme | undefined): Promise<Record<string, u
   return b.length ? { balance: b, balance_note: 'Atoms that do not balance across an arrow: fine when they come from a reagent written above it or leave as an unshown byproduct; otherwise add the missing byproduct (H2O, HCl...) or correct the product.' } : {};
 }
 
+/**
+ * For a tool result: what could make the drawing dangerous to make or handle
+ * (its structures, and reagents written above its arrows), for the model to
+ * pass on to the user.
+ */
+export async function safetyOf(drawing: string | Structure | undefined): Promise<Record<string, unknown>> {
+  if (!drawing) return {};
+  const found = await hazards(drawing).catch(() => []);
+  return found.length ? { hazards: found.map(hazardLine), hazard_note: `Flag dangers and warnings to the user in a few words; notes only if they matter. ${HAZARD_DISCLAIMER}` } : {};
+}
+
 /** The arrows as the agent takes them, with colour names turned into colours. */
 export const curlyArrows = (list: { from: number[]; to: number[]; electrons?: 1 | 2; colour?: string }[] | undefined): ElectronArrow[] | undefined =>
   list?.map(({ colour, ...a }) => {
@@ -265,6 +276,7 @@ export const prepare = async (a: Show, before: Molecule | undefined, current: st
       // What was drawn, to check against what was meant (in place of a separate validate_structure call).
       ...(s ? { drawn: await checkOf(s) } : {}),
       ...(await balanceOf(a.reaction)),
+      ...(await safetyOf(s)),
       highlights: highlights.map((h) => ({ smiles: h.smiles, colour: h.name, places: h.places, marked: h.marked })),
       ...(pinned.length ? { labels: pinned.map((l) => ({ at: l.at, text: l.text, places: l.places })) } : {}),
       ...(missed.length ? { warning: `Not found in the drawing: ${missed.join(', ')}. Check the fragment against read_sketcher's SMILES.` } : {}),
@@ -335,6 +347,7 @@ export const PAGE_INSTRUCTIONS = [
   '- Highlight the parts you mean (each highlight one atom, one functional group or one monomer such as an amino acid, at one place), pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour. The drawing carries the detail; keep the chat reply short and point to it ("the yellow ester").',
   '- When the user says "this", "my structure" or "what I drew", call read_sketcher first: they may have changed the drawing. Each message also says what the editor shows, when it has changed.',
   ...CHEMISTRY,
+  '- When a result lists hazards (energetic groups, highly toxic or pyrophoric compounds, hazardous reagents or combinations), flag each danger or warning to the user in a few words, e.g. "Note: methyl azide is likely explosive." Mention notes only when they matter. They are screening rules: do not lecture, and do not refuse ordinary chemistry because of them.',
   MECHANISM,
   ORIENTATION,
 ].join('\n');
