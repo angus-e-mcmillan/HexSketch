@@ -89,3 +89,29 @@ test('routine reagents are notes, not alarms', () => {
     assert.ok(reagentHazards(text).every((h) => h.level === 'note'), text);
   assert.equal(check('[Na+].[H-]').worst, 'note');
 });
+
+test('process-safety findings from OPRD', () => {
+  const titles = (smiles: string, text: string) => screenHazards(parseSmiles(smiles), text).map((h) => h.title);
+  // Sulfonyl azides and diazo compounds carry the literature's numbers.
+  const tsn3 = check('Cc1ccc(cc1)S(=O)(=O)N=[N+]=[N-]').found[0]!;
+  assert.match(tsn3.title, /sulfonyl azide/);
+  assert.match(tsn3.detail, /twice the energy of a diazo compound/);
+  assert.match(check('CCOC(=O)C(=[N+]=[N-])c1ccccc1').found[0]!.detail, /impact-sensitive/);
+  assert.ok(titles('', 'TsN3, Et3N, MeCN').includes('Sulfonyl azide (diazo transfer)'));
+  // Exact compounds.
+  assert.ok(check('C[Si](C)(C)C=[N+]=[N-]').titles.includes('Highly toxic: trimethylsilyldiazomethane'));
+  assert.deepEqual(check('On1nnc2ccccc21').titles, ['Energetic: HOBt']);
+  assert.deepEqual(check('NO').titles, ['Energetic: hydroxylamine']);
+  // Pairs, from text or structures.
+  assert.ok(titles('', 'HNO3, Ac2O, 0 °C').includes('Nitric acid with acetic anhydride (acetyl nitrate)'));
+  assert.ok(titles('', 'POCl3, DMF, 80 °C').includes('Vilsmeier reagent (POCl3 with DMF)'));
+  assert.ok(titles('', 'SOCl2, DMF (cat.), DCM').includes('Dimethylcarbamoyl chloride from DMF'));
+  assert.ok(titles('', '(COCl)2, DMSO, then Et3N, −78 °C').includes('Activated DMSO (Swern-type)'));
+  assert.ok(titles('', 'H2, Pd/C, MeOH').includes('Hydrogenation catalyst in an alcohol'));
+  assert.ok(!titles('', 'H2, Pd/C, EtOAc').includes('Hydrogenation catalyst in an alcohol'));
+  // Hot DMSO only when the text says hot.
+  assert.ok(titles('', 'K2CO3, DMSO, 120 °C').includes('Hot DMSO'));
+  assert.ok(titles('', 'CuI, DMSO, reflux').includes('Hot DMSO'));
+  assert.ok(!titles('', 'K2CO3, DMSO, rt').includes('Hot DMSO'));
+  assert.ok(!titles('', 'DMSO, −78 °C to 25 °C').includes('Hot DMSO'));
+});
