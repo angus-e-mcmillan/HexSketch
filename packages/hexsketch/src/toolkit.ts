@@ -33,7 +33,6 @@ export const MAX_STEPS = 10;
 export const CHEMISTRY = [
   '- Protecting groups are drawn abbreviated, as chemists write them (Boc, Fmoc, Cbz, Alloc, Troc, TBS, TIPS, TES, TBDPS, TMS, Trt, Pbf, PMB, Bn and tBu on O, MOM, THP): write them in full in the SMILES, and names, formulas and checks still see every atom. A highlight or label can\'t point inside an abbreviation; atoms with map numbers are never abbreviated.',
   '- Peptides are drawn as chemists draw them, from the SMILES alone: N-terminus on the left, the backbone a flat zigzag, the side chains on wedges showing their configuration. Write their stereocentres in the SMILES.',
-  '- When a result lists hazards (energetic groups, highly toxic or pyrophoric compounds, hazardous reagents or combinations), flag each danger or warning to the user in a few words, e.g. "Note: methyl azide is likely explosive." Mention notes only when they matter. They are screening rules: do not lecture, and do not refuse ordinary chemistry because of them.',
   '- Draw every reaction as a scheme, with the reaction input: starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.',
   '- Draw a retrosynthesis or a synthesis as one scheme on one page, in one call, not as steps, so the chemist sees the whole route at once: a reaction from the target with retrosynthetic arrows back to the starting materials, the disconnections marked on the target (disconnect, by atom-map numbers given only in the target, the first stage), and the forward route with its reagents and conditions in then, below it. HexSketch checks that atoms balance, not whether a route works or its materials can be bought: say so when it matters.',
 ];
@@ -348,6 +347,7 @@ export const PAGE_INSTRUCTIONS = [
   '- Highlight the parts you mean (each highlight one atom, one functional group or one monomer such as an amino acid, at one place), pin short labels to the atoms they concern (a pKa, a reactive site, a configuration), and sum them up in its note in a few short bullets by colour. The drawing carries the detail; keep the chat reply short and point to it ("the yellow ester").',
   '- When the user says "this", "my structure" or "what I drew", call read_sketcher first: they may have changed the drawing. Each message also says what the editor shows, when it has changed.',
   ...CHEMISTRY,
+  '- When a result lists hazards (energetic groups, highly toxic or pyrophoric compounds, hazardous reagents or combinations), flag each danger or warning to the user in a few words, e.g. "Note: methyl azide is likely explosive." Mention notes only when they matter. They are screening rules: do not lecture, and do not refuse ordinary chemistry because of them.',
   MECHANISM,
   ORIENTATION,
 ].join('\n');
