@@ -3,14 +3,14 @@ import {
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
-  hazardsOf, hazardLine, reagentHazards, type Hazard,
+  hazardLine, screenHazards, type Hazard,
 } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
 import '@hexsketch/naming/rings';
 
-export { HAZARD_DISCLAIMER, hazardLine, hazardsOf, reagentHazards, type Hazard, type HazardKind, type HazardLevel } from '@hexsketch/core';
+export { HAZARD_DISCLAIMER, alarming, hazardLine, hazardsOf, reagentHazards, screenHazards, type Hazard, type HazardKind, type HazardLevel } from '@hexsketch/core';
 
 import { abbreviateGroups } from './abbreviate.ts';
 export { abbreviateGroups, PROTECTING_GROUPS } from './abbreviate.ts';
@@ -634,10 +634,7 @@ export async function validate(input: string | Structure, opts: ReadOptions = {}
 
 /** The drawing's hazards: its structures (abbreviations drawn out) and the reagents written as text, such as above an arrow. */
 function found(s: Structure, mol: Molecule = expanded(s)): Hazard[] {
-  const text = s.objects.flatMap((o) => (o.kind === 'text' ? [o.text] : [])).join('\n');
-  const all = [...hazardsOf(mol), ...(text ? reagentHazards(text) : [])];
-  const order: Record<Hazard['level'], number> = { danger: 0, warning: 1, note: 2 };
-  return all.filter((h, i) => all.findIndex((x) => x.title === h.title) === i).sort((a, b) => order[a.level] - order[b.level]);
+  return screenHazards(mol, s.objects.flatMap((o) => (o.kind === 'text' && !o.analysis ? [o.text] : [])).join('\n'));
 }
 
 /**

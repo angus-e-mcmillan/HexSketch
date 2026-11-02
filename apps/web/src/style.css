@@ -246,10 +246,10 @@ dialog.feedback { width: min(480px, calc(100vw - 32px)); }
 .feedback .ds-ok:disabled { opacity: 0.6; }
 
 /* Hazard warnings: a chip in the status bar, and the list it opens */
-.status .hazard { flex: none; margin-right: 12px; padding: 2px 8px; border-radius: 10px; border: 1px solid currentColor; background: #fff; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; }
-.status .hazard[data-level="danger"] { color: #b42318; background: #fef3f2; }
-.status .hazard[data-level="warning"] { color: #a15c07; background: #fffaeb; }
-.status .hazard[data-level="note"] { color: #475467; background: #f2f4f7; }
+.status .hazard { flex: none; margin-right: 12px; padding: 0 4px; border: 0; border-radius: 4px; background: none; font: inherit; cursor: pointer; white-space: nowrap; max-width: 50vw; overflow: hidden; text-overflow: ellipsis; }
+.status .hazard:hover { background: rgba(0,0,0,0.05); text-decoration: underline; }
+.status .hazard[data-level="danger"] { color: #b42318; }
+.status .hazard[data-level="warning"] { color: #a15c07; }
 .popover.hazard-list { max-width: 380px; display: grid; gap: 6px; }
 .hazard-item { display: grid; gap: 2px; text-align: left; padding: 6px 8px; border: 0; border-left: 3px solid #98a2b3; border-radius: 4px; background: #f9fafb; font: inherit; color: inherit; cursor: pointer; }
 .hazard-item:disabled { cursor: default; color: inherit; }

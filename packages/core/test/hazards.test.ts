@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseSmiles } from '../src/smiles.ts';
-import { hazardsOf, reagentHazards, type HazardLevel } from '../src/hazards.ts';
+import { hazardsOf, reagentHazards, screenHazards, type HazardLevel } from '../src/hazards.ts';
 
 /** The worst level found and the titles, for a SMILES. */
 const check = (smiles: string) => {
@@ -60,7 +60,6 @@ test('ordinary compounds and drugs give no warning', () => {
 
 test('reagents written as text', () => {
   const titles = (text: string) => reagentHazards(text).map((h) => h.title);
-  assert.deepEqual(titles('NaH, DMF, 0 °C'), ['NaH with DMF, DMAc or DMSO']);
   assert.deepEqual(titles('NaHCO3, H2O'), []); // not NaH
   assert.deepEqual(titles('HNO3, H2SO4, 0 °C'), ['Nitration: exothermic']);
   assert.deepEqual(titles('t-BuLi, THF, −78 °C'), ['Pyrophoric reagent']); // not also "BuLi"
@@ -68,4 +67,25 @@ test('reagents written as text', () => {
   assert.deepEqual(titles('KCN, DMSO'), ['Cyanide']);
   assert.deepEqual(titles('Pd/C, H2, MeOH'), []);
   assert.deepEqual(titles('TBAF, THF'), []);
+});
+
+test('dangerous pairs, each half drawn or written', () => {
+  const titles = (smiles: string, text: string) => screenHazards(parseSmiles(smiles), text).map((h) => h.title);
+  // NaH with DMF: both written, or NaH drawn and DMF written, or both drawn.
+  assert.ok(titles('', 'NaH, DMF, 0 °C').includes('NaH with DMF, DMAc or DMSO'));
+  assert.ok(titles('[Na+].[H-]', 'DMSO, rt').includes('NaH with DMF, DMAc or DMSO'));
+  assert.ok(titles('[Na+].[H-].CN(C)C=O', '').includes('NaH with DMF, DMAc or DMSO'));
+  assert.ok(!titles('', 'NaH, THF').includes('NaH with DMF, DMAc or DMSO'));
+  // Azide salts with DCM or chloroform.
+  assert.equal(screenHazards(parseSmiles('[Na+].[N-]=[N+]=[N-]'), 'CH2Cl2, rt')[0]!.title, 'Azide salt with DCM or chloroform');
+  assert.ok(titles('ClC(Cl)Cl', 'NaN3').includes('Azide salt with DCM or chloroform'));
+  assert.ok(titles('', 'NaN3, DCM/H2O, Bu4NBr').includes('Azide salt with DCM or chloroform'));
+  // An organic azide in DCM (a click reaction) is not this hazard.
+  assert.ok(!titles('[N-]=[N+]=NCc1ccccc1', 'CuI, DCM').includes('Azide salt with DCM or chloroform'));
+});
+
+test('routine reagents are notes, not alarms', () => {
+  for (const text of ['n-BuLi, THF, −78 °C', 'LiAlH4, THF', 'mCPBA, DCM', 'DEAD, PPh3', 'MeI, K2CO3'])
+    assert.ok(reagentHazards(text).every((h) => h.level === 'note'), text);
+  assert.equal(check('[Na+].[H-]').worst, 'note');
 });

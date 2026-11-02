@@ -1,4 +1,4 @@
-import { hazardsOf, reagentHazards, HAZARD_DISCLAIMER, type Hazard, altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
+import { alarming, screenHazards, HAZARD_DISCLAIMER, type Hazard, altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument, type Tool } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
@@ -671,14 +671,14 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     const copy = new Editor(new EditorDocument(editor.doc.mol.clone(), editor.doc.style));
     copy.expandLabels();
     const text = editor.doc.objects.flatMap((o) => (o.kind === 'text' && !o.analysis ? [o.text] : [])).join('\n');
-    const all = [...hazardsOf(copy.doc.mol), ...(text ? reagentHazards(text) : [])];
-    const order = { danger: 0, warning: 1, note: 2 } as const;
-    hazards = all.filter((h, i) => all.findIndex((x) => x.title === h.title) === i).sort((a, b) => order[a.level] - order[b.level]);
-    const top = hazards[0];
+    hazards = screenHazards(copy.doc.mol, text);
+    // Only what is worth interrupting for shows; notes wait in the list behind it.
+    const shown = hazards.filter(alarming);
+    const top = shown[0];
     hazardChip.hidden = !top;
     if (!top) return;
     hazardChip.dataset.level = top.level;
-    hazardChip.textContent = `⚠ ${top.title}${hazards.length > 1 ? ` (+${hazards.length - 1})` : ''}`;
+    hazardChip.textContent = `⚠ ${top.title}${shown.length > 1 ? ` +${shown.length - 1}` : ''}`;
     hazardChip.title = 'Safety screening: click for details';
   }
   editor.onChange(() => { clearTimeout(hazardTimer); hazardTimer = window.setTimeout(checkHazards, 250); });

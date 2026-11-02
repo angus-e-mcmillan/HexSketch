@@ -95,7 +95,7 @@ test('drawings and reagents with hazards come back with a warning for the model 
   const { call } = await connect();
   const azide = JSON.parse(textOf(await call('render_structure', { structure: 'CN=[N+]=[N-]' }), 1));
   assert.match(azide.hazards[0], /^Likely explosive: azide\. \(C \+ O\)\/N = 0\.33/);
-  assert.match(azide.hazard_note, /Tell the user/);
+  assert.match(azide.hazard_note, /Mention dangers and warnings/);
   const step = JSON.parse(textOf(await call('render_structure', { reaction: { stages: ['CC(=O)O', 'CC(=O)OC'], arrows: [{ reagents: 'CH2N2', conditions: 'Et2O, 0 °C' }] } }), 1));
   assert.deepEqual(step.hazards.map((h: string) => h.split('.')[0]), ['Explosive and highly toxic: diazomethane']);
   const plain = JSON.parse(textOf(await call('render_structure', { structure: 'CC(=O)Nc1ccc(O)cc1' }), 1));

@@ -205,7 +205,7 @@ const COMPOUNDS: Listed[] = [
   { smiles: 'COS(=O)(=O)OC', name: 'dimethyl sulfate', kind: 'toxic', level: 'danger', why: 'Potent alkylating agent, toxic and carcinogenic; symptoms can be delayed. Destroy excess with aqueous ammonia.' },
   { smiles: 'COS(=O)(=O)C(F)(F)F', name: 'methyl triflate', kind: 'toxic', level: 'danger', why: 'Very potent alkylating agent, toxic by inhalation.' },
   { smiles: 'COS(=O)(=O)F', name: 'methyl fluorosulfonate', kind: 'toxic', level: 'danger', why: 'Very potent alkylating agent; inhalation has been fatal.' },
-  { smiles: 'CI', name: 'iodomethane', kind: 'toxic', level: 'warning', why: 'Volatile alkylating agent, suspected carcinogen.' },
+  { smiles: 'CI', name: 'iodomethane', kind: 'toxic', level: 'note', why: 'Volatile alkylating agent, suspected carcinogen.' },
   { smiles: 'O=[Os](=O)(=O)=O', name: 'osmium tetroxide', kind: 'toxic', level: 'danger', why: 'Volatile and highly toxic; the vapour damages the eyes. Use catalytic amounts, or K2OsO4 as a non-volatile source.' },
   { smiles: 'S=C=S', name: 'carbon disulfide', kind: 'toxic', level: 'warning', why: 'Neurotoxic, and ignites around 90 °C, from a hot plate or steam pipe.' },
   { smiles: 'c1ccccc1', name: 'benzene', kind: 'toxic', level: 'warning', why: 'Carcinogen: use toluene instead where possible.' },
@@ -222,11 +222,11 @@ const COMPOUNDS: Listed[] = [
   { smiles: 'C=CC#N', name: 'acrylonitrile', kind: 'toxic', level: 'warning', why: 'Toxic and carcinogenic.' },
   { smiles: 'C=[N+]=[N-]', name: 'diazomethane', kind: 'toxic', level: 'danger', why: 'Highly toxic as well as explosive: avoid ground-glass joints and scratched glass. Trimethylsilyldiazomethane is safer for methyl esters.' },
   { smiles: 'CC(C)(C)[Li]', name: 'tert-butyllithium', kind: 'reactive', level: 'danger', why: 'Ignites in air: transfer by cannula or syringe under inert gas, with a fire extinguisher (class D) and quench at hand.' },
-  { smiles: '[H-].[Na+]', name: 'sodium hydride', kind: 'reactive', level: 'warning', why: 'Reacts with water to give hydrogen, which can ignite. With DMF, DMAc or DMSO it can run away on heating.' },
+  { smiles: '[H-].[Na+]', name: 'sodium hydride', kind: 'reactive', level: 'note', why: 'Reacts with water to give hydrogen, which can ignite.' },
   { smiles: '[H-].[K+]', name: 'potassium hydride', kind: 'reactive', level: 'warning', why: 'Reacts violently with water; the dry powder can ignite in air.' },
-  { smiles: '[NaH]', name: 'sodium hydride', kind: 'reactive', level: 'warning', why: 'Reacts with water to give hydrogen, which can ignite. With DMF, DMAc or DMSO it can run away on heating.' },
+  { smiles: '[NaH]', name: 'sodium hydride', kind: 'reactive', level: 'note', why: 'Reacts with water to give hydrogen, which can ignite.' },
   { smiles: '[KH]', name: 'potassium hydride', kind: 'reactive', level: 'warning', why: 'Reacts violently with water; the dry powder can ignite in air.' },
-  { smiles: '[Li+].[AlH4-]', name: 'lithium aluminium hydride', kind: 'reactive', level: 'warning', why: 'Reacts violently with water: quench slowly at 0 °C (the Fieser work-up).' },
+  { smiles: '[Li+].[AlH4-]', name: 'lithium aluminium hydride', kind: 'reactive', level: 'note', why: 'Reacts violently with water: quench slowly at 0 °C (the Fieser work-up).' },
 ];
 
 /** Groups that make a compound toxic, wherever they are in it. */
@@ -259,7 +259,7 @@ function reactiveAtoms(m: Molecule): Hazard[] {
   for (const a of m.atoms()) {
     const carbons = m.neighbours(a.id).filter((n) => m.atom(n).element === 'C').length;
     const bonded = m.neighbours(a.id).length;
-    if (a.element === 'Li' && carbons) out.push({ kind: 'reactive', level: 'warning', title: 'Pyrophoric: organolithium', detail: 'Can ignite in air (t-BuLi does): handle under inert gas.', atoms: [a.id] });
+    if (a.element === 'Li' && carbons) out.push({ kind: 'reactive', level: 'note', title: 'Reactive: organolithium', detail: 'Can ignite in air (t-BuLi does): handle under inert gas.', atoms: [a.id] });
     else if (a.element === 'Al' && carbons >= 2) out.push({ kind: 'reactive', level: 'danger', title: 'Pyrophoric: alkylaluminium', detail: 'Ignites in air and reacts violently with water.', atoms: [a.id] });
     else if (a.element === 'Zn' && carbons >= 2) out.push({ kind: 'reactive', level: 'danger', title: 'Pyrophoric: dialkylzinc', detail: 'Ignites in air and reacts violently with water.', atoms: [a.id] });
     else if (a.element === 'B' && carbons === 3 && bonded === 3) out.push({ kind: 'reactive', level: 'warning', title: 'Pyrophoric: trialkylborane', detail: 'Can ignite in air (Et3B does): handle under inert gas.', atoms: [a.id] });
@@ -331,7 +331,7 @@ export function hazardsOf(mol: Molecule): Hazard[] {
  */
 const REAGENTS: { names: string[]; level: HazardLevel; kind: HazardKind; title: string; why: string }[] = [
   { names: ['CH2N2', 'diazomethane'], level: 'danger', kind: 'energetic', title: 'Explosive and highly toxic: diazomethane', why: 'Use a dedicated kit without ground-glass joints, behind a shield; TMSCHN2 is safer for methyl esters.' },
-  { names: ['NaN3', 'HN3', 'sodium azide'], level: 'warning', kind: 'toxic', title: 'Toxic, and forms explosive azides: sodium azide', why: 'Never with acid (hydrazoic acid), heavy metals or dichloromethane (diazidomethane); check the product azide against (C + O)/N ≥ 3.' },
+  { names: ['NaN3', 'HN3', 'sodium azide'], level: 'warning', kind: 'toxic', title: 'Toxic, and forms explosive azides: sodium azide', why: 'Never with acid (hydrazoic acid), heavy metals or halogenated solvents; check the product azide against (C + O)/N ≥ 3.' },
   { names: ['TMSN3', 'DPPA'], level: 'warning', kind: 'energetic', title: 'Azide reagent', why: 'Gives organic azides: check the product against (C + O)/N ≥ 3 and the rule of six.' },
   { names: ['HNO3', 'nitric acid', 'NO2BF4', 'fuming nitric acid'], level: 'warning', kind: 'energetic', title: 'Nitration: exothermic', why: 'Mixed-acid nitrations can run away: add slowly with cooling and watch the temperature. Each nitro group added makes the product more energetic.' },
   { names: ['HF', 'HF·pyridine', 'HF·py', 'Olah\'s reagent', 'Et3N·3HF'], level: 'danger', kind: 'toxic', title: 'Hydrogen fluoride', why: 'HF burns are painless at first and can be fatal: keep calcium gluconate gel at hand and use plastic ware.' },
@@ -339,19 +339,19 @@ const REAGENTS: { names: string[]; level: HazardLevel; kind: HazardKind; title: 
   { names: ['COCl2', 'phosgene', 'diphosgene', 'triphosgene'], level: 'danger', kind: 'toxic', title: 'Phosgene or a phosgene source', why: 'Work in a fume hood with a phosgene indicator; CDI is a safer alternative for many couplings.' },
   { names: ['OsO4', 'K2OsO4'], level: 'danger', kind: 'toxic', title: 'Osmium', why: 'OsO4 is volatile and highly toxic: use catalytic amounts and quench with sodium sulfite or thiosulfate.' },
   { names: ['Me2SO4', 'dimethyl sulfate', 'MeOTf', 'methyl triflate', 'Meerwein\'s salt'], level: 'danger', kind: 'toxic', title: 'Potent alkylating agent', why: 'Toxic and carcinogenic: destroy excess with aqueous ammonia.' },
-  { names: ['MeI', 'CH3I'], level: 'warning', kind: 'toxic', title: 'Iodomethane', why: 'Volatile alkylating agent, suspected carcinogen.' },
+  { names: ['MeI', 'CH3I'], level: 'note', kind: 'toxic', title: 'Iodomethane', why: 'Volatile alkylating agent, suspected carcinogen.' },
   { names: ['t-BuLi', 'tBuLi', 'tert-BuLi', 'AlMe3', 'Me3Al', 'AlEt3', 'Et2Zn', 'ZnEt2', 'Et3B'], level: 'danger', kind: 'reactive', title: 'Pyrophoric reagent', why: 'Ignites in air: transfer under inert gas by syringe or cannula, with a class D extinguisher at hand.' },
-  { names: ['n-BuLi', 'nBuLi', 'BuLi', 's-BuLi', 'sBuLi'], level: 'warning', kind: 'reactive', title: 'Organolithium', why: 'Reacts violently with water and can ignite: handle under inert gas.' },
-  { names: ['LiAlH4', 'LAH'], level: 'warning', kind: 'reactive', title: 'Lithium aluminium hydride', why: 'Reacts violently with water: quench slowly at 0 °C (Fieser work-up).' },
-  { names: ['H2O2', 'mCPBA', 'm-CPBA', 'TBHP', 't-BuOOH', 'peracetic acid', 'AcOOH', 'DMDO', 'Oxone'], level: 'warning', kind: 'energetic', title: 'Peroxide', why: 'Oxidants that can decompose violently, especially when concentrated or heated: quench before work-up and never distil to dryness.' },
-  { names: ['DEAD', 'DIAD'], level: 'warning', kind: 'energetic', title: 'Azodicarboxylate', why: 'Shock- and heat-sensitive when neat (DEAD especially): use as a solution.' },
+  { names: ['n-BuLi', 'nBuLi', 'BuLi', 's-BuLi', 'sBuLi'], level: 'note', kind: 'reactive', title: 'Organolithium', why: 'Reacts violently with water and can ignite: handle under inert gas.' },
+  { names: ['LiAlH4', 'LAH'], level: 'note', kind: 'reactive', title: 'Lithium aluminium hydride', why: 'Reacts violently with water: quench slowly at 0 °C (Fieser work-up).' },
+  { names: ['H2O2', 'mCPBA', 'm-CPBA', 'TBHP', 't-BuOOH', 'peracetic acid', 'AcOOH', 'DMDO', 'Oxone'], level: 'note', kind: 'energetic', title: 'Peroxide', why: 'Oxidants that can decompose violently, especially when concentrated or heated: quench before work-up and never distil to dryness.' },
+  { names: ['DEAD', 'DIAD'], level: 'note', kind: 'energetic', title: 'Azodicarboxylate', why: 'Shock- and heat-sensitive when neat (DEAD especially): use as a solution.' },
   { names: ['CrO3', 'PCC', 'PDC', 'K2Cr2O7', 'Na2Cr2O7', 'Jones reagent', 'Jones'], level: 'danger', kind: 'toxic', title: 'Chromium(VI)', why: 'Carcinogenic: Dess–Martin, Swern or TEMPO oxidations avoid it.' },
   { names: ['HMPA'], level: 'warning', kind: 'toxic', title: 'HMPA', why: 'Carcinogen: DMPU often works instead.' },
   { names: ['benzene', 'C6H6'], level: 'warning', kind: 'toxic', title: 'Benzene', why: 'Carcinogen: use toluene instead where possible.' },
   { names: ['CS2'], level: 'warning', kind: 'toxic', title: 'Carbon disulfide', why: 'Neurotoxic, and ignites around 90 °C.' },
   { names: ['MOMCl', 'MOM-Cl'], level: 'danger', kind: 'toxic', title: 'Chloromethyl methyl ether', why: 'Carcinogen: make it in situ or use another protecting group.' },
   { names: ['Hg(OAc)2', 'HgCl2', 'HgO', 'Hg(OTf)2'], level: 'danger', kind: 'toxic', title: 'Mercury salt', why: 'Highly toxic: collect all mercury waste separately.' },
-  { names: ['Bu3SnH', 'nBu3SnH', 'Bu3SnCl', 'Me3SnCl'], level: 'warning', kind: 'toxic', title: 'Organotin', why: 'Toxic and hard to remove from products; tris(trimethylsilyl)silane can often replace Bu3SnH.' },
+  { names: ['Bu3SnH', 'nBu3SnH', 'Bu3SnCl', 'Me3SnCl'], level: 'note', kind: 'toxic', title: 'Organotin', why: 'Toxic and hard to remove from products; tris(trimethylsilyl)silane can often replace Bu3SnH.' },
 ];
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -362,12 +362,65 @@ export function reagentHazards(text: string): Hazard[] {
   reagentPatterns ??= REAGENTS.map((entry) => ({ entry, re: new RegExp(`(?<![A-Za-z0-9-])(?:${entry.names.map(escape).join('|')})(?![a-z0-9(])`) }));
   const out: Hazard[] = [];
   for (const { entry, re } of reagentPatterns) if (re.test(text)) out.push({ kind: entry.kind, level: entry.level, title: entry.title, detail: entry.why, atoms: [] });
-  // Sodium hydride is common and safe enough alone; with DMF, DMAc or DMSO it has run away many times.
-  if (/(?<![A-Za-z])NaH(?![A-Za-z0-9])/.test(text) && /(?<![A-Za-z])(DMF|DMAc|DMA|DMSO)(?![A-Za-z])/.test(text)) {
-    out.push({ kind: 'reactive', level: 'warning', title: 'NaH with DMF, DMAc or DMSO', detail: 'This combination has caused runaway reactions and explosions on heating: keep it cold and small, or use another base or solvent.', atoms: [] });
-  }
   return out.sort((a, b) => RANK[a.level] - RANK[b.level]);
 }
+
+// ------------------------------------------------------- dangerous combinations
+
+/** What is present, drawn as a structure or written as text: the halves of the pairs below. */
+type Tag = 'NaH' | 'amide or sulfoxide solvent' | 'azide salt' | 'halogenated solvent';
+const TAG_TEXT: Record<Tag, RegExp> = {
+  'NaH': /(?<![A-Za-z])(NaH|sodium hydride)(?![A-Za-z0-9])/,
+  'amide or sulfoxide solvent': /(?<![A-Za-z])(DMF|DMAc|DMA|DMSO|NMP|dimethylformamide|dimethylacetamide|dimethyl sulfoxide)(?![A-Za-z])/i,
+  'azide salt': /(?<![A-Za-z])(NaN3|KN3|LiN3|HN3|Bu4NN3|TBAN3|n-Bu4NN3|sodium azide|hydrazoic acid)(?![A-Za-z0-9])/,
+  'halogenated solvent': /(?<![A-Za-z])(DCM|CH2Cl2|CHCl3|CDCl3|CD2Cl2|chloroform|dichloromethane|methylene chloride)(?![A-Za-z0-9])/i,
+};
+const TAG_SMILES: Record<Tag, string[]> = {
+  'NaH': ['[H-].[Na+]', '[NaH]'],
+  'amide or sulfoxide solvent': ['CN(C)C=O', 'CC(=O)N(C)C', 'CS(C)=O', 'CN1CCCC1=O'],
+  'azide salt': ['[N-]=[N+]=[N-]', 'N=[N+]=[N-]'],
+  'halogenated solvent': ['ClCCl', 'ClC(Cl)Cl'],
+};
+const PAIRS: { tags: [Tag, Tag]; level: HazardLevel; kind: HazardKind; title: string; detail: string }[] = [
+  {
+    tags: ['NaH', 'amide or sulfoxide solvent'], level: 'warning', kind: 'reactive', title: 'NaH with DMF, DMAc or DMSO',
+    detail: 'NaH decomposes these solvents exothermically, from well below their boiling points, and the combination has caused runaway reactions and explosions (Yang et al., Org. Process Res. Dev. 2019, 23, 2210). Keep it cold and small, or use another base or solvent (THF, MeCN, or Cs2CO3 or KOtBu).',
+  },
+  {
+    tags: ['azide salt', 'halogenated solvent'], level: 'danger', kind: 'energetic', title: 'Azide salt with DCM or chloroform',
+    detail: 'Azide ion substitutes dichloromethane and chloroform, giving diazidomethane and triazidomethane, which are extremely explosive, also in the work-up and waste (Conrow and Dean, Org. Process Res. Dev. 2008, 12, 1285). Use another solvent, and keep azide waste out of halogenated waste.',
+  },
+];
+
+let tagMols: { tag: Tag; mol: Molecule }[] | null = null;
+
+/** The tags present in a drawing's structures and in its text. */
+function tagsOf(mol: Molecule, text: string): Set<Tag> {
+  tagMols ??= (Object.entries(TAG_SMILES) as [Tag, string[]][]).flatMap(([tag, list]) => list.map((smi) => ({ tag, mol: parseSmiles(smi) })));
+  const found = new Set<Tag>();
+  for (const [tag, re] of Object.entries(TAG_TEXT) as [Tag, RegExp][]) if (re.test(text)) found.add(tag);
+  const pieces = [...mol.fragments(), ...compounds(mol).filter((ids) => ids.some((id) => mol.atom(id).charge !== 0))].map((ids) => part(mol, ids));
+  // Each structure, and the salt as a whole (NaH is two ions; an azide salt is the azide ion among them).
+  for (const m of pieces) {
+    for (const { tag, mol: ref } of tagMols) if (!found.has(tag) && !isomorphisms(ref, m).next().done) found.add(tag);
+  }
+  return found;
+}
+
+/**
+ * Everything to warn about in a drawing: its structures (abbreviations drawn
+ * out), the reagents written as text, and dangerous pairs from either, such
+ * as NaH drawn and DMF written below the arrow. One entry per hazard, worst first.
+ */
+export function screenHazards(mol: Molecule, text = ''): Hazard[] {
+  const tags = tagsOf(mol, text);
+  const pairs: Hazard[] = PAIRS.filter((p) => p.tags.every((t) => tags.has(t))).map((p) => ({ kind: p.kind, level: p.level, title: p.title, detail: p.detail, atoms: [] }));
+  const all = [...pairs, ...hazardsOf(mol), ...(text ? reagentHazards(text) : [])];
+  return all.filter((h, i) => all.findIndex((x) => x.title === h.title) === i).sort((a, b) => RANK[a.level] - RANK[b.level]);
+}
+
+/** Worth interrupting the user for: a danger or a warning, not a note. */
+export const alarming = (h: Hazard) => h.level !== 'note';
 
 /** One line for a hazard, for tool replies and copied text. */
 export const hazardLine = (h: Hazard) => `${h.title}. ${h.detail}`;
