@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { alignByMaps, analyze, hazards, hazardLine, HAZARD_DISCLAIMER, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
-import { parsePattern, smilesAtomMaps, type Molecule } from '@hexsketch/core';
+import { alignByMaps, analyze, mechanism, hazards, hazardLine, HAZARD_DISCLAIMER, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
+import { parsePattern, smilesAtomMaps, writeCdxml, type Molecule } from '@hexsketch/core';
 import type { SketchUpdate } from './sketch-store.ts';
 
 /**
@@ -39,7 +39,7 @@ export const CHEMISTRY = [
 
 /** Bullets every kind of chat is told. */
 const STRUCTURES = '- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.';
-const MECHANISM = '- Draw a mechanism one step per show_in_sketcher call, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.';
+const MECHANISM = '- Draw a mechanism in one show_in_sketcher call, with steps, so the whole of it is on one page: each step its species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), its curly arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]), and a note of a few words naming it. HexSketch draws the steps left to right, an arrow from each to the next with its name above. Show intermediates with their charges, and keep the same map numbers from step to step.';
 const ORIENTATION = '- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.';
 
 export const INSTRUCTIONS = [
@@ -68,7 +68,7 @@ export const textInstructions = (saves: boolean) => [
   '- Show every structure and reaction you discuss with render_structure: it returns the picture with its name, formula and any problems found (check them against what you meant, so draw first rather than calling validate_structure first), and a link that opens it in HexSketch at hexsketch.com, in the browser, where the user can edit it by drawing. Always give the user the link. Where you can show a web page beside the chat (a preview pane or a browser tool), open the link there as well, so the editor is open with the drawing as you talk. Use validate_structure for a SMILES you only give in text.',
   ...(saves ? ['- To save a drawing, give render_structure save_to, a path whose extension sets the format: .png or .svg for a picture, .pdf for a document, .cdxml for ChemDraw, .mol for other chemistry software.'] : []),
   ...CHEMISTRY,
-  '- Draw a mechanism one render_structure call per step, with curly arrows: the species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), and arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]). Show intermediates with their charges, name the step in a short note, and keep the same map numbers from step to step.',
+  '- Draw a mechanism in one render_structure call, with steps, so the whole of it is on one page: each step its species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), its curly arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]), and a note of a few words naming it. HexSketch draws the steps left to right, an arrow from each to the next with its name above. Show intermediates with their charges, and keep the same map numbers from step to step.',
   '- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it, so the same compound is drawn identically.',
   '- Text that starts "Structure from HexSketch" (from Edit › Copy for AI in HexSketch), or a hexsketch.com link, is a structure the user drew: read the SMILES from it, or pass the link to these tools.',
 ].join('\n');
@@ -84,7 +84,7 @@ export function renderDescriptions(o: { rasterize: boolean; saves: boolean }): {
    */
   const renderForEditor = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES and a link that opens it in HexSketch for editing. Show the user the image and the link.${saves} In a chat that shows the HexSketch editor, use open_sketcher and show_in_sketcher instead, unless the user asks for an image or a file.`;
   // Where it doesn't, it is the drawing tool, so it carries the essentials: some agents never show a server's instructions to the model.
-  const renderForText = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES, formula and a link that opens it in HexSketch at hexsketch.com, where the user can edit it by drawing. Give structures as SMILES, not names. Check the name and formula returned against what you meant, and always give the user the link; where you can show a web page beside the chat (a preview pane, a browser tool), open the link there too. Draw every reaction as a scheme: reagents above the arrow, solvent, temperature, time and yield below; a whole synthesis or retrosynthesis as one scheme (then).${saves}`;
+  const renderForText = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES, formula and a link that opens it in HexSketch at hexsketch.com, where the user can edit it by drawing. Give structures as SMILES, not names. Check the name and formula returned against what you meant, and always give the user the link; where you can show a web page beside the chat (a preview pane, a browser tool), open the link there too. Draw every reaction as a scheme: reagents above the arrow, solvent, temperature, time and yield below; a whole synthesis or retrosynthesis as one scheme (then); a mechanism as steps, all on one page.${saves}`;
   return { forEditor: renderForEditor, forText: renderForText };
 }
 
@@ -119,6 +119,19 @@ export const arrows = () => z.array(z.object({
   colour: z.enum(COLOUR_NAMES).optional().describe('Arrow colour, as a highlight colour name; default black.'),
 })).max(12).describe('Curly (electron-pushing) arrows for a mechanism step, drawn on the structure or reaction given in the same call. Give it as SMILES with atom-map numbers on the atoms the arrows touch, e.g. "[OH-:1].[CH3:2][Br:3]" with arrows [{from:[1],to:[1,2]},{from:[2,3],to:[3]}]. A mapped atom written as just its element ([C:1]) keeps its usual hydrogens; separate species are drawn close together, the attacking one beside the atom it attacks. HexSketch places each arrow clear of the drawing.');
 
+/**
+ * render_structure's mechanism: its steps, drawn on one page. The arrows are
+ * given as for one structure's arrows, which says how, and are checked when
+ * drawn (mechanismOf): spelt out here too, the tool would pass the 5,000
+ * bytes past which Codex drops every description from it.
+ */
+export const mechanismSteps = () => z.array(z.object({
+  structure: z.string(),
+  arrows: z.array(z.any()).optional(),
+  note: z.string().optional(),
+})).min(2).max(MAX_STEPS).optional()
+  .describe('A mechanism on one page: steps, each its species as SMILES with atom-map numbers, its curly arrows (given as for arrows) and a few words naming it.');
+
 export const disconnect = () => z.array(z.array(z.number().int().min(0)).length(2)).max(6).describe('Retrosynthesis: bonds of the target to mark as disconnections, by their atoms\' map numbers in the SMILES. [[1, 2]] draws a wavy line across the bond 1–2. With a reaction, the marks go on its first stage, the target: give the map numbers there only.');
 
 export const style = z.enum(['hexsketch', 'acs']).optional().describe('Drawing style: hexsketch (default) or acs (ACS 1996 journal style).');
@@ -151,6 +164,13 @@ export async function given(structureText: string | undefined, reactionScheme: S
   if (cuts?.length) s.objects.push(...disconnectionMarks(s.mol, s.style, cuts));
   return s;
 }
+
+/**
+ * A drawing as the editor takes it: CDXML with the coordinates as drawn. The
+ * editor puts it on its sheet (and keeps a step's atoms where the step before
+ * had them), so it is not moved onto a page here as files and links are.
+ */
+export const editorCdxml = (g: string | Structure): string => (typeof g === 'string' ? g : writeCdxml(g.mol, g.style, g.objects, { groups: g.groups }));
 
 /**
  * A label fragment that starts at a mapped atom ("[C:1](=O)N") means that
@@ -240,7 +260,7 @@ export const prepare = async (a: Show, before: Molecule | undefined, current: st
   // A scheme reaches the editor as CDXML, arrows and text included, the same way round as what it replaces.
   if (a.disconnect?.length && !a.reaction && !a.structure) throw new Error('Disconnections are marked on the structure given in the same call: give the target again as SMILES with atom-map numbers, e.g. "c1ccccc1[C:1](=O)[NH:2]C"');
   const g = a.reaction || a.structure ? await given(a.structure, a.reaction, { abbreviate: true, ...(before ? { like: before } : {}), ...(a.arrows ? { arrows: curlyArrows(a.arrows)! } : {}), ...(a.disconnect ? { disconnect: a.disconnect } : {}) }) : undefined;
-  const s = g === undefined ? undefined : typeof g === 'string' ? g : await convert(g, 'cdxml');
+  const s = g === undefined ? undefined : editorCdxml(g);
   if (!s && !a.highlight?.length && !a.labels?.length && !a.note) throw new Error('Give a structure, a reaction, a highlight, labels or a note to show.');
   const drawing = s ?? current;
   const mol: Molecule | null = drawing ? (await readStructure(drawing, { abbreviate: true })).mol : null;
@@ -291,6 +311,7 @@ export const prepare = async (a: Show, before: Molecule | undefined, current: st
  * and what to tell the model. Any mistake throws before any is shown.
  */
 export const prepareSteps = async (steps: Show[], before: Molecule | undefined, current: string): Promise<{ updates: Omit<SketchUpdate, 'version'>[]; report: Record<string, unknown> }> => {
+  if (isMechanism(steps)) return mechanismPage(steps);
   // Every step is checked before any is shown, so a mistake in step 3 leaves the editor as it was.
   const prepared: Awaited<ReturnType<typeof prepare>>[] = [];
   let like = before;
@@ -316,7 +337,51 @@ export const prepareSteps = async (steps: Show[], before: Molecule | undefined, 
   };
   return { updates, report };
 };
-export const stepsField = z.array(z.object(showFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, a sequence of up to ${MAX_STEPS} steps the user steps through with Back and Next, starting at the first: a mechanism (each step its species with atom-map numbers, its curly arrows and a one-line note naming it, keeping the same map numbers throughout) or a before-and-after. Not for a synthesis or retrosynthesis: draw it as one reaction (with then), so all of it is on the page at once. Each step is drawn the same way round as the one before.`);
+/** Steps that are a mechanism: each a structure with its curly arrows and a note, and nothing else to show step by step. */
+const isMechanism = (steps: Show[]) => steps.every((x) => x.structure && !x.reaction && !x.disconnect?.length && !x.highlight?.length && !x.labels?.length)
+  && steps.some((x) => x.arrows?.length);
+
+/** In a mechanism every species is drawn, so each step should have the atoms and charge of the one before. */
+const MECHANISM_BALANCE = 'In a mechanism each step should have the same atoms and total charge as the one before. Unless a species joins or leaves on purpose (a proton from the solvent, say), check the step and show it again.';
+
+/** The steps of a mechanism, checked one by one and drawn together on one page. */
+export async function mechanismOf(steps: { structure?: string; arrows?: Show['arrows']; note?: string }[], opts: { abbreviate?: boolean; style?: 'hexsketch' | 'acs' } = {}): Promise<{ drawing: Structure; report: Record<string, unknown> }> {
+  const drawing = await mechanism(steps.map((x, i) => {
+    if (!x.structure) throw new Error(`Step ${i + 1}: give its species as SMILES, with atom-map numbers on the atoms the arrows touch`);
+    const ref = (v: unknown) => Array.isArray(v) && (v.length === 1 || v.length === 2) && v.every((n) => Number.isInteger(n) && n >= 0);
+    for (const a of (x.arrows ?? []) as unknown[]) {
+      const o = a as { from?: unknown; to?: unknown; electrons?: unknown } | null;
+      if (!o || !ref(o.from) || !ref(o.to) || (o.electrons !== undefined && o.electrons !== 1 && o.electrons !== 2)) {
+        throw new Error(`Step ${i + 1}: each arrow is {from, to, electrons?}: from [a] (a lone pair on atom a) or [a, b] (the bond a–b), to [c] or [c, d], by atom-map number, e.g. {"from": [1], "to": [1, 2]}`);
+      }
+    }
+    return { structure: x.structure, ...(x.arrows ? { arrows: curlyArrows(x.arrows)! } : {}), ...(x.note ? { note: x.note } : {}) };
+  }), { ...opts, maxWidth: SCHEME_WIDTH });
+  const each = await Promise.all(steps.map((x) => readStructure(x.structure!)));
+  const unbalanced: string[] = [];
+  for (let i = 1; i < each.length; i++) {
+    const x = imbalance(each[i - 1]!.mol, each[i]!.mol);
+    if (x) unbalanced.push(`Step ${i} → ${i + 1}: ${describeImbalance(x)}`);
+  }
+  const report = {
+    steps: await Promise.all(steps.map(async (x, i) => ({ step: i + 1, drawn: await checkOf(x.structure!) }))),
+    ...(unbalanced.length ? { balance: unbalanced, balance_note: MECHANISM_BALANCE } : {}),
+    ...(await safetyOf(drawing)),
+  };
+  return { drawing, report };
+}
+
+/** A mechanism as one update: every step on one page, an arrow from each to the next with its name above, and one note. */
+async function mechanismPage(steps: Show[]): Promise<{ updates: Omit<SketchUpdate, 'version'>[]; report: Record<string, unknown> }> {
+  const { drawing, report } = await mechanismOf(steps, { abbreviate: true });
+  const named = steps.map((x, i) => (x.note?.trim() ? `${i + 1}. ${x.note.trim().replace(/^\d+[.)]\s*/, '')}` : '')).filter(Boolean);
+  return {
+    updates: [{ structure: editorCdxml(drawing), ...(named.length ? { note: named.join('\n') } : {}) }],
+    report: { ...report, next: `The user sees the whole mechanism, ${steps.length} steps, on one page in the editor. In the chat, say in a line or two what happens overall; don't narrate each step.` },
+  };
+}
+
+export const stepsField = z.array(z.object(showFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, up to ${MAX_STEPS} steps. A mechanism: each step its species with atom-map numbers, its curly arrows and a note of a few words naming it, keeping the same map numbers throughout; they are drawn together on one page, an arrow from each to the next with its name above. Steps with highlights or labels (a before-and-after) are shown one at a time, with Back and Next. Not for a synthesis or retrosynthesis: draw it as one reaction (with then), so all of it is on the page at once. Each step is drawn the same way round as the one before.`);
 
 /** What the tools do, as the model reads it: the same wherever HexSketch is reached. */
 export const DESCRIPTIONS = {
@@ -326,7 +391,7 @@ export const DESCRIPTIONS = {
   convert_structure: 'Convert a structure to SMILES (with stereochemistry), a molfile (V2000), CDXML (ChemDraw) or a HexSketch link.',
   compare_structures: 'Are two structures the same compound, and the same stereoisomer? The inputs may be in different formats (a SMILES against a drawing, for instance).',
   read_sketcher: 'What the user has drawn in the open HexSketch editor: name, SMILES (with stereochemistry), formula, masses and a link. Call it whenever the user refers to their drawing ("this", "what I drew", "my structure").',
-  show_in_sketcher: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, give steps instead: the user steps through them with Back and Next. Draw a synthesis or retrosynthesis as one reaction instead (then adds the forward route below the analysis), so the whole route is on one page. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each highlight is one thing — one atom, one functional group or one monomer (an amino acid residue) — marked at one place: where the fragment fits best, or the one you pick with occurrence or an atom-map number; give the group itself, not its surroundings, and two highlights for two of a kind. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
+  show_in_sketcher: `Show something in the HexSketch editor that is already open (after open_sketcher), instead of describing it in the chat or showing an image: replace the structure, highlight parts of it, pin short labels to atoms, and sum it up in a note beside it. Use it every time you explain or change a structure while the editor is open, one call per point: highlight and label the groups you are describing (an acid's pKa, a Michael acceptor, a stereocentre's configuration, the most lipophilic part), draw a reaction the user asks about (reaction: starting materials, arrow with reagents above and solvent and conditions below, products), a mechanism with curly arrows (structure as SMILES with atom-map numbers, plus arrows), or a retrosynthetic disconnection (disconnect). For a mechanism, give steps instead: they are drawn together on one page, an arrow from each to the next. Draw a synthesis or retrosynthesis as one reaction instead (then adds the forward route below the analysis), so the whole route is on one page. Highlights are SMILES fragments matched in the drawing, e.g. "C(=O)O" for a carboxyl group or "c1ccccc1" for a benzene ring: hydrogens are not compared, bond orders are except inside aromatic rings, and uppercase atoms only match non-aromatic ones (so an aryl ester is "C(=O)Oc", not "C(=O)OC"); up to ${HIGHLIGHTS.length}, coloured ${HIGHLIGHTS.map((h) => h.name).join(', ')} in order, so you can refer to them by colour. Each highlight is one thing — one atom, one functional group or one monomer (an amino acid residue) — marked at one place: where the fragment fits best, or the one you pick with occurrence or an atom-map number; give the group itself, not its surroundings, and two highlights for two of a kind. Labels are small text beside one atom, clear of the drawing, in the colour of the highlight with the same fragment (or the colour you give): the label points at the first atom of its fragment, so start the fragment there ("OC(=O)" labels an acid's OH, "O=C" a carbonyl oxygen, "C(C)C(=O)O" the carbon next to the acid). Each call replaces your earlier highlights (if it gives highlight) and labels (if it gives labels); the user can undo anything you change.`,
 } as const;
 
 /** What show_in_sketcher tells the model once the editor shows its update. */

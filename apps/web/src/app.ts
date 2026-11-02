@@ -106,6 +106,8 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     { id: 'dashed', icon: 'dashed', title: 'Dashed Bond', tool: { kind: 'bond', bond: 'dashed' } },
     { id: 'eraser', icon: 'eraser', title: 'Eraser', tool: { kind: 'eraser' } },
     { id: 'text', icon: 'text', title: 'Text (t)', tool: { kind: 'text' } },
+    { id: 'chargePlus', icon: 'chargePlus', title: 'Positive Charge (click an atom; or hover it and press +)', tool: { kind: 'charge', delta: 1 } },
+    { id: 'chargeMinus', icon: 'chargeMinus', title: 'Negative Charge (click an atom; or hover it and press −)', tool: { kind: 'charge', delta: -1 } },
     FLYOUTS[0]!, FLYOUTS[1]!,
     'gap',
     { id: 'benzene', icon: 'benzene', title: 'Benzene (j)', tool: { kind: 'ring', size: 6, aromatic: true } },
@@ -372,7 +374,10 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     history.replaceState(null, '', location.pathname + location.search);
     if (got.kind === 'drawing') {
       if (got.page) editor.doc.page = got.page;
+      // A drawing made elsewhere (an AI's scheme or mechanism) may lie partly off the sheet: then it goes in the middle.
+      if (!onSheet(got.mol, got.objects, got.style)) placeOnPage(got.mol, got.objects, got.style);
       editor.doc.replace(got.mol, got.objects, got.groups, got.style);
+      revealDrawing();
     } else {
       placeOnPage(got.mol, []);
       editor.doc.replace(got.mol);
@@ -396,11 +401,11 @@ export function mountApp(opts: AppOptions = {}): AppApi {
    * of the window can be off the sheet. Wedges keep the stereo, so recorded
    * chirality is dropped.
    */
-  function placeOnPage(mol: Molecule, objects: readonly DocObject[]) {
-    const pts = [...mol.atoms(), ...objects.flatMap(objectPoints)];
-    if (!pts.length) return;
-    const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
-    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  function placeOnPage(mol: Molecule, objects: readonly DocObject[], style: DrawingStyle = editor.doc.style) {
+    if (!mol.atomCount && !objects.length) return;
+    // By what is drawn (atom labels, text, curly arrows), not just the atoms' centres.
+    const { x0, x1, y0, y1 } = depict(mol, style, objects).bounds;
+    if (!Number.isFinite(x0)) return;
     // A drawing bigger than the sheet gets more pages, so none of it hangs off an edge.
     const page = editor.doc.page, one = documentSize({ ...page, across: 1, down: 1 }), margin = 4 * editor.L;
     const across = Math.max(page.across, Math.min(20, Math.ceil((x1 - x0 + margin) / one.w)));
@@ -414,6 +419,13 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     const dy = centre(v.y0, v.y1, (y1 - y0) / 2, doc.h) - (y0 + y1) / 2;
     for (const a of mol.atoms()) { a.x += dx; a.y += dy; a.chirality = null; }
     for (const o of objects) for (const q of objectPoints(o)) { q.x += dx; q.y += dy; }
+  }
+
+  /** Whether all of a drawing (as drawn: labels and text included) lies on the sheet, clear of its edges. */
+  function onSheet(mol: Molecule, objects: readonly DocObject[], style: DrawingStyle): boolean {
+    if (!mol.atomCount && !objects.length) return true;
+    const b = depict(mol, style, objects).bounds, { w, h } = documentSize(editor.doc.page);
+    return !Number.isFinite(b.x0) || (b.x0 >= 0 && b.y0 >= 0 && b.x1 <= w && b.y1 <= h);
   }
 
   /** Whether the whole drawing shows in the window. */
@@ -640,7 +652,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     const t = editor.tool;
     const name = t.kind === 'bond' ? `${t.bond} bond` : t.kind === 'ring' ? `${t.size}-ring${t.aromatic ? ' (aromatic)' : ''}`
       : t.kind === 'arrow' ? (t.arc !== undefined ? `${Math.abs(t.arc)}° arc ${t.arc >= 0 ? '(anticlockwise)' : '(clockwise)'}` : `${t.arrow} arrow`)
-      : t.kind === 'shape' ? `${t.shape}` : t.kind;
+      : t.kind === 'shape' ? `${t.shape}` : t.kind === 'charge' ? `${t.delta > 0 ? 'positive' : 'negative'} charge (click an atom)` : t.kind;
     const h = editor.hover;
     const over = h.kind === 'atom' ? ' · over atom: letters set labels, digits sprout, +/− charge'
       : h.kind === 'bond' ? ' · over bond: 1/2/3 order, l/c/r position, w/h/b/y style, digits fuse rings' : '';
@@ -1099,7 +1111,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     flash,
     /** Replace the drawing (when editing an existing structure from a document). */
     load(mol: Molecule, style?: DrawingStyle, objects: DocObject[] = [], opts: { centre?: boolean } = {}) {
-      if (opts.centre) placeOnPage(mol, objects);
+      if (opts.centre) placeOnPage(mol, objects, style);
       editor.doc.replace(mol, objects, [], style);
       if (opts.centre) revealDrawing();
     },

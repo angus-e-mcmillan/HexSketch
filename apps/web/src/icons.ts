@@ -15,6 +15,8 @@ export const ICONS: Record<string, string> = {
   chain: svg('<path d="M3 15l4.5-6 4.5 6 4.5-6 4.5 6"/>'),
   eraser: svg('<path d="M14.5 4.5l5 5-9 9h-5l-2.5-2.5z"/><path d="M9.5 9.5l5 5"/><path d="M11 20h9"/>'),
   text: `<svg viewBox="0 0 24 24"><text x="12" y="17.5" text-anchor="middle" font-family="Helvetica, Arial" font-weight="700" font-size="15" fill="currentColor">A</text></svg>`,
+  chargePlus: svg('<circle cx="12" cy="12" r="7.5"/><path d="M12 8.2v7.6M8.2 12h7.6"/>'),
+  chargeMinus: svg('<circle cx="12" cy="12" r="7.5"/><path d="M8.2 12h7.6"/>'),
   ring3: svg('<path d="M12 5l7 12H5z"/>'),
   ring4: svg('<rect x="5.5" y="5.5" width="13" height="13"/>'),
   ring5: svg('<path d="M12 4l7.6 5.5-2.9 8.9H7.3L4.4 9.5z"/>'),

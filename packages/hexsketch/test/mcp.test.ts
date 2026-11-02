@@ -347,7 +347,7 @@ test('a mechanism step: curly arrows reach the editor with the structure, and im
   assert.match(textOf(await call('render_structure', { ...step, format: 'svg' })), /<svg/);
 });
 
-test('a mechanism in one call: steps the editor steps through, checked before any is shown', async () => {
+test('a mechanism in one call: every step on one page, checked before any is shown', async () => {
   const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
   const id = ((await call('open_sketcher', {})).structuredContent as { sketch: string }).sketch;
   const steps = [
@@ -363,17 +363,51 @@ test('a mechanism in one call: steps the editor steps through, checked before an
 
   const shown = JSON.parse(textOf(await call('show_in_sketcher', { steps })));
   assert.equal(shown.steps.length, 3);
-  assert.match(shown.next, /step 1 of 3/);
-  const { updates } = (await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: { step?: { index: number; count: number }; note?: string; structure?: string }[] };
-  assert.deepEqual(updates.map((u) => [u.step?.index, u.step?.count, u.note]), [[0, 3, 'Addition'], [1, 3, 'Elimination'], [2, 3, 'Products']]);
-  // Each step keeps its atoms where the step before had them: the carbonyl carbon does not move.
+  assert.match(shown.next, /one page/);
+  // One drawing, one note: no Back and Next.
+  const { updates } = (await call('sketch_updates', { sketch: id, since: 0 })).structuredContent as { updates: { step?: unknown; note?: string; structure?: string }[] };
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0]!.step, undefined);
+  assert.equal(updates[0]!.note, '1. Addition\n2. Elimination\n3. Products');
   const { readStructure } = await import('@hexsketch/agent');
-  const carbon = async (u: { structure?: string }) => {
-    const m = (await readStructure(u.structure!)).mol;
-    return [...m.atoms()].find((a) => a.element === 'C' && m.neighbours(a.id).filter((n) => m.atom(n).element === 'O').length >= 2)!;
-  };
-  const [c1, c2] = [await carbon(updates[0]!), await carbon(updates[1]!)];
-  assert.ok(Math.hypot(c1.x - c2.x, c1.y - c2.y) < 1, `the carbon moved by ${Math.hypot(c1.x - c2.x, c1.y - c2.y).toFixed(1)}`);
+  const page = await readStructure(updates[0]!.structure!);
+  // Every species of every step, a reaction arrow between steps, the curly arrows, and each step's name.
+  assert.equal(page.mol.fragments().length, 2 + 1 + 2);
+  const arrows = page.objects.filter((o) => o.kind === 'arrow') as { curve?: unknown }[];
+  assert.equal(arrows.filter((a) => !a.curve).length, 2);
+  assert.equal(arrows.filter((a) => a.curve).length, 4);
+  const texts = page.objects.filter((o) => o.kind === 'text').map((o) => (o as { text: string }).text);
+  assert.deepEqual(texts, ['Addition', 'Elimination', 'Products']);
+  // Left to right: each step starts right of the one before.
+  const xs = page.mol.fragments().map((f) => Math.min(...f.map((a) => page.mol.atom(a).x)));
+  assert.ok(xs[2]! > Math.max(xs[0]!, xs[1]!) && xs[3]! > xs[2]!);
+
+  // Steps that highlight (a before-and-after) are still shown one at a time.
+  const id2 = ((await call('open_sketcher', {})).structuredContent as { sketch: string }).sketch;
+  await call('show_in_sketcher', { sketch: id2, steps: [{ structure: 'CCO', highlight: ['O'] }, { structure: 'CC=O', highlight: ['C=O'] }] });
+  const two = ((await call('sketch_updates', { sketch: id2, since: 0 })).structuredContent as { updates: { step?: { index: number } }[] }).updates;
+  assert.deepEqual(two.map((u) => u.step?.index), [0, 1]);
+});
+
+test('render_structure draws a mechanism on one page, and moves it onto the page for its link', async () => {
+  const { call } = await connect({});
+  const steps = [
+    { structure: '[OH-:1].[CH3:2][Br:3]', arrows: [{ from: [1], to: [1, 2] }, { from: [2, 3], to: [3] }], note: 'SN2' },
+    { structure: '[OH:1][CH3:2].[Br-:3]', note: 'Products' },
+  ];
+  const r = await call('render_structure', { steps, format: 'cdxml' });
+  assert.equal(r.isError, undefined, textOf(r));
+  const info = JSON.parse(textOf(r, 1));
+  assert.equal(info.steps.length, 2);
+  const { readStructure } = await import('@hexsketch/agent');
+  const { depict } = await import('@hexsketch/render');
+  for (const drawing of [textOf(r, 0), info.link as string]) {
+    const s = await readStructure(drawing);
+    const b = depict(s.mol, s.style, s.objects).bounds;
+    assert.ok(b.x0 >= 0 && b.y0 >= 0, `on the page: ${JSON.stringify(b)}`);
+  }
+  assert.match(textOf(await call('render_structure', { steps: [{ ...steps[0], arrows: [{ from: 1, to: [1, 2] }] }, steps[1]] })), /Step 1: each arrow is/);
+  assert.match(textOf(await call('render_structure', { steps, structure: 'C' })), /not both/);
 });
 
 test('retrosynthesis and balance: disconnections drawn, a step from nowhere reported', async () => {

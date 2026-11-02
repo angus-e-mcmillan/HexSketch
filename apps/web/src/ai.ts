@@ -1,6 +1,7 @@
 import './ai.css';
 import { documentSize, objectPoints, type DocObject, type DrawingStyle, type Molecule, type ObjectGroup } from '@hexsketch/core';
 import { highlighted, placeLabels, readStructure } from '@hexsketch/agent';
+import { depict } from '@hexsketch/render';
 import type { AppApi } from './app.ts';
 
 /**
@@ -191,9 +192,11 @@ export function createAiLayer(ui: AppApi): AiLayer {
   let stepShift: { x: number; y: number } | null = null;
 
   /** Whether a drawing moved by `d` lies on the sheet, clear of its edges: a later step drawn bigger than the first may not. */
-  function fitsSheet(mol: Molecule, objects: readonly DocObject[], d: { x: number; y: number }): boolean {
+  function fitsSheet(mol: Molecule, objects: readonly DocObject[], style: DrawingStyle, d: { x: number; y: number }): boolean {
     const { w, h } = documentSize(ui.editor.doc.page), m = ui.editor.L;
-    return [...mol.atoms(), ...objects.flatMap(objectPoints)].every((p) => p.x + d.x > m && p.x + d.x < w - m && p.y + d.y > m && p.y + d.y < h - m);
+    // By what is drawn (labels, text, curly arrows), not just the atoms' centres.
+    const b = depict(mol, style, objects).bounds;
+    return !Number.isFinite(b.x0) || (b.x0 + d.x > m && b.x1 + d.x < w - m && b.y0 + d.y > m && b.y1 + d.y < h - m);
   }
 
   async function openStructure(input: string, step?: AiUpdate['step']): Promise<boolean> {
@@ -202,7 +205,7 @@ export function createAiLayer(ui: AppApi): AiLayer {
       const s = await readStructure(input, { abbreviate: true });
       const first = s.mol.atoms().next().value as { x: number; y: number } | undefined;
       const was = first ? { x: first.x, y: first.y } : null;
-      if (step && step.index > 0 && stepShift && fitsSheet(s.mol, s.objects, stepShift)) {
+      if (step && step.index > 0 && stepShift && fitsSheet(s.mol, s.objects, s.style, stepShift)) {
         for (const a of s.mol.atoms()) { a.x += stepShift.x; a.y += stepShift.y; }
         for (const o of s.objects) for (const q of objectPoints(o)) { q.x += stepShift.x; q.y += stepShift.y; }
         ui.load(s.mol, s.style, s.objects);

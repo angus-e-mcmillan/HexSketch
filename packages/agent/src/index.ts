@@ -1,5 +1,5 @@
 import {
-  altTextFor, assignWedges, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArrow, makeCaption, parseSmiles, pngWithPayload,
+  altTextFor, assignWedges, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
@@ -16,6 +16,7 @@ import { abbreviateGroups } from './abbreviate.ts';
 export { abbreviateGroups, PROTECTING_GROUPS } from './abbreviate.ts';
 export { highlighted, highlightPlaces, labelPlaces, placeLabels, type AtomLabel, type Highlight, type PlacedLabels } from './labels.ts';
 export { alignByMaps, arrangeForArrows, electronArrows, type ElectronArrow } from './arrows.ts';
+import { alignByMaps, arrangeForArrows, electronArrows, type ElectronArrow } from './arrows.ts';
 export { describeImbalance, disconnectionMarks, imbalance, type Imbalance } from './retro.ts';
 import { describeImbalance, imbalance } from './retro.ts';
 
@@ -407,6 +408,112 @@ export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; s
   return out;
 }
 
+// ---------------------------------------------------------------- mechanisms
+
+/** One step of a mechanism: its species, the curly arrows on them, and a few words naming the step. */
+export interface MechanismStep {
+  /** SMILES of every species in the step, with atom-map numbers on the atoms the arrows touch. */
+  structure: string;
+  arrows?: ElectronArrow[];
+  /** Names the step ("Nucleophilic attack"): written above the arrow to the next step. */
+  note?: string;
+}
+
+/**
+ * A whole mechanism as one drawing, as a textbook prints it: each step's
+ * species with its curly arrows, left to right, a reaction arrow from each
+ * step to the next with the step's name above it, wrapping onto new rows at
+ * `maxWidth` points. Each step is drawn where the one before left its atoms
+ * (by map number), so the chemist can follow them.
+ */
+export async function mechanism(steps: readonly MechanismStep[], opts: ReadOptions & { maxWidth?: number } = {}): Promise<Structure> {
+  if (steps.length < 2) throw new Error('A mechanism needs at least two steps');
+  const drawn: Structure[] = [];
+  let prev: Molecule | undefined;
+  for (const [i, step] of steps.entries()) {
+    try {
+      if (detectFormat(step.structure) !== 'smiles') throw new Error('give each step as SMILES, with atom-map numbers on the atoms the arrows touch');
+      const s = await readStructure(step.structure, { ...opts, format: 'smiles' });
+      const placed = prev ? alignByMaps(s.mol, prev, s.style.bondLength) : false;
+      if (prev && !placed) orientLike(s, prev);
+      if (step.arrows?.length) {
+        if (!placed) arrangeForArrows(s.mol, step.arrows, s.style.bondLength);
+        s.objects.push(...electronArrows(s.mol, s.objects, s.style, step.arrows));
+      }
+      drawn.push(s);
+      prev = s.mol;
+    } catch (err) { throw new Error(`Step ${i + 1}: ${(err as Error).message}`); }
+  }
+  const style = drawn[0]!.style, L = style.bondLength, size = style.captionSize, line = size * 1.25;
+  const mol = new Molecule();
+  const objects: DocObject[] = [];
+  // Each step's extent as drawn: labels and curly arrows included.
+  const blocks = drawn.map((s) => ({ s, b: depict(s.mol, style, s.objects).bounds }));
+  const words = (t?: string) => (t ?? '').trim().replace(/^\d+[.)]\s*/, '');
+  const MIN_ARROW = 2.5 * L, MAX_ARROW = 6 * L, charW = size * 0.55;
+  /** A step's name in lines that fit an arrow of a usual length. */
+  const wrapped = (t: string) => {
+    const out: string[] = [];
+    for (const w of t.split(/\s+/)) {
+      const joined = out.length ? `${out.at(-1)} ${w}` : w;
+      if (out.length && joined.length * charW <= MAX_ARROW - 1.2 * L) out[out.length - 1] = joined; else out.push(w);
+    }
+    return out;
+  };
+  const arrowsBetween = drawn.slice(1).map((_, i) => {
+    const text = wrapped(words(steps[i]!.note));
+    const len = Math.max(MIN_ARROW, Math.max(0, ...text.map((l) => l.length * charW)) + 1.2 * L);
+    return { text, len, w: len + 1.2 * L, above: text.length * line + size * 0.7 };
+  });
+  const maxWidth = opts.maxWidth ?? 520;
+  const rows: number[][] = [[]];
+  let width = 0;
+  blocks.forEach((k, i) => {
+    const need = (i ? arrowsBetween[i - 1]!.w : 0) + (k.b.x1 - k.b.x0);
+    if (i && width + need > maxWidth) { rows.push([]); width = 0; }
+    rows.at(-1)!.push(i);
+    width += need;
+  });
+  let y = 0;
+  for (const [r, row] of rows.entries()) {
+    const up = Math.max(...row.map((i) => Math.max(blocks[i]!.b.y1 - blocks[i]!.b.y0, 0) / 2), ...row.map((i) => (i ? arrowsBetween[i - 1]!.above : 0)));
+    const down = Math.max(...row.map((i) => (blocks[i]!.b.y1 - blocks[i]!.b.y0) / 2));
+    if (r > 0) y += up;
+    let x = 0;
+    for (const i of row) {
+      if (i > 0) {
+        const a = arrowsBetween[i - 1]!;
+        const tail = { x: x + 0.6 * L, y }, head = { x: x + 0.6 * L + a.len, y };
+        const arrow = makeArrow(tail, head, 'reaction');
+        objects.push(arrow);
+        const tip = (arrow.headSize / 100) * style.lineWidth;
+        if (a.text.length) {
+          const t = a.text.join('\n');
+          objects.push(makeCaption((tail.x + head.x - tip) / 2, y - size * 0.7 - (a.text.length - 1) * line, t, [{ text: t, script: 'formula' }], 'center'));
+        }
+        x = head.x + 0.6 * L;
+      }
+      // The step's species and arrows, its left edge at x and centred on the row.
+      const { s, b } = blocks[i]!;
+      const dx = x - b.x0, dy = y - (b.y0 + b.y1) / 2;
+      const ids = new Map<AtomId, AtomId>();
+      for (const at of s.mol.atoms()) ids.set(at.id, mol.addAtom({ ...at, x: at.x + dx, y: at.y + dy }).id);
+      for (const bd of s.mol.bonds()) mol.addBond({ ...bd, begin: ids.get(bd.begin)!, end: ids.get(bd.end)! });
+      for (const o of cloneObjects(s.objects)) { for (const q of objectPoints(o)) { q.x += dx; q.y += dy; } objects.push(o); }
+      x += b.x1 - b.x0;
+    }
+    y += down + 2 * L;
+  }
+  // The last step's name, if it has one, goes under its species.
+  const last = words(steps.at(-1)!.note);
+  if (last) {
+    const atoms = [...mol.atoms()].slice(-blocks.at(-1)!.s.mol.atomCount);
+    const xs = atoms.map((a) => a.x), ys = atoms.map((a) => a.y);
+    objects.push(makeCaption((Math.min(...xs) + Math.max(...xs)) / 2, Math.max(...ys) + 0.9 * L + size, last, [{ text: last, script: 'formula' }], 'center'));
+  }
+  return { mol, objects, groups: [], style, format: 'smiles' };
+}
+
 /** The structure with abbreviations (Ph, OMe, Boc...) drawn out, for SMILES, names and comparisons. */
 const expanded = (s: Structure): Molecule => drawnOut(s.mol, s.style);
 
@@ -478,7 +585,7 @@ export async function render(input: string | Structure, opts: RenderOptions = {}
   const s = await readStructure(input, opts);
   const to = opts.to ?? 'svg';
   const out = (data: string | Uint8Array, width = 0, height = 0): Rendered => ({ format: to, mediaType: MEDIA[to], data, width, height });
-  if (to === 'cdxml') return out(writeCdxml(s.mol, s.style, s.objects, { groups: s.groups }));
+  if (to === 'cdxml') { const p = onPage(s); return out(writeCdxml(p.mol, p.style, p.objects, { groups: p.groups })); }
   if (to === 'mol') return out(writeMolfile(s.mol, s.style.bondLength, 'HexSketch structure'));
   if (!s.mol.atomCount && !s.objects.length) throw new Error('Nothing to draw');
   const dep = depict(s.mol, s.style, s.objects);
@@ -550,7 +657,7 @@ export async function convert(input: string | Structure, to: ConvertFormat, opts
   switch (to) {
     case 'smiles': return writeSmiles(expanded(s));
     case 'mol': return writeMolfile(s.mol, s.style.bondLength, 'HexSketch structure');
-    case 'cdxml': return writeCdxml(s.mol, s.style, s.objects, { groups: s.groups });
+    case 'cdxml': { const p = onPage(s); return writeCdxml(p.mol, p.style, p.objects, { groups: p.groups }); }
     case 'link': return link(s, opts);
   }
 }
@@ -563,7 +670,30 @@ export async function link(input: string | Structure, opts: ReadOptions & { base
   const s = await readStructure(input, opts);
   const base = opts.base ?? HEXSKETCH_URL;
   if (s.smiles !== undefined && !opts.style) return smilesLink(s.smiles, base);
-  return structureLink(s.mol, s.style, s.objects, s.groups, base);
+  const p = onPage(s);
+  return structureLink(p.mol, p.style, p.objects, p.groups, base);
+}
+
+/** Half an inch, the margin a drawing is kept from the page's top and left edges. */
+const PAGE_MARGIN = 36;
+
+/**
+ * The drawing, moved as a copy so none of it lies above or left of the page:
+ * a SMILES is laid out about the origin, and HexSketch and ChemDraw open a
+ * drawing where its coordinates say, which put the top half of a scheme or
+ * mechanism off the page. A drawing already on the page is left as it is.
+ */
+export function onPage(s: Structure): Structure {
+  if (!s.mol.atomCount && !s.objects.length) return s;
+  const b = depict(s.mol, s.style, s.objects).bounds;
+  if (!Number.isFinite(b.x0)) return s;
+  const dx = b.x0 < PAGE_MARGIN ? PAGE_MARGIN - b.x0 : 0, dy = b.y0 < PAGE_MARGIN ? PAGE_MARGIN - b.y0 : 0;
+  if (!dx && !dy) return s;
+  const mol = s.mol.clone();
+  for (const a of mol.atoms()) { a.x += dx; a.y += dy; }
+  const objects = cloneObjects(s.objects);
+  for (const o of objects) for (const q of objectPoints(o)) { q.x += dx; q.y += dy; }
+  return { ...s, mol, objects };
 }
 
 // ---------------------------------------------------------- validate, compare

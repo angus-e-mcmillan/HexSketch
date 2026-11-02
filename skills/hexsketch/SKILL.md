@@ -28,11 +28,12 @@ keep the chat for the short answer. How depends on the chat:
    labels pinned to atoms (a few words or a value: "pKa ≈ 4.4", "Michael
    acceptor") and a note of a few short bullets by colour. Then refer to the
    drawing by colour in the chat: "the yellow ester".
-   For a mechanism, one call per step with curly `arrows`: give the species
-   as SMILES with atom-map numbers (`[OH-:1].[CH3:2][Br:3]`) and arrows from
-   a lone pair (`[1]`) or bond (`[2, 3]`) to an atom or a bond being made
-   (`[1, 2]`). Send a whole mechanism at once as `steps`: the chemist steps
-   through it with Back and Next.
+   For a mechanism, send all of it in one call as `steps`: each step its
+   species as SMILES with atom-map numbers (`[OH-:1].[CH3:2][Br:3]`), curly
+   `arrows` from a lone pair (`[1]`) or bond (`[2, 3]`) to an atom or a bond
+   being made (`[1, 2]`), and a note of a few words naming it. HexSketch
+   draws every step on one page, an arrow from each to the next with its
+   name above.
    Draw a retrosynthesis or synthesis as one scheme in one call, not as
    `steps`, so the whole route is on one page: a `reaction` from the target
    (bonds marked with `disconnect`, `[[1, 2]]`, map numbers on the target
@@ -55,8 +56,9 @@ keep the chat for the short answer. How depends on the chat:
 3. To keep a drawing, give `save_to` (on a local server): a path in the
    project whose extension sets the format, `.png` or `.svg` for a picture,
    `.pdf` for a document, `.cdxml` for ChemDraw, `.mol` for other software.
-4. A mechanism is one `render_structure` call per step, with curly
-   `arrows` as above; a synthesis or retrosynthesis is one scheme.
+4. A mechanism is one `render_structure` call with `steps`, each with its
+   curly `arrows` as above and a short name, all drawn on one page; a
+   synthesis or retrosynthesis is one scheme.
 
 ## Get the structure right
 

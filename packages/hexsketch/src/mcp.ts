@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { analyze, compare, convert, link, name, readStructure, render, validate, type ElectronArrow, type Rasterizer, type RenderFormat, type Scheme } from '@hexsketch/agent';
 import type { Molecule } from '@hexsketch/core';
 import { memorySketchStore, type Sketch, type SketchStore } from './sketch-store.ts';
-import { balanceOf, checkOf, safetyOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
+import { balanceOf, checkOf, editorCdxml, mechanismOf, mechanismSteps, safetyOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
 
 export { HIGHLIGHTS };
 
@@ -130,6 +130,7 @@ export function createServer(opts: ServerOptions): McpServer {
       reaction: reaction().optional(),
       arrows: arrows().optional(),
       disconnect: disconnect().optional(),
+      steps: mechanismSteps(),
       format: z.enum(formats as [RenderFormat, ...RenderFormat[]]).optional().describe(`Output format; default ${formats[0]}. PDF needs save_to.`),
       style,
       ...(opts.saveFile ? {
@@ -139,19 +140,24 @@ export function createServer(opts: ServerOptions): McpServer {
     },
     annotations: { title: 'Draw a structure', readOnlyHint: !opts.saveFile, destructiveHint: false, openWorldHint: false },
   }, (args) => tool(async () => {
-    const a = args as { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; disconnect?: number[][]; format?: RenderFormat; style?: 'hexsketch' | 'acs'; save_to?: string; overwrite?: boolean };
+    const a = args as { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; disconnect?: number[][]; steps?: { structure: string; arrows?: Parameters<typeof curlyArrows>[0]; note?: string }[]; format?: RenderFormat; style?: 'hexsketch' | 'acs'; save_to?: string; overwrite?: boolean };
     const fromPath = a.save_to ? (/\.([a-z]+)$/i.exec(a.save_to)?.[1]?.toLowerCase() as RenderFormat | undefined) : undefined;
     if (a.save_to && (!fromPath || !formats.includes(fromPath))) throw new Error(`save_to needs one of these extensions: ${formats.map((f) => `.${f}`).join(' ')}`);
     const to = fromPath ?? a.format ?? formats[0]!;
     if (to === 'pdf' && !a.save_to) throw new Error('PDF is a file: give save_to, e.g. /path/to/structure.pdf');
     // Pictures (and ChemDraw files) show protecting groups abbreviated; a molfile keeps every atom.
     const abbreviate = to !== 'mol';
-    const input = await given(a.structure, a.reaction, { ...read(a.style), abbreviate, arrows: curlyArrows(a.arrows), ...(a.disconnect ? { disconnect: a.disconnect } : {}) });
+    if (a.steps && (a.structure || a.reaction || a.arrows || a.disconnect)) throw new Error('Give steps (a mechanism), or a structure or reaction, not both');
+    // A mechanism: every step on one page, checked step by step.
+    const mech = a.steps ? await mechanismOf(a.steps, { ...read(a.style), abbreviate }) : null;
+    const input = mech ? mech.drawing : await given(a.structure, a.reaction, { ...read(a.style), abbreviate, arrows: curlyArrows(a.arrows), ...(a.disconnect ? { disconnect: a.disconnect } : {}) });
     const r = await render(input, { ...read(a.style), abbreviate, to, ...(opts.rasterize ? { rasterize: opts.rasterize } : {}) });
     const about = await analyze(input, read(a.style));
     const saved = a.save_to && opts.saveFile ? await opts.saveFile(a.save_to, r.data, a.overwrite ?? false) : undefined;
     const issues = (await validate(input, read(a.style))).issues.filter((x) => x.severity !== 'note').map((x) => x.message);
-    const info = { name: about.name, smiles: about.smiles, formula: about.formula, ...(issues.length ? { issues } : {}), link: await link(input, read(a.style)), ...(saved ? { saved } : {}), ...(await balanceOf(a.reaction)), ...(await safetyOf(input)) };
+    const info = mech
+      ? { ...mech.report, link: await link(input, read(a.style)), ...(saved ? { saved } : {}) }
+      : { name: about.name, smiles: about.smiles, formula: about.formula, ...(issues.length ? { issues } : {}), link: await link(input, read(a.style)), ...(saved ? { saved } : {}), ...(await balanceOf(a.reaction)), ...(await safetyOf(input)) };
     const content: CallToolResult['content'] = [];
     if (to === 'png') content.push({ type: 'image', data: toBase64(r.data as Uint8Array), mimeType: 'image/png' });
     else if (typeof r.data === 'string' && !saved) content.push({ type: 'text', text: r.data });
@@ -219,7 +225,7 @@ export function createServer(opts: ServerOptions): McpServer {
     /** What the editor is sent to draw: the structure as given, or as CDXML when laid out here (a scheme, or turned to match `like`). */
     const toDraw = async (t?: string, r?: Scheme, like?: Molecule, curly?: ElectronArrow[], cuts?: number[][]): Promise<string> => {
       const g = await given(t, r, { abbreviate: true, ...(like ? { like } : {}), ...(curly ? { arrows: curly } : {}), ...(cuts ? { disconnect: cuts } : {}) });
-      return typeof g === 'string' ? g : convert(g, 'cdxml');
+      return editorCdxml(g);
     };
     const appOnly = { ui: { resourceUri: SKETCHER_URI, visibility: ['app'] as ('app' | 'model')[] } };
 

@@ -86,9 +86,9 @@ example, *save it as aspirin.png*.
 - **Answer in structures.** Claude draws in the editor, highlights parts of a
   molecule in colour, pins short labels to atoms ("pKa ≈ 4.4") and leaves
   notes beside it. Undo brings your drawing back.
-- **Walk through mechanisms.** Claude draws each step with curly arrows, and
-  you step through them with Back and Next, the atoms staying put from one
-  step to the next.
+- **Walk through mechanisms.** Claude draws the whole mechanism on one page:
+  each step with its curly arrows, an arrow to the next with the step's name
+  above, the atoms staying put from one step to the next.
 - **Draw proper schemes.** Arrows, "+" signs, reagents above the arrow and
   conditions below, with each compound drawn the same way round as the one
   before.
