@@ -1,4 +1,4 @@
-import { altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
+import { hazardsOf, reagentHazards, HAZARD_DISCLAIMER, type Hazard, altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument, type Tool } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
@@ -649,6 +649,61 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   }
 
   editor.onChange(render);
+
+  // ----------------------------------------------------------- hazard warnings
+
+  /**
+   * A warning in the status bar when the drawing (by hand or from the AI) has
+   * an energetic group, a highly toxic or pyrophoric compound, or a hazardous
+   * reagent written as text. Click it for the reasons; click a reason to
+   * select the atoms concerned.
+   */
+  const hazardChip = document.createElement('button');
+  hazardChip.type = 'button';
+  hazardChip.className = 'hazard';
+  hazardChip.hidden = true;
+  $('status').before(hazardChip);
+  let hazards: Hazard[] = [];
+  let hazardTimer = 0;
+  const LEVEL_WORD = { danger: 'Danger', warning: 'Warning', note: 'Note' } as const;
+  function checkHazards() {
+    // Abbreviations drawn out first: an N3 or NO2 label is an azide or a nitro group.
+    const copy = new Editor(new EditorDocument(editor.doc.mol.clone(), editor.doc.style));
+    copy.expandLabels();
+    const text = editor.doc.objects.flatMap((o) => (o.kind === 'text' && !o.analysis ? [o.text] : [])).join('\n');
+    const all = [...hazardsOf(copy.doc.mol), ...(text ? reagentHazards(text) : [])];
+    const order = { danger: 0, warning: 1, note: 2 } as const;
+    hazards = all.filter((h, i) => all.findIndex((x) => x.title === h.title) === i).sort((a, b) => order[a.level] - order[b.level]);
+    const top = hazards[0];
+    hazardChip.hidden = !top;
+    if (!top) return;
+    hazardChip.dataset.level = top.level;
+    hazardChip.textContent = `⚠ ${top.title}${hazards.length > 1 ? ` (+${hazards.length - 1})` : ''}`;
+    hazardChip.title = 'Safety screening: click for details';
+  }
+  editor.onChange(() => { clearTimeout(hazardTimer); hazardTimer = window.setTimeout(checkHazards, 250); });
+  checkHazards();
+  hazardChip.addEventListener('click', () => {
+    popover(hazardChip, (panel, close) => {
+      panel.classList.add('hazard-list');
+      for (const h of hazards) {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'hazard-item';
+        item.dataset.level = h.level;
+        item.innerHTML = '<b></b><span></span>';
+        item.querySelector('b')!.textContent = `${LEVEL_WORD[h.level]} · ${h.title}`;
+        item.querySelector('span')!.textContent = h.detail;
+        if (h.atoms.length) item.addEventListener('click', () => { editor.selectAtoms(h.atoms); close(); });
+        else item.disabled = true;
+        panel.append(item);
+      }
+      const foot = document.createElement('p');
+      foot.className = 'hazard-foot';
+      foot.textContent = HAZARD_DISCLAIMER;
+      panel.append(foot);
+    });
+  });
 
   // ------------------------------------------------------------------- events
 

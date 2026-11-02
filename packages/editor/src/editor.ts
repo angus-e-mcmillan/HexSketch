@@ -535,6 +535,16 @@ export class Editor {
     return svg.replace(/^[\s\S]*?<svg\b[^>]*>/, '').replace(/<\/svg>\s*$/, '');
   }
 
+  /** Select these atoms and the bonds between them (atoms no longer drawn are skipped). */
+  selectAtoms(ids: Iterable<AtomId>) {
+    const mol = this.doc.mol;
+    const keep = new Set([...ids].filter((id) => mol.hasAtom(id)));
+    this.clearSelection();
+    for (const a of keep) this.selection.atoms.add(a);
+    for (const b of mol.bonds()) if (keep.has(b.begin) && keep.has(b.end)) this.selection.bonds.add(b.id);
+    this.#emit();
+  }
+
   /** Select every atom and bond connected to an atom or bond (one whole molecule). */
   selectStructureAt(hit: Hit) {
     const mol = this.doc.mol;

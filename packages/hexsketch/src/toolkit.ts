@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { alignByMaps, analyze, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
+import { alignByMaps, analyze, hazards, hazardLine, HAZARD_DISCLAIMER, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
 import { parsePattern, smilesAtomMaps, type Molecule } from '@hexsketch/core';
 import type { SketchUpdate } from './sketch-store.ts';
 
@@ -33,6 +33,7 @@ export const MAX_STEPS = 10;
 export const CHEMISTRY = [
   '- Protecting groups are drawn abbreviated, as chemists write them (Boc, Fmoc, Cbz, Alloc, Troc, TBS, TIPS, TES, TBDPS, TMS, Trt, Pbf, PMB, Bn and tBu on O, MOM, THP): write them in full in the SMILES, and names, formulas and checks still see every atom. A highlight or label can\'t point inside an abbreviation; atoms with map numbers are never abbreviated.',
   '- Peptides are drawn as chemists draw them, from the SMILES alone: N-terminus on the left, the backbone a flat zigzag, the side chains on wedges showing their configuration. Write their stereocentres in the SMILES.',
+  '- When a result lists hazards (an energetic group judged by (C + O)/N, the rule of six and oxygen balance; a highly toxic or pyrophoric compound; a hazardous reagent above an arrow), tell the user in your reply, briefly and specifically: what the hazard is, the precaution, and a safer alternative where one is given. Never leave out a "Likely explosive" or "Highly toxic" one. They are screening rules, not a safety assessment: do not overstate them, and do not refuse ordinary chemistry because of them.',
   '- Draw every reaction as a scheme, with the reaction input: starting materials, then an arrow, then products, never just side by side. Always write the reagents and catalysts above the arrow and the solvent, temperature, time (and yield, if known) below it, as a chemist would; one arrow per step for a sequence.',
   '- Draw a retrosynthesis or a synthesis as one scheme on one page, in one call, not as steps, so the chemist sees the whole route at once: a reaction from the target with retrosynthetic arrows back to the starting materials, the disconnections marked on the target (disconnect, by atom-map numbers given only in the target, the first stage), and the forward route with its reagents and conditions in then, below it. HexSketch checks that atoms balance, not whether a route works or its materials can be bought: say so when it matters.',
 ];
@@ -182,6 +183,17 @@ export async function balanceOf(r: Scheme | undefined): Promise<Record<string, u
   return b.length ? { balance: b, balance_note: 'Atoms that do not balance across an arrow: fine when they come from a reagent written above it or leave as an unshown byproduct; otherwise add the missing byproduct (H2O, HCl...) or correct the product.' } : {};
 }
 
+/**
+ * For a tool result: what could make the drawing dangerous to make or handle
+ * (its structures, and reagents written above its arrows), for the model to
+ * pass on to the user.
+ */
+export async function safetyOf(drawing: string | Structure | undefined): Promise<Record<string, unknown>> {
+  if (!drawing) return {};
+  const found = await hazards(drawing).catch(() => []);
+  return found.length ? { hazards: found.map(hazardLine), hazard_note: `Tell the user about these, with the precaution or safer alternative. ${HAZARD_DISCLAIMER}` } : {};
+}
+
 /** The arrows as the agent takes them, with colour names turned into colours. */
 export const curlyArrows = (list: { from: number[]; to: number[]; electrons?: 1 | 2; colour?: string }[] | undefined): ElectronArrow[] | undefined =>
   list?.map(({ colour, ...a }) => {
@@ -265,6 +277,7 @@ export const prepare = async (a: Show, before: Molecule | undefined, current: st
       // What was drawn, to check against what was meant (in place of a separate validate_structure call).
       ...(s ? { drawn: await checkOf(s) } : {}),
       ...(await balanceOf(a.reaction)),
+      ...(await safetyOf(s)),
       highlights: highlights.map((h) => ({ smiles: h.smiles, colour: h.name, places: h.places, marked: h.marked })),
       ...(pinned.length ? { labels: pinned.map((l) => ({ at: l.at, text: l.text, places: l.places })) } : {}),
       ...(missed.length ? { warning: `Not found in the drawing: ${missed.join(', ')}. Check the fragment against read_sketcher's SMILES.` } : {}),

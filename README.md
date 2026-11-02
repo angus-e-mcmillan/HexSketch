@@ -114,6 +114,11 @@ browser:
   structure travels inside the picture);
 - names, formula and masses under each structure;
 - opens and saves CDXML and MOL;
+- **safety warnings**: a warning in the status bar when a drawing has an
+  energetic group (azide, nitro, diazo, peroxide…, judged by (C + O)/N, the
+  rule of six and oxygen balance), a highly toxic or pyrophoric compound, or
+  a hazardous reagent written above an arrow. The AI tools report the same,
+  so the model tells you. Screening rules, not a safety assessment;
 - **Ask AI**: a chat beside the editor with any model on
   [OpenRouter](https://openrouter.ai) (Claude, GPT, Gemini, open models), on
   your own OpenRouter account. It sees what you draw and answers by drawing,

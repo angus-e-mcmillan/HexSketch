@@ -244,3 +244,17 @@ dialog.feedback { width: min(480px, calc(100vw - 32px)); }
 .feedback .fb-status { min-height: 18px; margin: 6px 0 0; font-size: 12px; color: var(--muted); }
 .feedback .fb-status.fb-error { color: #b42318; }
 .feedback .ds-ok:disabled { opacity: 0.6; }
+
+/* Hazard warnings: a chip in the status bar, and the list it opens */
+.status .hazard { flex: none; margin-right: 12px; padding: 2px 8px; border-radius: 10px; border: 1px solid currentColor; background: #fff; font: inherit; font-weight: 600; cursor: pointer; white-space: nowrap; max-width: 60vw; overflow: hidden; text-overflow: ellipsis; }
+.status .hazard[data-level="danger"] { color: #b42318; background: #fef3f2; }
+.status .hazard[data-level="warning"] { color: #a15c07; background: #fffaeb; }
+.status .hazard[data-level="note"] { color: #475467; background: #f2f4f7; }
+.popover.hazard-list { max-width: 380px; display: grid; gap: 6px; }
+.hazard-item { display: grid; gap: 2px; text-align: left; padding: 6px 8px; border: 0; border-left: 3px solid #98a2b3; border-radius: 4px; background: #f9fafb; font: inherit; color: inherit; cursor: pointer; }
+.hazard-item:disabled { cursor: default; color: inherit; }
+.hazard-item[data-level="danger"] { border-left-color: #d92d20; }
+.hazard-item[data-level="warning"] { border-left-color: #dc6803; }
+.hazard-item span { color: var(--muted); font-size: 12px; }
+.hazard-item:not(:disabled):hover { background: #f2f4f7; }
+.hazard-foot { margin: 2px 0 0; font-size: 11px; color: var(--muted); }
