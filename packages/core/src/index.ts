@@ -10,6 +10,7 @@ export * from './stereo.ts';
 export * from './payload.ts';
 export * from './layout.ts';
 export * from './objects.ts';
+export * from './notation.ts';
 export * from './molfile.ts';
 export * from './peptides.ts';
 export * from './cleanup.ts';

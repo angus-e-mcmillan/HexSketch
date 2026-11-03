@@ -55,8 +55,8 @@ test('double-click on an atom with the bond tool edits its label and leaves no s
   assert.equal(ed.doc.mol.bondCount, before, 'the first click’s bond was taken back');
 });
 
-test('Command (or Shift) while dragging keeps the move horizontal or vertical', () => {
-  for (const mod of [{ meta: true }, { shift: true }]) {
+test('Shift while dragging keeps the move horizontal or vertical', () => {
+  for (const mod of [{ shift: true }]) {
     const ed = scene();
     ed.setTool({ kind: 'select', mode: 'marquee' });
     const f = frags(ed)[0]!;

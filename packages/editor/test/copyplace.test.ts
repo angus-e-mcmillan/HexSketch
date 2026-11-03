@@ -1,4 +1,4 @@
-/** Option+drag duplicates; Option+double-click picks up a copy that a click puts down; Drawing Settings styles. */
+/** Option+drag (or Command+drag) duplicates; Option+double-click picks up a copy that a click puts down; Drawing Settings styles. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { layout2D, makeArrow, Molecule, parseSmiles, ACS_1996_STYLE, DEFAULT_PALETTE, HEXSKETCH_STYLE, PALETTES, paletteId } from '@hexsketch/core';
@@ -18,16 +18,16 @@ function scene() {
 }
 const atom0 = (ed: Editor) => [...ed.doc.mol.atoms()][0]!;
 
-test('Option+drag leaves the original and drops a copy where the drag ends', () => {
+for (const mod of [{ alt: true }, { meta: true }] as const) test(`${'alt' in mod ? 'Option' : 'Command'}+drag leaves the original and drops a copy where the drag ends`, () => {
   const { ed } = scene();
   const a = atom0(ed), x0 = a.x, y0 = a.y;
   // Option+drag copies what is selected: here the whole ring.
   ed.selectStructureAt({ kind: 'atom', id: a.id });
-  ed.pointerDown({ x: a.x, y: a.y, alt: true, time: 0 });
-  ed.pointerMove({ x: a.x + 30, y: a.y, alt: true, time: 10 });
+  ed.pointerDown({ x: a.x, y: a.y, ...mod, time: 0 });
+  ed.pointerMove({ x: a.x + 30, y: a.y, ...mod, time: 10 });
   assert.match(ed.render().svg, /opacity="0.45"/, 'a faint copy follows the pointer');
-  ed.pointerMove({ x: a.x + 60, y: a.y + 20, alt: true, time: 15 });
-  ed.pointerUp({ x: a.x + 60, y: a.y + 20, alt: true, time: 20 });
+  ed.pointerMove({ x: a.x + 60, y: a.y + 20, ...mod, time: 15 });
+  ed.pointerUp({ x: a.x + 60, y: a.y + 20, ...mod, time: 20 });
   assert.equal(ed.doc.mol.atomCount, 12);
   assert.equal(ed.doc.mol.fragments().length, 2);
   const orig = ed.doc.mol.atom(a.id);

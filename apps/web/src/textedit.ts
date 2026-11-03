@@ -8,7 +8,7 @@
  * command works on character offsets in that model, so the browser's own
  * formatting markup never gets involved.
  */
-import { captionRuns, formulaPieces, type Caption, type TextRun, type TextStyle } from '@hexsketch/core';
+import { autoFormula, captionRuns, formulaPieces, type Caption, type TextRun, type TextStyle } from '@hexsketch/core';
 import { restyle, type Editor } from '@hexsketch/editor';
 import { CAPTION_FONTS } from '@hexsketch/render';
 import { popover, swatchGrid } from './flyouts.ts';
@@ -289,7 +289,8 @@ export function createCaptionEditor(host: CaptionEditorHost) {
     if (editing === null) return;
     const id = editing;
     editing = null;
-    const runs = read();
+    // Formulas typed as plain text (NaN3, CH2Cl2, Et3N) take Formula style, as a chemist writes them.
+    const runs = autoFormula(read());
     box.hidden = true;
     editor.hideCaption = null;
     editor.setCaptionRich(id, runs, align);
@@ -325,7 +326,15 @@ export function createCaptionEditor(host: CaptionEditorHost) {
     e.stopPropagation();
     document.execCommand('insertText', false, e.clipboardData?.getData('text/plain') ?? '');
   });
-  box.addEventListener('input', () => place());
+  box.addEventListener('input', (e) => {
+    // A formula is set in Formula style as soon as its word is finished (the one being typed is left alone).
+    if (!(e as InputEvent).isComposing) {
+      const runs = read(), at = selectionOffsets();
+      const next = autoFormula(runs, at ?? undefined);
+      if (at && JSON.stringify(next) !== JSON.stringify(runs)) { render(next); setSelection(at[0], at[1]); }
+    }
+    place();
+  });
   document.addEventListener('mousedown', (e) => {
     if (editing === null) return;
     const t = e.target as Node;

@@ -7,7 +7,7 @@ import { parsePattern, smilesAtomMaps, substructureMappings, type AtomId, type M
  * side chain or an N-benzyl drug keeps its ring. Every label is one Expand
  * Label draws out again (and names, formulas and SMILES read in full).
  */
-export const PROTECTING_GROUPS: readonly { label: string; smiles: string; on: string[] }[] = [
+export const PROTECTING_GROUPS: readonly { label: string; smiles: string; on: string[]; reversible?: boolean }[] = [
   { label: 'Fmoc', smiles: 'C(=O)OCC1c2ccccc2-c2ccccc12', on: ['N', 'O'] },
   { label: 'Pbf', smiles: 'S(=O)(=O)c1c(C)c(C)c2OC(C)(C)Cc2c1C', on: ['N'] },
   { label: 'Trt', smiles: 'C(c1ccccc1)(c1ccccc1)c1ccccc1', on: ['N', 'O', 'S'] },
@@ -24,6 +24,9 @@ export const PROTECTING_GROUPS: readonly { label: string; smiles: string; on: st
   { label: 'THP', smiles: 'C1CCCCO1', on: ['O'] },
   { label: 'TMS', smiles: '[Si](C)(C)C', on: ['O', 'N'] },
   { label: 'tBu', smiles: 'C(C)(C)C', on: ['O', 'S'] },
+  { label: 'SEM', smiles: 'COCC[Si](C)(C)C', on: ['O', 'N'] },
+  // The same read from either end, so both ends are tried as the one bonded to the rest.
+  { label: 'MEM', smiles: 'COCCOC', on: ['O'], reversible: true },
   { label: 'MOM', smiles: 'COC', on: ['O'] },
 ];
 const patterns = PROTECTING_GROUPS.map((g) => ({ ...g, pattern: parsePattern(g.smiles) }));
@@ -43,7 +46,7 @@ export function abbreviateGroups(mol: Molecule): number {
   for (const g of patterns) {
     if (g.pattern.atomCount >= mol.atomCount) continue;
     const head = g.pattern.atoms().next().value!.id;
-    for (const m of substructureMappings(g.pattern, mol, 200)) {
+    for (const m of substructureMappings(g.pattern, mol, 200, !!g.reversible)) {
       const inGroup = new Set(m.atoms);
       const first = m.map.get(head)!;
       if (m.atoms.some((id) => taken.has(id) || mapped.has(id) || mol.atom(id).charge || mol.atom(id).label !== null)) continue;

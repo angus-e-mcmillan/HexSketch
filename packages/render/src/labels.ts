@@ -1,4 +1,4 @@
-import type { AtomId, DrawingStyle, Molecule } from '@hexsketch/core';
+import { splitSymbols, type AtomId, type DrawingStyle, type Molecule } from '@hexsketch/core';
 import { fontMetrics, roundInk } from './fonts.ts';
 import type { Rect, Vec } from './geometry.ts';
 
@@ -110,15 +110,20 @@ function tokenizeNickname(label: string): Token[] {
   return (label.match(/\d+|\D+/g) ?? []).map((part) => ({ text: part, kind: /^\d+$/.test(part) ? 'sub' : 'normal' }));
 }
 
-/** Abbreviations that are one word, kept whole when a nickname is reversed (NHBoc -> BocHN, OtBu -> tBuO, not ButO). */
-const WORDS = /TBDPS|TBDMS|TIPS|TBS|TES|TMS|PMB|MOM|THP|Fmoc|Alloc|Troc|Bpin|tBu|sBu|iBu|nBu|iPr|nPr|[A-Z][a-z]*|[^A-Z]+/g;
-
-/** Reverse a nickname to read outward when attached from the right: CO2Me -> MeO2C. */
+/**
+ * Reverse a nickname to read outward when attached from the right: CO2Me ->
+ * MeO2C, NHBoc -> BocHN, OtBu -> tBuO. Letters are read as element symbols
+ * and group abbreviations, each kept whole, and an abbreviation HexSketch
+ * doesn't know stays as written (SEM, never MES).
+ */
 function reverseNickname(tokens: Token[]): Token[] {
   const groups: Token[][] = [];
   for (const t of tokens) {
-    if (t.kind === 'sub' && groups.length) groups[groups.length - 1]!.push(t);
-    else for (const chunk of t.text.match(WORDS) ?? [t.text]) groups.push([{ text: chunk, kind: 'normal' }]);
+    if (t.kind === 'sub' && groups.length) { groups[groups.length - 1]!.push(t); continue; }
+    for (const chunk of t.text.match(/[A-Za-z]+|[^A-Za-z]+/g) ?? [t.text]) {
+      const pieces = /[A-Za-z]/.test(chunk) ? splitSymbols(chunk).pieces : [chunk];
+      for (const p of pieces) groups.push([{ text: p, kind: 'normal' }]);
+    }
   }
   return groups.reverse().flat();
 }

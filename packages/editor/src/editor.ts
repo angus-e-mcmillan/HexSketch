@@ -17,12 +17,14 @@ export type Tool =
   | { kind: 'chain' }
   | { kind: 'eraser' }
   | { kind: 'text' }
+  /** Click an atom to add a positive or negative charge (ChemDraw's charge tools). */
+  | { kind: 'charge'; delta: 1 | -1 }
   | ArrowTool
   | ShapeTool;
 
 export interface PointerInfo {
   x: number; y: number; shift?: boolean; alt?: boolean;
-  /** Command (Ctrl on Windows): while dragging a selection, locks the move to one axis. */
+  /** Command (Ctrl on Windows): dragging a selection leaves it in place and drops a copy (as Option does). */
   meta?: boolean;
   /** Event time in ms; needed for double-clicks. */
   time?: number;
@@ -250,7 +252,7 @@ export class Editor {
       else if (t.kind === 'select') {
         this.#gesture = g.hit.kind === 'none'
           ? (t.mode === 'lasso' ? { kind: 'lasso', points: [{ x: g.x, y: g.y }, { x: p.x, y: p.y }] } : { kind: 'marquee', x0: g.x, y0: g.y, x: p.x, y: p.y })
-          : { kind: 'move', x0: g.x, y0: g.y, x: p.x, y: p.y, copy: !!p.alt };
+          : { kind: 'move', x0: g.x, y0: g.y, x: p.x, y: p.y, copy: !!(p.alt || p.meta) };
       }
       this.#emit();
       return;
@@ -260,10 +262,10 @@ export class Editor {
       if (o) { dragHandle(o, g.orig, g.handle, { x: p.x, y: p.y }, { fixedAngles: this.fixedAngles && !p.alt, oval: !!p.shift }); this.doc.touch(); }
       return;
     }
-    if (g.kind === 'move') g.copy = !!p.alt;
+    if (g.kind === 'move') g.copy = !!(p.alt || p.meta);
     if (g.kind === 'lasso') g.points.push({ x: p.x, y: p.y });
-    else if (g.kind === 'move' && (p.meta || p.shift)) {
-      // Command (or Shift, as in ChemDraw) keeps the move horizontal or vertical, whichever is larger.
+    else if (g.kind === 'move' && p.shift) {
+      // Shift, as in ChemDraw, keeps the move horizontal or vertical, whichever is larger.
       const dx = p.x - g.x0, dy = p.y - g.y0;
       if (Math.abs(dx) >= Math.abs(dy)) { g.x = p.x; g.y = g.y0; } else { g.x = g.x0; g.y = p.y; }
     } else { g.x = p.x; g.y = p.y; }
@@ -296,7 +298,8 @@ export class Editor {
     else if (g.kind === 'chainDrag') this.#commitChain(g);
     else if (g.kind === 'createDrag') this.#commitObject(g.x0, g.y0, g.x, g.y);
     else if (g.kind === 'handle') this.doc.endLive();
-    else if (g.kind === 'move' && p.alt) this.#duplicateSelection(g.x - g.x0, g.y - g.y0);
+    // Option or Command (Ctrl on Windows) leaves the selection where it was and drops a copy.
+    else if (g.kind === 'move' && (p.alt || p.meta)) this.#duplicateSelection(g.x - g.x0, g.y - g.y0);
     else if (g.kind === 'move') this.#commitMove(g.x - g.x0, g.y - g.y0);
     else if (g.kind === 'marquee') this.#setSelection({ ...inRect(this.doc.mol, g.x0, g.y0, g.x, g.y), objects: objectsInRect(this.doc.objects, this.doc.style, g.x0, g.y0, g.x, g.y) }, !!p.shift);
     else if (g.kind === 'lasso') this.#setSelection({ ...inLasso(this.doc.mol, g.points), objects: this.#objectsInLasso(g.points) }, !!p.shift);
@@ -596,6 +599,9 @@ export class Editor {
         this.onEditCaption?.(cap.id);
         return;
       }
+      case 'charge':
+        if (hit.kind === 'atom') this.doc.edit((mol) => { mol.atom(hit.id).charge += t.delta; });
+        return;
       case 'arrow': case 'shape':
         // A click draws a default-sized object (an arrow pointing right).
         this.#commitObject(x, y, x, y);
@@ -1597,7 +1603,7 @@ const NICKNAMES: Record<string, string> = {
   Tf: 'S(=O)(=O)C(F)(F)F', Ts: 'S(=O)(=O)c1ccc(C)cc1', Ms: 'S(=O)(=O)C', SO2Ph: 'S(=O)(=O)c1ccccc1',
   Boc: 'C(=O)OC(C)(C)C', Cbz: 'C(=O)OCc1ccccc1', Z: 'C(=O)OCc1ccccc1', Fmoc: 'C(=O)OCC1c2ccccc2-c2ccccc12', Alloc: 'C(=O)OCC=C', Troc: 'C(=O)OCC(Cl)(Cl)Cl',
   TMS: '[Si](C)(C)C', TBS: '[Si](C)(C)C(C)(C)C', TBDMS: '[Si](C)(C)C(C)(C)C', TIPS: '[Si](C(C)C)(C(C)C)C(C)C', TES: '[Si](CC)(CC)CC', TBDPS: '[Si](c1ccccc1)(c1ccccc1)C(C)(C)C',
-  PMB: 'Cc1ccc(OC)cc1', Trt: 'C(c1ccccc1)(c1ccccc1)c1ccccc1', Pbf: 'S(=O)(=O)c1c(C)c(C)c2OC(C)(C)Cc2c1C', THP: 'C1CCCCO1', MOM: 'COC',
+  PMB: 'Cc1ccc(OC)cc1', Trt: 'C(c1ccccc1)(c1ccccc1)c1ccccc1', Pbf: 'S(=O)(=O)c1c(C)c(C)c2OC(C)(C)Cc2c1C', THP: 'C1CCCCO1', MOM: 'COC', SEM: 'COCC[Si](C)(C)C', MEM: 'COCCOC', OSEM: 'OCOCC[Si](C)(C)C', OMEM: 'OCOCCOC',
   Bpin: 'B1OC(C)(C)C(C)(C)O1', MgBr: '[Mg]Br', MgCl: '[Mg]Cl', SnBu3: '[Sn](CCCC)(CCCC)CCCC',
 };
 
