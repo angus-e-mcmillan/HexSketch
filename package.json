@@ -12,7 +12,7 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types packages/*/test/*.test.ts",
+    "test": "node --test --experimental-strip-types packages/*/test/*.test.ts tools/llm-bench/test/*.test.ts",
     "dev": "npm run dev -w @hexsketch/web",
     "build:web": "npm run build -w @hexsketch/web",
     "build:pkg": "npm run build -w hexsketch",
@@ -25,7 +25,8 @@
     "smoke:mcp": "node --experimental-strip-types --no-warnings apps/mcp-worker/test/smoke.ts",
     "feedback": "node --experimental-strip-types --no-warnings tools/feedback.ts",
     "usage": "node --experimental-strip-types --no-warnings tools/usage.ts",
-    "bench": "sh tools/bench/run.sh"
+    "bench": "sh tools/bench/run.sh",
+    "llm-bench": "node --experimental-strip-types --no-warnings tools/llm-bench/run.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
