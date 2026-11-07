@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "formula",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-formula-bryostatin-1",
+  "key": "C47H68O17",
+  "kind": "formula",
+  "note": "Rarely memorised; has to be built from the structure.",
+  "pilot": false,
+  "prompt": "What is the molecular formula of bryostatin 1?",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

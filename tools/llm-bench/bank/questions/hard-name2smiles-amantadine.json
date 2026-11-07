@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "name2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-name2smiles-amantadine",
+  "key": "NC12CC3CC(CC(C3)C1)C2",
+  "kind": "structure",
+  "note": "Von Baeyer name of adamantane with a secondary bridge superscript.",
+  "pilot": false,
+  "prompt": "Give the SMILES of tricyclo[3.3.1.1^{3,7}]decan-1-amine.",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

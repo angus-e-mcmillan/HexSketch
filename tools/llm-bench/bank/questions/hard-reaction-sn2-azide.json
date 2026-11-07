@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "reaction",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-reaction-sn2-azide",
+  "key": "CC[C@H](C)N=[N+]=[N-]",
+  "kind": "structure",
+  "note": "Inversion: (R)-bromide gives (S)-azide.",
+  "pilot": true,
+  "prompt": "(R)-2-Bromobutane is heated with sodium azide in DMF. What is the product, with its stereochemistry?",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

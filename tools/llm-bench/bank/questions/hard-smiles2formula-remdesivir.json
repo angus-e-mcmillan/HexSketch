@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "smiles2formula",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-smiles2formula-remdesivir",
+  "key": "C27H35N6O8P",
+  "kind": "formula",
+  "note": "Phosphoramidate prodrug; P counts.",
+  "pilot": false,
+  "prompt": "What is the molecular formula of the compound with SMILES CCC(CC)COC(=O)[C@H](C)N[P@](=O)(OC[C@@H]1[C@H]([C@H]([C@](O1)(C#N)C2=CC=C3N2N=CN=C3N)O)O)OC4=CC=CC=C4?",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "smiles2name",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-smiles2name-cyano-oxo-acid",
+  "key": "OC(=O)CC(=O)CC#N",
+  "kind": "name",
+  "note": "Choosing the principal group: the acid wins, the nitrile becomes a cyano prefix and its carbon leaves the chain.",
+  "pilot": false,
+  "prompt": "Give the IUPAC name of the compound with SMILES OC(=O)CC(=O)CC#N.",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

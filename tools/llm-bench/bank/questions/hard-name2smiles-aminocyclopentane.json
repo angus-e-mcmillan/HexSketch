@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "name2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-name2smiles-aminocyclopentane",
+  "key": "N[C@@H]1C[C@@H](CC1)C(=O)O",
+  "kind": "structure",
+  "note": "cis/trans across the ring has to come from the R/S descriptors.",
+  "pilot": false,
+  "prompt": "Give the SMILES of (1R,3S)-3-aminocyclopentane-1-carboxylic acid, with its stereochemistry.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

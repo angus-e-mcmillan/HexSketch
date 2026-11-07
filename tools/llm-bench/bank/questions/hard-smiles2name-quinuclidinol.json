@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "smiles2name",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-smiles2name-quinuclidinol",
+  "key": "O[C@H]1CN2CCC1CC2",
+  "kind": "name",
+  "note": "R/S from the SMILES @ order in a cage.",
+  "pilot": false,
+  "prompt": "Give the IUPAC name of the compound with SMILES O[C@H]1CN2CCC1CC2, with its stereodescriptors.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

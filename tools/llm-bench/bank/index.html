@@ -1,0 +1,480 @@
+<title>HexSketch Exam Bank</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,500;0,600;1,400&display=swap">
+<style>
+/* Layout: an examiner's desk. Question list on the left, the question sheet (as the model sees it, plus the key and the examiner's red-pen note) on the right. */
+:root {
+  --bg: #f3f5f7;
+  --panel: #ffffff;
+  --ink: #18212b;
+  --muted: #5b6875;
+  --rule: #d9dfe5;
+  --accent: #1f4e79;      /* blue-black ink */
+  --accent-soft: #e3ecf5;
+  --pen: #b3261e;         /* the marking pen */
+  --pen-soft: #fbeceb;
+  --ok: #2f6b3a;
+  --ok-soft: #e4f1e6;
+  --warn: #8a5a00;
+  --warn-soft: #fbf1dc;
+  --sheet: #ffffff;
+  --sheet-ink: #18212b;
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12171d; --panel: #1a2028; --ink: #e6ebf0; --muted: #97a4b1; --rule: #2c3540;
+    --accent: #8fb8e3; --accent-soft: #1f2f42; --pen: #f08a80; --pen-soft: #3a2220;
+    --ok: #8fd19a; --ok-soft: #1e3324; --warn: #e8c070; --warn-soft: #3a2f17;
+    --sheet: #eef1f4; --sheet-ink: #18212b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12171d; --panel: #1a2028; --ink: #e6ebf0; --muted: #97a4b1; --rule: #2c3540;
+  --accent: #8fb8e3; --accent-soft: #1f2f42; --pen: #f08a80; --pen-soft: #3a2220;
+  --ok: #8fd19a; --ok-soft: #1e3324; --warn: #e8c070; --warn-soft: #3a2f17;
+  --sheet: #eef1f4; --sheet-ink: #18212b; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px 40px; max-width: 1320px; margin: 0 auto; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+h1 { font: 600 1.6rem/1.2 var(--serif); margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); margin: 4px 0 0; max-width: 62ch; }
+.status-line { font-size: .85rem; color: var(--muted); }
+.status-line.bad { color: var(--pen); }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--rule); background: var(--panel); border-radius: 6px; padding: 7px 12px; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); font-weight: 600; }
+button.primary:disabled { opacity: .45; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, .q:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.tally { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--rule); background: var(--panel); border-radius: 999px; padding: 3px 10px; font-size: .82rem; display: inline-flex; gap: 6px; align-items: center; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.chip .n { font-variant-numeric: tabular-nums; opacity: .75; }
+
+.desk { display: grid; grid-template-columns: minmax(280px, 400px) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .desk { grid-template-columns: minmax(0, 1fr); } }
+
+.list { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; display: grid; min-width: 0; }
+.list-tools { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border-bottom: 1px solid var(--rule); }
+.list-tools input { flex: 1 1 140px; min-width: 0; border: 1px solid var(--rule); border-radius: 6px; padding: 6px 9px; background: var(--bg); }
+.list-tools select { border: 1px solid var(--rule); border-radius: 6px; padding: 6px; background: var(--bg); }
+.qs { max-height: 72vh; overflow-y: auto; }
+@media (max-width: 860px) { .qs { max-height: 50vh; } }
+.q { display: grid; grid-template-columns: 2.4em minmax(0, 1fr); gap: 2px 8px; padding: 10px 12px; border-bottom: 1px solid var(--rule); cursor: pointer; }
+.q:hover { background: var(--accent-soft); }
+.q[aria-current="true"] { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.q .num { font: 500 .8rem var(--mono); color: var(--muted); padding-top: 2px; font-variant-numeric: tabular-nums; }
+.q .text { font-size: .9rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.q .meta { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; font-size: .74rem; color: var(--muted); }
+.tag { text-transform: uppercase; letter-spacing: .05em; font-size: .68rem; font-weight: 600; border-radius: 4px; padding: 1px 6px; }
+.tag.ready { background: var(--ok-soft); color: var(--ok); }
+.tag.draft { background: var(--warn-soft); color: var(--warn); }
+.tag.retired { background: var(--rule); color: var(--muted); }
+.tag.pilot { background: var(--accent-soft); color: var(--accent); }
+.empty { padding: 28px 16px; color: var(--muted); text-align: center; }
+
+.sheet { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 20px; display: grid; gap: 18px; min-width: 0; }
+.sheet h2 { font: 600 1.15rem var(--serif); margin: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field.grow { flex: 1 1 260px; }
+.field > label, .label { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.field input[type=text], .field textarea, .field select { border: 1px solid var(--rule); border-radius: 6px; padding: 8px 10px; background: var(--bg); width: 100%; }
+.field textarea { resize: vertical; min-height: 4.5em; }
+textarea.mono, input.mono { font-family: var(--mono); font-size: .86rem; }
+.hint { font-size: .8rem; color: var(--muted); }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: .9rem; }
+
+.as-sent { border-left: 3px solid var(--accent); background: var(--bg); padding: 10px 14px; font: 1rem/1.55 var(--serif); white-space: pre-wrap; overflow-wrap: anywhere; }
+.as-sent .tail { color: var(--muted); font-style: italic; }
+
+.key { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 640px) { .key { grid-template-columns: minmax(0, 1fr); } }
+.drawing { background: var(--sheet); color: var(--sheet-ink); border: 1px solid var(--rule); border-radius: 6px; min-height: 180px; display: grid; place-items: center; padding: 12px; overflow: auto; }
+.drawing svg { max-width: 100%; height: auto; }
+.drawing .none { color: #5b6875; font-size: .9rem; text-align: center; }
+.readback { display: grid; gap: 8px; align-content: start; font-size: .9rem; }
+.readback dt { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.readback dd { margin: 0 0 4px; overflow-wrap: anywhere; }
+.readback .smiles { font: .82rem var(--mono); }
+.issue { font-size: .85rem; border-radius: 4px; padding: 4px 8px; }
+.issue.error { background: var(--pen-soft); color: var(--pen); }
+.issue.warning, .issue.note { background: var(--warn-soft); color: var(--warn); }
+a { color: var(--accent); }
+
+.note-box { border: 1px solid var(--pen); background: var(--pen-soft); border-radius: 6px; padding: 10px 12px; display: grid; gap: 6px; }
+.note-box label { color: var(--pen); }
+.note-box textarea { background: var(--panel); border-color: transparent; font-family: var(--serif); font-style: italic; color: var(--pen); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; border-top: 1px solid var(--rule); padding-top: 14px; }
+.who { font-size: .8rem; color: var(--muted); }
+.toast { font-size: .85rem; color: var(--ok); }
+.toast.bad { color: var(--pen); }
+footer { color: var(--muted); font-size: .85rem; max-width: 80ch; }
+@media (prefers-reduced-motion: no-preference) { .q, button { transition: background-color .12s, border-color .12s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>HexSketch Exam Bank</h1>
+      <p class="sub">Questions for benchmarking models with and without HexSketch. Each answer must be a structure, a name or a formula, so the benchmark can mark it automatically.</p>
+    </div>
+    <div class="row">
+      <span class="status-line" id="conn">Connecting to the question store…</span>
+      <button class="primary" id="new">New question</button>
+    </div>
+  </header>
+
+  <div class="tally" id="tally" aria-label="Filter by category"></div>
+
+  <div class="desk">
+    <section class="list" aria-label="Questions">
+      <div class="list-tools">
+        <input id="search" type="text" placeholder="Search questions and keys" aria-label="Search">
+        <select id="statusFilter" aria-label="Status">
+          <option value="">Any status</option>
+          <option value="ready">Ready</option>
+          <option value="draft">Draft</option>
+          <option value="retired">Retired</option>
+        </select>
+      </div>
+      <div class="qs" id="qs"><div class="empty">The questions will appear here once the store answers.</div></div>
+    </section>
+
+    <section class="sheet" id="sheet" aria-label="Question">
+      <div class="empty">Pick a question on the left, or write a new one.</div>
+    </section>
+  </div>
+
+  <footer>Questions marked <b>Ready</b> go into the benchmark's <code>exam</code> set when Claude syncs this bank to the repository. Answer keys are read by HexSketch as you type: paste a SMILES, a hexsketch.com link, or a structure copied with Edit › Copy for AI.</footer>
+</div>
+
+<script src="hexsketch.js"></script>
+<script>
+const CATEGORIES = {
+  name2smiles: { label: 'IUPAC name → structure', kind: 'structure' },
+  smiles2name: { label: 'Structure → IUPAC name', kind: 'name' },
+  common2smiles: { label: 'Common name → structure', kind: 'structure' },
+  common2name: { label: 'Common name → systematic name', kind: 'name' },
+  formula: { label: 'Name → formula', kind: 'formula' },
+  smiles2formula: { label: 'SMILES → formula', kind: 'formula' },
+  reaction: { label: 'Reaction product', kind: 'structure' },
+  synthesis: { label: 'Multi-step synthesis', kind: 'structure' },
+  spectra: { label: 'Structure from spectra', kind: 'structure' },
+  stereo: { label: 'Stereochemistry', kind: 'structure' },
+  other: { label: 'Other', kind: 'structure' },
+};
+const ANSWER_FORMAT = { structure: 'the SMILES', name: 'the name', formula: 'the molecular formula (e.g. C9H8O4)' };
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); for (const k of kids) if (k != null) e.append(k); return e; };
+
+let db = null, user = null, me = null;
+const bank = new Map();          // id -> stored question
+let order = [];                  // ids in display order
+let selected = null;             // id
+let draft = null;                // the question being edited (a copy)
+let dirty = false;
+let catFilter = '';
+
+function sortKey(q) { return [Object.keys(CATEGORIES).indexOf(q.category), q.createdAt || '', q.id].join('|'); }
+
+// ------------------------------------------------------------- the store
+
+(async () => {
+  const timer = setTimeout(() => setConn('The question store has not answered yet. Your edits can\'t be saved until it does.', true), 10000);
+  try {
+    db = await claude.use('db');
+    user = await claude.use('user');
+  } catch (e) { db = null; }
+  if (!db) { clearTimeout(timer); setConn('Sign in to claude.ai to read and write questions.', true); return; }
+  try { me = user ? (await user.me()).id : null; } catch { me = null; }
+  db.collection('questions').onSnapshot((snap) => {
+    clearTimeout(timer);
+    bank.clear();
+    for (const d of snap.docs) bank.set(d.id, { ...d.data(), id: d.id });
+    order = [...bank.values()].sort((a, b) => (sortKey(a) < sortKey(b) ? -1 : 1)).map((q) => q.id);
+    setConn(`${bank.size} questions${snap.metadata.fromCache ? ' (saved copy, refreshing)' : ''}`);
+    renderTally(); renderList();
+    if (selected && bank.has(selected) && !dirty) select(selected);
+    else if (!selected && order.length) select(order[0]);
+  }, (e) => { clearTimeout(timer); setConn(`The question store refused the request (${e.code}).`, true); });
+})();
+
+function setConn(text, bad = false) { const c = $('conn'); c.textContent = text; c.classList.toggle('bad', bad); }
+
+// ------------------------------------------------------------- the list
+
+function visible() {
+  const s = $('search').value.trim().toLowerCase(), st = $('statusFilter').value;
+  return order.map((id) => bank.get(id)).filter((q) => (!catFilter || q.category === catFilter) && (!st || q.status === st) &&
+    (!s || `${q.prompt} ${q.key} ${q.note || ''} ${q.id}`.toLowerCase().includes(s)));
+}
+
+function renderTally() {
+  const t = $('tally'); t.replaceChildren();
+  const counts = {}; for (const q of bank.values()) counts[q.category] = (counts[q.category] || 0) + 1;
+  const chip = (key, label, n) => {
+    const b = el('button', { className: 'chip', type: 'button' }, label, el('span', { className: 'n', textContent: String(n) }));
+    b.setAttribute('aria-pressed', String(catFilter === key));
+    b.onclick = () => { catFilter = key; renderTally(); renderList(); };
+    return b;
+  };
+  t.append(chip('', 'All', bank.size));
+  for (const [k, c] of Object.entries(CATEGORIES)) if (counts[k]) t.append(chip(k, c.label, counts[k]));
+}
+
+function renderList() {
+  const box = $('qs'); box.replaceChildren();
+  const qs = visible();
+  if (!bank.size) { box.append(el('div', { className: 'empty', textContent: 'No questions yet. Write the first with New question.' })); return; }
+  if (!qs.length) { box.append(el('div', { className: 'empty', textContent: 'No questions match these filters.' })); return; }
+  for (const q of qs) {
+    const n = order.indexOf(q.id) + 1;
+    const meta = el('div', { className: 'meta' },
+      el('span', { className: `tag ${q.status}`, textContent: q.status }),
+      q.pilot ? el('span', { className: 'tag pilot', textContent: 'pilot' }) : null,
+      el('span', { textContent: CATEGORIES[q.category]?.label || q.category }));
+    const row = el('div', { className: 'q', tabIndex: 0 }, el('span', { className: 'num', textContent: String(n).padStart(2, '0') }), el('div', { className: 'text', textContent: q.prompt || '(no question yet)' }), meta);
+    row.setAttribute('role', 'button');
+    row.setAttribute('aria-current', String(q.id === selected));
+    row.onclick = () => trySelect(q.id);
+    row.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); trySelect(q.id); } };
+    box.append(row);
+  }
+}
+$('search').oninput = renderList;
+$('statusFilter').onchange = renderList;
+
+// ------------------------------------------------------------- the sheet
+
+let pendingSwitch = null;
+function trySelect(id) {
+  if (dirty && id !== selected) { pendingSwitch = id; renderSheet(); return; }
+  select(id);
+}
+function select(id) {
+  selected = id; pendingSwitch = null;
+  draft = structuredClone(bank.get(id)); dirty = false;
+  renderList(); renderSheet();
+}
+
+$('new').onclick = () => {
+  if (dirty) { pendingSwitch = '__new'; renderSheet(); return; }
+  newQuestion();
+};
+function newQuestion() {
+  const category = catFilter || 'reaction';
+  const id = `${category}-${Math.random().toString(36).slice(2, 8)}`;
+  selected = id; pendingSwitch = null; dirty = true;
+  draft = { id, category, kind: CATEGORIES[category].kind, prompt: '', key: '', also: [], stereo: false, avoid: '', pilot: false, status: 'draft', note: '', isNew: true };
+  renderList(); renderSheet();
+  setTimeout(() => $('f-prompt')?.focus(), 0);
+}
+
+function field(label, control, hint) {
+  return el('div', { className: 'field grow' }, el('label', { htmlFor: control.id, textContent: label }), control, hint ? el('span', { className: 'hint', textContent: hint }) : null);
+}
+
+function renderSheet() {
+  const s = $('sheet'); s.replaceChildren();
+  if (!draft) { s.append(el('div', { className: 'empty', textContent: 'Pick a question on the left, or write a new one.' })); return; }
+  const q = draft;
+  const touch = () => { dirty = true; saveBtn.disabled = false; toast.textContent = ''; };
+
+  if (pendingSwitch) {
+    const bar = el('div', { className: 'note-box' },
+      el('span', { textContent: 'This question has unsaved changes.' }),
+      el('div', { className: 'row' },
+        el('button', { type: 'button', className: 'primary', textContent: 'Save, then go on', onclick: async () => { if (await save()) go(); } }),
+        el('button', { type: 'button', textContent: 'Discard changes', onclick: () => { dirty = false; go(); } }),
+        el('button', { type: 'button', textContent: 'Keep editing', onclick: () => { pendingSwitch = null; renderSheet(); } })));
+    const go = () => { const to = pendingSwitch; pendingSwitch = null; to === '__new' ? newQuestion() : select(to); };
+    s.append(bar);
+  }
+
+  const n = order.indexOf(q.id) + 1;
+  s.append(el('h2', { textContent: q.isNew ? 'New question' : `Question ${n}` }));
+
+  // Category, answer type, status
+  const cat = el('select', { id: 'f-category' });
+  for (const [k, c] of Object.entries(CATEGORIES)) cat.append(el('option', { value: k, textContent: c.label, selected: q.category === k }));
+  cat.onchange = () => { q.category = cat.value; q.kind = CATEGORIES[q.category].kind; kind.value = q.kind; touch(); updatePreview(); updateKey(); };
+  const kind = el('select', { id: 'f-kind' });
+  for (const k of ['structure', 'name', 'formula']) kind.append(el('option', { value: k, textContent: { structure: 'A structure (SMILES)', name: 'A name', formula: 'A molecular formula' }[k], selected: q.kind === k }));
+  kind.onchange = () => { q.kind = kind.value; touch(); updatePreview(); updateKey(); renderKeyFields(); };
+  const status = el('select', { id: 'f-status' });
+  for (const k of ['draft', 'ready', 'retired']) status.append(el('option', { value: k, textContent: k[0].toUpperCase() + k.slice(1), selected: q.status === k }));
+  status.onchange = () => { q.status = status.value; touch(); };
+  const pilot = el('input', { type: 'checkbox', id: 'f-pilot', checked: !!q.pilot });
+  pilot.onchange = () => { q.pilot = pilot.checked; touch(); };
+  s.append(el('div', { className: 'row' },
+    field('Category', cat), field('The model answers with', kind), field('Status', status),
+    el('label', { className: 'check' }, pilot, 'In the pilot')));
+
+  // Prompt and how it is sent
+  const prompt = el('textarea', { id: 'f-prompt', rows: 4, value: q.prompt });
+  prompt.placeholder = 'e.g. (R)-2-Bromobutane is heated with sodium azide in DMF. What is the product, with its stereochemistry?';
+  prompt.oninput = () => { q.prompt = prompt.value; touch(); updatePreview(); };
+  s.append(field('Question', prompt, 'Write it as you would on an exam paper. Names, SMILES or both. Say if stereochemistry is wanted.'));
+  const sent = el('div', { className: 'as-sent', id: 'as-sent' });
+  s.append(el('div', { className: 'field' }, el('span', { className: 'label', textContent: 'What the model receives' }), sent));
+  function updatePreview() {
+    sent.replaceChildren(q.prompt || '…', el('span', { className: 'tail', textContent: `\n\nEnd with "ANSWER: " and ${ANSWER_FORMAT[q.kind]}.` }));
+  }
+  updatePreview();
+
+  // Key
+  const keyBox = el('div', { className: 'field' });
+  s.append(keyBox);
+  const keyArea = el('div', { className: 'key' });
+  const drawing = el('div', { className: 'drawing' });
+  const readback = el('dl', { className: 'readback' });
+  let keyFieldsBox;
+  function renderKeyFields() {
+    keyBox.replaceChildren();
+    const isFormula = q.kind === 'formula';
+    const keyInput = el(isFormula ? 'input' : 'textarea', { id: 'f-key', className: 'mono', value: q.keyInput ?? q.key ?? '' });
+    if (isFormula) keyInput.type = 'text'; else keyInput.rows = 2;
+    keyInput.placeholder = isFormula ? 'C47H51NO14' : 'SMILES, a hexsketch.com link, or a structure from Edit › Copy for AI';
+    keyInput.oninput = () => { q.keyInput = keyInput.value; touch(); debounceKey(); };
+    keyBox.append(field(q.kind === 'name' ? 'Answer key: the compound to be named' : isFormula ? 'Answer key: the formula' : 'Answer key: the structure', keyInput,
+      q.kind === 'name' ? 'Any correct IUPAC name for this structure is marked right (parsed by OPSIN).' : isFormula ? 'Marked element by element, in any order.' : null));
+    if (!isFormula) {
+      const draw = el('a', { id: 'drawlink', target: '_blank', rel: 'noopener', textContent: 'Draw or edit it in HexSketch ↗' });
+      keyBox.append(el('span', { className: 'hint' }, draw, ' — then use Edit › Copy for AI and paste it here.'));
+      keyArea.replaceChildren(drawing, readback);
+      keyBox.append(keyArea);
+      const also = el('textarea', { id: 'f-also', className: 'mono', rows: 2, value: (q.also || []).join('\n') });
+      also.placeholder = 'One SMILES per line, e.g. the minor regioisomer if you accept it';
+      also.oninput = () => { q.also = also.value.split('\n').map((x) => x.trim()).filter(Boolean); touch(); };
+      const stereo = el('input', { type: 'checkbox', id: 'f-stereo', checked: !!q.stereo });
+      stereo.onchange = () => { q.stereo = stereo.checked; touch(); };
+      const row = el('div', { className: 'row' }, field('Also accept', also, 'Other answers that earn the mark.'),
+        el('label', { className: 'check' }, stereo, 'Mark the stereochemistry (wrong R/S or E/Z loses the mark)'));
+      keyBox.append(row);
+      if (q.kind === 'name') {
+        const avoid = el('input', { type: 'text', id: 'f-avoid', value: q.avoid || '' });
+        avoid.placeholder = 'e.g. cysteine';
+        avoid.oninput = () => { q.avoid = avoid.value.trim(); touch(); };
+        keyBox.append(field('Not allowed in the answer', avoid, 'A trivial name OPSIN would also parse. An answer containing it is marked wrong.'));
+      }
+    } else {
+      keyBox.append(readback); keyArea.replaceChildren();
+    }
+    updateKey();
+  }
+  keyFieldsBox = keyBox;
+
+  let keyTimer = 0, keySeq = 0;
+  function debounceKey() { clearTimeout(keyTimer); keyTimer = setTimeout(updateKey, 350); }
+  async function updateKey() {
+    const seq = ++keySeq;
+    const input = (q.keyInput ?? q.key ?? '').trim();
+    readback.replaceChildren();
+    const dl = (k, v, cls) => readback.append(el('dt', { textContent: k }), el('dd', { className: cls || '', textContent: v }));
+    if (q.kind === 'formula') {
+      const okF = /^([A-Z][a-z]?\d*)+$/.test(input.replace(/\s+/g, ''));
+      q.key = input.replace(/\s+/g, '');
+      if (input && !okF) readback.append(el('div', { className: 'issue error', textContent: 'That does not read as a formula: write it like C9H8O4.' }));
+      return;
+    }
+    const link = $('drawlink');
+    if (!input) {
+      drawing.replaceChildren(el('div', { className: 'none', textContent: 'The key will be drawn here.' }));
+      if (link) link.href = 'https://hexsketch.com/';
+      q.key = '';
+      return;
+    }
+    if (!window.HexSketch) { drawing.replaceChildren(el('div', { className: 'none', textContent: 'HexSketch did not load, so the key can\'t be checked here.' })); q.key = input; return; }
+    let v;
+    try { v = await HexSketch.validate(input); } catch (e) { v = { ok: false, issues: [{ severity: 'error', message: String(e.message || e) }] }; }
+    if (seq !== keySeq) return;
+    if (!v.smiles) {
+      drawing.replaceChildren(el('div', { className: 'none', textContent: 'HexSketch can\'t read this yet.' }));
+      for (const i of v.issues || []) readback.append(el('div', { className: `issue ${i.severity}`, textContent: i.message }));
+      q.key = input;
+      return;
+    }
+    q.key = v.smiles;
+    try {
+      const r = await HexSketch.render(v.smiles, { padding: 8 });
+      if (seq !== keySeq) return;
+      const svg = new DOMParser().parseFromString(r.data, 'image/svg+xml').documentElement;
+      svg.removeAttribute('width'); svg.removeAttribute('height'); svg.style.width = `${Math.round(r.width * 1.5)}px`;
+      drawing.replaceChildren(document.importNode(svg, true));
+    } catch { drawing.replaceChildren(el('div', { className: 'none', textContent: 'Read, but nothing to draw.' })); }
+    try { if (link) link.href = await HexSketch.link(v.smiles); } catch { if (link) link.href = 'https://hexsketch.com/'; }
+    dl('HexSketch reads it as', v.name || 'a structure it cannot name');
+    dl('Formula', v.formula || '—');
+    dl('Stored as SMILES', v.smiles, 'smiles');
+    const hasStereo = /[@/\\]/.test(v.smiles);
+    if (q.stereo && !hasStereo) readback.append(el('div', { className: 'issue warning', textContent: 'Stereochemistry is marked, but this key has none.' }));
+    for (const i of v.issues || []) readback.append(el('div', { className: `issue ${i.severity}`, textContent: i.message }));
+  }
+  renderKeyFields();
+
+  // Examiner's note
+  const note = el('textarea', { id: 'f-note', rows: 3, value: q.note || '' });
+  note.placeholder = 'Why this is hard: the trap, and the mistake you expect.';
+  note.oninput = () => { q.note = note.value; touch(); };
+  s.append(el('div', { className: 'note-box' }, el('label', { htmlFor: 'f-note', className: 'label', textContent: "Examiner's note (not sent to the model)" }), note));
+
+  // Save
+  const saveBtn = el('button', { type: 'button', className: 'primary', textContent: q.isNew ? 'Save question' : 'Save changes', disabled: !dirty });
+  saveBtn.onclick = () => save();
+  const revert = el('button', { type: 'button', textContent: q.isNew ? 'Discard' : 'Revert', onclick: () => {
+    dirty = false;
+    if (q.isNew) { draft = null; selected = null; renderList(); renderSheet(); if (order.length) select(order[0]); } else select(q.id);
+  } });
+  const toast = el('span', { className: 'toast', id: 'toast', role: 'status' });
+  const who = el('span', { className: 'who' });
+  if (!q.isNew) describeWho(q, who);
+  s.append(el('div', { className: 'actions' }, who, el('div', { className: 'row' }, toast, revert, saveBtn)));
+
+  async function save() {
+    const problems = [];
+    if (!q.prompt.trim()) problems.push('Write the question.');
+    if (!q.key) problems.push('Give the answer key.');
+    if (problems.length) { toast.textContent = problems.join(' '); toast.classList.add('bad'); return false; }
+    if (!db) { toast.textContent = 'Not connected to the question store.'; toast.classList.add('bad'); return false; }
+    const now = new Date().toISOString();
+    const doc = {
+      id: q.id, category: q.category, kind: q.kind, prompt: q.prompt.trim(), key: q.key,
+      also: q.kind === 'formula' ? [] : (q.also || []), stereo: q.kind === 'formula' ? false : !!q.stereo,
+      avoid: q.kind === 'name' ? (q.avoid || '') : '', pilot: !!q.pilot, status: q.status, note: q.note || '',
+      createdAt: q.createdAt || now, createdBy: q.createdBy || me || 'unknown', updatedAt: now, updatedBy: me || 'unknown',
+    };
+    saveBtn.disabled = true; toast.classList.remove('bad'); toast.textContent = 'Saving…';
+    try {
+      await db.collection('questions').doc(q.id).set(doc);
+      dirty = false; delete q.isNew; Object.assign(q, doc); delete q.keyInput;
+      toast.textContent = 'Saved';
+      return true;
+    } catch (e) {
+      saveBtn.disabled = false; toast.classList.add('bad');
+      toast.textContent = e && e.code === 'not_granted' ? 'You can view this bank but not change it. Ask the owner for Contributor access.' : `Not saved (${e && e.code || 'error'}). Try again.`;
+      return false;
+    }
+  }
+}
+
+async function describeWho(q, box) {
+  const when = q.updatedAt ? new Date(q.updatedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  const name = async (id) => {
+    if (!id || id === 'unknown') return 'someone';
+    if (id === 'claude') return 'Claude';
+    if (id === me) return 'you';
+    try { const p = await user.profiles([id]); return (p[id] && p[id].name) || 'someone'; } catch { return 'someone'; }
+  };
+  const by = await name(q.updatedBy);
+  box.textContent = `${q.id} · last changed by ${by}${when ? ` on ${when}` : ''}`;
+}
+</script>

@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "common2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-common2smiles-dexamethasone",
+  "key": "C[C@@H]1C[C@H]2[C@@H]3CCC4=CC(=O)C=C[C@@]4([C@]3([C@H](C[C@@]2([C@]1(C(=O)CO)O)C)O)F)C",
+  "kind": "structure",
+  "note": "Eight stereocentres; the 16α-methyl separates it from betamethasone (16β).",
+  "pilot": false,
+  "prompt": "Give the SMILES of dexamethasone, with every stereocentre.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

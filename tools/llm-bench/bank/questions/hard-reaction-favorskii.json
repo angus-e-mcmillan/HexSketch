@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "reaction",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-reaction-favorskii",
+  "key": "COC(=O)C1CCCC1",
+  "kind": "structure",
+  "note": "Ring contraction to a cyclopentane ester, not substitution of Cl by OMe.",
+  "pilot": false,
+  "prompt": "2-Chlorocyclohexan-1-one is treated with sodium methoxide in methanol. What is the product?",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

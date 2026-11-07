@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "common2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-common2smiles-morphine",
+  "key": "CN1CC[C@]23[C@@H]4[C@H]1CC5=C2C(=C(C=C5)O)O[C@H]3[C@H](C=C4)O",
+  "kind": "structure",
+  "note": "Five stereocentres; the natural (−) enantiomer.",
+  "pilot": true,
+  "prompt": "Give the SMILES of morphine, with every stereocentre.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

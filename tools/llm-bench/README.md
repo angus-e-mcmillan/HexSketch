@@ -66,6 +66,27 @@ in a `common2name` answer is marked wrong, since OPSIN would parse it too.
 node --experimental-strip-types tools/llm-bench/prep-hard.ts --pubchem
 ```
 
+## The exam bank
+
+The HexSketch Exam Bank page (https://claude.ai/artifact/GACFCceuef8rxnNUTuVQgu)
+is where questions are written and reviewed. Each question has its prompt (shown
+as the model receives it), its key (a structure, the compound to be named, or a
+formula), answers that also earn the mark, whether stereochemistry is marked,
+and an examiner's note that is never sent to the model. HexSketch draws, names
+and checks each key as it is typed; a key can be pasted as SMILES, a
+hexsketch.com link or a structure copied with Edit › Copy for AI.
+
+Claude exports the bank into `bank/questions/` (one file per question, committed),
+and `prep-bank.ts` turns the questions marked Ready into `exam.jsonl`:
+
+```sh
+node --experimental-strip-types tools/llm-bench/prep-bank.ts
+npm run llm-bench -- --model anthropic/claude-opus-5 --set exam --repeats 1
+```
+
+The page's code is `bank/index.html`; it loads HexSketch from `hexsketch.js`,
+built with `npm run llm-bench:bank`.
+
 ## Running it
 
 Once:
@@ -99,7 +120,7 @@ npm run llm-bench -- --model anthropic/claude-opus-5 --provider anthropic --cond
 | `--provider` | any | Pin one provider, with no fallbacks (e.g. `anthropic`) |
 | `--conditions` | `blind,full` | Any of `blind`, `readback`, `full` |
 | `--repeats` | 3 | Passes through the questions; the report shows their range |
-| `--set` | `standard` | `standard` (questions.jsonl) or `hard` (hard.jsonl) |
+| `--set` | `standard` | `standard` (questions.jsonl), `hard` (hard.jsonl) or `exam` (exam.jsonl, from the exam bank) |
 | `--all` | off | The whole set rather than its pilot |
 | `--only` | | Comma-separated question ids |
 | `--effort` | `medium` | `reasoning.effort`; `none` for a model without thinking |

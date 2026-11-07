@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "smiles2name",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-smiles2name-dienoic-acid",
+  "key": "C/C=C/C=C\\C(=O)O",
+  "kind": "name",
+  "note": "Reading E/Z from slashes in SMILES; 2Z,4E is easily reversed.",
+  "pilot": true,
+  "prompt": "Give the IUPAC name of the compound with SMILES C/C=C/C=C\\C(=O)O, with its stereodescriptors.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

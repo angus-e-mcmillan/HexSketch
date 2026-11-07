@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "common2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-common2smiles-cocaine",
+  "key": "CN1[C@H]2CC[C@@H]1[C@H]([C@H](C2)OC(=O)C3=CC=CC=C3)C(=O)OC",
+  "kind": "structure",
+  "note": "Tropane with 2R,3S ester stereochemistry; pseudococaine differs at C2.",
+  "pilot": true,
+  "prompt": "Give the SMILES of cocaine, with every stereocentre.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

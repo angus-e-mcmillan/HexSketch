@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "formula",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-formula-cyclosporin-a",
+  "key": "C62H111N11O12",
+  "kind": "formula",
+  "note": "Eleven N-methylated residues: N and H counts are easily off.",
+  "pilot": true,
+  "prompt": "What is the molecular formula of cyclosporin A?",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

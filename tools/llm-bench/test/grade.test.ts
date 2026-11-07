@@ -42,3 +42,10 @@ test('the hard set: every question is well formed', async () => {
   assert.equal(new Set(hard.map((q) => q.id)).size, hard.length);
   assert.ok(hard.filter((q) => q.pilot).length >= 30);
 });
+
+test('structures: any answer the examiner also accepts earns the mark', async () => {
+  const q: Question = { id: 'x', category: 'reaction', prompt: '', pilot: true, answer: { kind: 'structure', smiles: 'C=C(C)CC', stereo: false, also: ['CC=C(C)C'] } };
+  assert.equal(await grade(q, 'C=C(C)CC'), 'correct');
+  assert.equal(await grade(q, 'CC(C)=CC'), 'correct');
+  assert.equal(await grade(q, 'C=CC(C)C'), 'wrong');
+});

@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "common2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-common2smiles-ezetimibe",
+  "key": "C1=CC(=CC=C1[C@@H]2[C@H](C(=O)N2C3=CC=C(C=C3)F)CC[C@@H](C4=CC=C(C=C4)F)O)O",
+  "kind": "structure",
+  "note": "trans β-lactam (3R,4S) and the (S) side-chain alcohol.",
+  "pilot": true,
+  "prompt": "Give the SMILES of ezetimibe, with every stereocentre.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

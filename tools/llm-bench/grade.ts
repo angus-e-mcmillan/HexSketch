@@ -47,10 +47,14 @@ export async function grade(q: Question, answer: string | null, named?: string |
   if (a.kind === 'name' && a.avoid && answer.toLowerCase().includes(a.avoid.toLowerCase())) return 'wrong';
   const smiles = a.kind === 'name' ? named : answer;
   if (!smiles) return 'unreadable';
-  let c;
-  try { c = await compare(smiles, a.smiles); } catch { return 'unreadable'; }
-  if (c.same || (!a.stereo && c.sameConnectivity)) return 'correct';
-  return c.sameConnectivity ? 'stereo' : 'wrong';
+  let verdict: Verdict = 'wrong';
+  for (const key of [a.smiles, ...(a.also ?? [])]) {
+    let c;
+    try { c = await compare(smiles, key); } catch { if (key === a.smiles) return 'unreadable'; continue; }
+    if (c.same || (!a.stereo && c.sameConnectivity)) return 'correct';
+    if (c.sameConnectivity) verdict = 'stereo';
+  }
+  return verdict;
 }
 
 /** Formulas equal element by element, whatever their order (C9H8O4, H8C9O4) or subscript characters. */

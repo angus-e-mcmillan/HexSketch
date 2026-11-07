@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "formula",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-formula-vancomycin",
+  "key": "C66H75Cl2N9O24",
+  "kind": "formula",
+  "note": "Large glycopeptide; counting H and the two Cl.",
+  "pilot": true,
+  "prompt": "What is the molecular formula of vancomycin?",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

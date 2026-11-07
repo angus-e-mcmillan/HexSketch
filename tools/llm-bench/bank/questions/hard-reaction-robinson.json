@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "reaction",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-reaction-robinson",
+  "key": "CC12CCC(=O)C=C1CCCC2=O",
+  "kind": "structure",
+  "note": "Michael addition then aldol condensation: the Wieland–Miescher ketone.",
+  "pilot": false,
+  "prompt": "CC1C(=O)CCCC1=O is treated with but-3-en-2-one and a base, and the Michael adduct is then heated with acid. What is the product?",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

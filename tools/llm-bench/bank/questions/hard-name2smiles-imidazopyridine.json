@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "name2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-name2smiles-imidazopyridine",
+  "key": "N#Cc1ccc2ncc(Br)n2c1",
+  "kind": "structure",
+  "note": "Numbering of imidazo[1,2-a]pyridine runs through the bridgehead N: C3 is next to it, C6 on the far ring.",
+  "pilot": true,
+  "prompt": "Give the SMILES of 3-bromoimidazo[1,2-a]pyridine-6-carbonitrile.",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

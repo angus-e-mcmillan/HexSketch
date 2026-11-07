@@ -17,3 +17,4 @@ packages/hexsketch/installer-build/
 packages/hexsketch/release/
 tools/bench/out/
 tools/llm-bench/out/
+tools/llm-bench/bank/hexsketch.js

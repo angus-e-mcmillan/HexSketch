@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "smiles2name",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-smiles2name-dioxaspiro",
+  "key": "O=C1CCC2(CC1)OCCO2",
+  "kind": "name",
+  "note": "Spiro ketal: heteroatoms take low numbers in the small ring.",
+  "pilot": false,
+  "prompt": "Give the IUPAC name of the compound with SMILES O=C1CCC2(CC1)OCCO2.",
+  "status": "ready",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

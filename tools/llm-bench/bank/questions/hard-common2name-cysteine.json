@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "cysteine",
+  "category": "common2name",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-common2name-cysteine",
+  "key": "C([C@@H](C(=O)O)N)S",
+  "kind": "name",
+  "note": "L-cysteine is R, unlike the other L-amino acids, because sulfur outranks the carboxyl.",
+  "pilot": true,
+  "prompt": "Give the systematic IUPAC name of L-cysteine, with its R/S stereodescriptors (not a trivial name).",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

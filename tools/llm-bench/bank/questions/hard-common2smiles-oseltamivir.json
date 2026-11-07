@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "common2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-common2smiles-oseltamivir",
+  "key": "CCC(CC)O[C@@H]1C=C(C[C@@H]([C@H]1NC(=O)C)N)C(=O)OCC",
+  "kind": "structure",
+  "note": "Three ring stereocentres (3R,4R,5S); the free base, not the phosphate.",
+  "pilot": false,
+  "prompt": "Give the SMILES of oseltamivir, with every stereocentre.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}

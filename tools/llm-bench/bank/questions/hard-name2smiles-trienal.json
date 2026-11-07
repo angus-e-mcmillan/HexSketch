@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "name2smiles",
+  "createdAt": "2026-11-07T17:30:32.770Z",
+  "createdBy": "claude",
+  "id": "hard-name2smiles-trienal",
+  "key": "O=C/C=C/C=C\\C=C\\C",
+  "kind": "structure",
+  "note": "Three double-bond geometries in one chain; the middle one is Z.",
+  "pilot": true,
+  "prompt": "Give the SMILES of (2E,4Z,6E)-octa-2,4,6-trienal, with its stereochemistry.",
+  "status": "ready",
+  "stereo": true,
+  "updatedAt": "2026-11-07T17:30:32.770Z",
+  "updatedBy": "claude"
+}
