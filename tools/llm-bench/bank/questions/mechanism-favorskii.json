@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "mechanism",
+  "createdAt": "2026-11-07T17:39:35.067Z",
+  "createdBy": "claude",
+  "id": "mechanism-favorskii",
+  "key": "O=C1C2CCCCC12\nCOC(=O)C1CCCC1",
+  "kind": "sequence",
+  "note": "The cyclopropanone (bicyclo[4.1.0]heptan-7-one) is the intermediate; models often give a semibenzilic or SN2 pathway instead.",
+  "pilot": true,
+  "prompt": "2-Chlorocyclohexan-1-one is treated with sodium methoxide in methanol to give methyl cyclopentanecarboxylate. Give the key neutral intermediate of the mechanism and then the product.",
+  "status": "draft",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:39:35.067Z",
+  "updatedBy": "claude"
+}

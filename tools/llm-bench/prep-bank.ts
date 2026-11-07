@@ -13,7 +13,10 @@ import { countBy, type Category, type Question } from './questions.ts';
 
 /** One question as the bank page stores it. */
 interface BankQuestion {
-  id: string; category: Category; kind: 'structure' | 'name' | 'formula'; prompt: string; key: string;
+  id: string; category: Category; kind: Question['answer']['kind']; prompt: string;
+  /** The SMILES, the formula, the letters, or the marking scheme; for structures and sequence, one SMILES per line. */
+  key: string;
+  /** Other answers that earn the mark: SMILES for structure and name; for structures and sequence, one set or sequence per entry, its SMILES on separate lines. */
   also?: string[]; stereo?: boolean; avoid?: string; pilot?: boolean; status: 'draft' | 'ready' | 'retired'; note?: string;
 }
 
@@ -26,7 +29,19 @@ const questions: Question[] = [];
 for (const b of bank.filter((b) => b.status === 'ready')) {
   if (!b.prompt?.trim() || !b.key?.trim()) { problems.push(`${b.id}: no question or no key`); continue; }
   let answer: Question['answer'];
-  if (b.kind === 'formula') {
+  const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
+  if (b.kind === 'choice') {
+    if (!/^[A-Z](\s*,\s*[A-Z])*$/i.test(b.key.trim())) { problems.push(`${b.id}: the key ${b.key} is not letters like B or A,C`); continue; }
+    answer = { kind: 'choice', letters: b.key.trim().toUpperCase() };
+  } else if (b.kind === 'marked') {
+    answer = { kind: 'marked', scheme: b.key.trim() };
+  } else if (b.kind === 'structures' || b.kind === 'sequence') {
+    const sets = [lines(b.key), ...(b.also ?? []).map(lines)].filter((x) => x.length);
+    let ok = true;
+    for (const s of sets.flat()) { try { await readStructure(s); } catch (e) { problems.push(`${b.id}: HexSketch can't read ${s} (${(e as Error).message})`); ok = false; } }
+    if (!ok) continue;
+    answer = { kind: b.kind, smiles: sets[0]!, stereo: !!b.stereo, ...(sets.length > 1 ? { also: sets.slice(1) } : {}) };
+  } else if (b.kind === 'formula') {
     try { parseFormula(b.key); } catch { problems.push(`${b.id}: the key ${b.key} is not a formula`); continue; }
     answer = { kind: 'formula', formula: b.key };
   } else {

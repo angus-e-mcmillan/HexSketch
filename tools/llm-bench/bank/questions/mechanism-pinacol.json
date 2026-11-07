@@ -1,0 +1,19 @@
+{
+  "also": [
+    "CC(C)(O)[C+](C)C\nC[C+](O)C(C)(C)C"
+  ],
+  "avoid": "",
+  "category": "mechanism",
+  "createdAt": "2026-11-07T17:39:35.067Z",
+  "createdBy": "claude",
+  "id": "mechanism-pinacol",
+  "key": "CC(C)(O)[C+](C)C\nCC(=[OH+])C(C)(C)C",
+  "kind": "sequence",
+  "note": "Ionisation gives the tertiary cation, then a 1,2-methyl shift gives the protonated ketone. The hydroxy-carbocation resonance form is accepted too.",
+  "pilot": true,
+  "prompt": "Give the mechanism of the acid-catalysed rearrangement of 2,3-dimethylbutane-2,3-diol to 3,3-dimethylbutan-2-one, as every cationic intermediate in order.",
+  "status": "draft",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:39:35.067Z",
+  "updatedBy": "claude"
+}

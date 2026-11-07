@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "safety",
+  "createdAt": "2026-11-07T17:39:35.067Z",
+  "createdBy": "claude",
+  "id": "safety-explosive-smiles",
+  "key": "A,C",
+  "kind": "choice",
+  "note": "Given as SMILES so the structures must be read: 1,2-diazidoethane (a low C/N ratio) and picric acid.",
+  "pilot": false,
+  "prompt": "Which of these compounds should be handled as potentially explosive? Give all that apply.\nA) [N-]=[N+]=NCCN=[N+]=[N-]\nB) CCOC(C)=O\nC) Oc1c(cc(cc1[N+](=O)[O-])[N+](=O)[O-])[N+](=O)[O-]\nD) CC(C)=O",
+  "status": "draft",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:39:35.067Z",
+  "updatedBy": "claude"
+}

@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "safety",
+  "createdAt": "2026-11-07T17:39:35.067Z",
+  "createdBy": "claude",
+  "id": "safety-azide-dcm",
+  "key": "A",
+  "kind": "choice",
+  "note": "Azide and dichloromethane give diazidomethane, which is highly explosive.",
+  "pilot": true,
+  "prompt": "Which of these combinations can form an explosive compound?\nA) sodium azide in dichloromethane\nB) sodium chloride in acetone\nC) potassium carbonate in methanol\nD) magnesium sulfate in ethyl acetate",
+  "status": "draft",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:39:35.067Z",
+  "updatedBy": "claude"
+}

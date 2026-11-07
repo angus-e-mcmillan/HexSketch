@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "retrosynthesis",
+  "createdAt": "2026-11-07T17:39:35.067Z",
+  "createdBy": "claude",
+  "id": "retro-robinson",
+  "key": "CC1C(=O)CCCC1=O\nC=CC(C)=O",
+  "kind": "structures",
+  "note": "Disconnect the enone (aldol) and then the Michael bond: 2-methylcyclohexane-1,3-dione and methyl vinyl ketone.",
+  "pilot": false,
+  "prompt": "The Wieland–Miescher ketone, CC12CCC(=O)C=C1CCCC2=O, is made by a Robinson annulation. Give the two starting materials.",
+  "status": "draft",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:39:35.067Z",
+  "updatedBy": "claude"
+}

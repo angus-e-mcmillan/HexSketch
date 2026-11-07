@@ -49,3 +49,20 @@ test('structures: any answer the examiner also accepts earns the mark', async ()
   assert.equal(await grade(q, 'CC(C)=CC'), 'correct');
   assert.equal(await grade(q, 'C=CC(C)C'), 'wrong');
 });
+
+test('sets, sequences, choices and marked answers', async () => {
+  const q = (answer: Question['answer']): Question => ({ id: 'x', category: 'other', prompt: '', pilot: true, answer });
+  const retro = q({ kind: 'structures', smiles: ['C1=CC=CCC1', 'O=C1OC(=O)C=C1'], stereo: false });
+  assert.equal(await grade(retro, 'O=C1C=CC(=O)O1.C1CC=CC=C1'), 'correct');
+  assert.equal(await grade(retro, 'C1CC=CC=C1'), 'wrong');
+  assert.equal(await grade(retro, 'C1CC=CC=C1.O=C1C=CC(=O)O1.CCO'), 'wrong');
+  const mech = q({ kind: 'sequence', smiles: ['CC(C)(O)[C+](C)C', 'CC(=[OH+])C(C)(C)C'], stereo: false });
+  assert.equal(await grade(mech, 'CC(C)(O)C(C)(C)[OH2+] >> CC(C)(O)[C+](C)C >> CC(=[OH+])C(C)(C)C >> CC(=O)C(C)(C)C'), 'correct');
+  assert.equal(await grade(mech, 'CC(=[OH+])C(C)(C)C >> CC(C)(O)[C+](C)C'), 'wrong');
+  const safety = q({ kind: 'choice', letters: 'A,C' });
+  assert.equal(await grade(safety, 'C, A'), 'correct');
+  assert.equal(await grade(safety, 'A and C'), 'correct');
+  assert.equal(await grade(safety, 'A'), 'wrong');
+  assert.equal(await grade(q({ kind: 'marked', scheme: 'x' }), 'Step 1 ...'), 'ungraded');
+  assert.equal(finalAnswer('Plan:\nANSWER: Step 1, nitrate.\nStep 2, reduce.', true), 'Step 1, nitrate.\nStep 2, reduce.');
+});

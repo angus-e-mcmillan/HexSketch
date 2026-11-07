@@ -1,7 +1,7 @@
 /** The benchmark's questions (questions.jsonl, built by prep.ts). */
 import { readFileSync } from 'node:fs';
 
-export type Category = 'name2smiles' | 'stereo' | 'smiles2name' | 'formula' | 'reaction' | 'common2smiles' | 'common2name' | 'smiles2formula' | 'synthesis' | 'spectra' | 'other';
+export type Category = 'name2smiles' | 'stereo' | 'smiles2name' | 'formula' | 'reaction' | 'common2smiles' | 'common2name' | 'smiles2formula' | 'mechanism' | 'retrosynthesis' | 'synthesis' | 'multistep' | 'safety' | 'spectra' | 'other';
 
 /**
  * standard: questions.jsonl, from the ZINC sets. hard: hard.jsonl, picked by
@@ -26,7 +26,24 @@ export interface Question {
      */
     | { kind: 'name'; smiles: string; stereo: boolean; avoid?: string; also?: string[] }
     /** A molecular formula, graded element by element. */
-    | { kind: 'formula'; formula: string };
+    | { kind: 'formula'; formula: string }
+    /**
+     * Several structures in any order ("A.B"), such as the starting
+     * materials of a retrosynthesis: right when the answer is the same set
+     * as `smiles` or as one of the sets in `also`.
+     */
+    | { kind: 'structures'; smiles: string[]; stereo: boolean; also?: string[][] }
+    /**
+     * Structures in order ("A >> B >> C"), such as a mechanism's
+     * intermediates or a route's: right when the key's structures appear in
+     * the answer in that order. Steps the key leaves out (a proton transfer)
+     * may come between them.
+     */
+    | { kind: 'sequence'; smiles: string[]; stereo: boolean; also?: string[][] }
+    /** Letters of a multiple-choice question ("B", or "A,C" for all that apply): right when exactly these. */
+    | { kind: 'choice'; letters: string }
+    /** An open answer, marked by the examiner against this marking scheme; ungraded until then. */
+    | { kind: 'marked'; scheme: string };
   /** In the small set run first (--pilot). */
   pilot: boolean;
 }
@@ -36,6 +53,10 @@ export const ANSWER_FORMAT: Record<Question['answer']['kind'], string> = {
   structure: 'the SMILES',
   name: 'the name',
   formula: 'the molecular formula (e.g. C9H8O4)',
+  structures: 'the SMILES of each structure, joined by "."',
+  sequence: 'the SMILES of each structure in order, joined by " >> "',
+  choice: 'the letter of your choice (for "all that apply", every letter, e.g. A,C)',
+  marked: 'your full answer (it may run over several lines)',
 };
 
 export function loadQuestions(set: QuestionSet = 'standard'): Question[] {

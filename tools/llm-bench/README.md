@@ -76,6 +76,21 @@ and an examiner's note that is never sent to the model. HexSketch draws, names
 and checks each key as it is typed; a key can be pasted as SMILES, a
 hexsketch.com link or a structure copied with Edit › Copy for AI.
 
+Answers come in seven kinds, all marked automatically except the last:
+
+| Kind | The model gives | Right when | Used for |
+|---|---|---|---|
+| `structure` | a SMILES | the same compound (or stereoisomer) as the key or an accepted alternative | products, names → structures |
+| `name` | a name | OPSIN parses it to the key | structures → names |
+| `formula` | a formula | element by element | formulas |
+| `structures` | SMILES joined by `.` | exactly the key's set, in any order (or an accepted alternative set) | retrosynthesis starting materials |
+| `sequence` | SMILES joined by ` >> ` | the key's structures appear in that order; extra steps between them are allowed | mechanism intermediates, routes |
+| `choice` | letters, e.g. `A,C` | exactly the key's letters | safety, multiple choice |
+| `marked` | a written answer | marked by the examiner against the marking scheme | forward synthesis, procedures |
+
+Marked answers are kept in full; until they are marked the report leaves them
+out of the accuracy and counts them as answers to mark.
+
 Claude exports the bank into `bank/questions/` (one file per question, committed),
 and `prep-bank.ts` turns the questions marked Ready into `exam.jsonl`:
 

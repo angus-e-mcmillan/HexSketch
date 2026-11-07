@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "safety",
+  "createdAt": "2026-11-07T17:39:35.067Z",
+  "createdBy": "claude",
+  "id": "safety-peroxides",
+  "key": "A,B,E",
+  "kind": "choice",
+  "note": "Ethers with α-hydrogens form peroxides; toluene and acetonitrile do not.",
+  "pilot": true,
+  "prompt": "Which of these solvents can form explosive peroxides on storage? Give all that apply.\nA) tetrahydrofuran\nB) diethyl ether\nC) toluene\nD) acetonitrile\nE) 1,4-dioxane",
+  "status": "draft",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:39:35.067Z",
+  "updatedBy": "claude"
+}

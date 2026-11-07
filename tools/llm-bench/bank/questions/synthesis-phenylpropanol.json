@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "synthesis",
+  "createdAt": "2026-11-07T17:39:35.067Z",
+  "createdBy": "claude",
+  "id": "synthesis-phenylpropanol",
+  "key": "2 marks for a working route, 1 for correct conditions throughout.\nAccept: (1) propanoyl chloride, AlCl3; (2) NaBH4, MeOH.\nAccept: (1) Br2, FeBr3; (2) Mg, Et2O; (3) propanal, then aqueous NH4Cl.\nNo marks for a Friedel–Crafts alkylation route (rearrangement and polyalkylation).",
+  "kind": "marked",
+  "note": "Open answer; tests whether the model avoids Friedel–Crafts alkylation.",
+  "pilot": false,
+  "prompt": "Starting from benzene and any reagents with no more than three carbon atoms, propose a synthesis of 1-phenylpropan-1-ol. Give the reagents and conditions for each step.",
+  "status": "draft",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:39:35.067Z",
+  "updatedBy": "claude"
+}

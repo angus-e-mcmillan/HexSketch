@@ -98,7 +98,7 @@ const REACTIONS: [string, string, string, boolean][] = [
 for (const [id, prompt, smiles, pilot] of REACTIONS) add({ id: `reaction-${id}`, category: 'reaction', prompt, answer: { kind: 'structure', smiles, stereo: false } }, pilot);
 
 // Every answer must read.
-for (const q of questions) if (q.answer.kind !== 'formula') await readStructure(q.answer.smiles);
+for (const q of questions) if (q.answer.kind === 'structure' || q.answer.kind === 'name') await readStructure(q.answer.smiles);
 
 writeFileSync(new URL('questions.jsonl', here), questions.map((q) => JSON.stringify(q)).join('\n') + '\n');
 const count = (pilot: boolean) => Object.entries(countBy(questions.filter((q) => !pilot || q.pilot), (q) => q.category)).map(([k, n]) => `${k} ${n}`).join(', ');

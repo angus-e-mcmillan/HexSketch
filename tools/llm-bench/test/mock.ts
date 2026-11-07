@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import { name } from '../../../packages/agent/src/index.ts';
 import { loadQuestions } from '../questions.ts';
 
-const questions = [...loadQuestions('standard'), ...loadQuestions('hard')];
+const questions = [...loadQuestions('standard'), ...loadQuestions('hard'), ...loadQuestions('exam')];
 const port = Number(process.argv[2] ?? 8788);
 let calls = 0;
 
@@ -25,9 +25,10 @@ createServer(async (req, res) => {
   const q = questions.find((x) => user.startsWith(x.prompt))!;
   const usage = { prompt_tokens: 100, completion_tokens: 50, completion_tokens_details: { reasoning_tokens: 20 }, cost: 0.001 };
   const a = q.answer;
-  const truth = a.kind === 'formula' ? a.formula : a.kind === 'name' ? (await name(a.smiles)).name : a.smiles;
+  const truth = a.kind === 'formula' ? a.formula : a.kind === 'name' ? (await name(a.smiles)).name
+    : a.kind === 'choice' ? a.letters : a.kind === 'marked' ? 'A route, in full.' : a.kind === 'structures' ? a.smiles.join('.') : a.kind === 'sequence' ? a.smiles.join(' >> ') : a.smiles;
   // With tools, check first (one round), then answer.
-  if (b.tools?.length && !b.messages.some((m) => m.role === 'tool') && a.kind !== 'formula') {
+  if (b.tools?.length && !b.messages.some((m) => m.role === 'tool') && (a.kind === 'structure' || a.kind === 'name')) {
     return send({ model: 'mock/model-1', provider: 'Mock', usage, choices: [{ finish_reason: 'tool_calls', message: { role: 'assistant', content: '', tool_calls: [{ id: `c${calls}`, type: 'function', function: { name: 'validate_structure', arguments: JSON.stringify({ structure: a.smiles }) } }] } }] });
   }
   const wrong = q.category === 'reaction' && user.includes('Benzaldehyde is treated') && !b.tools;

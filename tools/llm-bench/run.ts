@@ -158,7 +158,7 @@ async function runOne(job: Job): Promise<RunRecord> {
       const m = choice.message;
       // The thinking goes back with the turn (reasoning_details), as Claude's API needs for tool use.
       messages.push({ role: 'assistant', content: m.content ?? '', ...(m.tool_calls?.length ? { tool_calls: m.tool_calls } : {}), ...(m.reasoning_details ? { reasoning_details: m.reasoning_details } : {}) });
-      if (!m.tool_calls?.length) { rec.answer = finalAnswer(m.content ?? ''); break; }
+      if (!m.tool_calls?.length) { rec.answer = finalAnswer(m.content ?? '', q.answer.kind === 'marked'); break; }
       for (const call of m.tool_calls) {
         const out = await runTool(condition, call.function.name, call.function.arguments);
         rec.tools.push({ name: call.function.name, error: out.error });
@@ -211,7 +211,8 @@ const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.l
 /** Accuracy, and its range over the repeats (each repeat a full pass through the questions). */
 const score = (rs: RunRecord[]) => {
   const per = Array.from({ length: repeats }, (_, i) => rs.filter((r) => r.repeat === i + 1)).filter((x) => x.length);
-  const acc = (x: RunRecord[]) => x.filter((r) => r.verdict === 'correct').length / x.length;
+  // Answers waiting for the examiner's mark count for nothing yet; the report says how many there are.
+  const acc = (x: RunRecord[]) => { const g = x.filter((r) => r.verdict !== 'ungraded'); return g.length ? g.filter((r) => r.verdict === 'correct').length / g.length : 0; };
   return {
     n: rs.length, accuracy: rs.length ? acc(rs) : 0,
     range: per.length ? [Math.min(...per.map(acc)), Math.max(...per.map(acc))] : [0, 0],
@@ -246,7 +247,8 @@ const lines = [
   `| output tokens (thinking) | ${conditions.map((c) => `${summary.conditions[c]!.all.tokens.toFixed(0)} (${summary.conditions[c]!.all.reasoning.toFixed(0)})`).join(' | ')} |`,
   `| median time | ${conditions.map((c) => `${summary.conditions[c]!.all.seconds.toFixed(0)} s`).join(' | ')} |`,
   `| tool calls / question | ${conditions.map((c) => summary.conditions[c]!.all.toolCalls.toFixed(1)).join(' | ')} |`,
-  '', 'Accuracy, with its range over the repeats in brackets.',
+  ...(ok.some((r) => r.verdict === 'ungraded') ? [`| answers to mark | ${conditions.map((c) => ok.filter((r) => r.condition === c && r.verdict === 'ungraded').length).join(' | ')} |`] : []),
+  '', `Accuracy, with its range over the repeats in brackets.${ok.some((r) => r.verdict === 'ungraded') ? ' Answers to be marked by the examiner are left out until they are marked.' : ''}`,
 ];
 writeFileSync(new URL(`results/${runName}.md`, here), lines.join('\n') + '\n');
 console.log('\n' + lines.join('\n'));

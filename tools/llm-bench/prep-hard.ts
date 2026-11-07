@@ -84,7 +84,7 @@ for (const [id, prompt, , s, stereo, pilot] of REACTIONS) {
   add({ id: `hard-reaction-${id}`, category: 'reaction', prompt, answer: { kind: 'structure', smiles: s, stereo }, pilot });
 }
 
-for (const q of questions) if (q.answer.kind !== 'formula') await readStructure(q.answer.smiles);
+for (const q of questions) if (q.answer.kind === 'structure' || q.answer.kind === 'name') await readStructure(q.answer.smiles);
 writeFileSync(new URL('hard.jsonl', import.meta.url), questions.map((q) => JSON.stringify(q)).join('\n') + '\n');
 const count = (pilot: boolean) => Object.entries(countBy(questions.filter((q) => !pilot || q.pilot), (q) => q.category)).map(([k, n]) => `${k} ${n}`).join(', ');
 console.log(`pilot (${questions.filter((q) => q.pilot).length}): ${count(true)}\nall (${questions.length}): ${count(false)}`);

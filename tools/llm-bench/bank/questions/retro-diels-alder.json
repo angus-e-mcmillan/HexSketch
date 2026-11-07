@@ -1,0 +1,17 @@
+{
+  "also": [],
+  "avoid": "",
+  "category": "retrosynthesis",
+  "createdAt": "2026-11-07T17:39:35.067Z",
+  "createdBy": "claude",
+  "id": "retro-diels-alder",
+  "key": "C1=CC=CCC1\nO=C1C=CC(=O)O1",
+  "kind": "structures",
+  "note": "The two-carbon bridge means cyclohexa-1,3-diene, not cyclopentadiene.",
+  "pilot": true,
+  "prompt": "The anhydride O=C1OC(=O)C2C3CCC(C=C3)C12 is made in one step by a Diels–Alder reaction. Give the diene and the dienophile.",
+  "status": "draft",
+  "stereo": false,
+  "updatedAt": "2026-11-07T17:39:35.067Z",
+  "updatedBy": "claude"
+}
