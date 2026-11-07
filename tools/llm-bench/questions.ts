@@ -1,16 +1,12 @@
-/** The benchmark's questions (questions.jsonl, built by prep.ts). */
-import { readFileSync } from 'node:fs';
-
-export type Category = 'name2smiles' | 'stereo' | 'smiles2name' | 'formula' | 'reaction' | 'common2smiles' | 'common2name' | 'smiles2formula' | 'mechanism' | 'retrosynthesis' | 'synthesis' | 'multistep' | 'safety' | 'spectra' | 'other';
-
 /**
- * standard: questions.jsonl, from the ZINC sets. hard: hard.jsonl, picked by
- * hand to trip models up (hard.ts). exam: exam.jsonl, the Ready questions in
- * the exam bank (bank/, written in the HexSketch Exam Bank page).
+ * The benchmark's questions: questions.jsonl, built by prep-bank.ts from the
+ * questions marked Ready in the exam bank (bank/questions/, written in the
+ * HexSketch Exam Bank page).
  */
-export type QuestionSet = 'standard' | 'hard' | 'exam';
-export const SETS: QuestionSet[] = ['standard', 'hard', 'exam'];
-export const SET_FILE: Record<QuestionSet, string> = { standard: 'questions.jsonl', hard: 'hard.jsonl', exam: 'exam.jsonl' };
+import { existsSync, readFileSync } from 'node:fs';
+
+/** The examiner's own label for the kind of question (mechanism, safety, …); results are reported per category. */
+export type Category = string;
 
 export interface Question {
   id: string;
@@ -59,9 +55,12 @@ export const ANSWER_FORMAT: Record<Question['answer']['kind'], string> = {
   marked: 'your full answer (it may run over several lines)',
 };
 
-export function loadQuestions(set: QuestionSet = 'standard'): Question[] {
-  const text = readFileSync(new URL(SET_FILE[set], import.meta.url), 'utf8');
-  return text.trim().split('\n').map((l) => JSON.parse(l) as Question);
+export const QUESTIONS_FILE = new URL('questions.jsonl', import.meta.url);
+
+export function loadQuestions(): Question[] {
+  if (!existsSync(QUESTIONS_FILE)) return [];
+  const text = readFileSync(QUESTIONS_FILE, 'utf8').trim();
+  return text ? text.split('\n').map((l) => JSON.parse(l) as Question) : [];
 }
 
 /** How many of each, by key (Object.groupBy, which this project's TypeScript target lacks). */

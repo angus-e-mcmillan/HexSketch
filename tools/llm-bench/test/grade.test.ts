@@ -36,13 +36,6 @@ test('names: a trivial name the question rules out is wrong, even though OPSIN r
   assert.equal(await grade(q, '(2S)-2-amino-3-sulfanylpropanoic acid', 'N[C@H](CS)C(=O)O'), 'stereo');
 });
 
-test('the hard set: every question is well formed', async () => {
-  const { loadQuestions } = await import('../questions.ts');
-  const hard = loadQuestions('hard');
-  assert.equal(new Set(hard.map((q) => q.id)).size, hard.length);
-  assert.ok(hard.filter((q) => q.pilot).length >= 30);
-});
-
 test('structures: any answer the examiner also accepts earns the mark', async () => {
   const q: Question = { id: 'x', category: 'reaction', prompt: '', pilot: true, answer: { kind: 'structure', smiles: 'C=C(C)CC', stereo: false, also: ['CC=C(C)C'] } };
   assert.equal(await grade(q, 'C=C(C)CC'), 'correct');

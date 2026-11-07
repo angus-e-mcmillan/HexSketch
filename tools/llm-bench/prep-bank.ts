@@ -1,15 +1,15 @@
 /**
- * Builds exam.jsonl (`--set exam`) from the exam bank: the questions written
+ * Builds questions.jsonl, the benchmark's questions, from the exam bank: the questions written
  * in the HexSketch Exam Bank page, exported by Claude into bank/questions/
  * (one JSON file per question, as the page stores it). Only questions marked
  * Ready are used. Checks every key reads (HexSketch) or parses (formulas).
  *
  *   node --experimental-strip-types tools/llm-bench/prep-bank.ts
  */
-import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { readStructure } from '../../packages/agent/src/index.ts';
 import { parseFormula } from './hexsketch.ts';
-import { countBy, type Category, type Question } from './questions.ts';
+import { countBy, QUESTIONS_FILE, type Category, type Question } from './questions.ts';
 
 /** One question as the bank page stores it. */
 interface BankQuestion {
@@ -21,7 +21,7 @@ interface BankQuestion {
 }
 
 const dir = new URL('bank/questions/', import.meta.url);
-const bank = readdirSync(dir).filter((f) => f.endsWith('.json')).sort()
+const bank = (existsSync(dir) ? readdirSync(dir) : []).filter((f) => f.endsWith('.json')).sort()
   .map((f) => JSON.parse(readFileSync(new URL(f, dir), 'utf8')) as BankQuestion);
 
 const problems: string[] = [];
@@ -59,6 +59,6 @@ for (const b of bank.filter((b) => b.status === 'ready')) {
 }
 
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
-writeFileSync(new URL('exam.jsonl', import.meta.url), questions.map((q) => JSON.stringify(q)).join('\n') + '\n');
+writeFileSync(QUESTIONS_FILE, questions.map((q) => JSON.stringify(q)).join('\n') + '\n');
 const count = (pilot: boolean) => Object.entries(countBy(questions.filter((q) => !pilot || q.pilot), (q) => q.category)).map(([k, n]) => `${k} ${n}`).join(', ');
 console.log(`${bank.length} in the bank, ${questions.length} ready.\npilot (${questions.filter((q) => q.pilot).length}): ${count(true)}\nall: ${count(false)}`);

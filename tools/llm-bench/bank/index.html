@@ -165,23 +165,8 @@ footer { color: var(--muted); font-size: .85rem; max-width: 80ch; }
 
 <script src="hexsketch.js"></script>
 <script>
-const CATEGORIES = {
-  name2smiles: { label: 'IUPAC name → structure', kind: 'structure' },
-  smiles2name: { label: 'Structure → IUPAC name', kind: 'name' },
-  common2smiles: { label: 'Common name → structure', kind: 'structure' },
-  common2name: { label: 'Common name → systematic name', kind: 'name' },
-  formula: { label: 'Name → formula', kind: 'formula' },
-  smiles2formula: { label: 'SMILES → formula', kind: 'formula' },
-  reaction: { label: 'Reaction product', kind: 'structure' },
-  multistep: { label: 'Product of a sequence', kind: 'structure' },
-  mechanism: { label: 'Mechanism', kind: 'sequence' },
-  retrosynthesis: { label: 'Retrosynthesis', kind: 'structures' },
-  synthesis: { label: 'Forward synthesis', kind: 'marked' },
-  safety: { label: 'Safety', kind: 'choice' },
-  spectra: { label: 'Structure from spectra', kind: 'structure' },
-  stereo: { label: 'Stereochemistry', kind: 'structure' },
-  other: { label: 'Other', kind: 'structure' },
-};
+/** Categories offered when writing a question; any other can be typed. */
+const SUGGESTED = ['Mechanism', 'Retrosynthesis', 'Forward synthesis', 'Safety'];
 // Exactly as the benchmark's runner words them (tools/llm-bench/questions.ts).
 const ANSWER_FORMAT = {
   structure: 'the SMILES', name: 'the name', formula: 'the molecular formula (e.g. C9H8O4)',
@@ -193,11 +178,11 @@ const ANSWER_FORMAT = {
 const KINDS = {
   structure: { label: 'A structure (SMILES)', key: 'Answer key: the structure', rows: 2, placeholder: 'SMILES, a hexsketch.com link, or a structure from Edit › Copy for AI' },
   name: { label: 'A name', key: 'Answer key: the compound to be named', rows: 2, placeholder: 'SMILES, a hexsketch.com link, or a structure from Edit › Copy for AI', hint: 'Any correct IUPAC name for this structure is marked right (parsed by OPSIN).' },
-  formula: { label: 'A molecular formula', key: 'Answer key: the formula', placeholder: 'C47H51NO14', hint: 'Marked element by element, in any order.' },
-  structures: { label: 'A set of structures (A.B)', key: 'Answer key: the structures, one per line', rows: 4, placeholder: 'C1=CCC=CC1\nO=C1OC(=O)C=C1', hint: 'Marked as a set: all of these, in any order, and nothing else.' },
-  sequence: { label: 'Structures in order (A >> B)', key: 'Answer key: the structures in order, one per line', rows: 5, placeholder: 'CC(C)(O)[C+](C)C\nCC(=[OH+])C(C)(C)C', hint: 'List only the structures that earn the mark. The model must give them in this order, and may add steps between them (a proton transfer, say).' },
+  formula: { label: 'A molecular formula', key: 'Answer key: the formula', placeholder: 'e.g. C9H8O4', hint: 'Marked element by element, in any order.' },
+  structures: { label: 'A set of structures (A.B)', key: 'Answer key: the structures, one per line', rows: 4, placeholder: 'One SMILES per line', hint: 'Marked as a set: all of these, in any order, and nothing else.' },
+  sequence: { label: 'Structures in order (A >> B)', key: 'Answer key: the structures in order, one per line', rows: 5, placeholder: 'One SMILES per line, in order', hint: 'List only the structures that earn the mark. The model must give them in this order, and may add steps between them (a proton transfer, say).' },
   choice: { label: 'Letters (multiple choice)', key: 'Answer key: the letters', placeholder: 'B, or A,C for all that apply', hint: 'Put the lettered options in the question. Marked right only for exactly these letters.' },
-  marked: { label: 'A written answer (you mark it)', key: 'Marking scheme', rows: 6, text: true, placeholder: 'e.g. 1 mark: Friedel–Crafts acylation with propanoyl chloride and AlCl3. 1 mark: reduction with NaBH4. Accept PhMgBr + propanal.', hint: 'The model\'s full answer is kept for you to mark against this. The scheme is not sent to the model.' },
+  marked: { label: 'A written answer (you mark it)', key: 'Marking scheme', rows: 6, text: true, placeholder: 'What earns each mark, and what to accept', hint: 'The model\'s full answer is kept for you to mark against this. The scheme is not sent to the model.' },
 };
 const MULTI = (k) => k === 'structures' || k === 'sequence';
 const DRAWN = (k) => k === 'structure' || k === 'name' || MULTI(k);
@@ -212,7 +197,7 @@ let draft = null;                // the question being edited (a copy)
 let dirty = false;
 let catFilter = '';
 
-function sortKey(q) { return [Object.keys(CATEGORIES).indexOf(q.category), q.createdAt || '', q.id].join('|'); }
+function sortKey(q) { return [(q.category || '').toLowerCase(), q.createdAt || '', q.id].join('|'); }
 
 // ------------------------------------------------------------- the store
 
@@ -256,7 +241,7 @@ function renderTally() {
     return b;
   };
   t.append(chip('', 'All', bank.size));
-  for (const [k, c] of Object.entries(CATEGORIES)) if (counts[k]) t.append(chip(k, c.label, counts[k]));
+  for (const k of Object.keys(counts).sort((a, b) => a.localeCompare(b))) t.append(chip(k, k || 'No category', counts[k]));
 }
 
 function renderList() {
@@ -269,7 +254,7 @@ function renderList() {
     const meta = el('div', { className: 'meta' },
       el('span', { className: `tag ${q.status}`, textContent: q.status }),
       q.pilot ? el('span', { className: 'tag pilot', textContent: 'pilot' }) : null,
-      el('span', { textContent: CATEGORIES[q.category]?.label || q.category }));
+      el('span', { textContent: q.category || 'No category' }));
     const row = el('div', { className: 'q', tabIndex: 0 }, el('span', { className: 'num', textContent: String(n).padStart(2, '0') }), el('div', { className: 'text', textContent: q.prompt || '(no question yet)' }), meta);
     row.setAttribute('role', 'button');
     row.setAttribute('aria-current', String(q.id === selected));
@@ -299,10 +284,10 @@ $('new').onclick = () => {
   newQuestion();
 };
 function newQuestion() {
-  const category = catFilter || 'reaction';
-  const id = `${category}-${Math.random().toString(36).slice(2, 8)}`;
+  const category = catFilter || '';
+  const id = `q-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   selected = id; pendingSwitch = null; dirty = true;
-  draft = { id, category, kind: CATEGORIES[category].kind, prompt: '', key: '', also: [], stereo: false, avoid: '', pilot: false, status: 'draft', note: '', isNew: true };
+  draft = { id, category, kind: 'structure', prompt: '', key: '', also: [], stereo: false, avoid: '', pilot: false, status: 'draft', note: '', isNew: true };
   renderList(); renderSheet();
   setTimeout(() => $('f-prompt')?.focus(), 0);
 }
@@ -332,9 +317,11 @@ function renderSheet() {
   s.append(el('h2', { textContent: q.isNew ? 'New question' : `Question ${n}` }));
 
   // Category, answer type, status
-  const cat = el('select', { id: 'f-category' });
-  for (const [k, c] of Object.entries(CATEGORIES)) cat.append(el('option', { value: k, textContent: c.label, selected: q.category === k }));
-  cat.onchange = () => { q.category = cat.value; const was = q.kind; q.kind = CATEGORIES[q.category].kind; kind.value = q.kind; touch(); updatePreview(); if (was !== q.kind) renderKeyFields(); };
+  const cat = el('input', { type: 'text', id: 'f-category', value: q.category || '', placeholder: 'e.g. Mechanism' });
+  cat.setAttribute('list', 'categories');
+  const known = [...new Set([...SUGGESTED, ...[...bank.values()].map((x) => x.category).filter(Boolean)])].sort((a, b) => a.localeCompare(b));
+  s.append(el('datalist', { id: 'categories' }, ...known.map((c) => el('option', { value: c }))));
+  cat.oninput = () => { q.category = cat.value.trim(); touch(); };
   const kind = el('select', { id: 'f-kind' });
   for (const [k, c] of Object.entries(KINDS)) kind.append(el('option', { value: k, textContent: c.label, selected: q.kind === k }));
   kind.onchange = () => { q.kind = kind.value; touch(); updatePreview(); renderKeyFields(); };
@@ -349,7 +336,6 @@ function renderSheet() {
 
   // Prompt and how it is sent
   const prompt = el('textarea', { id: 'f-prompt', rows: 4, value: q.prompt });
-  prompt.placeholder = 'e.g. (R)-2-Bromobutane is heated with sodium azide in DMF. What is the product, with its stereochemistry?';
   prompt.oninput = () => { q.prompt = prompt.value; touch(); updatePreview(); };
   s.append(field('Question', prompt, 'Write it as you would on an exam paper. Names, SMILES or both. Say if stereochemistry is wanted.'));
   const sent = el('div', { className: 'as-sent', id: 'as-sent' });
@@ -378,7 +364,7 @@ function renderSheet() {
       keyBox.append(el('span', { className: 'hint' }, draw, MULTI(k) ? ' — copy each with Edit › Copy for AI and paste it on its own line.' : ' — then use Edit › Copy for AI and paste it here.'));
       keyBox.append(MULTI(k) ? el('div', { className: 'multi' }, drawing, readback) : el('div', { className: 'key' }, drawing, readback));
       const also = el('textarea', { id: 'f-also', className: 'mono', rows: MULTI(k) ? 4 : 2, value: (q.also || []).join(MULTI(k) ? '\n\n' : '\n') });
-      also.placeholder = MULTI(k) ? 'Another acceptable answer, one SMILES per line.\nLeave a blank line between answers.' : 'One SMILES per line, e.g. the minor regioisomer if you accept it';
+      also.placeholder = MULTI(k) ? 'Another acceptable answer, one SMILES per line.\nLeave a blank line between answers.' : 'One SMILES per line';
       also.oninput = () => {
         q.also = MULTI(k)
           ? also.value.split(/\n\s*\n/).map((b) => b.split('\n').map((x) => x.trim()).filter(Boolean).join('\n')).filter(Boolean)
@@ -391,7 +377,7 @@ function renderSheet() {
         el('label', { className: 'check' }, stereo, 'Mark the stereochemistry (wrong R/S or E/Z loses the mark)')));
       if (k === 'name') {
         const avoid = el('input', { type: 'text', id: 'f-avoid', value: q.avoid || '' });
-        avoid.placeholder = 'e.g. cysteine';
+        avoid.placeholder = 'A trivial name';
         avoid.oninput = () => { q.avoid = avoid.value.trim(); touch(); };
         keyBox.append(field('Not allowed in the answer', avoid, 'A trivial name OPSIN would also parse. An answer containing it is marked wrong.'));
       }
@@ -509,6 +495,7 @@ function renderSheet() {
     const problems = [];
     if (!q.prompt.trim()) problems.push('Write the question.');
     if (!q.key) problems.push('Give the answer key.');
+    if (!q.category) problems.push('Give it a category.');
     if (problems.length) { toast.textContent = problems.join(' '); toast.classList.add('bad'); return false; }
     if (!db) { toast.textContent = 'Not connected to the question store.'; toast.classList.add('bad'); return false; }
     const now = new Date().toISOString();

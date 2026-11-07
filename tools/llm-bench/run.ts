@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { finalAnswer, grade, opsin, type Verdict } from './grade.ts';
 import { CONDITIONS, runTool, systemPrompt, toolsFor, type Condition } from './hexsketch.ts';
-import { ANSWER_FORMAT, countBy, loadQuestions, SET_FILE, SETS, type Question, type QuestionSet } from './questions.ts';
+import { ANSWER_FORMAT, countBy, loadQuestions, QUESTIONS_FILE, type Question } from './questions.ts';
 
 const here = new URL('.', import.meta.url);
 /** OpenRouter's API (LLM_BENCH_API points it elsewhere, for the runner's own test). */
@@ -25,7 +25,6 @@ const { values: opt } = parseArgs({
     provider: { type: 'string' },
     conditions: { type: 'string', default: 'blind,full' },
     repeats: { type: 'string', default: '3' },
-    set: { type: 'string', default: 'standard' },
     all: { type: 'boolean', default: false },
     only: { type: 'string' },
     concurrency: { type: 'string', default: '4' },
@@ -68,11 +67,9 @@ const conditions = opt.conditions!.split(',').map((c) => c.trim()) as Condition[
 for (const c of conditions) if (!CONDITIONS.includes(c)) throw new Error(`Unknown condition ${c}: use ${CONDITIONS.join(', ')}`);
 const repeats = Number(opt.repeats), maxTokens = Number(opt['max-tokens']), maxRounds = Number(opt['max-rounds']);
 const only = opt.only ? new Set(opt.only.split(',')) : null;
-const set = opt.set as QuestionSet;
-if (!SETS.includes(set)) throw new Error(`Unknown set ${set}: use ${SETS.join(', ')}`);
-const questions = loadQuestions(set).filter((q) => (only ? only.has(q.id) : opt.all || q.pilot));
-if (!questions.length) throw new Error('No questions match');
-const setHash = createHash('sha256').update(readFileSync(new URL(SET_FILE[set], here))).digest('hex').slice(0, 12);
+const questions = loadQuestions().filter((q) => (only ? only.has(q.id) : opt.all || q.pilot));
+if (!questions.length) throw new Error(loadQuestions().length ? 'No questions match' : 'No questions yet: write them in the exam bank, export them to bank/questions/ and run prep-bank.ts');
+const setHash = createHash('sha256').update(readFileSync(QUESTIONS_FILE)).digest('hex').slice(0, 12);
 
 interface Job { key: string; q: Question; condition: Condition; repeat: number }
 const jobs: Job[] = questions.flatMap((q) => conditions.flatMap((condition) => Array.from({ length: repeats }, (_, r) => ({ key: `${q.id}.${condition}.${r + 1}`, q, condition, repeat: r + 1 }))));
@@ -81,7 +78,7 @@ const order = (k: string) => createHash('sha256').update(k).digest('hex');
 jobs.sort((a, b) => (order(a.key) < order(b.key) ? -1 : 1));
 
 const slug = model.replace(/[^a-z0-9.]+/gi, '-').replace(/^-|-$/g, '');
-const runName = opt.run ?? `${new Date().toISOString().slice(0, 10)}-${slug}${set === 'standard' ? '' : `-${set}`}${opt.all ? '' : '-pilot'}`;
+const runName = opt.run ?? `${new Date().toISOString().slice(0, 10)}-${slug}${opt.all ? '' : '-pilot'}`;
 const outDir = new URL(`out/${runName}/`, here);
 console.log(`${runName}: ${questions.length} questions × ${conditions.join('/')} × ${repeats} = ${jobs.length} runs of ${model}${opt.provider ? ` on ${opt.provider}` : ''}`);
 if (opt['dry-run']) process.exit(0);
@@ -225,7 +222,7 @@ const categories = [...new Set(questions.map((q) => q.category))];
 const summary = {
   run: runName, date: new Date().toISOString(), model, served: [...new Set(ok.map((r) => r.model))], providers: [...new Set(ok.flatMap((r) => r.providers))],
   settings: { provider: opt.provider ?? null, effort: opt.effort, maxTokens, maxRounds, repeats, timeoutSeconds: Number(opt.timeout), temperature: 'default' },
-  questions: { set, hash: setHash, count: questions.length, pilot: !opt.all && !only },
+  questions: { hash: setHash, count: questions.length, pilot: !opt.all && !only },
   commit: (() => { try { return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { return null; } })(),
   failedRuns: records.length - ok.length,
   totalCost: records.reduce((s, r) => s + r.cost, 0),
@@ -240,7 +237,7 @@ writeFileSync(new URL(`results/${runName}.json`, here), JSON.stringify(summary, 
 const pct = (x: number) => `${(100 * x).toFixed(0)}%`;
 const lines = [
   `# ${runName}`, '',
-  `${model} (served as ${summary.served.join(', ') || '?'}, via ${summary.providers.join(', ') || '?'}), effort ${opt.effort}, ${repeats} repeats, ${questions.length} ${set} questions. Total cost $${summary.totalCost.toFixed(2)}.${summary.failedRuns ? ` ${summary.failedRuns} runs failed (not scored): run again with --run ${runName}.` : ''}`, '',
+  `${model} (served as ${summary.served.join(', ') || '?'}, via ${summary.providers.join(', ') || '?'}), effort ${opt.effort}, ${repeats} repeats, ${questions.length} questions. Total cost $${summary.totalCost.toFixed(2)}.${summary.failedRuns ? ` ${summary.failedRuns} runs failed (not scored): run again with --run ${runName}.` : ''}`, '',
   `| | ${conditions.join(' | ')} |`, `|---|${conditions.map(() => '---').join('|')}|`,
   ...['all', ...categories].map((k) => `| ${k} | ${conditions.map((c) => { const s = k === 'all' ? summary.conditions[c]!.all : summary.conditions[c]!.byCategory[k]!; return `${pct(s.accuracy)} (${pct(s.range[0]!)}–${pct(s.range[1]!)})`; }).join(' | ')} |`),
   `| cost / question | ${conditions.map((c) => `$${summary.conditions[c]!.all.cost.toFixed(3)}`).join(' | ')} |`,
