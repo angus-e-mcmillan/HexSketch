@@ -44,6 +44,7 @@ export async function grade(q: Question, answer: string | null, named?: string |
   if (!answer) return 'no-answer';
   const a = q.answer;
   if (a.kind === 'formula') return sameFormula(answer, a.formula) ? 'correct' : 'wrong';
+  if (a.kind === 'name' && a.avoid && answer.toLowerCase().includes(a.avoid.toLowerCase())) return 'wrong';
   const smiles = a.kind === 'name' ? named : answer;
   if (!smiles) return 'unreadable';
   let c;

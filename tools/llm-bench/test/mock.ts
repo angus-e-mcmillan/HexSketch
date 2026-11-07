@@ -10,7 +10,7 @@ import { createServer } from 'node:http';
 import { name } from '../../../packages/agent/src/index.ts';
 import { loadQuestions } from '../questions.ts';
 
-const questions = loadQuestions();
+const questions = [...loadQuestions('standard'), ...loadQuestions('hard')];
 const port = Number(process.argv[2] ?? 8788);
 let calls = 0;
 

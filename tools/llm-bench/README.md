@@ -40,6 +40,32 @@ can name its SMILES with `name_structure` and compare the two names directly.
 That is a real use of the tool, but before publishing, consider adding names
 from an independent source (PubChem's IUPAC names) for comparison.
 
+## The hard set
+
+`hard.jsonl` (`--set hard`) is 65 questions picked by hand because models get
+them wrong, asked in a mix of IUPAC names, trivial names and SMILES. The list,
+with the trap in each, is in `hard.ts`. The pilot is 33 of them.
+
+| Category | Asks | Examples |
+|---|---|---|
+| `name2smiles` | SMILES for a hard IUPAC name | von Baeyer and spiro names, fusion locants (thieno[3,2-c]pyridine), indicated hydrogen, `2,5,8,11-tetraoxadodecane` |
+| `smiles2name` | IUPAC name for a SMILES | fused heterocycles, spiro ketals, (2Z,4E) dienes, (1R,4R)-camphor |
+| `common2smiles` | SMILES with every stereocentre for a trivial name | strychnine, morphine, paclitaxel, erythromycin A, sucrose |
+| `common2name` | Systematic name with R/S for a trivial name | L-cysteine (R, unlike the other amino acids), L-threonine, (−)-menthol |
+| `formula` | Formula of a large natural product | vancomycin, cyclosporin A, vitamin B12 |
+| `smiles2formula` | Formula of a long, unnamed SMILES | ritonavir, venetoclax, digoxin |
+| `reaction` | Product where the obvious answer is wrong | SN2 and Mitsunobu inversion, meso products, Hofmann elimination, Baeyer–Villiger, Favorskii |
+
+Every key is checked two ways by `prep-hard.ts`: each IUPAC name must parse
+(OPSIN) to the SMILES written beside it, and each trivial-name compound is
+PubChem's (CID recorded), with HexSketch's formula equal to PubChem's.
+`--pubchem` re-fetches them all from PubChem to check again. A trivial name
+in a `common2name` answer is marked wrong, since OPSIN would parse it too.
+
+```sh
+node --experimental-strip-types tools/llm-bench/prep-hard.ts --pubchem
+```
+
 ## Running it
 
 Once:
@@ -73,7 +99,8 @@ npm run llm-bench -- --model anthropic/claude-opus-5 --provider anthropic --cond
 | `--provider` | any | Pin one provider, with no fallbacks (e.g. `anthropic`) |
 | `--conditions` | `blind,full` | Any of `blind`, `readback`, `full` |
 | `--repeats` | 3 | Passes through the questions; the report shows their range |
-| `--all` | off | The full set rather than the pilot |
+| `--set` | `standard` | `standard` (questions.jsonl) or `hard` (hard.jsonl) |
+| `--all` | off | The whole set rather than its pilot |
 | `--only` | | Comma-separated question ids |
 | `--effort` | `medium` | `reasoning.effort`; `none` for a model without thinking |
 | `--max-tokens` | 32000 | The same for every model, so thinking budgets match |

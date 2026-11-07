@@ -28,3 +28,17 @@ test('structures: connectivity, or the stereoisomer where asked', async () => {
   assert.equal(await grade(q('CCO', false), 'ethanol'), 'unreadable');
   assert.equal(await grade(q('CCO', false), null), 'no-answer');
 });
+
+test('names: a trivial name the question rules out is wrong, even though OPSIN reads it', async () => {
+  const q: Question = { id: 'x', category: 'common2name', prompt: '', pilot: true, answer: { kind: 'name', smiles: 'N[C@@H](CS)C(=O)O', stereo: true, avoid: 'cysteine' } };
+  assert.equal(await grade(q, 'L-cysteine', 'N[C@@H](CS)C(=O)O'), 'wrong');
+  assert.equal(await grade(q, '(2R)-2-amino-3-sulfanylpropanoic acid', 'N[C@@H](CS)C(=O)O'), 'correct');
+  assert.equal(await grade(q, '(2S)-2-amino-3-sulfanylpropanoic acid', 'N[C@H](CS)C(=O)O'), 'stereo');
+});
+
+test('the hard set: every question is well formed', async () => {
+  const { loadQuestions } = await import('../questions.ts');
+  const hard = loadQuestions('hard');
+  assert.equal(new Set(hard.map((q) => q.id)).size, hard.length);
+  assert.ok(hard.filter((q) => q.pilot).length >= 30);
+});

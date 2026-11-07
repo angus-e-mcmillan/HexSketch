@@ -1,7 +1,12 @@
 /** The benchmark's questions (questions.jsonl, built by prep.ts). */
 import { readFileSync } from 'node:fs';
 
-export type Category = 'name2smiles' | 'stereo' | 'smiles2name' | 'formula' | 'reaction';
+export type Category = 'name2smiles' | 'stereo' | 'smiles2name' | 'formula' | 'reaction' | 'common2smiles' | 'common2name' | 'smiles2formula';
+
+/** standard: questions.jsonl, from the ZINC sets. hard: hard.jsonl, picked by hand to trip models up (hard.ts). */
+export type QuestionSet = 'standard' | 'hard';
+export const SETS: QuestionSet[] = ['standard', 'hard'];
+export const SET_FILE: Record<QuestionSet, string> = { standard: 'questions.jsonl', hard: 'hard.jsonl' };
 
 export interface Question {
   id: string;
@@ -10,8 +15,12 @@ export interface Question {
   answer:
     /** A structure, graded by comparing it with this one: as the same stereoisomer when `stereo`, else by connectivity. */
     | { kind: 'structure'; smiles: string; stereo: boolean }
-    /** A name, graded by parsing it with OPSIN and comparing the structure it names with this one. */
-    | { kind: 'name'; smiles: string; stereo: boolean }
+    /**
+     * A name, graded by parsing it with OPSIN and comparing the structure it
+     * names with this one. `avoid`: a trivial name OPSIN would parse too, so
+     * an answer containing it is wrong.
+     */
+    | { kind: 'name'; smiles: string; stereo: boolean; avoid?: string }
     /** A molecular formula, graded element by element. */
     | { kind: 'formula'; formula: string };
   /** In the small set run first (--pilot). */
@@ -25,8 +34,8 @@ export const ANSWER_FORMAT: Record<Question['answer']['kind'], string> = {
   formula: 'the molecular formula (e.g. C9H8O4)',
 };
 
-export function loadQuestions(): Question[] {
-  const text = readFileSync(new URL('questions.jsonl', import.meta.url), 'utf8');
+export function loadQuestions(set: QuestionSet = 'standard'): Question[] {
+  const text = readFileSync(new URL(SET_FILE[set], import.meta.url), 'utf8');
   return text.trim().split('\n').map((l) => JSON.parse(l) as Question);
 }
 
