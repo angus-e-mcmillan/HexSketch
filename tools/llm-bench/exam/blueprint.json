@@ -1,0 +1,61 @@
+{
+  "total": 100,
+  "sections": [
+    {
+      "section": 1,
+      "title": "Writing structures",
+      "marks": 15,
+      "tests": "Turning a name or a description into the right structure: substitution pattern, ring fusion and numbering, charges, tautomer.",
+      "hexsketch": "validate_structure and the readback on every drawing: unreadable SMILES, atoms over their valence, aromatic rings that cannot be kekulized, and the name and formula to compare with what was meant."
+    },
+    {
+      "section": 2,
+      "title": "Reading structures",
+      "marks": 15,
+      "tests": "Working from a drawn structure: its IUPAC name, molecular formula, exact mass or molecular weight, and what it is.",
+      "hexsketch": "read_sketcher gives the model the drawing as SMILES; name_structure and analyze_structure give the name, formula, masses and isotope pattern."
+    },
+    {
+      "section": 3,
+      "title": "Stereochemistry",
+      "marks": 15,
+      "tests": "Assigning and drawing R/S and E/Z, enantiomers and diastereomers, meso compounds, telling two drawings apart.",
+      "hexsketch": "SMILES with explicit stereocentres, names with their descriptors, and compare_structures for the same compound and the same stereoisomer."
+    },
+    {
+      "section": 4,
+      "title": "Reactions",
+      "marks": 15,
+      "tests": "The product of a drawn scheme: regio- and chemoselectivity, what the reagents over the arrow do, atom balance, several steps in sequence.",
+      "hexsketch": "Reactions as schemes with reagents above and conditions below the arrow, structures checked, and the atom balance of each step."
+    },
+    {
+      "section": 5,
+      "title": "Mechanisms",
+      "marks": 10,
+      "tests": "The intermediates of a mechanism in order, with their charges.",
+      "hexsketch": "Mechanisms as steps on one page with curly arrows, every intermediate drawn and checked, map numbers kept from step to step."
+    },
+    {
+      "section": 6,
+      "title": "Synthesis",
+      "marks": 15,
+      "tests": "Retrosynthetic disconnections to starting materials, and forward routes with the intermediates in order.",
+      "hexsketch": "Retrosynthesis and synthesis as one scheme, disconnections marked on the target, every intermediate checked and the route's atoms balanced."
+    },
+    {
+      "section": 7,
+      "title": "Protecting groups and peptides",
+      "marks": 10,
+      "tests": "Protected compounds written in full (Boc, Fmoc, TBS, Bn...), and peptides from their sequence with every stereocentre.",
+      "hexsketch": "Protecting groups drawn abbreviated while names, formulas and checks see every atom; peptides drawn from the SMILES with their configuration."
+    },
+    {
+      "section": 8,
+      "title": "Safety",
+      "marks": 5,
+      "tests": "Recognising energetic groups, highly toxic or pyrophoric compounds and hazardous reagent combinations from the structures.",
+      "hexsketch": "Hazard screening on every structure and reagent: energetic groups with their oxygen balance, toxic and reactive compounds, dangerous combinations."
+    }
+  ]
+}

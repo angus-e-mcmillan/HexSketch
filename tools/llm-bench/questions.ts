@@ -1,56 +1,52 @@
 /**
- * The benchmark's questions: questions.jsonl, built by prep-bank.ts from the
- * questions marked Ready in the exam bank (bank/questions/, written in the
- * HexSketch Exam Bank page).
+ * The exam's questions: questions.jsonl, built by prep.ts from the drawings
+ * in exam/ (one HexSketch drawing per question, see exam/README.md).
  */
 import { existsSync, readFileSync } from 'node:fs';
 
-/** The examiner's own label for the kind of question (mechanism, safety, …); results are reported per category. */
-export type Category = string;
-
 export interface Question {
+  /** The drawing's file name without .cdxml. */
   id: string;
-  category: Category;
+  /** Section of the exam blueprint (exam/blueprint.json); 0 when the question gives none. */
+  section: number;
+  /** As written on the paper, e.g. "3.2". */
+  number: string;
+  marks: number;
+  /** The question as the examiner wrote it. */
+  text: string;
+  /** SMILES of the structures drawn in the question, in reading order. */
+  given: string[];
+  /** Everything the model receives: the text, the structures as SMILES and any scheme. */
   prompt: string;
-  answer:
-    /** A structure, graded by comparing it with this one (or any in `also`): as the same stereoisomer when `stereo`, else by connectivity. */
-    | { kind: 'structure'; smiles: string; stereo: boolean; also?: string[] }
-    /**
-     * A name, graded by parsing it with OPSIN and comparing the structure it
-     * names with this one. `avoid`: a trivial name OPSIN would parse too, so
-     * an answer containing it is wrong.
-     */
-    | { kind: 'name'; smiles: string; stereo: boolean; avoid?: string; also?: string[] }
-    /** A molecular formula, graded element by element. */
-    | { kind: 'formula'; formula: string }
-    /**
-     * Several structures in any order ("A.B"), such as the starting
-     * materials of a retrosynthesis: right when the answer is the same set
-     * as `smiles` or as one of the sets in `also`.
-     */
-    | { kind: 'structures'; smiles: string[]; stereo: boolean; also?: string[][] }
-    /**
-     * Structures in order ("A >> B >> C"), such as a mechanism's
-     * intermediates or a route's: right when the key's structures appear in
-     * the answer in that order. Steps the key leaves out (a proton transfer)
-     * may come between them.
-     */
-    | { kind: 'sequence'; smiles: string[]; stereo: boolean; also?: string[][] }
-    /** Letters of a multiple-choice question ("B", or "A,C" for all that apply): right when exactly these. */
-    | { kind: 'choice'; letters: string }
-    /** An open answer, marked by the examiner against this marking scheme; ungraded until then. */
-    | { kind: 'marked'; scheme: string };
-  /** In the small set run first (--pilot). */
-  pilot: boolean;
+  answer: Answer;
 }
 
-/** What the model is asked to end its answer with, per kind of answer. */
-export const ANSWER_FORMAT: Record<Question['answer']['kind'], string> = {
+export type Answer =
+  /** One structure: full marks for the same compound (the same stereoisomer when `stereo`), half for the right connectivity with the wrong stereochemistry. */
+  | { kind: 'structure'; smiles: string; stereo: boolean; also?: string[] }
+  /** A name for the structure: parsed by OPSIN, then marked as a structure. `avoid`: a trivial name that earns nothing. */
+  | { kind: 'name'; smiles: string; stereo: boolean; avoid?: string; also?: string[] }
+  /** A molecular formula, element by element. */
+  | { kind: 'formula'; formula: string }
+  /** A number within a tolerance (an exact mass, a molecular weight). */
+  | { kind: 'number'; value: number; tolerance: number; what: string }
+  /** Several structures in any order (starting materials, products): a share of the marks per structure, less a share per extra one. */
+  | { kind: 'structures'; smiles: string[]; stereo: boolean; also?: string[][] }
+  /** Structures in order (a mechanism's intermediates, a route), each stage one or more structures: a share of the marks per stage given in order. */
+  | { kind: 'sequence'; stages: string[][]; stereo: boolean; also?: string[][][] }
+  /** Letters, e.g. "A,C": a share of the marks per right letter, less a share per wrong one. */
+  | { kind: 'choice'; letters: string }
+  /** A written answer the examiner marks against the scheme. */
+  | { kind: 'marked'; scheme: string };
+
+/** What the model is asked to end its answer with. */
+export const ANSWER_FORMAT: Record<Answer['kind'], string> = {
   structure: 'the SMILES',
   name: 'the name',
   formula: 'the molecular formula (e.g. C9H8O4)',
+  number: 'the number alone',
   structures: 'the SMILES of each structure, joined by "."',
-  sequence: 'the SMILES of each structure in order, joined by " >> "',
+  sequence: 'the SMILES of each structure in order, joined by " >> " (structures of one step joined by ".")',
   choice: 'the letter of your choice (for "all that apply", every letter, e.g. A,C)',
   marked: 'your full answer (it may run over several lines)',
 };
@@ -63,7 +59,13 @@ export function loadQuestions(): Question[] {
   return text ? text.split('\n').map((l) => JSON.parse(l) as Question) : [];
 }
 
-/** How many of each, by key (Object.groupBy, which this project's TypeScript target lacks). */
+export interface Blueprint { total: number; sections: { section: number; title: string; marks: number; tests: string; hexsketch: string }[] }
+
+export function loadBlueprint(): Blueprint {
+  return JSON.parse(readFileSync(new URL('exam/blueprint.json', import.meta.url), 'utf8')) as Blueprint;
+}
+
+/** How many of each, by key. */
 export function countBy<T>(xs: readonly T[], key: (x: T) => string): Record<string, number> {
   const out: Record<string, number> = {};
   for (const x of xs) out[key(x)] = (out[key(x)] ?? 0) + 1;
