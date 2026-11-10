@@ -27,7 +27,8 @@
     "usage": "node --experimental-strip-types --no-warnings tools/usage.ts",
     "bench": "sh tools/bench/run.sh",
     "llm-bench": "node --experimental-strip-types --no-warnings tools/llm-bench/run.ts",
-    "llm-bench:prep": "node --experimental-strip-types --no-warnings tools/llm-bench/prep.ts"
+    "llm-bench:prep": "node --experimental-strip-types --no-warnings tools/llm-bench/prep.ts",
+    "llm-bench:plot": "node --experimental-strip-types --no-warnings tools/llm-bench/plot.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

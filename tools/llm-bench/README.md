@@ -86,6 +86,11 @@ npm run llm-bench -- --model MODEL_ID --provider anthropic --repeats 1
 - `results/<run>.md` and `.json`: the score and each measure in each
   condition, refusals, and per question the marks, tokens, cost and time.
   Commit these.
+- `results/plots.html` and `results/plots/*.svg`: charts of every run of
+  the whole paper (the latest per model), without HexSketch beside with it:
+  the score, the score by question type, each measure, and cost, tokens and
+  time per question. The SVGs are for slides. Remake them with
+  `npm run llm-bench:plot` (`-- --runs a,b` for particular runs).
 - `out/<run>/report.html`: every answer drawn beside the question and the
   answer key, with its measures and the model's reply. Not committed.
 - `out/<run>/transcripts/`: every conversation in full.
