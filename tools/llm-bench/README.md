@@ -13,7 +13,9 @@ editor, so the benchmark measures HexSketch as it is.
 
 ## What is measured
 
-Every answer, automatically, in both conditions:
+The paper is 100 marks over seven types of question (`questions/`). Each run
+reports the **score** in each condition (marks for right answers, overall and
+per type), and for every answer, automatically:
 
 | Measure | The question it answers |
 |---|---|
@@ -24,6 +26,11 @@ Every answer, automatically, in both conditions:
 | Unchanged part kept | Is everything the reaction should not touch still there (every fluorine, the protecting group)? |
 | Hazard flagged | On questions with a hazard: did the reply warn of it, unasked? |
 | Drawn the same way round | Is the answer oriented like the chemist's drawing? With HexSketch, as the model drew it; without, laid out from its SMILES as any drawing program would |
+| Refused | Did the model decline? By the provider's stop reason (`refusal`, `content_filter`), a request the provider blocked, or a reply with no answer that says it won't |
+
+And what each answer took: input, output and thinking tokens, cost, time and
+tool calls, for every question in each condition (the "Each question" table
+in the results).
 
 ## Questions
 
@@ -76,8 +83,9 @@ npm run llm-bench -- --model MODEL_ID --provider anthropic --repeats 1
 
 ## Output
 
-- `results/<run>.md` and `.json`: each measure in each condition, correct by
-  question type, cost, tokens, time and tool calls. Commit these.
+- `results/<run>.md` and `.json`: the score and each measure in each
+  condition, refusals, and per question the marks, tokens, cost and time.
+  Commit these.
 - `out/<run>/report.html`: every answer drawn beside the question and the
   answer key, with its measures and the model's reply. Not committed.
 - `out/<run>/transcripts/`: every conversation in full.

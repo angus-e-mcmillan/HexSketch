@@ -51,7 +51,7 @@ export async function writeQuestionsPage(file: URL, questions: Question[], warni
   for (const q of questions) {
     const [plain, hex] = await Promise.all([opening(q, 'smiles'), opening(q, 'hexsketch')]);
     const w = warnings.get(q.id) ?? [];
-    parts.push(`<section class="q" id="${esc(q.id)}"><h2>${esc(q.id)} <small>${q.type}${q.hazard ? ` · hazard: ${esc(q.hazard.join(', '))}` : ''}</small></h2>
+    parts.push(`<section class="q" id="${esc(q.id)}"><h2>${esc(q.id)} <small>${q.type} · ${q.marks} marks${q.hazard ? ` · hazard: ${esc(q.hazard.join(', '))}` : ''}</small></h2>
 ${w.length ? `<ul class="warn">${w.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
 <div class="cols"><div><h3>In the editor</h3><div class="d">${await svg(q.drawing, 'nothing drawn')}</div></div>
 <div><h3>Answer (${q.key.kind})</h3>${await keyCell(q.key)}${'also' in q.key && q.key.also?.length ? `<p>Also accepted: ${q.key.also.length}</p>` : ''}</div></div>
@@ -73,14 +73,14 @@ export async function writeReport(file: URL, run: string, questions: Question[],
       for (const r of rs) {
         const picture = c === 'hexsketch' && r.drawn ? await svg(r.drawn) : keySmiles(q.key) !== null ? await svg(r.answer?.replace(/\s*>>\s*/g, '>>'), 'no answer') : `<p class="written">${esc(r.answer ?? 'no answer')}</p>`;
         answers.push(`<div class="a"><b>Repeat ${r.repeat}</b>${c === 'hexsketch' ? ` <small>(${r.drawn ? 'the editor at the end' : 'the answer; nothing drawn'})</small>` : ''}
-<div class="m">${mark('correct', r.correct)}${r.stereo ? '<span class="n">stereo wrong</span>' : ''}${mark('valid', r.valid)}${mark('name', r.consistent)}${mark('kept', r.preserved)}${mark('hazard', r.flagged)}${mark('orientation', r.oriented)}<span>${r.tools.length} tool calls</span><span>$${r.cost.toFixed(3)}</span></div>
+<div class="m"><span class="${r.marks ? 'y' : 'n'}">${r.marks ?? 0} / ${q.marks} marks</span>${r.refused ? `<span class="n" title="${esc(r.refusal ?? '')}">refused</span>` : ''}${mark('correct', r.correct)}${r.stereo ? '<span class="n">stereo wrong</span>' : ''}${mark('valid', r.valid)}${mark('name', r.consistent)}${mark('kept', r.preserved)}${mark('hazard', r.flagged)}${mark('orientation', r.oriented)}<span>${r.tools.length} tool calls</span><span>${r.tokens.completion} tokens out (${r.tokens.reasoning} thinking)</span><span>$${r.cost.toFixed(3)}</span><span>${(r.ms / 1000).toFixed(0)} s</span></div>
 <div class="d">${picture}</div>
 <p><code>${esc(r.answer ?? '(no ANSWER line)')}</code>${r.name ? `<br>${esc(r.name)}` : ''}</p>
 <details><summary>The reply</summary><pre>${esc(r.text)}</pre></details></div>`);
       }
       cols.push(`<div><h3>${c === 'smiles' ? 'Without HexSketch' : 'With HexSketch'}</h3>${answers.join('') || '<p class="none">no runs</p>'}</div>`);
     }
-    parts.push(`<section class="q"><h2>${esc(q.id)} <small>${q.type}</small></h2><p>${esc(q.ask)}</p>
+    parts.push(`<section class="q"><h2>${esc(q.id)} <small>${q.type} · ${q.marks} marks</small></h2><p>${esc(q.ask)}</p>
 <div class="cols"><div><h3>Question</h3><div class="d">${await svg(q.drawing, 'nothing drawn')}</div></div><div><h3>Answer</h3>${await keyCell(q.key)}</div></div>
 <div class="cols">${cols.join('')}</div></section>`);
   }

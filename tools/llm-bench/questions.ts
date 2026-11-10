@@ -15,6 +15,8 @@ export interface Question {
   type: QuestionType;
   /** What the chemist types in the chat. */
   ask: string;
+  /** What a right answer earns ("[4]" at the end of the Q: caption). */
+  marks: number;
   /** What the chemist drew (CDXML): structures, arrows, reagents and "?". Empty when nothing is drawn. */
   drawing: string;
   /** SMILES of the structures drawn, in reading order. */
@@ -33,7 +35,7 @@ export type Key =
   | { kind: 'structures'; smiles: string[]; also?: string[][] }
   /** Structures in order, each stage one or more structures (a mechanism's intermediates, a route). */
   | { kind: 'sequence'; stages: string[][]; also?: string[][][] }
-  /** Atoms of the structure (the most basic nitrogen): its SMILES with each of them marked :1. The answer must mark exactly these. */
+  /** Atoms of the structure (the most basic nitrogen, the stereocentres): its SMILES with them marked :1, :2… The answer must mark exactly these, numbered in any order. */
   | { kind: 'atoms'; smiles: string }
   /** Atoms in order (most nucleophilic first): its SMILES with them marked :1, :2, :3. */
   | { kind: 'ranking'; smiles: string }
@@ -47,7 +49,7 @@ export const ANSWER_FORMAT: Record<Key['kind'], string> = {
   structure: 'End your reply with two lines: "ANSWER: " followed by the SMILES of the answer, then "NAME: " followed by its IUPAC name.',
   structures: 'End your reply with one line: "ANSWER: " followed by the SMILES of each structure, joined by ".".',
   sequence: 'End your reply with one line: "ANSWER: " followed by the SMILES of each structure in order, joined by " >> " (structures of the same step joined by ".").',
-  atoms: 'End your reply with one line: "ANSWER: " followed by the SMILES of the structure with the atom you mean marked by the atom-map number 1, e.g. CC[NH:1]CC (for more than one atom, mark each of them :1).',
+  atoms: 'End your reply with one line: "ANSWER: " followed by the SMILES of the structure with the atom you mean marked by the atom-map number 1, e.g. CC[NH:1]CC (for more than one atom, number them 1, 2, 3 and so on, in any order).',
   ranking: 'End your reply with one line: "ANSWER: " followed by the SMILES of the structure with the atoms marked in the order asked by atom-map numbers 1, 2, 3 and so on, e.g. [NH2:2]CC[NH:1]C.',
   number: 'End your reply with one line: "ANSWER: " followed by the number alone.',
   term: 'End your reply with one line: "ANSWER: " followed by the answer alone, in a word or a short phrase.',

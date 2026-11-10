@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="51.06 87.24 178.71 213.98" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="51.06 96.46" Element="35"/>
+<n id="1003" p="67.01 87.24"/>
+<n id="1004" p="82.97 96.46"/>
+<n id="1005" p="98.93 87.24"/>
+<n id="1006" p="114.88 96.46" Element="35"/>
+<b id="1007" B="1002" E="1003"/>
+<b id="1008" B="1003" E="1004"/>
+<b id="1009" B="1004" E="1005"/>
+<b id="1010" B="1005" E="1006"/>
+</fragment>
+<fragment id="1011">
+<n id="1012" p="51.06 213.98" Element="7" Charge="-1" NumHydrogens="0"/>
+<n id="1013" p="67.01 204.76" Element="7" Charge="1" NumHydrogens="0"/>
+<n id="1014" p="82.97 195.55" Element="7"/>
+<n id="1015" p="98.93 204.76"/>
+<n id="1016" p="114.88 195.55"/>
+<n id="1017" p="130.84 204.76"/>
+<n id="1018" p="146.80 195.55" Element="7"/>
+<n id="1019" p="162.75 204.76" Element="7" Charge="1" NumHydrogens="0"/>
+<n id="1020" p="178.71 213.98" Element="7" Charge="-1" NumHydrogens="0"/>
+<b id="1021" B="1012" E="1013" Order="2"/>
+<b id="1022" B="1013" E="1014" Order="2"/>
+<b id="1023" B="1014" E="1015"/>
+<b id="1024" B="1015" E="1016"/>
+<b id="1025" B="1016" E="1017"/>
+<b id="1026" B="1017" E="1018"/>
+<b id="1027" B="1018" E="1019" Order="2"/>
+<b id="1028" B="1019" E="1020" Order="2"/>
+</fragment>
+<t id="1029" p="40.00 40.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [5]</s></t>
+<arrow id="1035" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="245.54 91.85 0" Tail3D="131.94 91.85 0"/>
+<t id="1030" p="188.74 84.85" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">NaN3 (2.5 equiv)</s></t>
+<t id="1031" p="188.74 107.85" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">DMSO, 60 °C</s></t>
+<t id="1032" p="259.54 96.85" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">?</s></t>
+<t id="1033" p="40.00 157.91" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1034" p="40.00 280.83" LineHeight="auto"><s font="3" size="10.00" face="0">Hazard: explosive, explosion, explode, detonat, shock, energetic, rule of six, C/N</s></t>
+</page></CDXML>

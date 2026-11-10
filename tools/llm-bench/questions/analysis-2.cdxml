@@ -1,38 +1,38 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="99.85 112.78 300.15 227.22" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="51.06 73.43 251.36 187.87" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
 <fragment id="1001">
-<n id="1002" p="179.63 140.42" Element="7"/>
-<n id="1003" p="179.63 158.84" NumHydrogens="1"/>
-<n id="1004" p="163.67 168.05"/>
-<n id="1005" p="147.72 158.84"/>
-<n id="1006" p="131.76 168.05"/>
-<n id="1007" p="131.76 186.48" Element="9"/>
-<n id="1008" p="115.80 158.84"/>
-<n id="1009" p="115.80 140.42"/>
-<n id="1010" p="99.85 131.20" Element="9"/>
-<n id="1011" p="131.76 131.20"/>
-<n id="1012" p="131.76 112.78" Element="9"/>
-<n id="1013" p="147.72 140.42"/>
-<n id="1014" p="195.59 168.05"/>
-<n id="1015" p="211.54 158.84"/>
-<n id="1016" p="227.50 168.05" Element="7"/>
-<n id="1017" p="243.46 158.84"/>
-<n id="1018" p="259.41 168.05"/>
-<n id="1019" p="276.94 162.36" Element="7"/>
-<n id="1020" p="287.77 177.27" Element="7"/>
-<n id="1021" p="276.94 192.17"/>
-<n id="1022" p="282.63 209.70"/>
-<n id="1023" p="265.11 215.39" Element="9"/>
-<n id="1024" p="288.32 227.22" Element="9"/>
-<n id="1025" p="300.15 204.00" Element="9"/>
-<n id="1026" p="259.41 186.48" Element="7"/>
-<n id="1027" p="243.46 195.69"/>
-<n id="1028" p="227.50 186.48"/>
-<n id="1029" p="211.54 140.42" Element="8"/>
+<n id="1002" p="130.84 101.06" Element="7"/>
+<n id="1003" p="130.84 119.49" NumHydrogens="1"/>
+<n id="1004" p="114.88 128.70"/>
+<n id="1005" p="98.93 119.49"/>
+<n id="1006" p="82.97 128.70"/>
+<n id="1007" p="82.97 147.13" Element="9"/>
+<n id="1008" p="67.01 119.49"/>
+<n id="1009" p="67.01 101.06"/>
+<n id="1010" p="51.06 91.85" Element="9"/>
+<n id="1011" p="82.97 91.85"/>
+<n id="1012" p="82.97 73.43" Element="9"/>
+<n id="1013" p="98.93 101.06"/>
+<n id="1014" p="146.80 128.70"/>
+<n id="1015" p="162.75 119.49"/>
+<n id="1016" p="178.71 128.70" Element="7"/>
+<n id="1017" p="194.67 119.49"/>
+<n id="1018" p="210.62 128.70"/>
+<n id="1019" p="228.15 123.01" Element="7"/>
+<n id="1020" p="238.98 137.91" Element="7"/>
+<n id="1021" p="228.15 152.82"/>
+<n id="1022" p="233.84 170.34"/>
+<n id="1023" p="216.32 176.04" Element="9"/>
+<n id="1024" p="239.53 187.87" Element="9"/>
+<n id="1025" p="251.36 164.65" Element="9"/>
+<n id="1026" p="210.62 147.13" Element="7"/>
+<n id="1027" p="194.67 156.34"/>
+<n id="1028" p="178.71 147.13"/>
+<n id="1029" p="162.75 101.06" Element="8"/>
 <b id="1030" B="1002" E="1003" Display="WedgeEnd"/>
 <b id="1031" B="1003" E="1014"/>
 <b id="1032" B="1014" E="1015"/>
@@ -64,6 +64,6 @@
 <b id="1058" B="1005" E="1006"/>
 <b id="1059" B="1006" E="1007"/>
 </fragment>
-<t id="1060" p="40.00 50.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the hybridization of the amide nitrogen?</s></t>
-<t id="1061" p="40.00 300.00" LineHeight="auto"><s font="3" size="10.00" face="0">Answer: sp2</s></t>
+<t id="1060" p="40.00 40.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the hybridization of the amide nitrogen? [3]</s></t>
+<t id="1061" p="40.00 235.50" LineHeight="auto"><s font="3" size="10.00" face="0">Answer: sp2</s></t>
 </page></CDXML>

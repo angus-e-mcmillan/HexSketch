@@ -12,7 +12,7 @@ import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
-import { measure, opsin, finalAnswer, type Measures } from './measure.ts';
+import { measure, opsin, finalAnswer, refusalOf, REFUSAL_ERROR, type Measures } from './measure.ts';
 import { countBy, loadQuestions, QUESTIONS_FILE, TYPES, type Question } from './questions.ts';
 import { writeReport } from './report.ts';
 
@@ -92,7 +92,7 @@ mkdirSync(new URL('transcripts/', outDir), { recursive: true });
 interface Message { role: 'system' | 'user' | 'assistant' | 'tool'; content: string | null; tool_calls?: ToolCall[]; tool_call_id?: string; reasoning_details?: unknown }
 interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string } }
 interface Usage { prompt_tokens?: number; completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number }; cost?: number }
-interface Reply { model?: string; provider?: string; choices?: { message: Message; finish_reason?: string }[]; usage?: Usage; error?: { message: string; code?: number } }
+interface Reply { model?: string; provider?: string; choices?: { message: Message; finish_reason?: string; native_finish_reason?: string }[]; usage?: Usage; error?: { message: string; code?: number } }
 
 export interface RunRecord extends Partial<Measures> {
   key: string; id: string; type: string; condition: Condition; repeat: number;
@@ -102,6 +102,10 @@ export interface RunRecord extends Partial<Measures> {
   /** With HexSketch: the editor's drawing at the end (CDXML). */
   drawn: string | null;
   answer?: string | null; name?: string | null; named?: string | null;
+  /** The model declined to answer (see refusal()), and why it was counted as one. */
+  refused?: boolean; refusal?: string | null;
+  /** Marks earned: the question's marks when correct, else 0. */
+  marks?: number;
   rounds: number; tools: { name: string; error: boolean }[]; finish: string | null;
   tokens: { prompt: number; completion: number; reasoning: number }; cost: number; ms: number; error?: string;
 }
@@ -156,7 +160,8 @@ async function runOne(job: Job): Promise<RunRecord> {
       rec.tokens.reasoning += u.completion_tokens_details?.reasoning_tokens ?? 0; rec.cost += u.cost ?? 0;
       const choice = reply.choices?.[0];
       if (!choice) throw new Error('OpenRouter gave no answer');
-      rec.finish = choice.finish_reason ?? null;
+      // The provider's own reason where it gives one ("refusal"), else OpenRouter's ("content_filter").
+      rec.finish = choice.native_finish_reason ?? choice.finish_reason ?? null;
       const m = choice.message;
       if (m.content) rec.text += `${m.content}\n`;
       // The thinking goes back with the turn (reasoning_details), as Claude's API needs for tool use.
@@ -168,7 +173,12 @@ async function runOne(job: Job): Promise<RunRecord> {
         messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(out.result) });
       }
     }
-  } catch (err) { rec.error = (err as Error).message; }
+  } catch (err) {
+    const message = (err as Error).message;
+    // A provider that blocks the request for its content has answered: it refused. Anything else is a failed run, tried again next time.
+    if (REFUSAL_ERROR.test(message)) { rec.refused = true; rec.refusal = `the provider declined: ${message.slice(0, 200)}`; }
+    else rec.error = message;
+  }
   if (condition === 'hexsketch' && editor.drawing !== q.drawing) rec.drawn = editor.drawing;
   rec.ms = Date.now() - t0;
   writeFileSync(new URL(`transcripts/${job.key}.json`, outDir), JSON.stringify({ record: rec, messages }, null, 2));
@@ -207,7 +217,12 @@ const names = ok.map((r) => finalAnswer(r.final).name);
 const parsed = opsin(names.filter((n): n is string => !!n));
 let k = 0;
 for (const [i, r] of ok.entries()) r.named = names[i] ? parsed[k++] ?? null : null;
-for (const r of ok) Object.assign(r, await measure(byId.get(r.id)!, r.text, r.final, r.named ?? null, r.drawn));
+for (const r of ok) {
+  Object.assign(r, await measure(byId.get(r.id)!, r.text, r.final, r.named ?? null, r.drawn));
+  r.refusal = r.refusal ?? refusalOf(r.text, r.answer ?? null, r.finish);
+  r.refused = !!r.refusal;
+  r.marks = r.correct ? byId.get(r.id)!.marks : 0;
+}
 writeFileSync(recordsFile, records.map((r) => JSON.stringify(r)).join('\n') + '\n');
 
 // ------------------------------------------------------------------ summary
@@ -220,28 +235,42 @@ const rates = (rs: RunRecord[]) => Object.fromEntries(MEASURES.map((m) => {
   const applies = rs.filter((r) => r[m] !== null && r[m] !== undefined);
   return [m, { rate: applies.length ? applies.filter((r) => r[m]).length / applies.length : null, n: applies.length }];
 })) as Record<(typeof MEASURES)[number], { rate: number | null; n: number }>;
-const byRepeat = (rs: RunRecord[]) => Array.from({ length: repeats }, (_, i) => rs.filter((r) => r.repeat === i + 1)).filter((x) => x.length).map((x) => x.filter((r) => r.correct).length / x.length);
+/** Marks out of the paper's total, per repeat (each repeat a full pass through the questions). */
+const scores = (rs: RunRecord[]) => Array.from({ length: repeats }, (_, i) => rs.filter((r) => r.repeat === i + 1)).filter((x) => x.length).map((x) => x.reduce((t, r) => t + (r.marks ?? 0), 0));
 const typesIn = TYPES.filter((t) => questions.some((q) => q.type === t));
+const totalMarks = questions.reduce((t, q) => t + q.marks, 0);
+const marksOf = (type?: string) => questions.filter((q) => !type || q.type === type).reduce((t, q) => t + q.marks, 0);
 const summary = {
   run: runName, date: new Date().toISOString(), model, served: [...new Set(ok.map((r) => r.model))], providers: [...new Set(ok.flatMap((r) => r.providers))],
   settings: { provider: opt.provider ?? null, effort: opt.effort, maxTokens, maxRounds, repeats, timeoutSeconds: Number(opt.timeout), temperature: 'default' },
-  questions: { hash: setHash, count: questions.length, types: countBy(questions, (q) => q.type) },
+  questions: { hash: setHash, count: questions.length, marks: totalMarks, types: countBy(questions, (q) => q.type) },
   commit: (() => { try { return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { return null; } })(),
   failedRuns: records.length - records.filter((r) => !r.error).length,
   totalCost: records.reduce((s, r) => s + r.cost, 0),
   conditions: Object.fromEntries(conditions.map((c) => {
     const rs = ok.filter((r) => r.condition === c);
-    const reps = byRepeat(rs);
+    const sc = scores(rs);
     return [c, {
+      score: mean(sc), scoreRange: sc.length ? [Math.min(...sc), Math.max(...sc)] : [0, 0], outOf: totalMarks,
+      byType: Object.fromEntries(typesIn.map((t) => [t, { score: mean(scores(rs.filter((r) => r.type === t))), outOf: marksOf(t) }])),
       ...rates(rs),
-      correctRange: reps.length ? [Math.min(...reps), Math.max(...reps)] : [0, 0],
-      byType: Object.fromEntries(typesIn.map((t) => [t, rates(rs.filter((r) => r.type === t)).correct])),
+      refused: rs.filter((r) => r.refused).length,
       cost: mean(rs.map((r) => r.cost)), tokens: mean(rs.map((r) => r.tokens.completion)), reasoning: mean(rs.map((r) => r.tokens.reasoning)),
-      seconds: median(rs.map((r) => r.ms / 1000)), toolCalls: mean(rs.map((r) => r.tools.length)),
+      prompt: mean(rs.map((r) => r.tokens.prompt)), seconds: median(rs.map((r) => r.ms / 1000)), toolCalls: mean(rs.map((r) => r.tools.length)),
     }];
   })),
-  /** Per question and condition: how many of the repeats were right. */
-  perQuestion: questions.map((q) => ({ id: q.id, type: q.type, ...Object.fromEntries(conditions.map((c) => [c, ok.filter((r) => r.id === q.id && r.condition === c && r.correct).length])) })),
+  /** Per question and condition: answers right, refusals, and what an answer took (means over the repeats). */
+  perQuestion: questions.map((q) => ({
+    id: q.id, type: q.type, marks: q.marks,
+    ...Object.fromEntries(conditions.map((c) => {
+      const rs = ok.filter((r) => r.id === q.id && r.condition === c);
+      return [c, {
+        right: rs.filter((r) => r.correct).length, of: rs.length, refused: rs.filter((r) => r.refused).length,
+        promptTokens: mean(rs.map((r) => r.tokens.prompt)), outputTokens: mean(rs.map((r) => r.tokens.completion)), thinkingTokens: mean(rs.map((r) => r.tokens.reasoning)),
+        cost: mean(rs.map((r) => r.cost)), seconds: mean(rs.map((r) => r.ms / 1000)), toolCalls: mean(rs.map((r) => r.tools.length)),
+      }];
+    })),
+  })),
 };
 mkdirSync(new URL('results/', here), { recursive: true });
 writeFileSync(new URL(`results/${runName}.json`, here), JSON.stringify(summary, null, 2) + '\n');
@@ -252,17 +281,28 @@ const LABEL: Record<(typeof MEASURES)[number], string> = {
   preserved: 'Unchanged part kept', flagged: 'Hazard flagged', oriented: 'Drawn the same way round',
 };
 const cs = summary.conditions;
+const head = (c: Condition) => (c === 'smiles' ? 'Without HexSketch' : 'With HexSketch');
+const score = (x: { score: number; outOf: number }, range?: number[]) => `${x.score.toFixed(1)} / ${x.outOf}${range && repeats > 1 ? ` (${range[0]}–${range[1]})` : ''}`;
 const lines = [
   `# ${runName}`, '',
-  `${model} (served as ${summary.served.join(', ') || '?'}, via ${summary.providers.join(', ') || '?'}), effort ${opt.effort}, ${repeats} repeat${repeats === 1 ? '' : 's'} of ${questions.length} questions. Total cost $${summary.totalCost.toFixed(2)}.${summary.failedRuns ? ` ${summary.failedRuns} runs failed (not measured): run again with --run ${runName}.` : ''}`, '',
-  `| | ${conditions.map((c) => (c === 'smiles' ? 'Without HexSketch' : 'With HexSketch')).join(' | ')} |`, `|---|${conditions.map(() => '---').join('|')}|`,
+  `${model} (served as ${summary.served.join(', ') || '?'}, via ${summary.providers.join(', ') || '?'}), effort ${opt.effort}, ${repeats} repeat${repeats === 1 ? '' : 's'} of ${questions.length} questions worth ${totalMarks} marks. Total cost $${summary.totalCost.toFixed(2)}.${summary.failedRuns ? ` ${summary.failedRuns} runs failed (not measured): run again with --run ${runName}.` : ''}`, '',
+  `| | ${conditions.map(head).join(' | ')} |`, `|---|${conditions.map(() => '---').join('|')}|`,
+  `| **Score** | ${conditions.map((c) => `**${score(cs[c]!, cs[c]!.scoreRange)}**`).join(' | ')} |`,
+  ...typesIn.map((t) => `| ${t} | ${conditions.map((c) => score(cs[c]!.byType[t]!)).join(' | ')} |`),
   ...MEASURES.map((m) => `| ${LABEL[m]} | ${conditions.map((c) => pct(cs[c]![m])).join(' | ')} |`),
-  ...typesIn.map((t) => `| Correct: ${t} | ${conditions.map((c) => pct(cs[c]!.byType[t]!)).join(' | ')} |`),
+  `| Refused | ${conditions.map((c) => cs[c]!.refused).join(' | ')} |`,
   `| cost / question | ${conditions.map((c) => `$${cs[c]!.cost.toFixed(3)}`).join(' | ')} |`,
-  `| output tokens (thinking) | ${conditions.map((c) => `${cs[c]!.tokens.toFixed(0)} (${cs[c]!.reasoning.toFixed(0)})`).join(' | ')} |`,
+  `| input tokens / question | ${conditions.map((c) => cs[c]!.prompt.toFixed(0)).join(' | ')} |`,
+  `| output tokens / question (thinking) | ${conditions.map((c) => `${cs[c]!.tokens.toFixed(0)} (${cs[c]!.reasoning.toFixed(0)})`).join(' | ')} |`,
   `| median time | ${conditions.map((c) => `${cs[c]!.seconds.toFixed(0)} s`).join(' | ')} |`,
   `| tool calls / question | ${conditions.map((c) => cs[c]!.toolCalls.toFixed(1)).join(' | ')} |`,
-  '', `Each measure is the share of the answers it applies to (how many in brackets).${repeats > 1 ? ` Correct, by repeat: ${conditions.map((c) => `${c} ${cs[c]!.correctRange.map((x) => `${(100 * x).toFixed(0)}%`).join('–')}`).join(', ')}.` : ''}`,
+  '', `Score: marks for answers that are right, averaged over the repeats${repeats > 1 ? ' (range in brackets)' : ''}. Each measure is the share of the answers it applies to (how many in brackets).`,
+  '', '## Each question', '',
+  `| Question | Marks | ${conditions.map((c) => `${head(c)}: right · tokens out · $ · s`).join(' | ')} |`, `|---|---|${conditions.map(() => '---').join('|')}|`,
+  ...summary.perQuestion.map((p) => `| ${p.id} | ${p.marks} | ${conditions.map((c) => {
+    const x = (p as unknown as Record<string, { right: number; of: number; refused: number; outputTokens: number; cost: number; seconds: number }>)[c]!;
+    return `${x.right}/${x.of}${x.refused ? ` (${x.refused} refused)` : ''} · ${x.outputTokens.toFixed(0)} · ${x.cost.toFixed(3)} · ${x.seconds.toFixed(0)}`;
+  }).join(' | ')} |`),
 ];
 writeFileSync(new URL(`results/${runName}.md`, here), lines.join('\n') + '\n');
 await writeReport(new URL('report.html', outDir), runName, questions, ok, conditions);

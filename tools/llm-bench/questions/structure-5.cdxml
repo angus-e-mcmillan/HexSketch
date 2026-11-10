@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="51.06 73.43 178.71 370.59" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="178.71 73.43"/>
+<n id="1003" p="178.71 91.85"/>
+<n id="1004" p="162.75 101.06"/>
+<n id="1005" p="162.75 119.49" Element="8"/>
+<n id="1006" p="146.80 128.70" NumHydrogens="1"/>
+<n id="1007" p="146.80 147.13" NumHydrogens="1"/>
+<n id="1008" p="162.75 156.34" Element="7"/>
+<n id="1009" p="162.75 174.76"/>
+<n id="1010" p="146.80 183.98"/>
+<n id="1011" p="178.71 183.98" Element="8"/>
+<n id="1012" p="130.84 156.34" NumHydrogens="1"/>
+<n id="1013" p="130.84 174.76" Element="7"/>
+<n id="1014" p="114.88 147.13"/>
+<n id="1015" p="114.88 128.70"/>
+<n id="1016" p="98.93 119.49"/>
+<n id="1017" p="82.97 128.70" Element="8"/>
+<n id="1018" p="67.01 119.49"/>
+<n id="1019" p="51.06 128.70"/>
+<n id="1020" p="98.93 101.06" Element="8"/>
+<n id="1021" p="130.84 119.49"/>
+<n id="1022" p="146.80 91.85"/>
+<n id="1023" p="130.84 101.06"/>
+<b id="1024" B="1002" E="1003"/>
+<b id="1025" B="1003" E="1004"/>
+<b id="1026" B="1004" E="1022"/>
+<b id="1027" B="1022" E="1023"/>
+<b id="1028" B="1004" E="1005"/>
+<b id="1029" B="1005" E="1006" Display="WedgeEnd"/>
+<b id="1030" B="1006" E="1021"/>
+<b id="1031" B="1021" E="1015" Order="2"/>
+<b id="1032" B="1015" E="1014"/>
+<b id="1033" B="1014" E="1012"/>
+<b id="1034" B="1012" E="1007"/>
+<b id="1035" B="1006" E="1007"/>
+<b id="1036" B="1007" E="1008" Display="WedgedHashBegin"/>
+<b id="1037" B="1008" E="1009"/>
+<b id="1038" B="1009" E="1011" Order="2"/>
+<b id="1039" B="1009" E="1010"/>
+<b id="1040" B="1012" E="1013" Display="WedgeBegin"/>
+<b id="1041" B="1015" E="1016"/>
+<b id="1042" B="1016" E="1020" Order="2"/>
+<b id="1043" B="1016" E="1017"/>
+<b id="1044" B="1017" E="1018"/>
+<b id="1045" B="1018" E="1019"/>
+</fragment>
+<fragment id="1046">
+<n id="1047" p="67.01 260.04"/>
+<n id="1048" p="82.97 269.25"/>
+<n id="1049" p="82.97 287.68"/>
+<n id="1050" p="98.93 296.89" Element="8"/>
+<n id="1051" p="98.93 315.31" NumHydrogens="1"/>
+<n id="1052" p="114.88 324.53" NumHydrogens="1"/>
+<n id="1053" p="130.84 315.31" Element="7"/>
+<n id="1054" p="146.80 324.53"/>
+<n id="1055" p="146.80 342.95"/>
+<n id="1056" p="162.75 315.31" Element="8"/>
+<n id="1057" p="114.88 342.95" NumHydrogens="1"/>
+<n id="1058" p="130.84 352.17" Element="7"/>
+<n id="1059" p="98.93 352.17"/>
+<n id="1060" p="82.97 342.95"/>
+<n id="1061" p="67.01 352.17"/>
+<n id="1062" p="51.06 342.95" Element="8"/>
+<n id="1063" p="67.01 370.59" Element="8"/>
+<n id="1064" p="82.97 324.53"/>
+<n id="1065" p="67.01 296.89"/>
+<n id="1066" p="67.01 315.31"/>
+<b id="1067" B="1047" E="1048"/>
+<b id="1068" B="1048" E="1049"/>
+<b id="1069" B="1049" E="1065"/>
+<b id="1070" B="1065" E="1066"/>
+<b id="1071" B="1049" E="1050"/>
+<b id="1072" B="1050" E="1051" Display="WedgeEnd"/>
+<b id="1073" B="1051" E="1064"/>
+<b id="1074" B="1064" E="1060" Order="2"/>
+<b id="1075" B="1060" E="1059"/>
+<b id="1076" B="1059" E="1057"/>
+<b id="1077" B="1057" E="1052"/>
+<b id="1078" B="1051" E="1052"/>
+<b id="1079" B="1052" E="1053" Display="WedgedHashBegin"/>
+<b id="1080" B="1053" E="1054"/>
+<b id="1081" B="1054" E="1056" Order="2"/>
+<b id="1082" B="1054" E="1055"/>
+<b id="1083" B="1057" E="1058" Display="WedgeBegin"/>
+<b id="1084" B="1060" E="1061"/>
+<b id="1085" B="1061" E="1063" Order="2"/>
+<b id="1086" B="1061" E="1062"/>
+</fragment>
+<t id="1087" p="40.00 40.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Draw the carboxylic acid formed when the ethyl ester is hydrolysed. [2]</s></t>
+<t id="1088" p="40.00 231.61" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+</page></CDXML>

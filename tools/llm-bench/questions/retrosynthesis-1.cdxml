@@ -1,38 +1,38 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="69.85 112.78 460.83 614.49" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="51.06 73.43 336.38 577.05" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
 <fragment id="1001">
-<n id="1002" p="149.63 140.42" Element="7"/>
-<n id="1003" p="149.63 158.84" NumHydrogens="1"/>
-<n id="1004" p="133.67 168.05"/>
-<n id="1005" p="117.72 158.84"/>
-<n id="1006" p="101.76 168.05"/>
-<n id="1007" p="101.76 186.48" Element="9"/>
-<n id="1008" p="85.80 158.84"/>
-<n id="1009" p="85.80 140.42"/>
-<n id="1010" p="69.85 131.20" Element="9"/>
-<n id="1011" p="101.76 131.20"/>
-<n id="1012" p="101.76 112.78" Element="9"/>
-<n id="1013" p="117.72 140.42"/>
-<n id="1014" p="165.59 168.05"/>
-<n id="1015" p="181.54 158.84"/>
-<n id="1016" p="197.50 168.05" Element="7"/>
-<n id="1017" p="213.46 158.84"/>
-<n id="1018" p="229.41 168.05"/>
-<n id="1019" p="246.94 162.36" Element="7"/>
-<n id="1020" p="257.77 177.27" Element="7"/>
-<n id="1021" p="246.94 192.17"/>
-<n id="1022" p="252.63 209.70"/>
-<n id="1023" p="235.11 215.39" Element="9"/>
-<n id="1024" p="258.32 227.22" Element="9"/>
-<n id="1025" p="270.15 204.00" Element="9"/>
-<n id="1026" p="229.41 186.48" Element="7"/>
-<n id="1027" p="213.46 195.69"/>
-<n id="1028" p="197.50 186.48"/>
-<n id="1029" p="181.54 140.42" Element="8"/>
+<n id="1002" p="130.84 101.06" Element="7"/>
+<n id="1003" p="130.84 119.49" NumHydrogens="1"/>
+<n id="1004" p="114.88 128.70"/>
+<n id="1005" p="98.93 119.49"/>
+<n id="1006" p="82.97 128.70"/>
+<n id="1007" p="82.97 147.13" Element="9"/>
+<n id="1008" p="67.01 119.49"/>
+<n id="1009" p="67.01 101.06"/>
+<n id="1010" p="51.06 91.85" Element="9"/>
+<n id="1011" p="82.97 91.85"/>
+<n id="1012" p="82.97 73.43" Element="9"/>
+<n id="1013" p="98.93 101.06"/>
+<n id="1014" p="146.80 128.70"/>
+<n id="1015" p="162.75 119.49"/>
+<n id="1016" p="178.71 128.70" Element="7"/>
+<n id="1017" p="194.67 119.49"/>
+<n id="1018" p="210.62 128.70"/>
+<n id="1019" p="228.15 123.01" Element="7"/>
+<n id="1020" p="238.98 137.91" Element="7"/>
+<n id="1021" p="228.15 152.82"/>
+<n id="1022" p="233.84 170.34"/>
+<n id="1023" p="216.32 176.04" Element="9"/>
+<n id="1024" p="239.53 187.87" Element="9"/>
+<n id="1025" p="251.36 164.65" Element="9"/>
+<n id="1026" p="210.62 147.13" Element="7"/>
+<n id="1027" p="194.67 156.34"/>
+<n id="1028" p="178.71 147.13"/>
+<n id="1029" p="162.75 101.06" Element="8"/>
 <b id="1030" B="1002" E="1003" Display="WedgeEnd"/>
 <b id="1031" B="1003" E="1014"/>
 <b id="1032" B="1014" E="1015"/>
@@ -65,29 +65,29 @@
 <b id="1059" B="1006" E="1007"/>
 </fragment>
 <fragment id="1060">
-<n id="1061" p="111.34 424.04"/>
-<n id="1062" p="102.13 408.08"/>
-<n id="1063" p="118.09 398.87" Element="8"/>
-<n id="1064" p="118.09 380.45"/>
-<n id="1065" p="134.04 371.23" Element="7"/>
-<n id="1066" p="134.04 352.81" NumHydrogens="1"/>
-<n id="1067" p="150.00 343.60"/>
-<n id="1068" p="165.96 352.81"/>
-<n id="1069" p="181.91 343.60"/>
-<n id="1070" p="181.91 325.17" Element="9"/>
-<n id="1071" p="197.87 352.81"/>
-<n id="1072" p="197.87 371.23"/>
-<n id="1073" p="213.83 380.45" Element="9"/>
-<n id="1074" p="181.91 380.45"/>
-<n id="1075" p="181.91 398.87" Element="9"/>
-<n id="1076" p="165.96 371.23"/>
-<n id="1077" p="118.09 343.60"/>
-<n id="1078" p="118.09 325.17"/>
-<n id="1079" p="134.04 315.96" Element="8"/>
-<n id="1080" p="102.13 315.96" Element="8"/>
-<n id="1081" p="102.13 371.23" Element="8"/>
-<n id="1082" p="92.92 392.13"/>
-<n id="1083" p="86.17 417.30"/>
+<n id="1061" p="76.22 372.01"/>
+<n id="1062" p="67.01 356.06"/>
+<n id="1063" p="82.97 346.84" Element="8"/>
+<n id="1064" p="82.97 328.42"/>
+<n id="1065" p="98.93 319.21" Element="7"/>
+<n id="1066" p="98.93 300.78" NumHydrogens="1"/>
+<n id="1067" p="114.88 291.57"/>
+<n id="1068" p="130.84 300.78"/>
+<n id="1069" p="146.80 291.57"/>
+<n id="1070" p="146.80 273.14" Element="9"/>
+<n id="1071" p="162.75 300.78"/>
+<n id="1072" p="162.75 319.21"/>
+<n id="1073" p="178.71 328.42" Element="9"/>
+<n id="1074" p="146.80 328.42"/>
+<n id="1075" p="146.80 346.84" Element="9"/>
+<n id="1076" p="130.84 319.21"/>
+<n id="1077" p="82.97 291.57"/>
+<n id="1078" p="82.97 273.14"/>
+<n id="1079" p="98.93 263.93" Element="8"/>
+<n id="1080" p="67.01 263.93" Element="8"/>
+<n id="1081" p="67.01 319.21" Element="8"/>
+<n id="1082" p="57.80 340.10"/>
+<n id="1083" p="51.06 365.27"/>
 <b id="1084" B="1061" E="1062"/>
 <b id="1085" B="1062" E="1083"/>
 <b id="1086" B="1062" E="1082"/>
@@ -113,19 +113,19 @@
 <b id="1106" B="1069" E="1070"/>
 </fragment>
 <fragment id="1107">
-<n id="1108" p="406.63 344.24" Element="9"/>
-<n id="1109" p="402.80 362.26"/>
-<n id="1110" p="384.78 358.43"/>
-<n id="1111" p="371.09 370.76" Element="7"/>
-<n id="1112" p="355.13 361.55"/>
-<n id="1113" p="339.17 370.76"/>
-<n id="1114" p="339.17 389.19" Element="7"/>
-<n id="1115" p="355.13 398.40"/>
-<n id="1116" p="358.96 343.53" Element="7"/>
-<n id="1117" p="371.09 389.19"/>
-<n id="1118" p="377.29 341.60" Element="7"/>
-<n id="1119" p="398.97 380.29" Element="9"/>
-<n id="1120" p="420.83 366.09" Element="9"/>
+<n id="1108" p="290.28 292.21" Element="9"/>
+<n id="1109" p="286.45 310.23"/>
+<n id="1110" p="268.42 306.40"/>
+<n id="1111" p="254.73 318.73" Element="7"/>
+<n id="1112" p="238.78 309.52"/>
+<n id="1113" p="222.82 318.73"/>
+<n id="1114" p="222.82 337.16" Element="7"/>
+<n id="1115" p="238.78 346.37"/>
+<n id="1116" p="242.61 291.50" Element="7"/>
+<n id="1117" p="254.73 337.16"/>
+<n id="1118" p="260.93 289.57" Element="7"/>
+<n id="1119" p="282.62 328.26" Element="9"/>
+<n id="1120" p="304.47 314.07" Element="9"/>
 <b id="1121" B="1108" E="1109"/>
 <b id="1122" B="1109" E="1120"/>
 <b id="1123" B="1109" E="1119"/>
@@ -142,32 +142,32 @@
 <b id="1134" B="1112" E="1111"/>
 </fragment>
 <fragment id="1135">
-<n id="1136" p="170.00 513.15" Element="8"/>
-<n id="1137" p="170.00 531.57"/>
-<n id="1138" p="185.96 540.79" Element="7"/>
-<n id="1139" p="201.91 531.57" NumHydrogens="1"/>
-<n id="1140" p="217.87 540.79"/>
-<n id="1141" p="217.87 559.21"/>
-<n id="1142" p="233.83 568.43"/>
-<n id="1143" p="249.78 559.21" Element="9"/>
-<n id="1144" p="233.83 586.85"/>
-<n id="1145" p="217.87 596.06"/>
-<n id="1146" p="217.87 614.49" Element="9"/>
-<n id="1147" p="201.91 586.85"/>
-<n id="1148" p="185.96 596.06" Element="9"/>
-<n id="1149" p="201.91 568.43"/>
-<n id="1150" p="201.91 513.15"/>
-<n id="1151" p="217.87 503.94"/>
-<n id="1152" p="233.83 513.15" Element="8"/>
-<n id="1153" p="217.87 485.51" Element="8"/>
-<n id="1154" p="154.04 540.79" Element="8"/>
-<n id="1155" p="138.09 531.57"/>
-<n id="1156" p="122.13 540.79"/>
-<n id="1157" p="122.13 559.21"/>
-<n id="1158" p="106.17 568.43"/>
-<n id="1159" p="90.22 559.21"/>
-<n id="1160" p="90.22 540.79"/>
-<n id="1161" p="106.17 531.57"/>
+<n id="1136" p="130.84 475.71" Element="8"/>
+<n id="1137" p="130.84 494.14"/>
+<n id="1138" p="146.80 503.35" Element="7"/>
+<n id="1139" p="162.75 494.14" NumHydrogens="1"/>
+<n id="1140" p="178.71 503.35"/>
+<n id="1141" p="178.71 521.78"/>
+<n id="1142" p="194.67 530.99"/>
+<n id="1143" p="210.62 521.78" Element="9"/>
+<n id="1144" p="194.67 549.41"/>
+<n id="1145" p="178.71 558.63"/>
+<n id="1146" p="178.71 577.05" Element="9"/>
+<n id="1147" p="162.75 549.41"/>
+<n id="1148" p="146.80 558.63" Element="9"/>
+<n id="1149" p="162.75 530.99"/>
+<n id="1150" p="162.75 475.71"/>
+<n id="1151" p="178.71 466.50"/>
+<n id="1152" p="194.67 475.71" Element="8"/>
+<n id="1153" p="178.71 448.08" Element="8"/>
+<n id="1154" p="114.88 503.35" Element="8"/>
+<n id="1155" p="98.93 494.14"/>
+<n id="1156" p="82.97 503.35"/>
+<n id="1157" p="82.97 521.78"/>
+<n id="1158" p="67.01 530.99"/>
+<n id="1159" p="51.06 521.78"/>
+<n id="1160" p="51.06 503.35"/>
+<n id="1161" p="67.01 494.14"/>
 <b id="1162" B="1136" E="1137" Order="2"/>
 <b id="1163" B="1137" E="1154"/>
 <b id="1164" B="1154" E="1155"/>
@@ -197,19 +197,19 @@
 <b id="1188" B="1142" E="1143"/>
 </fragment>
 <fragment id="1189">
-<n id="1190" p="446.63 524.24" Element="9"/>
-<n id="1191" p="442.80 542.26"/>
-<n id="1192" p="424.78 538.43"/>
-<n id="1193" p="411.09 550.76" Element="7"/>
-<n id="1194" p="395.13 541.55"/>
-<n id="1195" p="379.17 550.76"/>
-<n id="1196" p="379.17 569.19" Element="7"/>
-<n id="1197" p="395.13 578.40"/>
-<n id="1198" p="398.96 523.53" Element="7"/>
-<n id="1199" p="411.09 569.19"/>
-<n id="1200" p="417.29 521.60" Element="7"/>
-<n id="1201" p="438.97 560.29" Element="9"/>
-<n id="1202" p="460.83 546.09" Element="9"/>
+<n id="1190" p="322.19 486.80" Element="9"/>
+<n id="1191" p="318.36 504.83"/>
+<n id="1192" p="300.34 501.00"/>
+<n id="1193" p="286.65 513.32" Element="7"/>
+<n id="1194" p="270.69 504.11"/>
+<n id="1195" p="254.73 513.32"/>
+<n id="1196" p="254.73 531.75" Element="7"/>
+<n id="1197" p="270.69 540.96"/>
+<n id="1198" p="274.52 486.09" Element="7"/>
+<n id="1199" p="286.65 531.75"/>
+<n id="1200" p="292.84 484.16" Element="7"/>
+<n id="1201" p="314.53 522.85" Element="9"/>
+<n id="1202" p="336.38 508.66" Element="9"/>
 <b id="1203" B="1190" E="1191"/>
 <b id="1204" B="1191" E="1202"/>
 <b id="1205" B="1191" E="1201"/>
@@ -225,9 +225,11 @@
 <b id="1215" B="1192" E="1193"/>
 <b id="1216" B="1194" E="1193"/>
 </fragment>
-<t id="1217" p="40.00 50.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Disconnect the amide bond. Give the two building blocks you would couple, with any protecting group they need.</s></t>
-<arrow id="1221" FillType="None" ArrowheadHead="Full" ArrowheadType="Hollow" HeadSize="600" ArrowheadCenterSize="600" ArrowheadWidth="150" ArrowShaftSpacing="600" Head3D="400.00 170.00 0" Tail3D="300.00 170.00 0"/>
-<t id="1218" p="430.00 176.00" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">?</s></t>
-<t id="1219" p="40.00 290.00" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
-<t id="1220" p="40.00 470.00" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
+<t id="1217" p="40.00 40.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Disconnect the amide bond. Give the two building blocks you would couple, with any protecting group they need. [5]</s></t>
+<arrow id="1223" FillType="None" ArrowheadHead="Full" ArrowheadType="Hollow" HeadSize="600" ArrowheadCenterSize="600" ArrowheadWidth="150" ArrowShaftSpacing="600" Head3D="360.54 130.65 0" Tail3D="268.42 130.65 0"/>
+<t id="1218" p="374.54 135.65" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">?</s></t>
+<t id="1219" p="40.00 235.50" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1220" p="197.76 322.97" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">+</s></t>
+<t id="1221" p="40.00 419.65" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
+<t id="1222" p="229.68 517.56" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">+</s></t>
 </page></CDXML>

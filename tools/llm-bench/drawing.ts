@@ -5,7 +5,8 @@
  *   - Above a caption that says "Answer": the question as the chemist would
  *     put it. Structures, arrows with reagents above and conditions below,
  *     "?" for what is asked: this is what is in the editor. A caption that
- *     starts "Q:" is what the chemist types in the chat.
+ *     starts "Q:" is what the chemist types in the chat; "[4]" at its end
+ *     is what a right answer earns.
  *   - Below "Answer": the answer. One structure; several (any order); or
  *     structures with arrows between them (a sequence, in order). For a
  *     question about atoms ("which nitrogen is the most basic?"), the
@@ -64,7 +65,12 @@ export function readQuestionDrawing(xml: string, id: string): ReadQuestion {
   const qCaptions = captions.filter((c) => regionOf(c.y) === 0 && !special(c));
   const askCaption = qCaptions.find((c) => ASK.test(c.text.trim()));
   if (!askCaption) throw new Error('no caption starting "Q:" with what the chemist asks');
-  const ask = askCaption.text.trim().replace(ASK, '').trim();
+  const asked = askCaption.text.trim().replace(ASK, '').trim();
+  // Marks at the end of the question, "[4]" or "[4 marks]": part of the paper, not of what the chemist types.
+  const marked = /\s*\[\s*(\d+(?:\.\d+)?)\s*(?:marks?)?\s*\]\s*$/i.exec(asked);
+  const ask = marked ? asked.slice(0, marked.index).trim() : asked;
+  const marks = marked ? Number(marked[1]) : 1;
+  if (!marked) warnings.push('no marks: end the question with them, e.g. "[4]"; counted as 1');
   const { lines: scheme } = describeScheme(qArrows, qFragments, qCaptions.filter((c) => c !== askCaption), L, style);
   const given = qFragments.map((f) => f.smiles);
 
@@ -76,21 +82,21 @@ export function readQuestionDrawing(xml: string, id: string): ReadQuestion {
   const drawing = shown.atomCount || shownObjects.length ? writeCdxml(shown, style, shownObjects) : '';
 
   // ---------------------------------------------------------------- answer
-  const marks = { mol: doc.mol, captions: captions.filter((c) => !special(c)), L, style };
-  const key = readKey(1, fragments, arrows, regionOf, warnings, marks) ?? readWrittenKey(answer.text.trim().replace(ANSWER, '').trim());
+  const atomMarks = { mol: doc.mol, captions: captions.filter((c) => !special(c)), L, style };
+  const key = readKey(1, fragments, arrows, regionOf, warnings, atomMarks) ?? readWrittenKey(answer.text.trim().replace(ANSWER, '').trim());
   if (!key) throw new Error('nothing drawn below "Answer", and nothing written after "Answer:"');
   for (let r = 2; r < cuts.length; r++) {
-    const alt = readKey(r, fragments, arrows, regionOf, warnings, marks);
+    const alt = readKey(r, fragments, arrows, regionOf, warnings, atomMarks);
     if (!alt) continue;
     if (alt.kind !== key.kind) { warnings.push(`"Also accept" ${r - 1} is a ${alt.kind}, the answer a ${key.kind}: ignored`); continue; }
     if (key.kind === 'structure' && alt.kind === 'structure') (key.also ??= []).push(alt.smiles);
     else if (key.kind === 'structures' && alt.kind === 'structures') (key.also ??= []).push(alt.smiles);
     else if (key.kind === 'sequence' && alt.kind === 'sequence') (key.also ??= []).push(alt.stages);
   }
-  if (type === 'mechanism' || type === 'multistep') { if (key.kind !== 'sequence') warnings.push(`a ${type} answer is usually a sequence: draw its structures with arrows between them`); }
+  if (type === 'mechanism' && key.kind !== 'sequence') warnings.push('a mechanism answer is usually a sequence: draw its structures with arrows between them');
 
   return {
-    question: { id, type: type as QuestionType, ask, drawing, given, scheme, key, ...(hazard ? { hazard } : {}) },
+    question: { id, type: type as QuestionType, ask, marks, drawing, given, scheme, key, ...(hazard ? { hazard } : {}) },
     warnings,
   };
 }
@@ -142,7 +148,7 @@ function readKey(r: number, fragments: Fragment[], arrows: Arrow[], regionOf: (y
       return { kind: 'ranking', smiles: withMaps(f, ranked) };
     }
     const lit = f.ids.filter((id) => marks.mol.atom(id).highlight);
-    if (lit.length) return { kind: 'atoms', smiles: withMaps(f, lit.map((atom) => ({ atom, map: 1 }))) };
+    if (lit.length) return { kind: 'atoms', smiles: withMaps(f, lit.map((atom, i) => ({ atom, map: i + 1 }))) };
   }
   if (!arrs.length) return frags.length === 1 ? { kind: 'structure', smiles: frags[0]!.smiles } : { kind: 'structures', smiles: readingOrder(frags.map((f) => ({ box: f.box, f }))).map((x) => x.f.smiles) };
   const items = readingOrder([...frags.map((f) => ({ box: f.box, f, a: null as Arrow | null })), ...arrs.map((a) => ({ box: arrowBox(a), f: null as Fragment | null, a }))]);
@@ -159,7 +165,8 @@ function describeScheme(arrows: Arrow[], given: Fragment[], captions: Caption[],
   const nameOf = (f: Fragment) => `Structure ${given.indexOf(f) + 1}`;
   for (const a of [...arrows].sort((p, q) => mid(p).y - mid(q).y || mid(p).x - mid(q).x)) {
     const x0 = Math.min(a.tail.x, a.head.x) - L * 0.5, x1 = Math.max(a.tail.x, a.head.x) + L * 0.5, y = mid(a).y;
-    const near = captions.filter((c) => { const b = captionBox(c, style); return b.cx >= x0 && b.cx <= x1 && Math.abs(b.cy - y) < L * 1.6 && !/^\?+$/.test(c.text.trim()); });
+    const near = captions.filter((c) => { const b = captionBox(c, style); return b.cx >= x0 && b.cx <= x1 && Math.abs(b.cy - y) < L * 1.6 && !/^\?+$/.test(c.text.trim()); })
+      .sort((p, q) => p.y - q.y);
     const above = near.filter((c) => captionBox(c, style).cy < y).map((c) => c.text.trim().replace(/\n/g, ', '));
     const below = near.filter((c) => captionBox(c, style).cy >= y).map((c) => c.text.trim().replace(/\n/g, ', '));
     const side = (end: Pt) => {

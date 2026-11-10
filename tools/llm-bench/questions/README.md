@@ -5,7 +5,7 @@ into this folder. Open an example, change it, and save it under a new name:
 
 | Example | Shows |
 |---|---|
-| `reaction-1.cdxml` | A reaction with reagents on the arrow, and a hazard |
+| `reaction-1.cdxml` | A reaction with reagents on the arrow, and a hazard (all 26 examples are in this folder) |
 | `retrosynthesis-1.cdxml` | A retrosynthetic arrow; starting materials as a set; an alternative answer |
 | `analysis-1.cdxml` | Which atom: the answer is the structure with that atom highlighted |
 | `analysis-2.cdxml` | The answer is a word (sp2) |
@@ -34,9 +34,11 @@ Lay it out like an exam paper: question at the top, answer underneath.
 1. **The question.** Draw what the chemist would have in the editor:
    structures, a reaction arrow with the reagents written above it and the
    solvent and conditions below, and a `?` where the answer goes.
-2. **What the chemist types in the chat.** A text caption starting `Q:`, e.g.
-   `Q: What is the product of this reaction?`. It is not part of the drawing
-   the model sees.
+2. **What the chemist types in the chat, and the marks.** A text caption
+   starting `Q:` and ending with the marks in brackets, e.g.
+   `Q: What is the product of this reaction? [4]`. The model gets the
+   question without the marks; a right answer earns them all. It is not part
+   of the drawing the model sees.
 3. **A caption `Answer`.** Everything below it is the answer:
    - one structure: the answer;
    - several structures, no arrows: all of them, in any order;
@@ -58,7 +60,9 @@ Lay it out like an exam paper: question at the top, answer underneath.
    (the other regioisomer, say).
 5. **Optional: a caption `Hazard: HCN, hydrogen cyanide, cyanide`.** The reply
    should warn of the hazard, without being asked. Any of the words in the
-   reply counts. A hazard question must have one; any other question may.
+   reply counts. A hazard question must have one, and earns its marks only
+   when the answer is right and the warning given; on any other question it
+   is recorded but does not change the marks.
 
 **Stereochemistry:** draw it in the answer exactly as it must be. A
 stereocentre you leave plain (no wedge) may come out either way. A model that
