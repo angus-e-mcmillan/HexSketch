@@ -1,5 +1,5 @@
 import {
-  altTextFor, assignWedges, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArrow, makeCaption, parseSmiles, pngWithPayload,
+  aiSummary, altTextFor, assignWedges, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
@@ -426,7 +426,7 @@ export interface MechanismStep {
  * `maxWidth` points. Each step is drawn where the one before left its atoms
  * (by map number), so the chemist can follow them.
  */
-export async function mechanism(steps: readonly MechanismStep[], opts: ReadOptions & { maxWidth?: number } = {}): Promise<Structure> {
+export async function mechanism(steps: readonly MechanismStep[], opts: ReadOptions & { maxWidth?: number; cycle?: boolean } = {}): Promise<Structure> {
   if (steps.length < 2) throw new Error('A mechanism needs at least two steps');
   const drawn: Structure[] = [];
   let prev: Molecule | undefined;
@@ -450,6 +450,7 @@ export async function mechanism(steps: readonly MechanismStep[], opts: ReadOptio
   // Each step's extent as drawn: labels and curly arrows included.
   const blocks = drawn.map((s) => ({ s, b: depict(s.mol, style, s.objects).bounds }));
   const words = (t?: string) => (t ?? '').trim().replace(/^\d+[.)]\s*/, '');
+  if (opts.cycle) return cyclePage(blocks, steps.map((x) => words(x.note)), style);
   const MIN_ARROW = 2.5 * L, MAX_ARROW = 6 * L, charW = size * 0.55;
   /** A step's name in lines that fit an arrow of a usual length. */
   const wrapped = (t: string) => {
@@ -514,8 +515,69 @@ export async function mechanism(steps: readonly MechanismStep[], opts: ReadOptio
   return { mol, objects, groups: [], style, format: 'smiles' };
 }
 
+/**
+ * A catalytic cycle: the steps round a circle, clockwise from the top, each
+ * joined to the next by a curved arrow and the last back to the first (the
+ * catalyst regenerated). Each step's name sits outside its arrow, at the
+ * arrow's middle.
+ */
+function cyclePage(blocks: { s: Structure; b: { x0: number; y0: number; x1: number; y1: number } }[], notes: string[], style: DrawingStyle): Structure {
+  const L = style.bondLength, size = style.captionSize, line = size * 1.25, n = blocks.length;
+  // How far each step reaches from its centre, and the arc an arrow needs between neighbours.
+  const reach = blocks.map(({ b }) => Math.hypot(b.x1 - b.x0, b.y1 - b.y0) / 2 + 0.4 * L);
+  const ARC = 2.5 * L;
+  let R = Math.max(3 * L, (reach.reduce((t, x) => t + 2 * x, 0) + n * ARC) / (2 * Math.PI));
+  const theta = (i: number) => -Math.PI / 2 + (2 * Math.PI * i) / n;
+  const half = (i: number) => Math.asin(Math.min(0.95, reach[i]! / R));
+  // Grow the circle until every arrow has room.
+  for (let tries = 0; tries < 40; tries++) {
+    const tight = blocks.some((_, i) => (2 * Math.PI) / n - half(i) - half((i + 1) % n) < ARC / R);
+    if (!tight) break;
+    R *= 1.1;
+  }
+  const mol = new Molecule();
+  const objects: DocObject[] = [];
+  const at = (a: number, r = R) => ({ x: r * Math.cos(a), y: r * Math.sin(a) });
+  blocks.forEach(({ s, b }, i) => {
+    const c = at(theta(i));
+    const dx = c.x - (b.x0 + b.x1) / 2, dy = c.y - (b.y0 + b.y1) / 2;
+    const ids = new Map<AtomId, AtomId>();
+    for (const a of s.mol.atoms()) ids.set(a.id, mol.addAtom({ ...a, x: a.x + dx, y: a.y + dy }).id);
+    for (const bd of s.mol.bonds()) mol.addBond({ ...bd, begin: ids.get(bd.begin)!, end: ids.get(bd.end)! });
+    for (const o of cloneObjects(s.objects)) { for (const q of objectPoints(o)) { q.x += dx; q.y += dy; } objects.push(o); }
+  });
+  for (let i = 0; i < n; i++) {
+    const from = theta(i) + half(i), to = theta(i + 1) - half((i + 1) % n);
+    // Clockwise on the page (y grows downward), so the arc's angle, measured anticlockwise, is negative.
+    objects.push(makeArcArrow(at(from), at(to), -((to - from) * 180) / Math.PI));
+    const text = notes[i];
+    if (!text) continue;
+    // The name outside the circle at the arrow's middle, set away from it on the side it faces.
+    const mid = (from + to) / 2, cos = Math.cos(mid), sin = Math.sin(mid);
+    const p = at(mid, R + 0.6 * L);
+    const lines = text.split(/\s+/).reduce<string[]>((out, w) => { const j = out.length ? `${out.at(-1)} ${w}` : w; if (out.length && j.length * size * 0.55 <= 8 * L) out[out.length - 1] = j; else out.push(w); return out; }, []);
+    const t = lines.join('\n');
+    const align = cos > 0.35 ? 'left' : cos < -0.35 ? 'right' : 'center';
+    const y = sin < -0.35 ? p.y - (lines.length - 1) * line : sin > 0.35 ? p.y + size : p.y + size * 0.35 - ((lines.length - 1) * line) / 2;
+    objects.push(makeCaption(p.x, y, t, [{ text: t, script: 'formula' }], align));
+  }
+  return { mol, objects, groups: [], style, format: 'smiles' };
+}
+
 /** The structure with abbreviations (Ph, OMe, Boc...) drawn out, for SMILES, names and comparisons. */
 const expanded = (s: Structure): Molecule => drawnOut(s.mol, s.style);
+
+/**
+ * A drawing as an AI reads it with a message: per structure its name,
+ * SMILES, formula and masses (abbreviations drawn out, so it sees every
+ * atom), then the arrows and text drawn with them (the reagents on an
+ * arrow), and the link if one is given. Null when nothing is drawn. The same
+ * on hexsketch.com and in the editor in Claude.
+ */
+export function drawingSummary(s: Pick<Structure, 'mol' | 'objects' | 'style'>, opts: { link?: string } = {}): string | null {
+  if (!s.mol.atomCount) return null;
+  return aiSummary(drawnOut(s.mol, s.style), { nameOf: (m) => nameMolecule(m).name, objects: s.objects, style: s.style, ...opts });
+}
 
 /** A drawing with its abbreviations (Ph, OMe, Boc...) drawn out; the drawing itself if it has none. */
 export function drawnOut(mol: Molecule, style: DrawingStyle = DEFAULT_STYLE): Molecule {

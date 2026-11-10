@@ -1,8 +1,7 @@
 import './chat.css';
-import { aiSummary, structureLink, writeCdxml, HEXSKETCH_URL } from '@hexsketch/core';
-import { analyze, compare, convert, drawnOut, link, name, validate } from '@hexsketch/agent';
-import { nameMolecule } from '@hexsketch/naming';
-import { findStructure, pageTools, prepare, prepareSteps, safetyOf, HIGHLIGHTS, PAGE_INSTRUCTIONS, SHOWN_NEXT, type Show } from '../../../packages/hexsketch/src/toolkit.ts';
+import { writeCdxml } from '@hexsketch/core';
+import { analyze, compare, convert, drawingSummary, link, name, validate } from '@hexsketch/agent';
+import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, HIGHLIGHTS, PAGE_INSTRUCTIONS, SHOWN_NEXT, type Show } from '../../../packages/hexsketch/src/toolkit.ts';
 import { createAiLayer, formatted, type AiLayer } from './ai.ts';
 import type { AppApi } from './app.ts';
 import * as openrouter from './openrouter.ts';
@@ -145,12 +144,13 @@ class Chat {
     return li;
   }
 
-  /** The drawing as text for the model, or null when nothing is drawn (as the in-chat editor tells Claude). */
+  /**
+   * The drawing as text for the model, or null when nothing is drawn: its
+   * structures, and the arrows and text drawn with them (the reagents on an
+   * arrow). No link: the editor is beside the chat, and a link is long.
+   */
   private async describe(): Promise<string | null> {
-    const doc = this.ui.editor.doc;
-    if (!doc.mol.atomCount) return null;
-    const url = await structureLink(doc.mol, doc.style, doc.objects, doc.groups, HEXSKETCH_URL);
-    return aiSummary(drawnOut(doc.mol, doc.style), { nameOf: (m) => nameMolecule(m).name, link: url });
+    return drawingSummary(this.ui.editor.doc);
   }
 
   /** The drawing as a document (CDXML), as the MCP server keeps it, for show_in_sketcher to work on. */
@@ -246,11 +246,11 @@ class Chat {
     try {
       const s = args.structure as string;
       switch (tool) {
-        case 'show_in_sketcher': return await this.show(args as Show & { steps?: Show[] });
+        case 'show_in_sketcher': return await this.show(args as Show & { steps?: Show[]; cycle?: boolean });
         case 'read_sketcher': {
           const now = this.drawing();
           this.lastSeen = (await this.describe()) ?? '';
-          return now ? { ...(await analyze(now)), ...(await safetyOf(now)), link: await link(now) } : { empty: true, note: 'The canvas is empty.' };
+          return now ? { ...(await analyze(now)), ...(await textOf(now)), ...(await safetyOf(now)) } : { empty: true, note: 'The canvas is empty.' };
         }
         case 'find_structure': return await findStructure(String(args.name ?? ''));
         case 'name_structure': return { ...(await name(s)), link: await link(s) };
@@ -266,13 +266,14 @@ class Chat {
   }
 
   /** show_in_sketcher, as the MCP server does it, shown straight in this editor. */
-  private async show(args: Show & { steps?: Show[] }): Promise<unknown> {
-    const { steps, ...one } = args;
+  private async show(args: Show & { steps?: Show[]; cycle?: boolean }): Promise<unknown> {
+    const { steps, cycle, ...one } = args;
+    if (cycle && !steps) throw new Error('cycle draws the steps of a mechanism round a circle: give steps as well');
     const current = this.drawing();
     const before = this.ui.editor.doc.mol.atomCount ? this.ui.editor.doc.mol.clone() : undefined;
     if (steps) {
       if (Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
-      const { updates, report } = await prepareSteps(steps, before, current);
+      const { updates, report } = await prepareSteps(steps, before, current, { cycle: !!cycle });
       // Steps open at the first, for the user to step through.
       let first = -1;
       for (const u of updates) { await this.ai.apply(u); if (u.step?.index === 0) first = this.ai.at; }

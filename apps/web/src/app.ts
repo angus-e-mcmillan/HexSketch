@@ -78,6 +78,16 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   let zoom = opts.zoom ?? 1.5;
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const pageEl = $('page');
+  // Which build this is, bottom right, so a tester knows what they are testing (issue #47).
+  const version = typeof __HEXSKETCH_VERSION__ === 'string' ? __HEXSKETCH_VERSION__ : '';
+  const footer = $('status')?.parentElement;
+  if (version && footer && !footer.querySelector('.version')) {
+    const v = document.createElement('span');
+    v.className = 'version';
+    v.textContent = version;
+    v.title = `HexSketch ${version}`;
+    footer.append(v);
+  }
   const drawingEl = $('drawing');
   const wrapEl = $('canvasWrap');
   const labelEditor = $<HTMLInputElement>('labelEditor');
@@ -359,7 +369,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     const src = copySource();
     if (!src.mol.atomCount) { flash('Draw a structure first'); return; }
     const text = structureLink(src.mol, editor.doc.style, src.objects, src.groups, linkBase())
-      .then((link) => aiSummary(src.mol, { nameOf: (m) => nameMolecule(m).name, link }));
+      .then((link) => aiSummary(src.mol, { nameOf: (m) => nameMolecule(m).name, link, objects: src.objects, style: editor.doc.style }));
     copyWhenReady(text, 'Copied for AI: paste it into your chat with Claude, ChatGPT or another assistant');
   }
 
