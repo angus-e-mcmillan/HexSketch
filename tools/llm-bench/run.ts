@@ -91,7 +91,7 @@ mkdirSync(new URL('transcripts/', outDir), { recursive: true });
 
 interface Message { role: 'system' | 'user' | 'assistant' | 'tool'; content: string | null; tool_calls?: ToolCall[]; tool_call_id?: string; reasoning_details?: unknown }
 interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string } }
-interface Usage { prompt_tokens?: number; completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number }; cost?: number }
+interface Usage { prompt_tokens?: number; completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number }; prompt_tokens_details?: { cached_tokens?: number }; cost?: number }
 interface Reply { model?: string; provider?: string; choices?: { message: Message; finish_reason?: string; native_finish_reason?: string }[]; usage?: Usage; error?: { message: string; code?: number } }
 
 export interface RunRecord extends Partial<Measures> {
@@ -107,7 +107,23 @@ export interface RunRecord extends Partial<Measures> {
   /** Marks earned: the question's marks when correct, else 0. */
   marks?: number;
   rounds: number; tools: { name: string; error: boolean }[]; finish: string | null;
-  tokens: { prompt: number; completion: number; reasoning: number }; cost: number; ms: number; error?: string;
+  /** cached: input tokens read from the provider's prompt cache (charged at a fraction). */
+  tokens: { prompt: number; completion: number; reasoning: number; cached?: number }; cost: number; ms: number; error?: string;
+}
+
+/**
+ * Claude's prompt cache marked as hexsketch.com marks it (apps/web/src/openrouter.ts):
+ * the instructions and tools, and the conversation up to the latest message,
+ * are kept for the next request. Other providers cache on their own. Without
+ * it the benchmark would charge every round of tool calls in full, which no
+ * chat does.
+ */
+function cached(model: string, messages: Message[]): unknown[] {
+  if (!model.startsWith('anthropic/')) return messages;
+  const lastUser = messages.map((m) => m.role).lastIndexOf('user');
+  return messages.map((m, i) => (m.role === 'system' || i === lastUser) && typeof m.content === 'string'
+    ? { ...m, content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral' } }] }
+    : m);
 }
 
 async function ask(body: object, deadline: number): Promise<Reply> {
@@ -145,7 +161,7 @@ async function runOne(job: Job): Promise<RunRecord> {
       // Out of rounds: one last turn without tools, so the model has to answer.
       const toolsNow = start.tools.length && rec.rounds < maxRounds;
       const reply = await ask({
-        model, messages, max_tokens: maxTokens,
+        model, messages: cached(model, messages), max_tokens: maxTokens,
         // --effort none for a model without a thinking mode: require_parameters would otherwise rule out every provider.
         ...(opt.effort === 'none' ? {} : { reasoning: { effort: opt.effort } }),
         ...(start.tools.length ? { tools: start.tools.map((t) => ({ type: 'function', function: t })), tool_choice: toolsNow ? 'auto' : 'none' } : {}),
@@ -158,6 +174,7 @@ async function runOne(job: Job): Promise<RunRecord> {
       const u = reply.usage ?? {};
       rec.tokens.prompt += u.prompt_tokens ?? 0; rec.tokens.completion += u.completion_tokens ?? 0;
       rec.tokens.reasoning += u.completion_tokens_details?.reasoning_tokens ?? 0; rec.cost += u.cost ?? 0;
+      rec.tokens.cached = (rec.tokens.cached ?? 0) + (u.prompt_tokens_details?.cached_tokens ?? 0);
       const choice = reply.choices?.[0];
       if (!choice) throw new Error('OpenRouter gave no answer');
       // The provider's own reason where it gives one ("refusal"), else OpenRouter's ("content_filter").
@@ -256,7 +273,7 @@ const summary = {
       ...rates(rs),
       refused: rs.filter((r) => r.refused).length,
       cost: mean(rs.map((r) => r.cost)), tokens: mean(rs.map((r) => r.tokens.completion)), reasoning: mean(rs.map((r) => r.tokens.reasoning)),
-      prompt: mean(rs.map((r) => r.tokens.prompt)), seconds: median(rs.map((r) => r.ms / 1000)), toolCalls: mean(rs.map((r) => r.tools.length)),
+      prompt: mean(rs.map((r) => r.tokens.prompt)), cachedPrompt: mean(rs.map((r) => r.tokens.cached ?? 0)), seconds: median(rs.map((r) => r.ms / 1000)), toolCalls: mean(rs.map((r) => r.tools.length)),
     }];
   })),
   /** Per question and condition: answers right, refusals, and what an answer took (means over the repeats). */
@@ -292,7 +309,7 @@ const lines = [
   ...MEASURES.map((m) => `| ${LABEL[m]} | ${conditions.map((c) => pct(cs[c]![m])).join(' | ')} |`),
   `| Refused | ${conditions.map((c) => cs[c]!.refused).join(' | ')} |`,
   `| cost / question | ${conditions.map((c) => `$${cs[c]!.cost.toFixed(3)}`).join(' | ')} |`,
-  `| input tokens / question | ${conditions.map((c) => cs[c]!.prompt.toFixed(0)).join(' | ')} |`,
+  `| input tokens / question (from cache) | ${conditions.map((c) => `${cs[c]!.prompt.toFixed(0)} (${cs[c]!.cachedPrompt.toFixed(0)})`).join(' | ')} |`,
   `| output tokens / question (thinking) | ${conditions.map((c) => `${cs[c]!.tokens.toFixed(0)} (${cs[c]!.reasoning.toFixed(0)})`).join(' | ')} |`,
   `| median time | ${conditions.map((c) => `${cs[c]!.seconds.toFixed(0)} s`).join(' | ')} |`,
   `| tool calls / question | ${conditions.map((c) => cs[c]!.toolCalls.toFixed(1)).join(' | ')} |`,
