@@ -137,7 +137,7 @@ function subMolecule(mol: Molecule, ids: readonly AtomId[]): Molecule {
  * Atom mappings a → b of the largest part of `a` found in `b`, trimming `a`
  * a chain end at a time until it fits; none under 4 atoms in common.
  */
-function commonCore(a: Molecule, b: Molecule): Map<AtomId, AtomId>[] {
+export function commonCore(a: Molecule, b: Molecule): Map<AtomId, AtomId>[] {
   if (a.atomCount > 80 || b.atomCount > 80) return [];
   let pattern = a;
   while (pattern.atomCount >= 4) {
