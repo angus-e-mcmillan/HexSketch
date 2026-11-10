@@ -160,3 +160,12 @@ test('marks come from the question; a safety question needs the warning as well 
   const ok = await measure(h, warned, warned, azide, null);
   assert.deepEqual([ok.correct, ok.flagged], [true, true]);
 });
+
+test('an answer line with more than one SMILES: the last that reads is the answer', async () => {
+  const { lastStructure } = await import('../measure.ts');
+  assert.equal(lastStructure('CCO'), 'CCO');
+  assert.equal(lastStructure('CCO → CC[OH:1]'), 'CC[OH:1]');
+  assert.equal(lastStructure('CCO — with map numbers: CC[OH:1]'), 'CC[OH:1]');
+  // No structure on the line at all: left as it is, to be marked unreadable.
+  assert.equal(lastStructure('the amine on the left'), 'the amine on the left');
+});
