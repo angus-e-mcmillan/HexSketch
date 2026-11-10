@@ -246,7 +246,7 @@ class Chat {
     try {
       const s = args.structure as string;
       switch (tool) {
-        case 'show_in_sketcher': return await this.show(args as Show & { steps?: Show[] });
+        case 'show_in_sketcher': return await this.show(args as Show & { steps?: Show[]; cycle?: boolean });
         case 'read_sketcher': {
           const now = this.drawing();
           this.lastSeen = (await this.describe()) ?? '';
@@ -266,13 +266,14 @@ class Chat {
   }
 
   /** show_in_sketcher, as the MCP server does it, shown straight in this editor. */
-  private async show(args: Show & { steps?: Show[] }): Promise<unknown> {
-    const { steps, ...one } = args;
+  private async show(args: Show & { steps?: Show[]; cycle?: boolean }): Promise<unknown> {
+    const { steps, cycle, ...one } = args;
+    if (cycle && !steps) throw new Error('cycle draws the steps of a mechanism round a circle: give steps as well');
     const current = this.drawing();
     const before = this.ui.editor.doc.mol.atomCount ? this.ui.editor.doc.mol.clone() : undefined;
     if (steps) {
       if (Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
-      const { updates, report } = await prepareSteps(steps, before, current);
+      const { updates, report } = await prepareSteps(steps, before, current, { cycle: !!cycle });
       // Steps open at the first, for the user to step through.
       let first = -1;
       for (const u of updates) { await this.ai.apply(u); if (u.step?.index === 0) first = this.ai.at; }

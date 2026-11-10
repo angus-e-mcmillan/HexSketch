@@ -39,7 +39,7 @@ export const CHEMISTRY = [
 
 /** Bullets every kind of chat is told. */
 const STRUCTURES = '- Give structures as SMILES, molfile or CDXML text, or a HexSketch link. Not names: HexSketch does not turn names into structures.';
-const MECHANISM = '- Draw a mechanism in one show_in_sketcher call, with steps, so the whole of it is on one page: each step its species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), its curly arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]), and a note of a few words naming it. HexSketch draws the steps left to right, an arrow from each to the next with its name above. Show intermediates with their charges, and keep the same map numbers from step to step.';
+const MECHANISM = '- Draw a mechanism in one show_in_sketcher call, with steps, so the whole of it is on one page: each step its species as SMILES with atom-map numbers on the atoms the arrows touch ("[OH-:1].[CH3:2][Br:3]"), its curly arrows from a lone pair ([1]) or a bond ([2, 3]) to an atom ([3]) or to a bond, existing or being made ([1, 2]), and a note of a few words naming it. HexSketch draws the steps left to right, an arrow from each to the next with its name above. Show intermediates with their charges, and keep the same map numbers from step to step. For a catalytic cycle, add cycle: true: the steps go round a circle, each arrow to the next and the last back to the first, the catalyst regenerated.';
 const ORIENTATION = '- Give related structures as SMILES and HexSketch draws them the same way round: in a scheme, each structure keeps the orientation of the first related one before it (the same compound is drawn identically), and a structure you show in the editor keeps the orientation of the drawing it replaces. Keep a compound in the same place in the scheme from one call to the next, so the chemist can follow it.';
 
 export const INSTRUCTIONS = [
@@ -84,7 +84,7 @@ export function renderDescriptions(o: { rasterize: boolean; saves: boolean }): {
    */
   const renderForEditor = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES and a link that opens it in HexSketch for editing. Show the user the image and the link.${saves} In a chat that shows the HexSketch editor, use open_sketcher and show_in_sketcher instead, unless the user asks for an image or a file.`;
   // Where it doesn't, it is the drawing tool, so it carries the essentials: some agents never show a server's instructions to the model.
-  const renderForText = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES, formula and a link that opens it in HexSketch at hexsketch.com, where the user can edit it by drawing. Give structures as SMILES, not names. Check the name and formula returned against what you meant, and always give the user the link; where you can show a web page beside the chat (a preview pane, a browser tool), open the link there too. Draw every reaction as a scheme: reagents above the arrow, solvent, temperature, time and yield below; a whole synthesis or retrosynthesis as one scheme (then); a mechanism as steps, all on one page.${saves}`;
+  const renderForText = `Draw a chemical structure, or a reaction scheme (reaction), as a publication-quality image${image}, with its name, SMILES, formula and a link that opens it in HexSketch at hexsketch.com, where the user can edit it by drawing. Give structures as SMILES, not names. Check the name and formula returned against what you meant, and always give the user the link; where you can show a web page beside the chat (a preview pane, a browser tool), open the link there too. Draw every reaction as a scheme: reagents above the arrow, solvent, temperature, time and yield below; a whole synthesis or retrosynthesis as one scheme (then); a mechanism as steps, all on one page (with cycle: true for a catalytic cycle, drawn round a circle).${saves}`;
   return { forEditor: renderForEditor, forText: renderForText };
 }
 
@@ -323,8 +323,10 @@ export const prepare = async (a: Show, before: Molecule | undefined, current: st
  * editor's update, opening at the first: the updates to show, in order,
  * and what to tell the model. Any mistake throws before any is shown.
  */
-export const prepareSteps = async (steps: Show[], before: Molecule | undefined, current: string): Promise<{ updates: Omit<SketchUpdate, 'version'>[]; report: Record<string, unknown> }> => {
-  if (isMechanism(steps)) return mechanismPage(steps);
+export const prepareSteps = async (steps: Show[], before: Molecule | undefined, current: string, opts: { cycle?: boolean } = {}): Promise<{ updates: Omit<SketchUpdate, 'version'>[]; report: Record<string, unknown> }> => {
+  // A cycle needs no curly arrows: its steps may be the catalyst's species alone.
+  if (isMechanism(steps) || (opts.cycle && isSpecies(steps))) return mechanismPage(steps, !!opts.cycle);
+  if (opts.cycle) throw new Error('cycle draws a mechanism round a circle: give each step its species as structure, with a note and any curly arrows, and no highlights, labels or reactions');
   // Every step is checked before any is shown, so a mistake in step 3 leaves the editor as it was.
   const prepared: Awaited<ReturnType<typeof prepare>>[] = [];
   let like = before;
@@ -351,14 +353,14 @@ export const prepareSteps = async (steps: Show[], before: Molecule | undefined, 
   return { updates, report };
 };
 /** Steps that are a mechanism: each a structure with its curly arrows and a note, and nothing else to show step by step. */
-const isMechanism = (steps: Show[]) => steps.every((x) => x.structure && !x.reaction && !x.disconnect?.length && !x.highlight?.length && !x.labels?.length)
-  && steps.some((x) => x.arrows?.length);
+const isSpecies = (steps: Show[]) => steps.every((x) => x.structure && !x.reaction && !x.disconnect?.length && !x.highlight?.length && !x.labels?.length);
+const isMechanism = (steps: Show[]) => isSpecies(steps) && steps.some((x) => x.arrows?.length);
 
 /** In a mechanism every species is drawn, so each step should have the atoms and charge of the one before. */
 const MECHANISM_BALANCE = 'In a mechanism each step should have the same atoms and total charge as the one before. Unless a species joins or leaves on purpose (a proton from the solvent, say), check the step and show it again.';
 
 /** The steps of a mechanism, checked one by one and drawn together on one page. */
-export async function mechanismOf(steps: { structure?: string; arrows?: Show['arrows']; note?: string }[], opts: { abbreviate?: boolean; style?: 'hexsketch' | 'acs' } = {}): Promise<{ drawing: Structure; report: Record<string, unknown> }> {
+export async function mechanismOf(steps: { structure?: string; arrows?: Show['arrows']; note?: string }[], opts: { abbreviate?: boolean; style?: 'hexsketch' | 'acs'; cycle?: boolean } = {}): Promise<{ drawing: Structure; report: Record<string, unknown> }> {
   const drawing = await mechanism(steps.map((x, i) => {
     if (!x.structure) throw new Error(`Step ${i + 1}: give its species as SMILES, with atom-map numbers on the atoms the arrows touch`);
     const ref = (v: unknown) => Array.isArray(v) && (v.length === 1 || v.length === 2) && v.every((n) => Number.isInteger(n) && n >= 0);
@@ -372,7 +374,8 @@ export async function mechanismOf(steps: { structure?: string; arrows?: Show['ar
   }), { ...opts, maxWidth: SCHEME_WIDTH });
   const each = await Promise.all(steps.map((x) => readStructure(x.structure!)));
   const unbalanced: string[] = [];
-  for (let i = 1; i < each.length; i++) {
+  // Round a catalytic cycle, substrates join and products leave at each step: their balance says nothing.
+  for (let i = 1; i < (opts.cycle ? 0 : each.length); i++) {
     const x = imbalance(each[i - 1]!.mol, each[i]!.mol);
     if (x) unbalanced.push(`Step ${i} → ${i + 1}: ${describeImbalance(x)}`);
   }
@@ -385,12 +388,12 @@ export async function mechanismOf(steps: { structure?: string; arrows?: Show['ar
 }
 
 /** A mechanism as one update: every step on one page, an arrow from each to the next with its name above, and one note. */
-async function mechanismPage(steps: Show[]): Promise<{ updates: Omit<SketchUpdate, 'version'>[]; report: Record<string, unknown> }> {
-  const { drawing, report } = await mechanismOf(steps, { abbreviate: true });
+async function mechanismPage(steps: Show[], cycle = false): Promise<{ updates: Omit<SketchUpdate, 'version'>[]; report: Record<string, unknown> }> {
+  const { drawing, report } = await mechanismOf(steps, { abbreviate: true, cycle });
   const named = steps.map((x, i) => (x.note?.trim() ? `${i + 1}. ${x.note.trim().replace(/^\d+[.)]\s*/, '')}` : '')).filter(Boolean);
   return {
     updates: [{ structure: editorCdxml(drawing), ...(named.length ? { note: named.join('\n') } : {}) }],
-    report: { ...report, next: `The user sees the whole mechanism, ${steps.length} steps, on one page in the editor. In the chat, say in a line or two what happens overall; don't narrate each step.` },
+    report: { ...report, next: `The user sees the whole ${cycle ? 'catalytic cycle' : 'mechanism'}, ${steps.length} steps, on one page in the editor. In the chat, say in a line or two what happens overall; don't narrate each step.` },
   };
 }
 
@@ -418,7 +421,10 @@ function undescribed<T extends z.ZodTypeAny>(schema: T): T {
  */
 const stepFields = () => Object.fromEntries(Object.entries(showFields()).map(([k, v]) => [k, undescribed(v).describe(`As ${k} above.`)])) as ReturnType<typeof showFields>;
 
-export const stepsField = z.array(z.object(stepFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, up to ${MAX_STEPS} steps. A mechanism: each step its species with atom-map numbers, its curly arrows and a note of a few words naming it, keeping the same map numbers throughout; they are drawn together on one page, an arrow from each to the next with its name above. Steps with highlights or labels (a before-and-after) are shown one at a time, with Back and Next. Not for a synthesis or retrosynthesis: draw it as one reaction (with then), so all of it is on the page at once. Each step is drawn the same way round as the one before.`);
+export const stepsField = z.array(z.object(stepFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, up to ${MAX_STEPS} steps. A mechanism: each step its species with atom-map numbers, its curly arrows and a note of a few words naming it, keeping the same map numbers throughout; they are drawn together on one page, an arrow from each to the next with its name above. Steps with highlights or labels (a before-and-after) are shown one at a time, with Back and Next. Not for a synthesis or retrosynthesis: draw it as one reaction (with then), so all of it is on the page at once. Each step is drawn the same way round as the one before. For a catalytic cycle, give cycle: true: the steps go round a circle, each arrow to the next and the last back to the first, the catalyst regenerated.`);
+
+/** A catalytic cycle (with steps): no description here, to keep render_structure within Codex's 5,000 bytes; the instructions and steps describe it. */
+export const cycleField = () => z.boolean().optional();
 
 /** What the tools do, as the model reads it: the same wherever HexSketch is reached. */
 export const DESCRIPTIONS = {
@@ -493,7 +499,7 @@ export const PAGE_ONLY_TOOLS = ['find_structure'];
 export function pageTools(): FunctionTool[] {
   const show = DESCRIPTIONS.show_in_sketcher.replace('that is already open (after open_sketcher)', 'beside the chat');
   return [
-    { name: 'show_in_sketcher', description: show, parameters: toJsonSchema({ ...showFields(), steps: stepsField }) },
+    { name: 'show_in_sketcher', description: show, parameters: toJsonSchema({ ...showFields(), steps: stepsField, cycle: cycleField() }) },
     { name: 'read_sketcher', description: DESCRIPTIONS.read_sketcher, parameters: toJsonSchema({}) },
     {
       name: 'find_structure',

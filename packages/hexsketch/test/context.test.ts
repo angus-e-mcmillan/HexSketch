@@ -21,7 +21,8 @@ test('show_in_sketcher describes each field once: steps say "As <field> above", 
   const show = pageTools().find((t) => t.name === 'show_in_sketcher')!;
   const props = show.parameters.properties as Record<string, { description?: string; items?: { properties: Record<string, Record<string, unknown>> } }>;
   const steps = props.steps!.items!.properties;
-  assert.deepEqual(Object.keys(steps).sort(), Object.keys(props).filter((k) => k !== 'steps').sort());
+  // A step takes every field of the tool but steps and cycle, which are for the whole call.
+  assert.deepEqual(Object.keys(steps).sort(), Object.keys(props).filter((k) => k !== 'steps' && k !== 'cycle').sort());
   for (const [k, v] of Object.entries(steps)) {
     assert.equal(v.description, `As ${k} above.`);
     // No description left anywhere inside a step's field.

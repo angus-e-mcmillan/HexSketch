@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { analyze, compare, convert, link, name, readStructure, render, validate, type ElectronArrow, type Rasterizer, type RenderFormat, type Scheme } from '@hexsketch/agent';
 import type { Molecule } from '@hexsketch/core';
 import { memorySketchStore, type Sketch, type SketchStore } from './sketch-store.ts';
-import { balanceOf, checkOf, editorCdxml, mechanismOf, mechanismSteps, safetyOf, textOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
+import { balanceOf, checkOf, cycleField, editorCdxml, mechanismOf, mechanismSteps, safetyOf, textOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
 
 export { HIGHLIGHTS };
 
@@ -131,6 +131,7 @@ export function createServer(opts: ServerOptions): McpServer {
       arrows: arrows().optional(),
       disconnect: disconnect().optional(),
       steps: mechanismSteps(),
+      cycle: cycleField(),
       format: z.enum(formats as [RenderFormat, ...RenderFormat[]]).optional().describe(`Output format; default ${formats[0]}. PDF needs save_to.`),
       style,
       ...(opts.saveFile ? {
@@ -140,7 +141,7 @@ export function createServer(opts: ServerOptions): McpServer {
     },
     annotations: { title: 'Draw a structure', readOnlyHint: !opts.saveFile, destructiveHint: false, openWorldHint: false },
   }, (args) => tool(async () => {
-    const a = args as { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; disconnect?: number[][]; steps?: { structure: string; arrows?: Parameters<typeof curlyArrows>[0]; note?: string }[]; format?: RenderFormat; style?: 'hexsketch' | 'acs'; save_to?: string; overwrite?: boolean };
+    const a = args as { structure?: string; reaction?: Scheme; arrows?: Parameters<typeof curlyArrows>[0]; disconnect?: number[][]; steps?: { structure: string; arrows?: Parameters<typeof curlyArrows>[0]; note?: string }[]; cycle?: boolean; format?: RenderFormat; style?: 'hexsketch' | 'acs'; save_to?: string; overwrite?: boolean };
     const fromPath = a.save_to ? (/\.([a-z]+)$/i.exec(a.save_to)?.[1]?.toLowerCase() as RenderFormat | undefined) : undefined;
     if (a.save_to && (!fromPath || !formats.includes(fromPath))) throw new Error(`save_to needs one of these extensions: ${formats.map((f) => `.${f}`).join(' ')}`);
     const to = fromPath ?? a.format ?? formats[0]!;
@@ -149,7 +150,8 @@ export function createServer(opts: ServerOptions): McpServer {
     const abbreviate = to !== 'mol';
     if (a.steps && (a.structure || a.reaction || a.arrows || a.disconnect)) throw new Error('Give steps (a mechanism), or a structure or reaction, not both');
     // A mechanism: every step on one page, checked step by step.
-    const mech = a.steps ? await mechanismOf(a.steps, { ...read(a.style), abbreviate }) : null;
+    if (a.cycle && !a.steps) throw new Error('cycle draws the steps of a mechanism round a circle: give steps as well');
+    const mech = a.steps ? await mechanismOf(a.steps, { ...read(a.style), abbreviate, cycle: !!a.cycle }) : null;
     const input = mech ? mech.drawing : await given(a.structure, a.reaction, { ...read(a.style), abbreviate, arrows: curlyArrows(a.arrows), ...(a.disconnect ? { disconnect: a.disconnect } : {}) });
     const r = await render(input, { ...read(a.style), abbreviate, to, ...(opts.rasterize ? { rasterize: opts.rasterize } : {}) });
     const about = await analyze(input, read(a.style));
@@ -238,8 +240,8 @@ export function createServer(opts: ServerOptions): McpServer {
 
     /** What the model checks a structure it wrote against: its name and formula, and anything that looks wrong. */
     /** Show a sequence of steps (checked first, all of them), opening at the first; returns what to tell the model. */
-    const showSteps = async (id: string, steps: Show[], before: Molecule | undefined, current: string): Promise<Record<string, unknown>> => {
-      const { updates, report } = await prepareSteps(steps, before, current);
+    const showSteps = async (id: string, steps: Show[], before: Molecule | undefined, current: string, cycle = false): Promise<Record<string, unknown>> => {
+      const { updates, report } = await prepareSteps(steps, before, current, { cycle });
       for (const u of updates) await store.addUpdate(id, u);
       return report;
     };
@@ -251,12 +253,14 @@ export function createServer(opts: ServerOptions): McpServer {
         ...showFields(),
         structure: structure().optional().describe('A structure to start from (SMILES, molfile, CDXML or a HexSketch link); leave out for an empty canvas.'),
         steps: stepsField,
+        cycle: cycleField(),
       },
       annotations: { title: 'Open the HexSketch editor', ...READ_ONLY },
       _meta: { ui: { resourceUri: SKETCHER_URI } },
     }, (args) => safely(async () => {
-      const { steps, ...one } = args as Show & { steps?: Show[] };
+      const { steps, cycle, ...one } = args as Show & { steps?: Show[]; cycle?: boolean };
       if (steps && Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
+      if (cycle && !steps) throw new Error('cycle draws the steps of a mechanism round a circle: give steps as well');
       const { structure: text0, reaction: r, arrows: curly, disconnect: cuts, ...marks } = one;
       const s = r || text0 ? await toDraw(text0, r, undefined, curlyArrows(curly), cuts) : undefined;
       // Highlights, labels and a note on what opens: checked before the editor is opened, as show_in_sketcher checks them.
@@ -264,7 +268,7 @@ export function createServer(opts: ServerOptions): McpServer {
       const sketch = await store.create(s ?? '');
       opened.add(sketch.id);
       if (shown) await store.addUpdate(sketch.id, shown.update);
-      const sequence = steps ? await showSteps(sketch.id, steps, undefined, '') : null;
+      const sequence = steps ? await showSteps(sketch.id, steps, undefined, '', !!cycle) : null;
       // Models see the text or the structuredContent depending on the chat, so both say how to carry on.
       const next = `The HexSketch editor is now open in the chat and stays open; the user and you work in it together for the rest of this conversation. Whenever you discuss, explain, compare or change this structure, show it in the editor: call show_in_sketcher (with sketch "${sketch.id}") with highlight (SMILES fragments, coloured yellow, blue, orange... in order), labels (a few words or a value beside an atom: "pKa ≈ 4.4", "Michael acceptor") and a short note, or with a new structure. Draw reactions with reaction (an arrow between starting materials and products, reagents above it, solvent and conditions below), never as structures side by side. Keep the note to a few short bullets naming the highlights by colour, and the chat reply short, pointing at the drawing by colour. Call read_sketcher (with the same sketch) whenever the user refers to their drawing, since they may have edited it. While it is open, do not show structures as images, pictures from the web or text drawings, and do not open another editor. Suggest Full screen to keep the editor beside the chat.`;
       const shared = { structure: s ?? '', sketch: sketch.id, next };
@@ -296,15 +300,17 @@ export function createServer(opts: ServerOptions): McpServer {
         sketch: sketchId,
         ...showFields(),
         steps: stepsField,
+        cycle: cycleField(),
       },
       annotations: { title: 'Show in the HexSketch editor', readOnlyHint: false, destructiveHint: false, openWorldHint: false },
     }, (args) => safely(async () => {
-      const { sketch: id, steps, ...one } = args as Show & { sketch?: string; steps?: Show[] };
+      const { sketch: id, steps, cycle, ...one } = args as Show & { sketch?: string; steps?: Show[]; cycle?: boolean };
+      if (cycle && !steps) throw new Error('cycle draws the steps of a mechanism round a circle: give steps as well');
       const sketch = await target(id);
       const before = sketch.drawing ? await readStructure(sketch.drawing, { abbreviate: true }).then((x) => x.mol, () => undefined) : undefined;
       if (steps) {
         if (Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
-        return text({ shown: true, sketch: sketch.id, ...(await showSteps(sketch.id, steps, before, sketch.drawing)) });
+        return text({ shown: true, sketch: sketch.id, ...(await showSteps(sketch.id, steps, before, sketch.drawing, !!cycle)) });
       }
       const { update, report } = await prepare(one, before, sketch.drawing);
       await store.addUpdate(sketch.id, update);

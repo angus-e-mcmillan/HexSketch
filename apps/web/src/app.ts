@@ -78,6 +78,16 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   let zoom = opts.zoom ?? 1.5;
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const pageEl = $('page');
+  // Which build this is, bottom right, so a tester knows what they are testing (issue #47).
+  const version = typeof __HEXSKETCH_VERSION__ === 'string' ? __HEXSKETCH_VERSION__ : '';
+  const footer = $('status')?.parentElement;
+  if (version && footer && !footer.querySelector('.version')) {
+    const v = document.createElement('span');
+    v.className = 'version';
+    v.textContent = version;
+    v.title = `HexSketch ${version}`;
+    footer.append(v);
+  }
   const drawingEl = $('drawing');
   const wrapEl = $('canvasWrap');
   const labelEditor = $<HTMLInputElement>('labelEditor');
