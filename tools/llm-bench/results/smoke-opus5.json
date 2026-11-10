@@ -1,0 +1,160 @@
+{
+  "run": "smoke-opus5",
+  "date": "2026-11-10T18:48:08.575Z",
+  "model": "anthropic/claude-opus-5",
+  "served": [
+    "anthropic/claude-opus-5"
+  ],
+  "providers": [
+    "Anthropic"
+  ],
+  "settings": {
+    "provider": "anthropic",
+    "effort": "medium",
+    "maxTokens": 32000,
+    "maxRounds": 12,
+    "repeats": 1,
+    "timeoutSeconds": 600,
+    "temperature": "default"
+  },
+  "questions": {
+    "hash": "c5b29f1fbbc3",
+    "count": 1,
+    "marks": 4,
+    "types": {
+      "reaction": 1
+    }
+  },
+  "commit": "91a9c11",
+  "failedRuns": 0,
+  "totalCost": 0.235195,
+  "conditions": {
+    "smiles": {
+      "score": 4,
+      "scoreRange": [
+        4,
+        4
+      ],
+      "outOf": 4,
+      "byType": {
+        "reaction": {
+          "score": 4,
+          "outOf": 4
+        }
+      },
+      "correct": {
+        "rate": 1,
+        "n": 1
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 1
+      },
+      "valid": {
+        "rate": 1,
+        "n": 1
+      },
+      "consistent": {
+        "rate": 1,
+        "n": 1
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 1
+      },
+      "flagged": {
+        "rate": 0,
+        "n": 1
+      },
+      "oriented": {
+        "rate": 1,
+        "n": 1
+      },
+      "refused": 0,
+      "cost": 0.071745,
+      "tokens": 2825,
+      "reasoning": 2397,
+      "prompt": 224,
+      "seconds": 39.086,
+      "toolCalls": 0
+    },
+    "hexsketch": {
+      "score": 0,
+      "scoreRange": [
+        0,
+        0
+      ],
+      "outOf": 4,
+      "byType": {
+        "reaction": {
+          "score": 0,
+          "outOf": 4
+        }
+      },
+      "correct": {
+        "rate": 0,
+        "n": 1
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 1
+      },
+      "valid": {
+        "rate": 1,
+        "n": 1
+      },
+      "consistent": {
+        "rate": 1,
+        "n": 1
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 1
+      },
+      "flagged": {
+        "rate": 0,
+        "n": 1
+      },
+      "oriented": {
+        "rate": 1,
+        "n": 1
+      },
+      "refused": 0,
+      "cost": 0.16344999999999998,
+      "tokens": 1174,
+      "reasoning": 394,
+      "prompt": 26820,
+      "seconds": 18.197,
+      "toolCalls": 1
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "reaction-1",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "promptTokens": 224,
+        "outputTokens": 2825,
+        "thinkingTokens": 2397,
+        "cost": 0.071745,
+        "seconds": 39.086,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "promptTokens": 26820,
+        "outputTokens": 1174,
+        "thinkingTokens": 394,
+        "cost": 0.16344999999999998,
+        "seconds": 18.197,
+        "toolCalls": 1
+      }
+    }
+  ]
+}
