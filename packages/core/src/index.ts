@@ -17,4 +17,5 @@ export * from './cleanup.ts';
 export * from './analysis.ts';
 export * from './page.ts';
 export * from './link.ts';
+export * from './drawing-text.ts';
 export * from './hazards.ts';

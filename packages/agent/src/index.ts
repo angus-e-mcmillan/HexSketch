@@ -1,5 +1,5 @@
 import {
-  altTextFor, assignWedges, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArrow, makeCaption, parseSmiles, pngWithPayload,
+  aiSummary, altTextFor, assignWedges, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
@@ -516,6 +516,18 @@ export async function mechanism(steps: readonly MechanismStep[], opts: ReadOptio
 
 /** The structure with abbreviations (Ph, OMe, Boc...) drawn out, for SMILES, names and comparisons. */
 const expanded = (s: Structure): Molecule => drawnOut(s.mol, s.style);
+
+/**
+ * A drawing as an AI reads it with a message: per structure its name,
+ * SMILES, formula and masses (abbreviations drawn out, so it sees every
+ * atom), then the arrows and text drawn with them (the reagents on an
+ * arrow), and the link if one is given. Null when nothing is drawn. The same
+ * on hexsketch.com and in the editor in Claude.
+ */
+export function drawingSummary(s: Pick<Structure, 'mol' | 'objects' | 'style'>, opts: { link?: string } = {}): string | null {
+  if (!s.mol.atomCount) return null;
+  return aiSummary(drawnOut(s.mol, s.style), { nameOf: (m) => nameMolecule(m).name, objects: s.objects, style: s.style, ...opts });
+}
 
 /** A drawing with its abbreviations (Ph, OMe, Boc...) drawn out; the drawing itself if it has none. */
 export function drawnOut(mol: Molecule, style: DrawingStyle = DEFAULT_STYLE): Molecule {

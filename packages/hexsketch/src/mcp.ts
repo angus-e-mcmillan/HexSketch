@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { analyze, compare, convert, link, name, readStructure, render, validate, type ElectronArrow, type Rasterizer, type RenderFormat, type Scheme } from '@hexsketch/agent';
 import type { Molecule } from '@hexsketch/core';
 import { memorySketchStore, type Sketch, type SketchStore } from './sketch-store.ts';
-import { balanceOf, checkOf, editorCdxml, mechanismOf, mechanismSteps, safetyOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
+import { balanceOf, checkOf, editorCdxml, mechanismOf, mechanismSteps, safetyOf, textOf, curlyArrows, given, prepare, prepareSteps, showFields, stepsField, arrows, disconnect, reaction, structure, style, DESCRIPTIONS, HIGHLIGHTS, INSTRUCTIONS, renderDescriptions, SHOWN_NEXT, textInstructions, type Show } from './toolkit.ts';
 
 export { HIGHLIGHTS };
 
@@ -286,7 +286,7 @@ export function createServer(opts: ServerOptions): McpServer {
     }, ({ sketch: id }) => safely(async () => {
       const sketch = await target(id);
       if (!sketch.drawing) return text({ sketch: sketch.id, empty: true, note: 'The canvas is empty.' });
-      return text({ sketch: sketch.id, ...(await analyze(sketch.drawing)), ...(await safetyOf(sketch.drawing)), link: await link(sketch.drawing), next: 'Show what you say about this drawing in the editor with show_in_sketcher (highlight the parts you mean, explain in the note).' });
+      return text({ sketch: sketch.id, ...(await analyze(sketch.drawing)), ...(await textOf(sketch.drawing)), ...(await safetyOf(sketch.drawing)), link: await link(sketch.drawing), next: 'Show what you say about this drawing in the editor with show_in_sketcher (highlight the parts you mean, explain in the note).' });
     })));
 
     editorParts.push(server.registerTool('show_in_sketcher', {

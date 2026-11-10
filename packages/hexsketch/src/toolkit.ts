@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { alignByMaps, analyze, mechanism, hazards, hazardLine, HAZARD_DISCLAIMER, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
-import { parsePattern, smilesAtomMaps, writeCdxml, type Molecule } from '@hexsketch/core';
+import { drawingText, parsePattern, smilesAtomMaps, writeCdxml, type Molecule } from '@hexsketch/core';
 import type { SketchUpdate } from './sketch-store.ts';
 
 /**
@@ -213,6 +213,19 @@ export async function safetyOf(drawing: string | Structure | undefined): Promise
   return found.length ? { hazards: found.map(hazardLine), hazard_note: `Flag dangers and warnings to the user in a few words; notes only if they matter. ${HAZARD_DISCLAIMER}` } : {};
 }
 
+/**
+ * For a tool result: the arrows and text drawn with the structures (the
+ * reagents above an arrow, a label beside an atom), which the analysis of
+ * the structures leaves out.
+ */
+export async function textOf(drawing: string | Structure | undefined): Promise<Record<string, unknown>> {
+  if (!drawing) return {};
+  const s = await readStructure(drawing).catch(() => null);
+  if (!s) return {};
+  const lines = drawingText(s.mol, s.objects, s.style.bondLength, s.style.captionSize);
+  return lines.length ? { text: lines } : {};
+}
+
 /** The arrows as the agent takes them, with colour names turned into colours. */
 export const curlyArrows = (list: { from: number[]; to: number[]; electrons?: 1 | 2; colour?: string }[] | undefined): ElectronArrow[] | undefined =>
   list?.map(({ colour, ...a }) => {
@@ -381,7 +394,31 @@ async function mechanismPage(steps: Show[]): Promise<{ updates: Omit<SketchUpdat
   };
 }
 
-export const stepsField = z.array(z.object(showFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, up to ${MAX_STEPS} steps. A mechanism: each step its species with atom-map numbers, its curly arrows and a note of a few words naming it, keeping the same map numbers throughout; they are drawn together on one page, an arrow from each to the next with its name above. Steps with highlights or labels (a before-and-after) are shown one at a time, with Back and Next. Not for a synthesis or retrosynthesis: draw it as one reaction (with then), so all of it is on the page at once. Each step is drawn the same way round as the one before.`);
+/**
+ * A zod schema with every description inside it removed and nothing else
+ * changed (types, limits and defaults kept): rebuilt from its definition,
+ * with each schema in it rebuilt the same way.
+ */
+function undescribed<T extends z.ZodTypeAny>(schema: T): T {
+  const inner = (v: unknown): unknown => (v instanceof z.ZodType ? undescribed(v) : Array.isArray(v) ? v.map(inner) : v);
+  const def: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(schema._def as Record<string, unknown>)) {
+    if (k === 'description') continue;
+    // An object's fields come from a function; keep it lazy.
+    def[k] = k === 'shape' && typeof v === 'function' ? () => Object.fromEntries(Object.entries((v as () => Record<string, unknown>)()).map(([n, x]) => [n, inner(x)])) : inner(v);
+  }
+  return new (schema.constructor as new (d: unknown) => T)(def);
+}
+
+/**
+ * A step takes the same fields as the tool, so inside steps each says "As
+ * <field> above" rather than repeating its description and its parts': the
+ * tools are sent with every request, and this is about a third of
+ * show_in_sketcher's length.
+ */
+const stepFields = () => Object.fromEntries(Object.entries(showFields()).map(([k, v]) => [k, undescribed(v).describe(`As ${k} above.`)])) as ReturnType<typeof showFields>;
+
+export const stepsField = z.array(z.object(stepFields())).min(2).max(MAX_STEPS).optional().describe(`Instead of the fields above, up to ${MAX_STEPS} steps. A mechanism: each step its species with atom-map numbers, its curly arrows and a note of a few words naming it, keeping the same map numbers throughout; they are drawn together on one page, an arrow from each to the next with its name above. Steps with highlights or labels (a before-and-after) are shown one at a time, with Back and Next. Not for a synthesis or retrosynthesis: draw it as one reaction (with then), so all of it is on the page at once. Each step is drawn the same way round as the one before.`);
 
 /** What the tools do, as the model reads it: the same wherever HexSketch is reached. */
 export const DESCRIPTIONS = {

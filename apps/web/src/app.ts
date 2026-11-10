@@ -359,7 +359,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     const src = copySource();
     if (!src.mol.atomCount) { flash('Draw a structure first'); return; }
     const text = structureLink(src.mol, editor.doc.style, src.objects, src.groups, linkBase())
-      .then((link) => aiSummary(src.mol, { nameOf: (m) => nameMolecule(m).name, link }));
+      .then((link) => aiSummary(src.mol, { nameOf: (m) => nameMolecule(m).name, link, objects: src.objects, style: editor.doc.style }));
     copyWhenReady(text, 'Copied for AI: paste it into your chat with Claude, ChatGPT or another assistant');
   }
 

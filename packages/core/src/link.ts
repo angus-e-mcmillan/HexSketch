@@ -2,6 +2,7 @@
 // The HexSketch link and payload format (docs/link-format.md): MIT, see LICENSE-MIT.
 
 import { readCdxmlDocument, readCdxmlStyle } from './cdxml.ts';
+import { drawingText } from './drawing-text.ts';
 import { computeMass } from './formula.ts';
 import { layout2D } from './layout.ts';
 import type { Molecule } from './model.ts';
@@ -97,10 +98,11 @@ export async function readStructureLink(hash: string, bondLength = DEFAULT_STYLE
 
 /**
  * Plain text describing a drawing, for pasting into a chat with an AI
- * assistant: per structure its name, SMILES, formula and masses, then a link
- * that opens the drawing again.
+ * assistant: per structure its name, SMILES, formula and masses; then, given
+ * the drawing's `objects`, its arrows (with the reagents written on them) and
+ * other text; then a link that opens the drawing again.
  */
-export function aiSummary(mol: Molecule, opts: { nameOf?: (m: Molecule) => string | null; link?: string } = {}): string {
+export function aiSummary(mol: Molecule, opts: { nameOf?: (m: Molecule) => string | null; link?: string; objects?: readonly DocObject[]; style?: DrawingStyle } = {}): string {
   const parts = mol.fragments().map((ids) => {
     if (ids.length === mol.atomCount) return mol;
     const keep = new Set(ids);
@@ -120,6 +122,8 @@ export function aiSummary(mol: Molecule, opts: { nameOf?: (m: Molecule) => strin
     lines.push(`Exact mass: ${m.monoisotopicMass.toFixed(4)}`);
     if (!m.unweighable.length) lines.push(`Molecular weight: ${m.molecularWeight.toFixed(2)}`);
   });
+  const text = opts.objects ? drawingText(mol, opts.objects, (opts.style ?? DEFAULT_STYLE).bondLength, (opts.style ?? DEFAULT_STYLE).captionSize) : [];
+  if (text.length) lines.push('', 'Arrows and text in the drawing:', ...text.map((t) => `- ${t}`));
   if (opts.link) lines.push('', `Open and edit in HexSketch: ${opts.link}`);
   return lines.join('\n');
 }
