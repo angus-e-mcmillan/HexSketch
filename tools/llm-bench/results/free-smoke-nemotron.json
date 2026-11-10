@@ -1,0 +1,196 @@
+{
+  "run": "free-smoke-nemotron",
+  "date": "2026-11-10T19:10:19.310Z",
+  "model": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "served": [
+    "nvidia/nemotron-3-ultra-550b-a55b:free"
+  ],
+  "providers": [
+    "Nvidia"
+  ],
+  "settings": {
+    "provider": null,
+    "effort": "medium",
+    "maxTokens": 32000,
+    "maxRounds": 12,
+    "repeats": 1,
+    "timeoutSeconds": 600,
+    "temperature": "default"
+  },
+  "questions": {
+    "hash": "c5b29f1fbbc3",
+    "count": 2,
+    "marks": 7,
+    "types": {
+      "reaction": 1,
+      "analysis": 1
+    }
+  },
+  "commit": "3eaa51d",
+  "failedRuns": 0,
+  "totalCost": 0,
+  "conditions": {
+    "smiles": {
+      "score": 7,
+      "scoreRange": [
+        7,
+        7
+      ],
+      "outOf": 7,
+      "byType": {
+        "reaction": {
+          "score": 4,
+          "outOf": 4
+        },
+        "analysis": {
+          "score": 3,
+          "outOf": 3
+        }
+      },
+      "correct": {
+        "rate": 1,
+        "n": 2
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 2
+      },
+      "valid": {
+        "rate": 1,
+        "n": 2
+      },
+      "consistent": {
+        "rate": 1,
+        "n": 1
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 1
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": 0,
+        "n": 1
+      },
+      "refused": 0,
+      "cost": 0,
+      "tokens": 15483.5,
+      "reasoning": 15350,
+      "prompt": 163.5,
+      "seconds": 516.0450000000001,
+      "toolCalls": 0
+    },
+    "hexsketch": {
+      "score": 7,
+      "scoreRange": [
+        7,
+        7
+      ],
+      "outOf": 7,
+      "byType": {
+        "reaction": {
+          "score": 4,
+          "outOf": 4
+        },
+        "analysis": {
+          "score": 3,
+          "outOf": 3
+        }
+      },
+      "correct": {
+        "rate": 1,
+        "n": 2
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 2
+      },
+      "valid": {
+        "rate": 1,
+        "n": 2
+      },
+      "consistent": {
+        "rate": 1,
+        "n": 1
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 1
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": 0,
+        "n": 1
+      },
+      "refused": 0,
+      "cost": 0,
+      "tokens": 3848,
+      "reasoning": 3392.5,
+      "prompt": 34577,
+      "seconds": 150.005,
+      "toolCalls": 2
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "reaction-4",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "promptTokens": 159,
+        "outputTokens": 15879,
+        "thinkingTokens": 15816,
+        "cost": 0,
+        "seconds": 545.817,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "promptTokens": 33043,
+        "outputTokens": 2470,
+        "thinkingTokens": 2013,
+        "cost": 0,
+        "seconds": 112.119,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "analysis-1",
+      "type": "analysis",
+      "marks": 3,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "promptTokens": 168,
+        "outputTokens": 15088,
+        "thinkingTokens": 14884,
+        "cost": 0,
+        "seconds": 486.273,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "promptTokens": 36111,
+        "outputTokens": 5226,
+        "thinkingTokens": 4772,
+        "cost": 0,
+        "seconds": 187.891,
+        "toolCalls": 2
+      }
+    }
+  ]
+}
