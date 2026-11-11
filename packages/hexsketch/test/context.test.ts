@@ -72,3 +72,12 @@ test('a product shown in place of the drawing keeps its starting material\'s way
   const turn = ((bondAngle(shown) - bondAngle(before) + 540) % 360) - 180;
   assert.ok(Math.abs(turn) < 5, `turned ${turn.toFixed(0)}°`);
 });
+
+test('atoms a reagent above the arrow brings are not called out (NaN3, morpholine), those NaBH3CN cannot bring are', async () => {
+  const azide = await balanceOf({ stages: ['BrCCCBr', '[N-]=[N+]=NCCCN=[N+]=[N-]'], arrows: [{ reagents: 'NaN3 (2.5 equiv)', conditions: 'DMSO, 60 °C' }] });
+  assert.equal(azide.check_product, undefined, 'the azide brings the N');
+  const snar = await balanceOf({ stages: ['O=[N+]([O-])c1ccc(F)c(F)c1', 'O=[N+]([O-])c1ccc(N2CCOCC2)c(F)c1'], arrows: [{ reagents: 'morpholine, K2CO3' }] });
+  assert.equal(snar.check_product, undefined, 'a named reagent may bring anything');
+  const bare = await balanceOf({ stages: ['BrCCCBr', '[N-]=[N+]=NCCCN=[N+]=[N-]'] });
+  assert.equal((bare.check_product as string[]).length, 1, 'with nothing above the arrow, the N is from nowhere');
+});

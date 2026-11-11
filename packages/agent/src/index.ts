@@ -1,5 +1,5 @@
 import {
-  aiSummary, altTextFor, assignWedges, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
+  aiSummary, altTextFor, assignWedges, parseFormula, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   perceiveRings, structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
@@ -432,6 +432,32 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
   return { mol, objects, groups: [], style, format: 'smiles' };
 }
 
+/** Reagents that give a product none of their C, N or O: reducing agents, bases, coupling agents, catalysts' ligands. */
+const SPECTATORS = new Set(['nabh3cn', 'nabh(oac)3', 'stab', 'nabh4', 'libh4', 'lialh4', 'dibal', 'dibal-h', 'k2co3', 'cs2co3', 'na2co3', 'nahco3', 'khco3', 'koac', 'naoac', 'et3n', 'dipea', 'dbu', 'tea', 'nmm', 'pyridine', 'dmap', 'hatu', 'hbtu', 'tbtu', 'pybop', 'edc', 'edci', 'dcc', 'dic', 'hobt', 'hoat', 'oxyma', 't3p', 'cdi', 'pph3', 'dppf', 'xphos', 'sphos', 'binap', 'tfa', 'hcl', 'acoh', 'naoh', 'koh', 'lioh', 'tbaf']);
+
+/**
+ * Whether the reagents written above an arrow may bring the atoms `added`
+ * (a formula such as "C2"): yes when a reagent written as a formula has them
+ * (NaN3, CH2N2), or when one is a name we cannot read (morpholine, DPPA);
+ * no when every reagent is a formula without them or one that gives the
+ * product none of its atoms (NaBH3CN in a reductive amination).
+ */
+function mayBring(reagents: string, added: string): boolean {
+  const need = [...parseFormula(added).keys()];
+  const have = new Set<string>();
+  for (const raw of reagents.split(/[,;+/\n]|\s+(?:then|and)\s+|\s+/i)) {
+    const t = raw.replace(/^\d+\.\s*|\(cat\.?\)|\(?\d+(?:\.\d+)?\s*(?:equiv|eq|mol\s*%|%)\.?\)?/gi, '').trim();
+    if (!t || SPECTATORS.has(t.toLowerCase())) continue;
+    let counts: Map<string, number> | null = null;
+    if (/^(?:[A-Z][a-z]?\d*|\((?:[A-Z][a-z]?\d*)+\)\d*)+$/.test(t)) { try { counts = parseFormula(t); } catch { counts = null; } }
+    // A name, or an abbreviation that is not a formula (Me, Boc2O): it may bring anything.
+    if (!counts || [...counts.keys()].some((el) => !ELEMENTS.has(el))) return true;
+    for (const el of counts.keys()) have.add(el);
+  }
+  return need.every((el) => have.has(el));
+}
+const ELEMENTS = new Set(['H', 'B', 'C', 'N', 'O', 'F', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Se', 'Br', 'Rh', 'Pd', 'Ag', 'Sn', 'I', 'Cs', 'Os', 'Pt', 'Hg', 'Li', 'Ti', 'Ru', 'Ir', 'Au']);
+
 /**
  * Atoms that do not balance across each forward arrow of a scheme: a
  * byproduct not drawn, or atoms from a reagent written above the arrow
@@ -445,8 +471,10 @@ export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; s
     for (let i = 1; i < stages.length; i++) {
       if (seq.arrows?.[i - 1]?.type === 'retrosynthetic') continue;
       const x = imbalance(expanded(stages[i - 1]!), expanded(stages[i]!));
-      // Atoms other than H the product gains: named on their own, as they are most often a mistake in the product.
-      if (x) out.push({ ...(all.length > 1 ? { scheme: k + 1 } : {}), step: i, unbalanced: describeImbalance(x), ...(x.added ? { added: x.added } : {}) });
+      // Atoms other than H the product gains: named on their own, as they are most often a mistake in the product,
+      // unless a reagent above the arrow may bring them (NaN3 its N; morpholine, a name, anything).
+      const added = x?.added && !mayBring(seq.arrows?.[i - 1]?.reagents ?? '', x.added) ? x.added : '';
+      if (x) out.push({ ...(all.length > 1 ? { scheme: k + 1 } : {}), step: i, unbalanced: describeImbalance(x), ...(added ? { added } : {}) });
     }
   }
   return out;
