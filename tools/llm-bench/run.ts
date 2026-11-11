@@ -30,6 +30,7 @@ const { values: opt } = parseArgs({
     only: { type: 'string' },
     concurrency: { type: 'string', default: '4' },
     'max-tokens': { type: 'string', default: '32000' },
+    'like-website': { type: 'boolean', default: false },
     effort: { type: 'string', default: 'medium' },
     'max-rounds': { type: 'string', default: '12' },
     timeout: { type: 'string', default: '600' },
@@ -66,6 +67,8 @@ if (!opt.model) throw new Error('Give --model, an OpenRouter model id (find one 
 const model = opt.model;
 const conditions = opt.conditions!.split(',').map((c) => c.trim()) as Condition[];
 for (const c of conditions) if (!CONDITIONS.includes(c)) throw new Error(`Unknown condition ${c}: use ${CONDITIONS.join(', ')}`);
+/** How hexsketch.com's chat asks (apps/web/src/openrouter.ts complete()). */
+const WEBSITE = { effort: 'low', maxTokens: 4096 } as const;
 const repeats = Number(opt.repeats), maxTokens = Number(opt['max-tokens']), maxRounds = Number(opt['max-rounds']);
 const only = opt.only ? new Set(opt.only.split(',')) : null;
 const types = opt.types ? new Set(opt.types.split(',')) : null;
@@ -151,6 +154,8 @@ async function ask(body: object, deadline: number): Promise<Reply> {
 
 async function runOne(job: Job): Promise<RunRecord> {
   const { q, condition } = job;
+  // --like-website: the HexSketch condition asks as hexsketch.com's chat does (apps/web/src/openrouter.ts).
+  const web = opt['like-website'] && condition === 'hexsketch';
   const start = await opening(q, condition);
   const editor = { drawing: q.drawing };
   const messages: Message[] = [{ role: 'system', content: start.system }, { role: 'user', content: start.user }];
@@ -164,9 +169,9 @@ async function runOne(job: Job): Promise<RunRecord> {
       // Out of rounds: one last turn without tools, so the model has to answer.
       const toolsNow = start.tools.length && rec.rounds < maxRounds;
       const reply = await ask({
-        model, messages: cached(model, messages), max_tokens: maxTokens,
+        model, messages: cached(model, messages), max_tokens: web ? WEBSITE.maxTokens : maxTokens,
         // --effort none for a model without a thinking mode: require_parameters would otherwise rule out every provider.
-        ...(opt.effort === 'none' ? {} : { reasoning: { effort: opt.effort } }),
+        ...(web ? { reasoning: { effort: WEBSITE.effort } } : opt.effort === 'none' ? {} : { reasoning: { effort: opt.effort } }),
         ...(start.tools.length ? { tools: start.tools.map((t) => ({ type: 'function', function: t })), tool_choice: toolsNow ? 'auto' : 'none' } : {}),
         provider: { ...(opt.provider ? { order: [opt.provider], allow_fallbacks: false } : {}), require_parameters: true },
         usage: { include: true },
@@ -184,8 +189,8 @@ async function runOne(job: Job): Promise<RunRecord> {
       rec.finish = choice.native_finish_reason ?? choice.finish_reason ?? null;
       const m = choice.message;
       if (m.content) rec.text += `${m.content}\n`;
-      // The thinking goes back with the turn (reasoning_details), as Claude's API needs for tool use.
-      messages.push({ role: 'assistant', content: m.content ?? '', ...(m.tool_calls?.length ? { tool_calls: m.tool_calls } : {}), ...(m.reasoning_details ? { reasoning_details: m.reasoning_details } : {}) });
+      // The thinking goes back with the turn (reasoning_details), as Claude's API needs for tool use; hexsketch.com does not send it.
+      messages.push({ role: 'assistant', content: m.content ?? '', ...(m.tool_calls?.length ? { tool_calls: m.tool_calls } : {}), ...(m.reasoning_details && !web ? { reasoning_details: m.reasoning_details } : {}) });
       if (!m.tool_calls?.length) { rec.final = m.content ?? ''; break; }
       for (const call of m.tool_calls) {
         const out = await runTool(editor, call.function.name, call.function.arguments);
@@ -263,7 +268,7 @@ const totalMarks = questions.reduce((t, q) => t + q.marks, 0);
 const marksOf = (type?: string) => questions.filter((q) => !type || q.type === type).reduce((t, q) => t + q.marks, 0);
 const summary = {
   run: runName, date: new Date().toISOString(), model, served: [...new Set(ok.map((r) => r.model))], providers: [...new Set(ok.flatMap((r) => r.providers))],
-  settings: { provider: opt.provider ?? null, effort: opt.effort, maxTokens, maxRounds, repeats, timeoutSeconds: Number(opt.timeout), temperature: 'default' },
+  settings: { provider: opt.provider ?? null, effort: opt.effort, maxTokens, likeWebsite: opt['like-website'] ? WEBSITE : null, maxRounds, repeats, timeoutSeconds: Number(opt.timeout), temperature: 'default' },
   questions: { hash: setHash, count: questions.length, marks: totalMarks, types: countBy(questions, (q) => q.type) },
   commit: (() => { try { return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { return null; } })(),
   failedRuns: records.length - records.filter((r) => !r.error).length,
@@ -307,13 +312,13 @@ const head = (c: Condition) => (c === 'smiles' ? 'Without HexSketch' : 'With Hex
 const score = (x: { score: number; outOf: number }, range?: number[]) => `${x.score.toFixed(1)} / ${x.outOf}${range && repeats > 1 ? ` (${range[0]}–${range[1]})` : ''}`;
 const lines = [
   `# ${runName}`, '',
-  `${model} (served as ${summary.served.join(', ') || '?'}, via ${summary.providers.join(', ') || '?'}), effort ${opt.effort}, ${repeats} repeat${repeats === 1 ? '' : 's'} of ${questions.length} questions worth ${totalMarks} marks. Total cost $${summary.totalCost.toFixed(2)}.${summary.failedRuns ? ` ${summary.failedRuns} runs failed (not measured): run again with --run ${runName}.` : ''}`, '',
+  `${model} (served as ${summary.served.join(', ') || '?'}, via ${summary.providers.join(', ') || '?'}), effort ${opt.effort}${opt['like-website'] ? ` (with HexSketch: as hexsketch.com, effort ${WEBSITE.effort}, at most ${WEBSITE.maxTokens} tokens a turn, thinking not sent back)` : ''}, ${repeats} repeat${repeats === 1 ? '' : 's'} of ${questions.length} questions worth ${totalMarks} marks. Total cost $${summary.totalCost.toFixed(2)}.${summary.failedRuns ? ` ${summary.failedRuns} runs failed (not measured): run again with --run ${runName}.` : ''}`, '',
   `| | ${conditions.map(head).join(' | ')} |`, `|---|${conditions.map(() => '---').join('|')}|`,
   `| **Score** | ${conditions.map((c) => `**${score(cs[c]!, cs[c]!.scoreRange)}**`).join(' | ')} |`,
   ...typesIn.map((t) => `| ${t} | ${conditions.map((c) => score(cs[c]!.byType[t]!)).join(' | ')} |`),
   ...MEASURES.map((m) => `| ${LABEL[m]} | ${conditions.map((c) => pct(cs[c]![m])).join(' | ')} |`),
   `| Refused | ${conditions.map((c) => cs[c]!.refused).join(' | ')} |`,
-  `| Cut off at ${maxTokens} tokens, no answer | ${conditions.map((c) => cs[c]!.cutOff).join(' | ')} |`,
+  `| Cut off at the token limit, no answer | ${conditions.map((c) => cs[c]!.cutOff).join(' | ')} |`,
   `| cost / question | ${conditions.map((c) => `$${cs[c]!.cost.toFixed(3)}`).join(' | ')} |`,
   `| input tokens / question (from cache) | ${conditions.map((c) => `${cs[c]!.prompt.toFixed(0)} (${cs[c]!.cachedPrompt.toFixed(0)})`).join(' | ')} |`,
   `| output tokens / question (thinking) | ${conditions.map((c) => `${cs[c]!.tokens.toFixed(0)} (${cs[c]!.reasoning.toFixed(0)})`).join(' | ')} |`,
