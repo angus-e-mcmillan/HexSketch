@@ -1,9 +1,9 @@
 import '@hexsketch/web/style.css';
 import './embed.css';
 import { App } from '@modelcontextprotocol/ext-apps';
-import { aiSummary, structureLink, writeCdxml, HEXSKETCH_URL } from '@hexsketch/core';
-import { drawnOut } from '@hexsketch/agent';
-import { addRingParents, nameMolecule } from '@hexsketch/naming';
+import { structureLink, writeCdxml, HEXSKETCH_URL } from '@hexsketch/core';
+import { drawingSummary } from '@hexsketch/agent';
+import { addRingParents } from '@hexsketch/naming';
 import { mountApp, type AppApi } from '@hexsketch/web';
 import { createAiLayer, type AiUpdate } from '@hexsketch/web/ai';
 
@@ -70,7 +70,7 @@ async function describe(): Promise<string | null> {
   if (!doc.mol.atomCount) return null;
   const link = await structureLink(doc.mol, doc.style, doc.objects, doc.groups, HEXSKETCH_URL);
   // Abbreviations (Boc, OTBS...) drawn out, so the AI gets the full SMILES and formula.
-  return aiSummary(drawnOut(doc.mol, doc.style), { nameOf: (m) => nameMolecule(m).name, link });
+  return drawingSummary(doc, { link });
 }
 
 async function sendToChat(u: AppApi) {

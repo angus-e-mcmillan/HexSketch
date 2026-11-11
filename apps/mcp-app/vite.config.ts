@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 import { thirdPartyLicenses } from '../../tools/build/third-party-licenses.ts';
 import { RING_ROWS } from '../../packages/naming/src/rings.ts';
+import { buildVersion } from '../../tools/build/version.ts';
 
 /**
  * The editor as one self-contained HTML file, served as an MCP Apps resource.
@@ -43,6 +44,7 @@ function singleFile(): Plugin {
 
 export default defineConfig({
   base: './',
+  define: { __HEXSKETCH_VERSION__: JSON.stringify(buildVersion()) },
   resolve: { alias: { '@hexsketch/naming/rings': fileURLToPath(new URL('./src/rings-later.ts', import.meta.url)) } },
   plugins: [singleFile()],
   build: {

@@ -410,6 +410,34 @@ test('render_structure draws a mechanism on one page, and moves it onto the page
   assert.match(textOf(await call('render_structure', { steps, structure: 'C' })), /not both/);
 });
 
+test('a catalytic cycle (issue #46): the steps round a circle, the last arrow back to the first', async () => {
+  const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
+  const steps = [
+    { structure: '[Pd].Brc1ccccc1', note: 'Oxidative addition' },
+    { structure: 'Br[Pd]c1ccccc1.OB(O)c1ccc(C)cc1', note: 'Transmetalation' },
+    { structure: 'Cc1ccc(cc1)[Pd]c1ccccc1', note: 'Reductive elimination' },
+  ];
+  const r = await call('render_structure', { steps, cycle: true, format: 'cdxml' });
+  assert.equal(r.isError, undefined, textOf(r));
+  const info = JSON.parse(textOf(r, 1));
+  // Substrates join and products leave round a cycle: no complaint about atoms not balancing.
+  assert.equal(info.balance, undefined);
+  const { readStructure } = await import('@hexsketch/agent');
+  const s = await readStructure(textOf(r, 0));
+  // One curved arrow per step, the last back to the first, and each step's name beside its arrow.
+  assert.equal(s.objects.filter((o) => o.kind === 'arrow' && o.arc).length, 3);
+  assert.equal(s.objects.filter((o) => o.kind === 'arrow' && !o.arc && !o.curve).length, 0);
+  assert.deepEqual(s.objects.filter((o) => o.kind === 'text').map((o) => (o as { text: string }).text.replace(/\n/g, ' ')).sort(), ['Oxidative addition', 'Reductive elimination', 'Transmetalation']);
+  // The species go round: the first at the top, the next to the right of it, below.
+  const centres = s.mol.fragments().map((ids) => ({ x: ids.reduce((t, i) => t + s.mol.atom(i).x, 0) / ids.length, y: ids.reduce((t, i) => t + s.mol.atom(i).y, 0) / ids.length }));
+  assert.ok(centres.length >= 3);
+  // In the editor too, and only with steps.
+  const opened = await call('open_sketcher', { steps, cycle: true });
+  assert.equal(opened.isError, undefined, textOf(opened));
+  assert.match(textOf(opened), /catalytic cycle/);
+  assert.match(textOf(await call('render_structure', { structure: 'C', cycle: true })), /give steps as well/);
+});
+
 test('retrosynthesis and balance: disconnections drawn, a step from nowhere reported', async () => {
   const { call } = await connect({ sketcherHtml: async () => '<!doctype html>' });
   const svg = await call('render_structure', { structure: 'c1ccccc1[C:1](=O)[NH:2]C', disconnect: [[1, 2]], format: 'svg' });
