@@ -115,6 +115,10 @@ paid models with three repeats for the numbers.
   setups compared, one dot per run and condition, the score against output
   tokens and against time (top left is best). For trying settings on a free
   model: `npm run llm-bench:compare -- --runs "run;run:hexsketch=Label" --name settings`.
+- `results/<name>.html` and `results/plots/<name>.svg` from
+  `npm run llm-bench:items -- --runs "run:hexsketch=Label;..."`: which question
+  each setup got right, as a grid. A question every setup gets right tells
+  nothing apart; one none gets right may have a wrong key.
 - `out/<run>/report.html`: every answer drawn beside the question and the
   answer key, with its measures and the model's reply. Not committed.
 - `out/<run>/transcripts/`: every conversation in full.

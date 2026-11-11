@@ -29,7 +29,8 @@
     "llm-bench": "node --experimental-strip-types --no-warnings tools/llm-bench/run.ts",
     "llm-bench:prep": "node --experimental-strip-types --no-warnings tools/llm-bench/prep.ts",
     "llm-bench:plot": "node --experimental-strip-types --no-warnings tools/llm-bench/plot.ts",
-    "llm-bench:compare": "node --experimental-strip-types --no-warnings tools/llm-bench/compare.ts"
+    "llm-bench:compare": "node --experimental-strip-types --no-warnings tools/llm-bench/compare.ts",
+    "llm-bench:items": "node --experimental-strip-types --no-warnings tools/llm-bench/items.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
