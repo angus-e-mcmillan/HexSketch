@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
-import { alignByMaps, analyze, mechanism, hazards, hazardLine, HAZARD_DISCLAIMER, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
+import { abbreviateGroups, alignByMaps, analyze, drawnOut, mechanism, hazards, hazardLine, HAZARD_DISCLAIMER, arrangeForArrows, convert, describeImbalance, detectFormat, disconnectionMarks, electronArrows, highlightPlaces, imbalance, labelPlaces, orientLike, readStructure, scheme, schemeBalance, validate, type ElectronArrow, type Highlight, type Scheme, type Structure } from '@hexsketch/agent';
 import { drawingText, parsePattern, smilesAtomMaps, writeCdxml, type Molecule } from '@hexsketch/core';
 import type { SketchUpdate } from './sketch-store.ts';
 
@@ -148,10 +148,13 @@ export async function given(structureText: string | undefined, reactionScheme: S
   if (reactionScheme) s = await scheme(reactionScheme, { ...read, maxWidth: SCHEME_WIDTH });
   // A SMILES replacing a drawing is turned to match it (laid-out files keep their own coordinates).
   else if (structureText && read.like?.atomCount && detectFormat(structureText) === 'smiles') {
-    s = await readStructure(structureText, reading);
+    // Turned with every atom drawn out, then abbreviated: a Boc written out in the drawing still lines the two up.
+    s = await readStructure(structureText, { ...reading, abbreviate: false });
+    const like = drawnOut(read.like, s.style);
     // A mechanism step keeps its atoms where the step before had them (by map number); otherwise it is turned to match.
-    placed = alignByMaps(s.mol, read.like, s.style.bondLength);
-    if (!placed) orientLike(s, read.like);
+    placed = alignByMaps(s.mol, like, s.style.bondLength);
+    if (!placed) orientLike(s, like);
+    if (read.abbreviate) abbreviateGroups(s.mol);
   } else if (!structureText) throw new Error('Give a structure (SMILES, molfile, CDXML or a HexSketch link) or a reaction');
   else s = structureText;
   if (!curly?.length && !cuts?.length) return s;

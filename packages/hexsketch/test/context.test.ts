@@ -1,9 +1,9 @@
 /** What the model reads of a drawing, and how much the website's tools cost it on every request. */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_STYLE, layout2D, makeArrow, makeCaption, parseSmiles, writeCdxml } from '@hexsketch/core';
-import { drawingSummary } from '@hexsketch/agent';
-import { balanceOf, pageTools, textOf } from '../src/toolkit.ts';
+import { DEFAULT_STYLE, layout2D, makeArrow, makeCaption, parseSmiles, substructureMappings, writeCdxml, type Molecule } from '@hexsketch/core';
+import { drawingSummary, readStructure } from '@hexsketch/agent';
+import { balanceOf, pageTools, prepare, textOf } from '../src/toolkit.ts';
 
 test('read_sketcher sees the reagents written on an arrow', async () => {
   const mol = parseSmiles('O=C1CCCCC1'); layout2D(mol, DEFAULT_STYLE.bondLength);
@@ -54,4 +54,21 @@ test('the drawing sent with a message carries the hazards of the reagents writte
   const text = drawingSummary({ mol, objects, style: DEFAULT_STYLE })!;
   assert.match(text, /\nHazards \(screening rules only: check the SDS\):\n- Diazomethane\./);
   assert.ok(!drawingSummary({ mol, objects: [], style: DEFAULT_STYLE })!.includes('Hazards'), 'nothing hazardous, no section');
+});
+
+test('a product shown in place of the drawing keeps its starting material\'s way round, Boc drawn out there and abbreviated here (benchmark)', async () => {
+  // A Suzuki product (a ring the bromide lacks) replacing the chemist's drawing of the bromide and the boronic acid, turned 90°.
+  const before = (await readStructure('CC(C)(C)OC(=O)N1CCC[C@@H](C1)c1ccc(Br)cc1.OB(O)c1ccncc1', { format: 'smiles' })).mol;
+  for (const a of before.atoms()) { const { x, y } = a; a.x = -y; a.y = x; }
+  const { update } = await prepare({ structure: 'CC(C)(C)OC(=O)N1CCC[C@@H](C1)c1ccc(-c2ccncc2)cc1' }, before, '');
+  const shown = (await readStructure(update.structure!)).mol;
+  // The bromide's aryl–piperidine bond, there and in the product, by the substructure they share.
+  const core = parseSmiles('C1CCNCC1c1ccccc1');
+  const bondAngle = (m: Molecule) => {
+    const map = substructureMappings(core, m, 1)[0]!.map;
+    const p = m.atom(map.get(5)!), q = m.atom(map.get(6)!);
+    return (Math.atan2(q.y - p.y, q.x - p.x) * 180) / Math.PI;
+  };
+  const turn = ((bondAngle(shown) - bondAngle(before) + 540) % 360) - 180;
+  assert.ok(Math.abs(turn) < 5, `turned ${turn.toFixed(0)}°`);
 });
