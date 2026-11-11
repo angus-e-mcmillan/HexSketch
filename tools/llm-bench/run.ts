@@ -141,8 +141,9 @@ async function ask(body: object, deadline: number): Promise<Reply> {
     const text = await r.text();
     let reply: Reply;
     try { reply = JSON.parse(text) as Reply; } catch { reply = { error: { message: text.slice(0, 300), code: r.status } }; }
-    // Rate limits and provider hiccups are retried; anything else is the run's answer.
-    if ((r.status === 429 || r.status >= 500 || reply.error?.code === 429) && attempt < 5) { await new Promise((res) => setTimeout(res, 2000 * 2 ** attempt)); continue; }
+    // Rate limits and provider hiccups are retried, as is a reply that never came (OpenRouter's keep-alive
+    // whitespace and nothing after it, seen on long free-model requests); anything else is the run's answer.
+    if ((r.status === 429 || r.status >= 500 || reply.error?.code === 429 || !text.trim()) && attempt < 5) { await new Promise((res) => setTimeout(res, 2000 * 2 ** attempt)); continue; }
     if (!r.ok || reply.error) throw new Error(`OpenRouter ${r.status}: ${reply.error?.message ?? text.slice(0, 300)}`);
     return reply;
   }
