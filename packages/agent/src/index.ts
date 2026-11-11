@@ -572,12 +572,17 @@ const expanded = (s: Structure): Molecule => drawnOut(s.mol, s.style);
  * A drawing as an AI reads it with a message: per structure its name,
  * SMILES, formula and masses (abbreviations drawn out, so it sees every
  * atom), then the arrows and text drawn with them (the reagents on an
- * arrow), and the link if one is given. Null when nothing is drawn. The same
- * on hexsketch.com and in the editor in Claude.
+ * arrow), the hazards screening finds in them (so a model warns of the
+ * diazomethane written above an arrow without being asked), and the link if
+ * one is given. Null when nothing is drawn. The same on hexsketch.com and in
+ * the editor in Claude.
  */
 export function drawingSummary(s: Pick<Structure, 'mol' | 'objects' | 'style'>, opts: { link?: string } = {}): string | null {
   if (!s.mol.atomCount) return null;
-  return aiSummary(drawnOut(s.mol, s.style), { nameOf: (m) => nameMolecule(m).name, objects: s.objects, style: s.style, ...opts });
+  const mol = drawnOut(s.mol, s.style);
+  let risks: Hazard[] = [];
+  try { risks = screenHazards(mol, s.objects.flatMap((o) => (o.kind === 'text' && !o.analysis ? [o.text] : [])).join('\n')); } catch { /* screening is a help, never a failure */ }
+  return aiSummary(mol, { nameOf: (m) => nameMolecule(m).name, objects: s.objects, style: s.style, hazards: risks.map(hazardLine), ...opts });
 }
 
 /** A drawing with its abbreviations (Ph, OMe, Boc...) drawn out; the drawing itself if it has none. */

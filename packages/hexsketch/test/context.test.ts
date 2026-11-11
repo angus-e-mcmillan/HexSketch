@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_STYLE, layout2D, makeArrow, makeCaption, parseSmiles, writeCdxml } from '@hexsketch/core';
+import { drawingSummary } from '@hexsketch/agent';
 import { balanceOf, pageTools, textOf } from '../src/toolkit.ts';
 
 test('read_sketcher sees the reagents written on an arrow', async () => {
@@ -44,4 +45,13 @@ test('a product with a carbon from nowhere is called out on its own, apart from 
   const right = await balanceOf({ stages: [sm, 'C1(NCc2ccccc2)CCCCC1'], arrows: [{ reagents: 'NaBH3CN' }] });
   assert.equal(right.check_product, undefined);
   assert.deepEqual(right.balance, [{ step: 1, unbalanced: 'O on the left is not on the right' }]);
+});
+
+test('the drawing sent with a message carries the hazards of the reagents written on its arrows', async () => {
+  const mol = parseSmiles('OC(=O)Cc1ccccc1'); layout2D(mol, DEFAULT_STYLE.bondLength);
+  const right = Math.max(...[...mol.atoms()].map((a) => a.x)), y = [...mol.atoms()].reduce((t, a) => t + a.y, 0) / mol.atomCount;
+  const objects = [makeArrow({ x: right + 20, y }, { x: right + 120, y }), makeCaption(right + 70, y - 10, '1. (COCl)2\n2. CH2N2', undefined, 'center')];
+  const text = drawingSummary({ mol, objects, style: DEFAULT_STYLE })!;
+  assert.match(text, /\nHazards \(screening rules only: check the SDS\):\n- Diazomethane\./);
+  assert.ok(!drawingSummary({ mol, objects: [], style: DEFAULT_STYLE })!.includes('Hazards'), 'nothing hazardous, no section');
 });
