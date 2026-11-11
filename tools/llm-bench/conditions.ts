@@ -12,10 +12,8 @@
  *            tools run here exactly as the website runs them (apps/web/src/chat.ts),
  *            against a stand-in editor that keeps the current drawing.
  */
-import { aiSummary, structureLink, HEXSKETCH_URL } from '../../packages/core/src/index.ts';
-import { nameMolecule } from '../../packages/naming/src/index.ts';
-import { analyze, compare, convert, drawnOut, link, name, readStructure, validate } from '../../packages/agent/src/index.ts';
-import { findStructure, pageTools, prepare, prepareSteps, safetyOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
+import { analyze, compare, convert, drawingSummary, link, name, readStructure, validate } from '../../packages/agent/src/index.ts';
+import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
 export type Condition = 'smiles' | 'hexsketch';
@@ -47,10 +45,7 @@ export async function opening(q: Question, c: Condition): Promise<Opening> {
 
 /** The drawing as the website describes it to the model with a message (chat.ts describe()). */
 async function describe(cdxml: string): Promise<string | null> {
-  const s = await readStructure(cdxml);
-  if (!s.mol.atomCount) return null;
-  const url = await structureLink(s.mol, s.style, s.objects, s.groups, HEXSKETCH_URL);
-  return aiSummary(drawnOut(s.mol, s.style), { nameOf: (m) => nameMolecule(m).name, link: url });
+  return drawingSummary(await readStructure(cdxml));
 }
 
 /** The stand-in editor: the drawing it holds, as CDXML, which show_in_sketcher replaces. */
@@ -66,10 +61,10 @@ export async function runTool(editor: Editor, tool: string, json: string): Promi
   try {
     const s = args.structure as string;
     switch (tool) {
-      case 'show_in_sketcher': return { result: await show(editor, args as Show & { steps?: Show[] }), error: false };
+      case 'show_in_sketcher': return { result: await show(editor, args as Show & { steps?: Show[]; cycle?: boolean }), error: false };
       case 'read_sketcher': {
         const now = editor.drawing;
-        return { result: now ? { ...(await analyze(now)), ...(await safetyOf(now)), link: await link(now) } : { empty: true, note: 'The canvas is empty.' }, error: false };
+        return { result: now ? { ...(await analyze(now)), ...(await textOf(now)), ...(await safetyOf(now)) } : { empty: true, note: 'The canvas is empty.' }, error: false };
       }
       case 'find_structure': {
         const q = String(args.name ?? '').trim().toLowerCase();
@@ -90,13 +85,14 @@ export async function runTool(editor: Editor, tool: string, json: string): Promi
 }
 
 /** show_in_sketcher, as the website runs it (chat.ts show()), on the stand-in editor. */
-async function show(editor: Editor, args: Show & { steps?: Show[] }): Promise<unknown> {
-  const { steps, ...one } = args;
+async function show(editor: Editor, args: Show & { steps?: Show[]; cycle?: boolean }): Promise<unknown> {
+  const { steps, cycle, ...one } = args;
+  if (cycle && !steps) throw new Error('cycle draws the steps of a mechanism round a circle: give steps as well');
   const current = editor.drawing;
   const before = current ? (await readStructure(current)).mol : undefined;
   if (steps) {
     if (Object.values(one).some((v) => v !== undefined)) throw new Error('Give steps, or the fields of one step, not both');
-    const { updates, report } = await prepareSteps(steps, before?.atomCount ? before : undefined, current);
+    const { updates, report } = await prepareSteps(steps, before?.atomCount ? before : undefined, current, { cycle: !!cycle });
     const last = [...updates].reverse().find((u) => u.structure);
     if (last?.structure) editor.drawing = last.structure;
     return { shown: true, ...report };
