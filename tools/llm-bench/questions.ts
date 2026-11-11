@@ -60,9 +60,14 @@ export const isStructureKey = (k: Key): k is Extract<Key, { kind: 'structure' | 
 
 export const QUESTIONS_FILE = new URL('questions.jsonl', import.meta.url);
 
-export function loadQuestions(): Question[] {
-  if (!existsSync(QUESTIONS_FILE)) return [];
-  const text = readFileSync(QUESTIONS_FILE, 'utf8').trim();
+/** The questions of a set: the paper (questions/, questions.jsonl), or another set (questions/<set>/, questions-<set>.jsonl), such as candidates being tried out. */
+export const questionsFile = (set?: string): URL => (set ? new URL(`questions-${set}.jsonl`, import.meta.url) : QUESTIONS_FILE);
+export const questionsDir = (set?: string): URL => new URL(set ? `questions/${set}/` : 'questions/', import.meta.url);
+
+export function loadQuestions(set?: string): Question[] {
+  const file = questionsFile(set);
+  if (!existsSync(file)) return [];
+  const text = readFileSync(file, 'utf8').trim();
   return text ? text.split('\n').map((l) => JSON.parse(l) as Question) : [];
 }
 

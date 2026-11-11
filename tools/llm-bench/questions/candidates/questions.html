@@ -1,0 +1,288 @@
+<!doctype html><meta charset="utf-8"><title>Benchmark questions</title><style>
+body{font:15px/1.5 -apple-system,system-ui,sans-serif;max-width:1180px;margin:24px auto;padding:0 20px;color:#18212b;background:#fff}
+h1 small,h2 small{font-weight:normal;color:#5b6875;font-size:.75em;margin-left:.5em}
+.q{border:1px solid #d9dfe5;border-radius:8px;padding:16px 20px;margin:18px 0}
+.d{background:#fff;border:1px solid #e6eaee;padding:8px;overflow:auto;min-height:60px}.d svg{max-width:100%;height:auto}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}@media(max-width:820px){.cols{grid-template-columns:1fr}}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f5f7;padding:10px;border-radius:6px;font-size:.82em;max-height:420px;overflow:auto}
+h3{margin:0 0 6px;font-size:.8em;text-transform:uppercase;letter-spacing:.05em;color:#5b6875}
+.none{color:#8a96a3;font-style:italic}.written{font-size:1.3em;font-weight:600;margin:8px 0}.warn{color:#b3261e}
+.m{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.m span{font-size:.75em;border-radius:4px;padding:1px 7px;background:#eef1f4}
+.m .y{background:#e4f1e6;color:#2f6b3a}.m .n{background:#fbeceb;color:#b3261e}
+.a{border-top:1px solid #eef1f4;padding-top:10px;margin-top:10px}
+details summary{cursor:pointer;color:#1f4e79;font-size:.85em}
+</style><h1>Benchmark questions <small>11</small></h1><section class="q" id="reaction-c1"><h2>reaction-c1 <small>reaction · 4 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="201.74pt" height="75pt" viewBox="40.3 57.88 201.74 75"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="81.44,108.25 93.47,115.19 92.7,116.52 80.67,109.58"/><polygon points="83.35,104.94 95.38,111.88 94.62,113.21 82.59,106.26"/><polygon points="89.64,79.36 84.3,88.62 82.97,89.38 82.69,88.34 88.31,78.6"/><polygon points="84.3,88.62 95.22,88.62 95.22,90.15 83.74,90.15 82.97,89.38"/><polygon points="82.21,89.82 67.01,81.05 67.01,80.17 67.01,79.29 82.69,88.34 82.97,89.38"/><polygon points="67.01,81.05 51.83,89.82 51.06,89.38 50.3,88.94 67.01,79.29 67.01,80.17"/><polygon points="51.83,89.82 51.83,107.37 51.06,107.81 50.3,108.25 50.3,88.94 51.06,89.38"/><polygon points="51.83,107.37 67.01,116.14 67.01,117.02 67.01,117.9 50.3,108.25 51.06,107.81"/><polygon points="67.01,116.14 82.21,107.37 82.97,107.81 83.74,108.25 67.01,117.9 67.01,117.02"/><polygon points="83.74,90.15 83.74,108.25 82.97,107.81 82.21,107.37 82.21,89.82 82.97,89.38"/><path d="M 215.25,95.22 L 199.95,91.4 C 199.95,91.4 201.86,93.54 201.86,95.22 C 201.86,96.9 199.95,99.05 199.95,99.05 Z"/><polygon points="118.45,94.46 201.86,94.46 201.86,95.99 118.45,95.99"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="87.6" y="77.39" font-size="11">Me</text><text x="94.65" y="120.98" font-size="11">O</text><text x="96.81" y="93.34" font-size="11">Me</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="126.01" y="88.22" font-size="10">mCPBA, NaHCO3</text><text x="143.51" y="111.22" font-size="10">CH2Cl2, rt</text><text x="226.47" y="100.22" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="102.98pt" height="75.91pt" viewBox="-23.81 -44.74 102.98 75.91"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="51.47,-14.04 60.62,-23.9 61.74,-22.86 52.59,-13"/><polygon points="48.67,-16.64 57.82,-26.5 58.94,-25.46 49.79,-15.6"/><polygon points="4.65,-11.31 17.1,-11.31 18.43,-10.55 17.6,-9.78 4.65,-9.78"/><polygon points="17.1,-11.31 11.75,-20.57 13.08,-21.34 18.68,-11.64 18.43,-10.55"/><polygon points="19.16,-10.12 17.84,7.52 17.05,7.83 16.26,8.14 17.6,-9.78 18.43,-10.55"/><polygon points="17.84,7.52 30.81,19.55 30.55,20.36 30.3,21.17 16.26,8.14 17.05,7.83"/><polygon points="30.81,19.55 48.3,16.91 48.77,17.61 49.25,18.32 30.3,21.17 30.55,20.36"/><polygon points="48.3,16.91 57.14,1.59 57.99,1.66 58.83,1.72 49.25,18.32 48.77,17.61"/><polygon points="57.14,1.59 50.68,-14.87 51.26,-15.49 51.83,-16.12 58.83,1.72 57.99,1.66"/><polygon points="50.68,-14.87 38.69,-18.57 39.14,-20.03 51.83,-16.12 51.26,-15.49"/><polygon points="18.68,-11.64 28.47,-18.32 29.33,-17.06 19.16,-10.12 18.43,-10.55"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="-12.22" y="-6.59" font-size="11">Me</text><text x="4.63" y="-22.54" font-size="11">Me</text><text x="59.51" y="-25.04" font-size="11">O</text><text x="29.37" y="-16.97" font-size="11">O</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>What is the product?
+
+Structure 1: CC1(C)CCCCC1=O
+
+Structure 1 → ?  (above the arrow: mCPBA, NaHCO3; below it: CH2Cl2, rt)
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>What is the product?
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Structure from HexSketch
+Name: 2,2-dimethylcyclohexan-1-one
+SMILES: CC1(C)CCCCC1=O
+Formula: C8H14O
+Exact mass: 126.1045
+Molecular weight: 126.20
+
+Arrows and text in the drawing:
+- the structure → ?  (above the arrow: mCPBA, NaHCO3; below it: CH2Cl2, rt)</pre></div></div></section>
+<section class="q" id="reaction-c2"><h2>reaction-c2 <small>reaction · 4 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="274.16pt" height="83.14pt" viewBox="35.68 61.11 274.16 83.14"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="142.49,78.83 131.41,72.44 132.18,71.11 143.25,77.5"/><polygon points="140.57,82.14 128.54,75.2 129.31,73.87 141.34,80.81"/><polygon points="110.67,85.51 98.55,78.51 99.31,77.18 111.44,84.19"/><polygon points="87.56,84.85 87.56,98.85 86.03,98.85 86.03,84.85"/><polygon points="68.54,109.84 56.56,102.91 57.33,101.59 69.3,108.51"/><polygon points="66.63,113.15 54.65,106.23 55.41,104.9 67.39,111.83"/><polygon points="98.55,105.2 110.67,98.19 111.44,99.52 99.31,106.52"/><polygon points="131.22,74.09 115.65,83.08 114.88,82.64 114.88,81.76 130.46,72.77"/><polygon points="114.12,83.08 98.93,74.31 98.93,73.43 98.93,72.55 114.88,81.76 114.88,82.64"/><polygon points="98.93,74.31 83.74,83.08 82.97,82.64 82.21,82.2 98.93,72.55 98.93,73.43"/><polygon points="83.74,83.08 83.74,100.62 82.97,101.06 82.21,100.62 82.21,82.2 82.97,82.64"/><polygon points="82.97,101.94 67.78,110.72 67.01,110.28 66.25,109.84 82.21,100.62 82.97,101.06"/><polygon points="67.78,110.72 67.78,123.15 66.25,123.15 66.25,109.84 67.01,110.28"/><polygon points="83.74,100.62 98.93,109.4 98.93,110.28 98.93,111.16 82.97,101.94 82.97,101.06"/><polygon points="98.93,109.4 114.12,100.62 114.88,101.06 115.65,101.5 98.93,111.16 98.93,110.28"/><polygon points="115.65,83.08 115.65,101.5 114.88,101.06 114.12,100.62 114.12,83.08 114.88,82.64"/><path d="M 283.05,101.06 L 267.75,97.24 C 267.75,97.24 269.66,99.38 269.66,101.06 C 269.66,102.74 267.75,104.89 267.75,104.89 Z"/><polygon points="163.85,100.3 269.66,100.3 269.66,101.83 163.85,101.83"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="142.52" y="86.6" font-size="11">O</text><text x="46.78" y="105.02" font-size="11">O</text><text x="62.43" y="132.66" font-size="11">Me</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="176.21" y="94.06" font-size="10">NaBH4, CeCl3·6H2O</text><text x="181.3" y="117.06" font-size="10">EtOH/H2O, −15 °C</text><text x="294.27" y="106.06" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="134.93pt" height="83.14pt" viewBox="-23.81 -29.91 134.93 83.14"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="91.43,-12.19 80.36,-18.58 81.12,-19.91 92.2,-13.51"/><polygon points="89.52,-8.87 77.49,-15.82 78.25,-17.15 90.28,-10.2"/><polygon points="59.62,-5.5 47.49,-12.51 48.25,-13.83 60.38,-6.83"/><polygon points="36.51,-6.17 36.51,7.84 34.97,7.84 34.97,-6.17"/><polygon points="47.49,14.18 59.62,7.18 60.38,8.5 48.25,15.51"/><polygon points="80.17,-16.92 64.59,-7.93 63.83,-8.38 63.83,-9.26 79.4,-18.25"/><polygon points="63.06,-7.93 47.87,-16.7 47.87,-17.59 47.87,-18.47 63.83,-9.26 63.83,-8.38"/><polygon points="47.87,-16.7 32.68,-7.93 31.91,-8.38 31.15,-8.82 47.87,-18.47 47.87,-17.59"/><polygon points="32.68,-7.93 32.68,9.61 31.91,10.05 31.15,9.61 31.15,-8.82 31.91,-8.38"/><polygon points="31.91,10.93 16.72,19.7 15.96,19.26 15.96,18.38 31.15,9.61 31.91,10.05"/><polygon points="16.72,19.7 16.72,32.14 15.19,32.14 15.19,19.7 15.96,19.26"/><polygon points="15.19,19.7 4.54,13.56 5.31,12.23 15.96,18.38 15.96,19.26"/><polygon points="32.68,9.61 47.87,18.38 47.87,19.26 47.87,20.15 31.91,10.93 31.91,10.05"/><polygon points="47.87,18.38 63.06,9.61 63.83,10.05 64.59,10.49 47.87,20.15 47.87,19.26"/><polygon points="64.59,-7.93 64.59,10.49 63.83,10.05 63.06,9.61 63.06,-7.93 63.83,-8.38"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="91.46" y="-4.42" font-size="11">O</text><text x="11.38" y="41.65" font-size="11">Me</text><text x="-12.22" y="14.01" font-size="11">H</text><text x="-4.28" y="14.01" font-size="11">O</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>One equivalent of NaBH4 is used. What is the major product?
+
+Structure 1: O=CC1=CC=C(C(C)=O)C=C1
+
+Structure 1 → ?  (above the arrow: NaBH4, CeCl3·6H2O; below it: EtOH/H2O, −15 °C)
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>One equivalent of NaBH4 is used. What is the major product?
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Structure from HexSketch
+Name: 4-acetylbenzaldehyde
+SMILES: O=CC1=CC=C(C(C)=O)C=C1
+Formula: C9H8O2
+Exact mass: 148.0524
+Molecular weight: 148.16
+
+Arrows and text in the drawing:
+- the structure → ?  (above the arrow: NaBH4, CeCl3·6H2O; below it: EtOH/H2O, −15 °C)</pre></div></div></section>
+<section class="q" id="reaction-c3"><h2>reaction-c3 <small>reaction · 4 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="232.87pt" height="70.79pt" viewBox="40.3 55.35 232.87 70.79"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="81.44,101.5 93.47,108.45 92.7,109.78 80.68,102.83"/><polygon points="83.35,98.19 95.38,105.14 94.62,106.46 82.59,99.51"/><polygon points="93.14,77.65 83.74,83.08 82.97,82.64 82.97,81.76 92.38,76.33"/><polygon points="82.21,83.08 67.01,74.31 67.01,73.43 67.01,72.55 82.97,81.76 82.97,82.64"/><polygon points="67.01,74.31 51.83,83.08 51.06,82.64 50.3,82.2 67.01,72.55 67.01,73.43"/><polygon points="51.83,83.08 51.83,100.62 51.06,101.06 50.3,101.5 50.3,82.2 51.06,82.64"/><polygon points="51.83,100.62 67.01,109.4 67.01,110.28 67.01,111.16 50.3,101.5 51.06,101.06"/><polygon points="67.01,109.4 82.21,100.62 82.97,101.06 83.74,101.5 67.01,111.16 67.01,110.28"/><polygon points="83.74,83.08 83.74,101.5 82.97,101.06 82.21,100.62 82.21,83.08 82.97,82.64"/><path d="M 246.38,91.85 L 231.08,88.03 C 231.08,88.03 232.99,90.17 232.99,91.85 C 232.99,93.53 231.08,95.68 231.08,95.68 Z"/><polygon points="115.98,91.09 232.99,91.09 232.99,92.62 115.98,92.62"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="94.35" y="77.39" font-size="11">Me</text><text x="94.65" y="114.24" font-size="11">O</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="135.14" y="72.85" font-size="10">1. LDA, THF, −78 °C</text><text x="160.35" y="84.85" font-size="10">2. TMSCl</text><text x="155.7" y="107.85" font-size="10">−78 °C to rt</text><text x="257.6" y="96.85" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="106.04pt" height="81.71pt" viewBox="-10.77 -52.4 106.04 81.71"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="27.32,7 27.32,-7 28.85,-7 28.85,7"/><polygon points="16.72,-31.3 16.72,-18.87 15.96,-18.43 15.19,-18.87 15.19,-31.3"/><polygon points="15.96,-17.54 0.77,-8.77 0,-9.21 -0.77,-9.65 15.19,-18.87 15.96,-18.43"/><polygon points="0.77,-8.77 0.77,8.77 0,9.21 -0.77,9.65 -0.77,-9.65 0,-9.21"/><polygon points="0.77,8.77 15.96,17.54 15.96,18.43 15.96,19.31 -0.77,9.65 0,9.21"/><polygon points="15.96,17.54 31.15,8.77 31.91,9.21 32.68,9.65 15.96,19.31 15.96,18.43"/><polygon points="31.15,8.77 31.15,-8.77 31.91,-9.21 32.68,-8.77 32.68,9.65 31.91,9.21"/><polygon points="16.72,-18.87 31.91,-10.1 31.91,-9.21 31.15,-8.77 15.96,-17.54 15.96,-18.43"/><polygon points="31.91,-10.1 42.56,-16.24 43.33,-14.92 32.68,-8.77 31.91,-9.21"/><polygon points="53.18,-16.24 59.26,-12.73 58.5,-11.41 52.41,-14.92"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="11.38" y="-32.89" font-size="11">Me</text><text x="43.59" y="-14.47" font-size="11">O</text><text x="60.47" y="-5.25" font-size="11">TMS</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>What is the major product?
+
+Structure 1: CC1CCCCC1=O
+
+Structure 1 → ?  (above the arrow: 1. LDA, THF, −78 °C, 2. TMSCl; below it: −78 °C to rt)
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>What is the major product?
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Structure from HexSketch
+Name: 2-methylcyclohexan-1-one
+SMILES: CC1CCCCC1=O
+Formula: C7H12O
+Exact mass: 112.0888
+Molecular weight: 112.17
+
+Arrows and text in the drawing:
+- the structure → ?  (above the arrow: 1. LDA, THF, −78 °C, 2. TMSCl; below it: −78 °C to rt)</pre></div></div></section>
+<section class="q" id="reaction-c4"><h2>reaction-c4 <small>reaction · 4 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="204.87pt" height="86.56pt" viewBox="40.3 57.69 204.87 86.56"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="91.84,92.41 83.35,97.31 82.59,95.98 91.07,91.08"/><polygon points="99.7,79.29 99.7,86.3 98.17,86.3 98.17,79.29"/><polygon points="93.75,95.72 83.74,101.5 82.97,101.06 82.97,100.18 92.99,94.4"/><polygon points="82.21,101.5 67.01,92.73 67.01,91.85 67.01,90.97 82.97,100.18 82.97,101.06"/><polygon points="67.01,92.73 51.83,101.5 51.06,101.06 50.3,100.62 67.01,90.97 67.01,91.85"/><polygon points="51.83,101.5 51.83,119.05 51.06,119.49 50.3,119.93 50.3,100.62 51.06,101.06"/><polygon points="51.83,119.05 67.01,127.82 67.01,128.7 67.01,129.58 50.3,119.93 51.06,119.49"/><polygon points="67.01,127.82 82.21,119.05 82.97,119.49 82.97,120.37 67.01,129.58 67.01,128.7"/><polygon points="83.74,101.5 83.74,119.05 82.97,119.49 82.21,119.05 82.21,101.5 82.97,101.06"/><polygon points="83.74,119.05 93.14,124.48 92.38,125.8 82.97,120.37 82.97,119.49"/><path d="M 218.38,101.06 L 203.08,97.24 C 203.08,97.24 204.99,99.38 204.99,101.06 C 204.99,102.74 203.08,104.89 203.08,104.89 Z"/><polygon points="115.98,100.3 204.99,100.3 204.99,101.83 115.98,101.83"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="94.65" y="77.39" font-size="11">O</text><text x="103.21" y="77.39" font-size="11">H</text><text x="94.96" y="95.81" font-size="11">N</text><text x="94.35" y="132.66" font-size="11">Me</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="136.62" y="94.06" font-size="10">TsCl, pyridine</text><text x="145.78" y="117.06" font-size="10">then H2O</text><text x="229.6" y="106.06" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="100.51pt" height="76.86pt" viewBox="-23.81 -43.75 100.51 76.86"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="49,-12.1 58.15,-21.96 59.28,-20.92 50.12,-11.06"/><polygon points="46.2,-14.7 55.35,-24.57 56.47,-23.53 47.32,-13.66"/><polygon points="5.03,-15.8 15.92,-9.51 15.96,-8.61 15.16,-8.19 4.26,-14.48"/><polygon points="16.69,-8.18 15.37,9.45 14.58,9.76 13.79,10.08 15.16,-8.19 15.96,-8.61"/><polygon points="15.37,9.45 28.34,21.49 28.09,22.3 27.84,23.11 13.79,10.08 14.58,9.76"/><polygon points="28.34,21.49 45.83,18.85 46.31,19.55 46.78,20.25 27.84,23.11 28.09,22.3"/><polygon points="45.83,18.85 54.67,3.53 55.52,3.59 56.37,3.66 46.78,20.25 46.31,19.55"/><polygon points="54.67,3.53 48.21,-12.93 48.79,-13.56 49.36,-14.18 56.37,3.66 55.52,3.59"/><polygon points="48.21,-12.93 36.51,-16.54 36.96,-18.01 49.36,-14.18 48.79,-13.56"/><polygon points="15.92,-9.51 25.19,-15.83 26.05,-14.57 16.69,-8.18 15.96,-8.61"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="-12.22" y="-13.86" font-size="11">Me</text><text x="57.04" y="-23.1" font-size="11">O</text><text x="27.21" y="-15.03" font-size="11">N</text><text x="27.21" y="-24.25" font-size="11">H</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>What is the product of this Beckmann rearrangement?
+
+Structure 1: O\N=C1/CCCCC1C
+
+Structure 1 → ?  (above the arrow: TsCl, pyridine; below it: then H2O)
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>What is the product of this Beckmann rearrangement?
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Structure from HexSketch
+Name: (E)-1-(hydroxyimino)-2-methylcyclohexane
+SMILES: O\N=C1/CCCCC1C
+Formula: C7H13NO
+Exact mass: 127.0997
+Molecular weight: 127.19
+
+Arrows and text in the drawing:
+- the structure → ?  (above the arrow: TsCl, pyridine; below it: then H2O)</pre></div></div></section>
+<section class="q" id="reaction-c5"><h2>reaction-c5 <small>reaction · 4 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="251.68pt" height="79.51pt" viewBox="40.3 62.55 251.68 79.51"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="79.53,99.51 67.39,106.52 66.63,105.2 78.76,98.19"/><polygon points="54.12,98.85 54.12,84.85 55.65,84.85 55.65,98.85"/><polygon points="67.39,77.18 79.53,84.19 78.76,85.51 66.63,78.51"/><polygon points="128.68,105.74 128.68,119.75 127.15,119.75 127.15,105.74"/><polygon points="139.67,126.09 151.8,119.09 152.57,120.41 140.43,127.42"/><polygon points="151.8,106.4 139.67,99.4 140.43,98.07 152.57,105.08"/><polygon points="92.26,120.3 97.88,110.56 98.93,110.28 99.21,111.32 93.58,121.06"/><polygon points="99.97,110 110.38,116.01 109.61,117.33 99.21,111.32 98.93,110.28"/><polygon points="97.88,110.56 82.97,101.94 82.97,101.06 83.74,100.62 98.65,109.23 98.93,110.28"/><polygon points="82.97,101.94 67.01,111.16 67.01,110.28 67.01,109.4 82.21,100.62 82.97,101.06"/><polygon points="67.01,111.16 50.3,101.5 51.06,101.06 51.83,100.62 67.01,109.4 67.01,110.28"/><polygon points="50.3,101.5 50.3,82.2 51.06,82.64 51.83,83.08 51.83,100.62 51.06,101.06"/><polygon points="50.3,82.2 67.01,72.55 67.01,73.43 67.01,74.31 51.83,83.08 51.06,82.64"/><polygon points="67.01,72.55 83.74,82.2 82.97,82.64 82.21,83.08 67.01,74.31 67.01,73.43"/><polygon points="82.21,100.62 82.21,83.08 82.97,82.64 83.74,82.2 83.74,100.62 82.97,101.06"/><polygon points="98.65,109.23 107.1,94.6 108.14,94.32 108.42,95.37 99.97,110 98.93,110.28"/><polygon points="107.1,94.6 96.45,88.45 97.21,87.13 107.86,93.28 108.14,94.32"/><polygon points="107.86,93.28 113.71,83.14 115.04,83.9 109.18,94.04 108.14,94.32"/><polygon points="109.18,94.04 124.09,102.65 124.09,103.53 123.33,103.97 108.42,95.37 108.14,94.32"/><polygon points="124.86,103.97 124.86,121.52 124.09,121.96 123.33,122.4 123.33,103.97 124.09,103.53"/><polygon points="124.86,121.52 140.05,130.29 140.05,131.17 140.05,132.05 123.33,122.4 124.09,121.96"/><polygon points="140.05,130.29 155.25,121.52 156.01,121.96 156.77,122.4 140.05,132.05 140.05,131.17"/><polygon points="155.25,121.52 155.25,103.97 156.01,103.53 156.77,103.09 156.77,122.4 156.01,121.96"/><polygon points="155.25,103.97 140.05,95.2 140.05,94.32 140.05,93.44 156.77,103.09 156.01,103.53"/><polygon points="124.09,102.65 140.05,93.44 140.05,94.32 140.05,95.2 124.86,103.97 124.09,103.53"/><path d="M 265.19,102.3 L 249.89,98.48 C 249.89,98.48 251.8,100.62 251.8,102.3 C 251.8,103.98 249.89,106.13 249.89,106.13 Z"/><polygon points="173.06,101.54 251.8,101.54 251.8,103.07 173.06,103.07"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="77.49" y="130.19" font-size="11">Me</text><text x="113.07" y="82.32" font-size="11">O</text><text x="121.63" y="82.32" font-size="11">H</text><text x="79.96" y="89.07" font-size="11">Me</text><text x="110.6" y="123.45" font-size="11">O</text><text x="119.16" y="123.45" font-size="11">H</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="189.96" y="95.3" font-size="10">H2SO4 (cat.)</text><text x="209.4" y="118.3" font-size="10">heat</text><text x="276.41" y="107.3" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="114.36pt" height="102.01pt" viewBox="-18.87 -86.21 114.36 102.01"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="22.04,-50.95 22.04,-64.62 23.57,-64.62 23.57,-50.95"/><polygon points="18.21,-50.95 18.21,-64.62 19.75,-64.62 19.75,-50.95"/><polygon points="25.43,-22.29 11.42,-22.29 11.42,-23.82 25.43,-23.82"/><polygon points="5.08,-11.31 12.08,0.82 10.76,1.59 3.76,-10.54"/><polygon points="24.77,0.82 31.77,-11.31 33.09,-10.54 26.09,1.59"/><polygon points="57.4,-31.42 57.4,-17.41 55.87,-17.41 55.87,-31.42"/><polygon points="68.38,-11.07 80.51,-18.07 81.28,-16.75 69.15,-9.75"/><polygon points="80.51,-30.76 68.38,-37.76 69.15,-39.08 81.28,-32.08"/><polygon points="9.2,-46.18 20.89,-52.94 20.89,-52.05 20.89,-51.17 9.97,-44.86"/><polygon points="20.89,-52.94 36.57,-43.89 36.85,-42.84 35.8,-42.56 20.89,-51.17 20.89,-52.05"/><polygon points="36.57,-43.89 42.2,-53.63 43.52,-52.87 37.9,-43.12 36.85,-42.84"/><polygon points="37.13,-41.79 28.52,-26.88 27.64,-26.88 27.2,-27.65 35.8,-42.56 36.85,-42.84"/><polygon points="27.2,-26.12 9.65,-26.12 9.21,-26.88 8.77,-27.65 27.2,-27.65 27.64,-26.88"/><polygon points="9.65,-26.12 0.88,-10.93 0,-10.93 -0.88,-10.93 8.77,-27.65 9.21,-26.88"/><polygon points="0.88,-10.93 9.65,4.26 9.21,5.03 8.77,5.8 -0.88,-10.93 0,-10.93"/><polygon points="9.65,4.26 27.2,4.26 27.64,5.03 28.08,5.8 8.77,5.8 9.21,5.03"/><polygon points="27.2,4.26 35.97,-10.93 36.85,-10.93 37.73,-10.93 28.08,5.8 27.64,5.03"/><polygon points="28.52,-26.88 37.73,-10.93 36.85,-10.93 35.97,-10.93 27.2,-26.12 27.64,-26.88"/><polygon points="37.9,-43.12 52.81,-34.51 52.81,-33.63 52.04,-33.19 37.13,-41.79 36.85,-42.84"/><polygon points="53.57,-33.19 53.57,-15.64 52.81,-15.2 52.04,-14.76 52.04,-33.19 52.81,-33.63"/><polygon points="53.57,-15.64 68.76,-6.87 68.76,-5.99 68.76,-5.11 52.04,-14.76 52.81,-15.2"/><polygon points="68.76,-6.87 83.96,-15.64 84.72,-15.2 85.49,-14.76 68.76,-5.11 68.76,-5.99"/><polygon points="83.96,-15.64 83.96,-33.19 84.72,-33.63 85.49,-34.07 85.49,-14.76 84.72,-15.2"/><polygon points="83.96,-33.19 68.76,-41.96 68.76,-42.84 68.76,-43.72 85.49,-34.07 84.72,-33.63"/><polygon points="52.81,-34.51 68.76,-43.72 68.76,-42.84 68.76,-41.96 53.57,-33.19 52.81,-33.63"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="-7.28" y="-38.88" font-size="11">Me</text><text x="16.61" y="-66.52" font-size="11">O</text><text x="41.48" y="-54.84" font-size="11">Me</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>What is the major product?
+
+Structure 1: CC(O)(C1=CC=CC=C1)C(C)(O)C2=CC=CC=C2
+
+Structure 1 → ?  (above the arrow: H2SO4 (cat.); below it: heat)
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>What is the major product?
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Structure from HexSketch
+Name: 2,3-diphenylbutane-2,3-diol
+SMILES: CC(O)(C1=CC=CC=C1)C(C)(O)C2=CC=CC=C2
+Formula: C16H18O2
+Exact mass: 242.1307
+Molecular weight: 242.32
+
+Arrows and text in the drawing:
+- the structure → ?  (above the arrow: H2SO4 (cat.); below it: heat)</pre></div></div></section>
+<section class="q" id="multistep-c1"><h2>multistep-c1 <small>multistep · 5 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="387.54pt" height="65.81pt" viewBox="35.98 55.35 387.54 65.81"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="71.6,84.85 71.6,98.85 70.07,98.85 70.07,84.85"/><polygon points="82.59,105.2 91.07,100.3 91.84,101.62 83.35,106.53"/><polygon points="94.72,85.51 86.24,80.61 87,79.29 95.49,84.19"/><polygon points="60.06,77.74 67.01,81.76 67.01,82.64 66.25,83.08 59.3,79.07"/><polygon points="67.78,83.08 67.78,100.62 67.01,101.06 66.25,101.5 66.25,83.08 67.01,82.64"/><polygon points="67.78,100.62 82.97,109.4 82.97,110.28 82.97,111.16 66.25,101.5 67.01,101.06"/><polygon points="82.97,109.4 92.99,103.61 93.75,104.93 82.97,111.16 82.97,110.28"/><polygon points="98.17,95.51 98.17,83.08 98.93,82.64 99.7,83.08 99.7,95.51"/><polygon points="98.93,81.76 109.81,75.48 110.57,76.8 99.7,83.08 98.93,82.64"/><polygon points="98.17,83.08 88.15,77.3 88.91,75.98 98.93,81.76 98.93,82.64"/><polygon points="67.01,81.76 77.03,75.98 77.79,77.3 67.78,83.08 67.01,82.64"/><path d="M 396.74,91.85 L 381.44,88.03 C 381.44,88.03 383.35,90.17 383.35,91.85 C 383.35,93.53 381.44,95.68 381.44,95.68 Z"/><polygon points="131.94,91.09 383.35,91.09 383.35,92.62 131.94,92.62"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="47.09" y="77.39" font-size="11">Cl</text><text x="79" y="77.39" font-size="11">N</text><text x="110.91" y="77.39" font-size="11">Cl</text><text x="94.96" y="105.02" font-size="11">N</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="166.47" y="72.85" font-size="10">1. morpholine (1 equiv), DIPEA, iPrOH, 0 °C</text><text x="186.26" y="84.85" font-size="10">2. PhB(OH)2, Pd(PPh3)4, Na2CO3</text><text x="217.04" y="107.85" font-size="10">dioxane/H2O, 100 °C</text><text x="407.96" y="96.85" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (sequence)</h3><div class="d"><p class="none">Not a valid SMILES: unexpected &quot;&gt;&quot; at 23 in &quot;ClC2=NC=CC(N1CCOCC1)=N2&gt;&gt;C3=CC=C(C2=NC=CC(N1CCOCC1)=N2)C=C3&quot;</p></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>Give the product of each step, in order.
+
+Structure 1: ClC1=CC=NC(Cl)=N1
+
+Structure 1 → ?  (above the arrow: 1. morpholine (1 equiv), DIPEA, iPrOH, 0 °C, 2. PhB(OH)2, Pd(PPh3)4, Na2CO3; below it: dioxane/H2O, 100 °C)
+
+End your reply with one line: &quot;ANSWER: &quot; followed by the SMILES of each structure in order, joined by &quot; &gt;&gt; &quot; (structures of the same step joined by &quot;.&quot;).</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>Give the product of each step, in order.
+
+End your reply with one line: &quot;ANSWER: &quot; followed by the SMILES of each structure in order, joined by &quot; &gt;&gt; &quot; (structures of the same step joined by &quot;.&quot;).
+
+What the editor shows now:
+Structure from HexSketch
+Name: 2,4-dichloropyrimidine
+SMILES: ClC1=CC=NC(Cl)=N1
+Formula: C4H2Cl2N2
+Exact mass: 147.9595
+Molecular weight: 148.97
+
+Arrows and text in the drawing:
+- the structure → ?  (above the arrow: 1. morpholine (1 equiv), DIPEA, iPrOH, 0 °C, 2. PhB(OH)2, Pd(PPh3)4, Na2CO3; below it: dioxane/H2O, 100 °C)</pre></div></div></section>
+<section class="q" id="multistep-c2"><h2>multistep-c2 <small>multistep · 5 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="360.14pt" height="90.18pt" viewBox="27.25 31.35 360.14 90.18"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="64.47,86.66 63.07,86.03 63.99,84.43 65.24,85.33"/><polygon points="61.71,85.41 60.31,84.78 61.53,82.67 62.78,83.57"/><polygon points="58.96,84.16 57.56,83.53 59.07,80.91 60.32,81.81"/><polygon points="56.2,82.91 54.8,82.28 56.61,79.15 57.86,80.04"/><polygon points="67.78,87.68 67.78,99.93 66.25,99.93 66.25,86.8 67.01,87.24"/><polygon points="66.25,86.8 82.97,77.15 82.97,78.03 82.97,78.91 67.78,87.68 67.01,87.24"/><polygon points="82.97,77.15 98.93,86.36 98.93,87.24 98.93,88.12 82.97,78.91 82.97,78.03"/><polygon points="98.93,86.36 114.88,77.15 114.88,78.03 114.88,78.91 98.93,88.12 98.93,87.24"/><polygon points="114.88,77.15 130.84,86.36 130.84,87.24 130.84,88.12 114.88,78.91 114.88,78.03"/><polygon points="130.84,86.36 146.8,77.15 146.8,78.03 146.8,78.91 130.84,88.12 130.84,87.24"/><polygon points="146.8,77.15 156.96,83.01 156.2,84.34 146.8,78.91 146.8,78.03"/><path d="M 360.61,91.85 L 345.31,88.03 C 345.31,88.03 347.22,90.17 347.22,91.85 C 347.22,93.53 345.31,95.68 345.31,95.68 Z"/><polygon points="179.81,91.09 347.22,91.09 347.22,92.62 179.81,92.62"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="38.84" y="81.99" font-size="11">Me</text><text x="158.17" y="91.2" font-size="11">Me</text><text x="62.73" y="109.63" font-size="11">O</text><text x="71.29" y="109.63" font-size="11">H</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="193.52" y="48.85" font-size="10">1. 4-NO2C6H4CO2H, PPh3, DIAD</text><text x="231.03" y="60.85" font-size="10">2. K2CO3, MeOH</text><text x="239.37" y="72.85" font-size="10">3. MsCl, Et3N</text><text x="222.92" y="84.85" font-size="10">4. NaN3, DMF, 60 °C</text><text x="371.83" y="96.85" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="181.45pt" height="58.73pt" viewBox="-15.56 -33.97 181.45 58.73"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="28.65,-11.24 28.63,-11.23 27.86,-12.55 27.89,-12.56"/><polygon points="9.82,-7 9.8,-6.99 9.04,-8.31 9.06,-8.32"/><polygon points="11.74,-3.68 11.72,-3.67 10.95,-5 10.97,-5.01"/><polygon points="48.67,-8.79 49.68,3.67 46.06,3.67 47.07,-8.79 47.87,-9.21"/><polygon points="47.07,-8.79 37.09,-14.55 37.85,-15.88 47.87,-10.1 47.87,-9.21"/><polygon points="26.74,-14.55 26.72,-14.54 25.95,-15.87 25.97,-15.88"/><polygon points="47.87,-10.1 63.83,-19.31 63.83,-18.43 63.83,-17.54 48.67,-8.79 47.87,-9.21"/><polygon points="63.83,-19.31 79.78,-10.1 79.78,-9.21 79.78,-8.33 63.83,-17.54 63.83,-18.43"/><polygon points="79.78,-10.1 95.74,-19.31 95.74,-18.43 95.74,-17.54 79.78,-8.33 79.78,-9.21"/><polygon points="95.74,-19.31 111.7,-10.1 111.7,-9.21 111.7,-8.33 95.74,-17.54 95.74,-18.43"/><polygon points="111.7,-10.1 127.65,-19.31 127.65,-18.43 127.65,-17.54 111.7,-8.33 111.7,-9.21"/><polygon points="127.65,-19.31 137.82,-13.44 137.06,-12.11 127.65,-17.54 127.65,-18.43"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="43.29" y="13.17" font-size="11">Me</text><text x="27.94" y="-14.47" font-size="11">N</text><text x="11.99" y="-5.25" font-size="11">N</text><text x="19.93" y="-9.87" font-size="8.25">+</text><text x="-3.97" y="3.96" font-size="11">N</text><text x="3.97" y="-0.66" font-size="8.25">−</text><text x="139.03" y="-5.25" font-size="11">Me</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>What is the final product, with its stereochemistry?
+
+Structure 1: C[C@@H](O)CCCCCC
+
+Structure 1 → ?  (above the arrow: 1. 4-NO2C6H4CO2H, PPh3, DIAD, 2. K2CO3, MeOH, 3. MsCl, Et3N, 4. NaN3, DMF, 60 °C)
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>What is the final product, with its stereochemistry?
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Structure from HexSketch
+Name: (R)-octan-2-ol
+SMILES: C[C@@H](O)CCCCCC
+Formula: C8H18O
+Exact mass: 130.1358
+Molecular weight: 130.23
+
+Arrows and text in the drawing:
+- the structure → ?  (above the arrow: 1. 4-NO2C6H4CO2H, PPh3, DIAD, 2. K2CO3, MeOH, 3. MsCl, Et3N, 4. NaN3, DMF, 60 °C)</pre></div></div></section>
+<section class="q" id="structure-c1"><h2>structure-c1 <small>structure · 3 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="191.23pt" height="141.96pt" viewBox="27.25 57.88 191.23 141.96"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="97.78,127.6 97.78,141.39 96.25,141.39 96.25,127.6"/><polygon points="101.61,127.6 101.61,141.39 100.08,141.39 100.08,127.6"/><polygon points="128.29,128.14 126.88,127.52 127.83,125.86 129.08,126.77"/><polygon points="125.84,127.06 124.43,126.43 125.67,124.29 126.91,125.19"/><polygon points="123.39,125.97 121.99,125.35 123.51,122.71 124.75,123.62"/><polygon points="120.94,124.89 119.54,124.26 121.34,121.13 122.59,122.04"/><polygon points="151.39,158.55 151.39,172.55 149.86,172.55 149.86,158.55"/><polygon points="162.37,178.9 174.5,171.89 175.27,173.21 163.13,180.22"/><polygon points="174.5,159.21 162.37,152.21 163.13,150.88 175.27,157.89"/><polygon points="146.42,102.61 158.4,95.69 159.16,97.01 147.18,103.93"/><polygon points="144.5,99.29 156.48,92.38 157.25,93.7 145.27,100.62"/><polygon points="61.67,117.91 67.29,127.66 67.01,128.7 65.97,128.42 60.34,118.67"/><polygon points="66.73,129.75 56.09,135.89 55.33,134.56 65.97,128.42 67.01,128.7"/><polygon points="68.05,128.98 73.68,138.73 72.35,139.49 66.73,129.75 67.01,128.7"/><polygon points="67.29,127.66 77.66,121.67 78.43,123 68.05,128.98 67.01,128.7"/><polygon points="88.28,121.67 98.93,127.82 98.93,128.7 98.93,129.58 87.51,123"/><polygon points="98.93,127.82 108.94,122.04 109.7,123.36 98.93,129.58 98.93,128.7"/><polygon points="131.6,129.14 131.6,146.69 130.84,147.13 130.08,147.57 130.08,128.26 130.84,128.7"/><polygon points="131.6,146.69 146.8,155.46 146.8,156.34 146.04,156.78 130.08,147.57 130.84,147.13"/><polygon points="147.57,156.78 147.57,174.32 146.8,174.76 146.04,175.2 146.04,156.78 146.8,156.34"/><polygon points="147.57,174.32 162.75,183.1 162.75,183.98 162.75,184.86 146.04,175.2 146.8,174.76"/><polygon points="162.75,183.1 177.95,174.32 178.71,174.76 178.71,175.64 162.75,184.86 162.75,183.98"/><polygon points="179.48,174.32 190.17,180.5 189.4,181.82 178.71,175.64 178.71,174.76"/><polygon points="177.95,174.32 177.95,156.78 178.71,156.34 179.48,155.9 179.48,174.32 178.71,174.76"/><polygon points="177.95,156.78 162.75,148.01 162.75,147.13 162.75,146.25 179.48,155.9 178.71,156.34"/><polygon points="146.8,155.46 162.75,146.25 162.75,147.13 162.75,148.01 147.57,156.78 146.8,156.34"/><polygon points="130.08,128.26 146.04,119.05 146.8,119.49 146.77,120.39 131.6,129.14 130.84,128.7"/><polygon points="147.57,119.01 158.77,124.31 156.96,127.44 146.77,120.39 146.8,119.49"/><polygon points="146.04,119.05 146.04,101.5 146.8,101.06 147.57,100.62 147.57,119.01 146.8,119.49"/><polygon points="146.04,101.5 135.38,95.36 136.15,94.03 147.57,100.62 146.8,101.06"/><polygon points="130.08,86.11 130.08,78.98 131.6,78.98 131.6,86.11"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="53.22" y="116.7" font-size="11">Me</text><text x="78.69" y="123.45" font-size="11">O</text><text x="110.91" y="123.45" font-size="11">N</text><text x="110.91" y="114.23" font-size="11">H</text><text x="126.56" y="95.81" font-size="11">O</text><text x="126.26" y="77.39" font-size="11">Me</text><text x="158.47" y="95.81" font-size="11">O</text><text x="158.47" y="132.66" font-size="11">O</text><text x="167.03" y="132.66" font-size="11">H</text><text x="190.39" y="187.94" font-size="11">O</text><text x="198.95" y="187.94" font-size="11">H</text><text x="94.65" y="151.09" font-size="11">O</text><text x="71.64" y="148.62" font-size="11">Me</text><text x="38.84" y="141.87" font-size="11">Me</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="148.86pt" height="141.95pt" viewBox="18.56 -121.69 148.86 141.95"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="77.23,-51.43 75.82,-52.06 76.77,-53.71 78.02,-52.8"/><polygon points="74.78,-52.52 73.37,-53.14 74.61,-55.28 75.86,-54.38"/><polygon points="72.34,-53.6 70.93,-54.22 72.45,-56.86 73.69,-55.95"/><polygon points="69.89,-54.68 68.48,-55.31 70.29,-58.44 71.53,-57.53"/><polygon points="100.33,-21.02 100.33,-7.02 98.8,-7.02 98.8,-21.02"/><polygon points="111.31,-0.68 123.44,-7.68 124.21,-6.35 112.08,0.65"/><polygon points="123.44,-20.36 111.31,-27.36 112.08,-28.69 124.21,-21.69"/><polygon points="98.29,-59.51 99.69,-58.87 98.76,-57.27 97.51,-58.16"/><polygon points="100.96,-58.3 102.37,-57.67 101.14,-55.55 99.9,-56.45"/><polygon points="103.64,-57.09 105.04,-56.46 103.53,-53.84 102.28,-54.74"/><polygon points="106.31,-55.89 107.72,-55.25 105.91,-52.12 104.66,-53.02"/><polygon points="95.36,-76.96 107.35,-83.88 108.11,-82.56 96.12,-75.64"/><polygon points="93.44,-80.27 105.43,-87.2 106.2,-85.87 94.21,-78.95"/><polygon points="52.13,-54.21 57.89,-57.54 58.65,-56.21 52.9,-52.89"/><polygon points="80.55,-50.43 80.55,-32.89 79.78,-32.44 79.02,-32 79.02,-51.31 79.78,-50.87"/><polygon points="80.55,-32.89 95.74,-24.12 95.74,-23.23 94.97,-22.79 79.02,-32 79.78,-32.44"/><polygon points="96.51,-22.79 96.51,-5.25 95.74,-4.81 94.97,-4.36 94.97,-22.79 95.74,-23.23"/><polygon points="96.51,-5.25 111.7,3.52 111.7,4.41 111.7,5.29 94.97,-4.36 95.74,-4.81"/><polygon points="111.7,3.52 126.89,-5.25 127.65,-4.81 127.65,-3.92 111.7,5.29 111.7,4.41"/><polygon points="128.42,-5.25 139.11,0.92 138.34,2.25 127.65,-3.92 127.65,-4.81"/><polygon points="126.89,-5.25 126.89,-22.79 127.65,-23.23 128.42,-23.67 128.42,-5.25 127.65,-4.81"/><polygon points="126.89,-22.79 111.7,-31.56 111.7,-32.44 111.7,-33.33 128.42,-23.67 127.65,-23.23"/><polygon points="95.74,-24.12 111.7,-33.33 111.7,-32.44 111.7,-31.56 96.51,-22.79 95.74,-23.23"/><polygon points="79.02,-51.31 94.97,-60.52 95.74,-60.08 96.51,-59.64 80.55,-50.43 79.78,-50.87"/><polygon points="94.97,-60.52 94.97,-78.07 95.74,-78.51 96.51,-78.95 96.51,-59.64 95.74,-60.08"/><polygon points="94.97,-78.07 84.33,-84.21 85.09,-85.54 96.51,-78.95 95.74,-78.51"/><polygon points="79.02,-93.45 79.02,-100.6 80.55,-100.6 80.55,-93.45"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="30.15" y="-46.91" font-size="11">Boc</text><text x="59.86" y="-56.12" font-size="11">N</text><text x="59.86" y="-46.9" font-size="11">H</text><text x="139.33" y="8.37" font-size="11">O</text><text x="147.89" y="8.37" font-size="11">H</text><text x="107.42" y="-46.91" font-size="11">O</text><text x="115.98" y="-46.91" font-size="11">H</text><text x="107.42" y="-83.76" font-size="11">O</text><text x="75.5" y="-83.76" font-size="11">O</text><text x="75.2" y="-102.19" font-size="11">Me</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>Draw the diastereomer in which only the carbon bearing the OH group is inverted.
+
+SMILES: CC(C)(C)OC(=O)N[C@@H](CC1=CC=C(O)C=C1)[C@H](O)C(=O)OC
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>Draw the diastereomer in which only the carbon bearing the OH group is inverted.
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Structure from HexSketch
+Name: methyl (2S,3S)-3-((tert-butoxycarbonyl)amino)-2-hydroxy-4-(4-hydroxyphenyl)butanoate
+SMILES: CC(C)(C)OC(=O)N[C@@H](CC1=CC=C(O)C=C1)[C@H](O)C(=O)OC
+Formula: C16H23NO6
+Exact mass: 325.1525
+Molecular weight: 325.36</pre></div></div></section>
+<section class="q" id="analysis-c1"><h2>analysis-c1 <small>analysis · 3 marks</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="118.98pt" height="86.87pt" viewBox="27.25 57.69 118.98 86.87"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="114.5,111.83 126.49,104.9 127.25,106.22 115.26,113.15"/><polygon points="112.59,108.51 124.57,101.59 125.34,102.91 113.35,109.84"/><polygon points="66.63,84.19 78.62,77.27 79.38,78.59 67.39,85.51"/><polygon points="64.72,80.87 76.7,73.95 77.47,75.28 65.48,82.2"/><polygon points="114.12,122.96 114.12,110.72 114.88,110.28 115.65,109.84 115.65,122.96"/><polygon points="114.12,110.72 98.93,101.94 98.93,101.06 99.7,100.62 115.65,109.84 114.88,110.28"/><polygon points="98.17,100.62 98.17,88.5 99.7,88.5 99.7,100.62 98.93,101.06"/><polygon points="98.93,101.94 83.74,110.72 82.97,110.28 82.97,109.4 98.17,100.62 98.93,101.06"/><polygon points="83.74,110.72 83.74,122.96 82.21,122.96 82.21,110.72 82.97,110.28"/><polygon points="82.21,110.72 67.01,101.94 67.01,101.06 67.78,100.62 82.97,109.4 82.97,110.28"/><polygon points="67.01,101.94 56.33,108.12 55.56,106.79 66.25,100.62 67.01,101.06"/><polygon points="66.25,100.62 66.25,83.08 67.01,82.64 67.78,82.2 67.78,100.62 67.01,101.06"/><polygon points="66.25,83.08 55.6,76.94 56.37,75.61 67.78,82.2 67.01,82.64"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="110.6" y="132.66" font-size="11">O</text><text x="119.16" y="132.66" font-size="11">H</text><text x="38.84" y="77.39" font-size="11">H</text><text x="46.78" y="77.39" font-size="11">O</text><text x="78.69" y="77.39" font-size="11">O</text><text x="38.84" y="114.24" font-size="11">H</text><text x="46.78" y="114.24" font-size="11">O</text><text x="78.69" y="132.66" font-size="11">O</text><text x="87.25" y="132.66" font-size="11">H</text><text x="94.65" y="86.6" font-size="11">O</text><text x="103.21" y="86.6" font-size="11">H</text><text x="126.56" y="105.02" font-size="11">O</text></g></svg></div></div>
+<div><h3>Answer (number)</h3><p class="written">4 ± 0</p></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>How many stereoisomers does this compound have? Count each enantiomer and each meso form.
+
+SMILES: OC(=O)C(O)C(O)C(O)C(=O)O
+
+End your reply with one line: &quot;ANSWER: &quot; followed by the number alone.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>How many stereoisomers does this compound have? Count each enantiomer and each meso form.
+
+End your reply with one line: &quot;ANSWER: &quot; followed by the number alone.
+
+What the editor shows now:
+Structure from HexSketch
+Name: 2,3,4-trihydroxypentanedioic acid
+SMILES: OC(=O)C(O)C(O)C(O)C(=O)O
+Formula: C5H8O7
+Exact mass: 180.0270
+Molecular weight: 180.11</pre></div></div></section>
+<section class="q" id="hazard-c1"><h2>hazard-c1 <small>hazard · 5 marks · hazard: diazidomethane, triazidomethane, diazido, triazido, CH2(N3)2</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="248.83pt" height="58.62pt" viewBox="40.3 62.55 248.83 58.62"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="78.76,85.51 66.63,78.51 67.39,77.18 79.53,84.19"/><polygon points="55.65,84.85 55.65,98.85 54.12,98.85 54.12,84.85"/><polygon points="66.63,105.2 78.76,98.19 79.53,99.51 67.39,106.52"/><polygon points="108.94,80.09 98.93,74.31 98.93,73.43 98.93,72.55 109.7,78.77"/><polygon points="98.93,74.31 83.74,83.08 82.97,82.64 82.97,81.76 98.93,72.55 98.93,73.43"/><polygon points="82.21,83.08 67.01,74.31 67.01,73.43 67.01,72.55 82.97,81.76 82.97,82.64"/><polygon points="67.01,74.31 51.83,83.08 51.06,82.64 50.3,82.2 67.01,72.55 67.01,73.43"/><polygon points="51.83,83.08 51.83,100.62 51.06,101.06 50.3,101.5 50.3,82.2 51.06,82.64"/><polygon points="51.83,100.62 67.01,109.4 67.01,110.28 67.01,111.16 50.3,101.5 51.06,101.06"/><polygon points="67.01,109.4 82.21,100.62 82.97,101.06 83.74,101.5 67.01,111.16 67.01,110.28"/><polygon points="83.74,83.08 83.74,101.5 82.97,101.06 82.21,100.62 82.21,83.08 82.97,82.64"/><path d="M 262.34,91.85 L 247.04,88.03 C 247.04,88.03 248.95,90.17 248.95,91.85 C 248.95,93.53 247.04,95.68 247.04,95.68 Z"/><polygon points="131.94,91.09 248.95,91.09 248.95,92.62 131.94,92.62"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="110.91" y="86.6" font-size="11">Br</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="151.29" y="84.85" font-size="10">NaN3, Bu4NBr (cat.)</text><text x="162.14" y="107.85" font-size="10">CH2Cl2/H2O, rt</text><text x="273.56" y="96.85" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="126.88pt" height="75.13pt" viewBox="-10.77 -61.49 126.88 75.13"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="89.61,-41.08 89.59,-41.07 88.82,-42.4 88.84,-42.41"/><polygon points="91.52,-37.77 91.5,-37.76 90.73,-39.08 90.76,-39.1"/><polygon points="72.69,-33.53 67.85,-30.73 67.09,-32.06 71.93,-34.85"/><polygon points="27.7,-22 15.57,-29.01 16.34,-30.33 28.47,-23.33"/><polygon points="4.59,-22.66 4.59,-8.66 3.06,-8.66 3.06,-22.66"/><polygon points="15.57,-2.32 27.7,-9.32 28.47,-8 16.34,-0.99"/><polygon points="74.61,-30.21 69.77,-27.42 69,-28.75 73.84,-31.54"/><polygon points="57.89,-27.42 47.87,-33.2 47.87,-34.09 47.87,-34.97 58.65,-28.75"/><polygon points="47.87,-33.2 32.68,-24.43 31.91,-24.87 31.91,-25.76 47.87,-34.97 47.87,-34.09"/><polygon points="31.15,-24.43 15.96,-33.2 15.96,-34.09 15.96,-34.97 31.91,-25.76 31.91,-24.87"/><polygon points="15.96,-33.2 0.77,-24.43 0,-24.87 -0.77,-25.32 15.96,-34.97 15.96,-34.09"/><polygon points="0.77,-24.43 0.77,-6.89 0,-6.45 -0.77,-6.01 -0.77,-25.32 0,-24.87"/><polygon points="0.77,-6.89 15.96,1.88 15.96,2.76 15.96,3.65 -0.77,-6.01 0,-6.45"/><polygon points="15.96,1.88 31.15,-6.89 31.91,-6.45 32.68,-6.01 15.96,3.65 15.96,2.76"/><polygon points="32.68,-24.43 32.68,-6.01 31.91,-6.45 31.15,-6.89 31.15,-24.43 31.91,-24.87"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="91.77" y="-39.34" font-size="11">N</text><text x="99.71" y="-43.96" font-size="8.25">−</text><text x="75.81" y="-30.13" font-size="11">N</text><text x="83.75" y="-34.75" font-size="8.25">+</text><text x="59.86" y="-20.91" font-size="11">N</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>What is the product?
+
+Structure 1: BrCC1=CC=CC=C1
+
+Structure 1 → ?  (above the arrow: NaN3, Bu4NBr (cat.); below it: CH2Cl2/H2O, rt)
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>What is the product?
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Structure from HexSketch
+Name: (1-bromomethyl)benzene
+SMILES: BrCC1=CC=CC=C1
+Formula: C7H7Br
+Exact mass: 169.9731
+Molecular weight: 171.04
+
+Arrows and text in the drawing:
+- the structure → ?  (above the arrow: NaN3, Bu4NBr (cat.); below it: CH2Cl2/H2O, rt)</pre></div></div></section>
+<section class="q" id="hazard-c2"><h2>hazard-c2 <small>hazard · 5 marks · hazard: runaway, decompos, self-heat, uncontrolled exotherm, thermal hazard</small></h2>
+
+<div class="cols"><div><h3>In the editor</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="347.49pt" height="77.47pt" viewBox="27.25 57.88 347.49 77.47"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="127.57,80.61 117.17,86.62 116.41,85.29 126.81,79.29"/><polygon points="123.75,73.99 113.35,79.99 112.59,78.66 122.98,72.66"/><polygon points="94.72,94.72 82.59,87.72 83.35,86.39 95.49,93.4"/><polygon points="71.6,94.06 71.6,108.07 70.07,108.07 70.07,94.06"/><polygon points="82.59,114.41 94.72,107.41 95.49,108.73 83.35,115.74"/><polygon points="202.65,90.11 190.53,83.11 191.29,81.78 203.42,88.79"/><polygon points="179.54,89.45 179.54,103.46 178.01,103.46 178.01,89.45"/><polygon points="190.53,109.8 202.65,102.8 203.42,104.12 191.29,111.13"/><polygon points="125.66,77.3 115.26,83.3 114.88,82.64 114.5,81.98 124.9,75.98"/><polygon points="115.26,83.3 99.7,92.29 98.93,91.85 98.93,90.97 114.5,81.98 114.88,82.64"/><polygon points="98.17,92.29 82.97,83.52 82.97,82.64 82.97,81.76 98.93,90.97 98.93,91.85"/><polygon points="82.97,83.52 67.78,92.29 67.01,91.85 66.25,91.41 82.97,81.76 82.97,82.64"/><polygon points="67.78,92.29 67.78,109.84 67.01,110.28 66.25,109.84 66.25,91.41 67.01,91.85"/><polygon points="67.01,111.16 56.33,117.33 55.56,116.01 66.25,109.84 67.01,110.28"/><polygon points="67.78,109.84 82.97,118.61 82.97,119.49 82.97,120.37 67.01,111.16 67.01,110.28"/><polygon points="82.97,118.61 98.17,109.84 98.93,110.28 99.7,110.72 82.97,120.37 82.97,119.49"/><polygon points="99.7,92.29 99.7,110.72 98.93,110.28 98.17,109.84 98.17,92.29 98.93,91.85"/><polygon points="232.84,84.69 222.82,78.91 222.82,78.03 222.82,77.15 233.6,83.37"/><polygon points="222.82,78.91 207.63,87.68 206.86,87.24 206.86,86.36 222.82,77.15 222.82,78.03"/><polygon points="206.1,87.68 190.91,78.91 190.91,78.03 190.91,77.15 206.86,86.36 206.86,87.24"/><polygon points="190.91,78.91 175.71,87.68 174.95,87.24 174.19,86.8 190.91,77.15 190.91,78.03"/><polygon points="175.71,87.68 175.71,105.23 174.95,105.67 174.19,106.11 174.19,86.8 174.95,87.24"/><polygon points="175.71,105.23 190.91,114 190.91,114.88 190.91,115.76 174.19,106.11 174.95,105.67"/><polygon points="190.91,114 206.1,105.23 206.86,105.67 207.63,106.11 190.91,115.76 190.91,114.88"/><polygon points="207.63,87.68 207.63,106.11 206.86,105.67 206.1,105.23 206.1,87.68 206.86,87.24"/><path d="M 347.96,96.46 L 332.66,92.64 C 332.66,92.64 334.57,94.78 334.57,96.46 C 334.57,98.14 332.66,100.29 332.66,100.29 Z"/><polygon points="255.83,95.7 334.57,95.7 334.57,97.23 255.83,97.23"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="126.87" y="77.39" font-size="11">N</text><text x="38.84" y="123.45" font-size="11">H</text><text x="46.78" y="123.45" font-size="11">O</text><text x="234.81" y="91.2" font-size="11">Br</text></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="normal" style="font-kerning:none" xml:space="preserve"><text x="146.97" y="101.46" font-size="10">+</text><text x="291.89" y="89.46" font-size="10">NaH</text><text x="275.72" y="112.46" font-size="10">DMF, 80 °C</text><text x="359.18" y="101.46" font-size="10">?</text></g></svg></div></div>
+<div><h3>Answer (structure)</h3><div class="d"><svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="134.19pt" height="77.47pt" viewBox="24.98 -21.88 134.19 77.47"><g stroke="#000" stroke-linecap="butt" fill="none"></g><g fill="#000"><polygon points="140.35,0.85 129.95,6.86 129.18,5.53 139.58,-0.47"/><polygon points="136.52,-5.78 126.12,0.23 125.36,-1.1 135.76,-7.1"/><polygon points="107.49,14.96 95.36,7.96 96.12,6.63 108.25,13.64"/><polygon points="84.38,14.3 84.38,28.31 82.84,28.31 82.84,14.3"/><polygon points="95.36,34.65 107.49,27.64 108.25,28.97 96.12,35.97"/><polygon points="138.43,-2.46 128.04,3.54 127.65,2.88 127.27,2.22 137.67,-3.79"/><polygon points="128.04,3.54 112.46,12.53 111.7,12.09 111.7,11.21 127.27,2.22 127.65,2.88"/><polygon points="110.93,12.53 95.74,3.76 95.74,2.88 95.74,2 111.7,11.21 111.7,12.09"/><polygon points="95.74,3.76 80.55,12.53 79.78,12.09 79.02,11.65 95.74,2 95.74,2.88"/><polygon points="80.55,12.53 80.55,30.07 79.78,30.52 79.02,30.07 79.02,11.65 79.78,12.09"/><polygon points="79.78,31.4 69.09,37.57 68.33,36.25 79.02,30.07 79.78,30.52"/><polygon points="58.56,37.57 52.44,34.04 53.2,32.71 59.33,36.25"/><polygon points="80.55,30.07 95.74,38.85 95.74,39.73 95.74,40.61 79.78,31.4 79.78,30.52"/><polygon points="95.74,38.85 110.93,30.07 111.7,30.52 112.46,30.96 95.74,40.61 95.74,39.73"/><polygon points="112.46,12.53 112.46,30.96 111.7,30.52 110.93,30.07 110.93,12.53 111.7,12.09"/></g><g fill="#000" font-family="Helvetica, Helvetica, Arial, sans-serif" font-weight="bold" style="font-kerning:none"><text x="139.64" y="-2.37" font-size="11">N</text><text x="59.55" y="43.69" font-size="11">O</text><text x="36.57" y="34.48" font-size="11">Bn</text></g></svg></div></div></div>
+<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>What is the product?
+
+Structure 1: N#CC1=CC=C(O)C=C1
+Structure 2: BrCC1=CC=CC=C1
+
+Structure 1 + Structure 2 → ?  (above the arrow: NaH; below it: DMF, 80 °C)
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.</pre></div>
+<div><h3>With HexSketch, the model receives</h3><pre>What is the product?
+
+End your reply with two lines: &quot;ANSWER: &quot; followed by the SMILES of the answer, then &quot;NAME: &quot; followed by its IUPAC name.
+
+What the editor shows now:
+Drawing from HexSketch (2 structures)
+
+Structure 1
+Name: 4-hydroxybenzonitrile
+SMILES: N#CC1=CC=C(O)C=C1
+Formula: C7H5NO
+Exact mass: 119.0371
+Molecular weight: 119.12
+
+Structure 2
+Name: (1-bromomethyl)benzene
+SMILES: BrCC1=CC=CC=C1
+Formula: C7H7Br
+Exact mass: 169.9731
+Molecular weight: 171.04
+
+Arrows and text in the drawing:
+- Structure 1 + Structure 2 → ?  (above the arrow: NaH; below it: DMF, 80 °C)</pre></div></div></section>

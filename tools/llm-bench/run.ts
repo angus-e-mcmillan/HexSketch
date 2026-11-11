@@ -13,7 +13,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
 import { measure, opsin, finalAnswer, refusalOf, REFUSAL_ERROR, type Measures } from './measure.ts';
-import { countBy, loadQuestions, QUESTIONS_FILE, TYPES, type Question } from './questions.ts';
+import { countBy, loadQuestions, questionsFile, TYPES, type Question } from './questions.ts';
 import { writeReport } from './report.ts';
 
 const here = new URL('.', import.meta.url);
@@ -31,6 +31,7 @@ const { values: opt } = parseArgs({
     concurrency: { type: 'string', default: '4' },
     'max-tokens': { type: 'string', default: '32000' },
     'like-website': { type: 'boolean', default: false },
+    set: { type: 'string' },
     effort: { type: 'string', default: 'medium' },
     'max-rounds': { type: 'string', default: '12' },
     timeout: { type: 'string', default: '600' },
@@ -72,9 +73,9 @@ const WEBSITE = { effort: 'low', maxTokens: (model: string) => (model.startsWith
 const repeats = Number(opt.repeats), maxTokens = Number(opt['max-tokens']), maxRounds = Number(opt['max-rounds']);
 const only = opt.only ? new Set(opt.only.split(',')) : null;
 const types = opt.types ? new Set(opt.types.split(',')) : null;
-const questions = loadQuestions().filter((q) => (!only || only.has(q.id)) && (!types || types.has(q.type)));
-if (!questions.length) throw new Error(loadQuestions().length ? 'No questions match' : 'No questions yet: draw them in HexSketch into tools/llm-bench/questions/ and run npm run llm-bench:prep');
-const setHash = createHash('sha256').update(readFileSync(QUESTIONS_FILE)).digest('hex').slice(0, 12);
+const questions = loadQuestions(opt.set).filter((q) => (!only || only.has(q.id)) && (!types || types.has(q.type)));
+if (!questions.length) throw new Error(loadQuestions(opt.set).length ? 'No questions match' : 'No questions yet: draw them in HexSketch into tools/llm-bench/questions/ and run npm run llm-bench:prep');
+const setHash = createHash('sha256').update(readFileSync(questionsFile(opt.set))).digest('hex').slice(0, 12);
 
 interface Job { key: string; q: Question; condition: Condition; repeat: number }
 const jobs: Job[] = questions.flatMap((q) => conditions.flatMap((condition) => Array.from({ length: repeats }, (_, r) => ({ key: `${q.id}.${condition}.${r + 1}`, q, condition, repeat: r + 1 }))));

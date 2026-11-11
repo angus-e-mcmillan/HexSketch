@@ -5,15 +5,17 @@
  * receives with and without HexSketch, and the answer. Open it to proofread
  * the questions before a run.
  *
- *   npm run llm-bench:prep
+ *   npm run llm-bench:prep [-- --set NAME]   (NAME: questions/NAME/ to questions-NAME.jsonl)
  */
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { parseArgs } from 'node:util';
 import { readStructure } from '../../packages/agent/src/index.ts';
 import { readQuestionDrawing } from './drawing.ts';
-import { countBy, QUESTIONS_FILE, TYPES, type Question } from './questions.ts';
+import { countBy, questionsDir, questionsFile, TYPES, type Question } from './questions.ts';
 import { keySmiles, writeQuestionsPage } from './report.ts';
 
-const dir = new URL('questions/', import.meta.url);
+const { values: opt } = parseArgs({ options: { set: { type: 'string' } } });
+const dir = questionsDir(opt.set);
 const files = readdirSync(dir).filter((f) => f.endsWith('.cdxml')).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 const questions: Question[] = [];
 const warnings = new Map<string, string[]>();
@@ -30,7 +32,7 @@ for (const f of files) {
 for (const [id, w] of warnings) for (const x of w) console.warn(`${id}: ${x}`);
 if (problems.length) { console.error(problems.join('\n')); process.exit(1); }
 questions.sort((a, b) => TYPES.indexOf(a.type) - TYPES.indexOf(b.type) || a.id.localeCompare(b.id, undefined, { numeric: true }));
-writeFileSync(QUESTIONS_FILE, questions.map((q) => JSON.stringify(q)).join('\n') + (questions.length ? '\n' : ''));
+writeFileSync(questionsFile(opt.set), questions.map((q) => JSON.stringify(q)).join('\n') + (questions.length ? '\n' : ''));
 await writeQuestionsPage(new URL('questions.html', dir), questions, warnings);
 const n = countBy(questions, (q) => q.type);
 console.log(`${questions.length} questions: ${TYPES.map((t) => `${t} ${n[t] ?? 0}`).join(', ')}. Proofread them in ${new URL('questions.html', dir).pathname}`);
