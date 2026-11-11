@@ -36,9 +36,12 @@ if (command === 'push') {
     // Routes waiting for the chemist.
     const file = new URL(`out/${run}/records.jsonl`, here);
     if (existsSync(file)) {
+      // One card per distinct route: the same route from two answers is one judgement (grades go by route id).
+      const seen = new Set<string>();
       for (const line of readFileSync(file, 'utf8').trim().split('\n')) {
         const r = JSON.parse(line) as { key: string; id: string; route?: RouteMarks };
-        if (!r.route?.pending) continue;
+        if (!r.route?.pending || seen.has(r.route.id)) continue;
+        seen.add(r.route.id);
         const q = qs.get(r.id);
         const steps = [];
         for (const s of r.route.steps) {
