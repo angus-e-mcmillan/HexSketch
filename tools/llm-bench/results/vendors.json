@@ -1,0 +1,19 @@
+{
+ "CCS(=O)(=O)Cl": 58,
+ "ClC1=NC=NC=2NC=CC12": 92,
+ "O=C1CCN1": 63,
+ "C[Si](C)(C)CC#N": 50,
+ "[nH]1ncc(B2OC(C)(C)C(C)(C)O2)c1": 82,
+ "ClC2=NC=NC=3NC=CC23": 92,
+ "NC1CC(C1)N": 50,
+ "CCCS(=O)(=O)Cl": 63,
+ "Clc1ncnc2[nH]ccc12": 92,
+ "NC1CC(N)C1": 50,
+ "COC(=O)c1cc(O)c(F)cc1": 58,
+ "CC(=O)CC(C)=O": 50,
+ "BrCCCBr": 62,
+ "O=C1CNC1": 37,
+ "[NH]3C=C(B(O)O)C=N3": 70,
+ "CC(C)(C)OC(=O)NC1CC(N)C1": 69,
+ "CC(C)(C)OC(=O)NC1CC(C1)N": 69
+}

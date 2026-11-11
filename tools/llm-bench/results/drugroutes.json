@@ -1,6 +1,6 @@
 {
   "run": "drugroutes",
-  "date": "2026-11-11T18:46:28.360Z",
+  "date": "2026-11-11T19:36:47.516Z",
   "model": "nvidia/nemotron-3.5-super-vl:free",
   "served": [
     "nvidia/nemotron-3.5-super-vl:free"
@@ -15,7 +15,7 @@
     "likeWebsite": null,
     "maxRounds": 12,
     "repeats": 2,
-    "timeoutSeconds": 1200,
+    "timeoutSeconds": 600,
     "temperature": "default"
   },
   "questions": {
@@ -26,25 +26,25 @@
       "route": 3
     }
   },
-  "commit": "17a6cbe",
+  "commit": "0a4e79b",
   "failedRuns": 0,
   "totalCost": 0,
   "conditions": {
     "smiles": {
-      "score": 3,
+      "score": 5,
       "scoreRange": [
-        3,
-        3
+        5,
+        5
       ],
       "outOf": 15,
       "byType": {
         "route": {
-          "score": 3,
+          "score": 5,
           "outOf": 15
         }
       },
       "correct": {
-        "rate": 0,
+        "rate": 0.3333333333333333,
         "n": 6
       },
       "stereo": {
@@ -82,20 +82,20 @@
       "toolCalls": 0
     },
     "hexsketch": {
-      "score": 9.5,
+      "score": 11.5,
       "scoreRange": [
-        9,
-        10
+        11,
+        12
       ],
       "outOf": 15,
       "byType": {
         "route": {
-          "score": 9.5,
+          "score": 11.5,
           "outOf": 15
         }
       },
       "correct": {
-        "rate": 0.3333333333333333,
+        "rate": 0.5,
         "n": 6
       },
       "stereo": {
@@ -139,7 +139,7 @@
       "type": "route",
       "marks": 5,
       "smiles": {
-        "right": 0,
+        "right": 2,
         "of": 2,
         "refused": 0,
         "cutOff": 0,
@@ -151,7 +151,7 @@
         "toolCalls": 0
       },
       "hexsketch": {
-        "right": 0,
+        "right": 1,
         "of": 2,
         "refused": 0,
         "cutOff": 0,

@@ -4,9 +4,9 @@ nvidia/nemotron-3.5-super-vl:free (served as nvidia/nemotron-3.5-super-vl:free, 
 
 | | Without HexSketch | With HexSketch |
 |---|---|---|
-| **Score** | **3.0 / 15 (3–3)** | **9.5 / 15 (9–10)** |
-| route | 3.0 / 15 | 9.5 / 15 |
-| Correct | 0% (6) | 33% (6) |
+| **Score** | **5.0 / 15 (5–5)** | **11.5 / 15 (11–12)** |
+| route | 5.0 / 15 | 11.5 / 15 |
+| Correct | 33% (6) | 50% (6) |
 | Right compound, wrong stereochemistry | 0% (6) | 0% (6) |
 | Valid structures | 33% (6) | 100% (6) |
 | Name matches structure | – | – |
@@ -27,6 +27,6 @@ Score: marks for answers that are right, averaged over the repeats (range in bra
 
 | Question | Marks | Without HexSketch: right · tokens out · $ · s | With HexSketch: right · tokens out · $ · s |
 |---|---|---|---|
-| route-c3 | 5 | 0/2 · 22592 · 0.000 · 296 | 0/2 · 18268 · 0.000 · 366 |
+| route-c3 | 5 | 2/2 · 22592 · 0.000 · 296 | 1/2 · 18268 · 0.000 · 366 |
 | route-c4 | 5 | 0/2 (1 cut off) · 16778 · 0.000 · 250 | 2/2 · 30973 · 0.000 · 402 |
 | route-c5 | 5 | 0/2 (2 cut off) · 32000 · 0.000 · 497 | 0/2 · 30920 · 0.000 · 471 |
