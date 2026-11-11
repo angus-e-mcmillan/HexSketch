@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseSmiles, smilesAtomMaps, writeSmiles } from '../src/smiles.ts';
-import { sameStructure } from '../src/isomorphism.ts';
+import { parsePattern, sameStructure, substructureMatches } from '../src/isomorphism.ts';
 import { computeMass } from '../src/formula.ts';
 
 const CASES: [string, string, string][] = [
@@ -196,4 +196,13 @@ test('atom-map numbers name atoms; a mapped bare element keeps its hydrogens', (
   assert.equal(writeSmiles(parseSmiles('[O-:1][C:2]')), '[O-]C');
   assert.deepEqual([...smilesAtomMaps(parseSmiles('CCO')).keys()], []);
   assert.throws(() => parseSmiles('[C:1][C:1]'), /used twice/);
+});
+
+test('a highlight fragment forgives a ring label left open and an aromatic piece that cannot kekulize alone', () => {
+  // Each slip cost a model on the benchmark a round trip (the tool call failed and was made again).
+  assert.equal(substructureMatches(parsePattern('n1ccnc1'), parseSmiles('Cc1ncc[nH]1')).length, 1);
+  assert.equal(substructureMatches(parsePattern('[NH1]1CCN'), parseSmiles('C1CNCCN1C')).length, 2);
+  assert.equal(substructureMatches(parsePattern('O=C1CC2OCC'), parseSmiles('O=C1C[C@@H]2OCC(c3ccccc3)N[C@H]2C1')).length, 1);
+  assert.equal(substructureMatches(parsePattern('c1ccncc1-c'), parseSmiles('c1ccc(-c2ccncc2)cc1')).length, 0, 'read, though it is not there');
+  assert.throws(() => parsePattern('C(=O'), /./, 'still an error when nothing can be made of it');
 });
