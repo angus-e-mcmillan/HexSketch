@@ -67,8 +67,8 @@ if (!opt.model) throw new Error('Give --model, an OpenRouter model id (find one 
 const model = opt.model;
 const conditions = opt.conditions!.split(',').map((c) => c.trim()) as Condition[];
 for (const c of conditions) if (!CONDITIONS.includes(c)) throw new Error(`Unknown condition ${c}: use ${CONDITIONS.join(', ')}`);
-/** How hexsketch.com's chat asks (apps/web/src/openrouter.ts complete()). */
-const WEBSITE = { effort: 'low', maxTokens: 4096 } as const;
+/** How hexsketch.com's chat asks (apps/web/src/openrouter.ts complete() and maxTokensFor()). */
+const WEBSITE = { effort: 'low', maxTokens: (model: string) => (model.startsWith('anthropic/') ? 4096 : 16384) } as const;
 const repeats = Number(opt.repeats), maxTokens = Number(opt['max-tokens']), maxRounds = Number(opt['max-rounds']);
 const only = opt.only ? new Set(opt.only.split(',')) : null;
 const types = opt.types ? new Set(opt.types.split(',')) : null;
@@ -169,7 +169,7 @@ async function runOne(job: Job): Promise<RunRecord> {
       // Out of rounds: one last turn without tools, so the model has to answer.
       const toolsNow = start.tools.length && rec.rounds < maxRounds;
       const reply = await ask({
-        model, messages: cached(model, messages), max_tokens: web ? WEBSITE.maxTokens : maxTokens,
+        model, messages: cached(model, messages), max_tokens: web ? WEBSITE.maxTokens(model) : maxTokens,
         // --effort none for a model without a thinking mode: require_parameters would otherwise rule out every provider.
         ...(web ? { reasoning: { effort: WEBSITE.effort } } : opt.effort === 'none' ? {} : { reasoning: { effort: opt.effort } }),
         ...(start.tools.length ? { tools: start.tools.map((t) => ({ type: 'function', function: t })), tool_choice: toolsNow ? 'auto' : 'none' } : {}),
@@ -268,7 +268,7 @@ const totalMarks = questions.reduce((t, q) => t + q.marks, 0);
 const marksOf = (type?: string) => questions.filter((q) => !type || q.type === type).reduce((t, q) => t + q.marks, 0);
 const summary = {
   run: runName, date: new Date().toISOString(), model, served: [...new Set(ok.map((r) => r.model))], providers: [...new Set(ok.flatMap((r) => r.providers))],
-  settings: { provider: opt.provider ?? null, effort: opt.effort, maxTokens, likeWebsite: opt['like-website'] ? WEBSITE : null, maxRounds, repeats, timeoutSeconds: Number(opt.timeout), temperature: 'default' },
+  settings: { provider: opt.provider ?? null, effort: opt.effort, maxTokens, likeWebsite: opt['like-website'] ? { effort: WEBSITE.effort, maxTokens: WEBSITE.maxTokens(model) } : null, maxRounds, repeats, timeoutSeconds: Number(opt.timeout), temperature: 'default' },
   questions: { hash: setHash, count: questions.length, marks: totalMarks, types: countBy(questions, (q) => q.type) },
   commit: (() => { try { return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim(); } catch { return null; } })(),
   failedRuns: records.length - records.filter((r) => !r.error).length,
@@ -312,7 +312,7 @@ const head = (c: Condition) => (c === 'smiles' ? 'Without HexSketch' : 'With Hex
 const score = (x: { score: number; outOf: number }, range?: number[]) => `${x.score.toFixed(1)} / ${x.outOf}${range && repeats > 1 ? ` (${range[0]}–${range[1]})` : ''}`;
 const lines = [
   `# ${runName}`, '',
-  `${model} (served as ${summary.served.join(', ') || '?'}, via ${summary.providers.join(', ') || '?'}), effort ${opt.effort}${opt['like-website'] ? ` (with HexSketch: as hexsketch.com, effort ${WEBSITE.effort}, at most ${WEBSITE.maxTokens} tokens a turn, thinking not sent back)` : ''}, ${repeats} repeat${repeats === 1 ? '' : 's'} of ${questions.length} questions worth ${totalMarks} marks. Total cost $${summary.totalCost.toFixed(2)}.${summary.failedRuns ? ` ${summary.failedRuns} runs failed (not measured): run again with --run ${runName}.` : ''}`, '',
+  `${model} (served as ${summary.served.join(', ') || '?'}, via ${summary.providers.join(', ') || '?'}), effort ${opt.effort}${opt['like-website'] ? ` (with HexSketch: as hexsketch.com, effort ${WEBSITE.effort}, at most ${WEBSITE.maxTokens(model)} tokens a turn, thinking not sent back)` : ''}, ${repeats} repeat${repeats === 1 ? '' : 's'} of ${questions.length} questions worth ${totalMarks} marks. Total cost $${summary.totalCost.toFixed(2)}.${summary.failedRuns ? ` ${summary.failedRuns} runs failed (not measured): run again with --run ${runName}.` : ''}`, '',
   `| | ${conditions.map(head).join(' | ')} |`, `|---|${conditions.map(() => '---').join('|')}|`,
   `| **Score** | ${conditions.map((c) => `**${score(cs[c]!, cs[c]!.scoreRange)}**`).join(' | ')} |`,
   ...typesIn.map((t) => `| ${t} | ${conditions.map((c) => score(cs[c]!.byType[t]!)).join(' | ')} |`),

@@ -77,7 +77,7 @@ npm run llm-bench -- --model MODEL_ID --provider anthropic --repeats 1
 | `--only` | | Question ids, e.g. `reaction-1` |
 | `--effort` | `medium` | `reasoning.effort`; `none` for a model without thinking |
 | `--max-tokens` | 32000 | The same for every model |
-| `--like-website` | | The HexSketch condition asks as hexsketch.com does: low effort, at most 4,096 tokens a turn, thinking not sent back |
+| `--like-website` | | The HexSketch condition asks as hexsketch.com does: low effort, at most 4,096 tokens a turn for Claude and 16,384 for other models, thinking not sent back |
 | `--max-rounds` | 12 | Tool rounds before the model must answer |
 | `--concurrency` | 4 | Questions in flight at once |
 | `--run` | date-model | Name of the run; give an old one to carry on where it stopped |
