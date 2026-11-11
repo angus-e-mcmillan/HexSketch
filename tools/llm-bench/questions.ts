@@ -43,7 +43,7 @@ export type Key =
   | { kind: 'number'; value: number; tolerance: number }
   /** A word or short phrase ("sp2"): any of these, ignoring case, spaces and superscripts. */
   | { kind: 'term'; accept: string[] }
-  /** A synthesis the model plans itself, in at most maxSteps steps (route.ts marks it): accepted holds the last-step disconnections the chemist accepts, each a set of building blocks. */
+  /** A synthesis the model plans itself, in at most maxSteps steps (route.ts marks it): accepted holds the couplings the chemist accepts, each a set of building blocks, counted at whichever step makes it. */
   | { kind: 'route'; target: string; accepted: string[][]; maxSteps: number };
 
 /** How the model is asked to end its reply, in both conditions alike. */

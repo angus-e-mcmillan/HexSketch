@@ -39,6 +39,8 @@ export interface RouteMarks {
   notSold: string[];
   forward: boolean;
   accepted: boolean;
+  /** The step that made one of the couplings the chemist accepts, from 1; 0 when none did. */
+  acceptedStep: number;
   /** The chemist's verdict, from grades.json; null when not graded. */
   approved: boolean | null;
   /** Valid, not an accepted disconnection, and not graded yet. */
@@ -75,6 +77,9 @@ let catalogue: Record<string, number> | null = null;
  * chance of getting it. SciFinder is the authority; this is only a screen.
  */
 export const VENDORS_NEEDED = 30;
+
+/** At most this many heavy atoms makes a compound a commodity, bought without a thought (hydrazine, methylamine, HCl). */
+const COMMODITY_ATOMS = 4;
 
 /** How many chemical vendors PubChem lists for a compound; null when PubChem cannot be asked. Cached in results/vendors.json. */
 export async function vendorCount(smiles: string): Promise<number | null> {
@@ -125,7 +130,7 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
   const key = q.key;
   const steps = parseRoute(final);
   const id = createHash('sha256').update(`${q.id}\n${steps.map((s) => `${s.reactants.join('.')}>>${s.product}`).join('\n')}`).digest('hex').slice(0, 16);
-  const marks: RouteMarks = { id, steps: steps.map((s) => ({ ...s, reaction: null })), valid: false, why: null, startingMaterials: [], vendors: {}, buyable: null, notSold: [], forward: false, accepted: false, approved: null, pending: false, score: 0 };
+  const marks: RouteMarks = { id, steps: steps.map((s) => ({ ...s, reaction: null })), valid: false, why: null, startingMaterials: [], vendors: {}, buyable: null, notSold: [], forward: false, accepted: false, acceptedStep: 0, approved: null, pending: false, score: 0 };
   const fail = (why: string) => { marks.why = why; return marks; };
   if (!steps.length) return fail('no STEP lines');
   if (steps.length > key.maxSteps) return fail(`${steps.length} steps, more than ${key.maxSteps}`);
@@ -156,9 +161,11 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
   }
   marks.valid = true;
 
-  // Really on sale? Enough vendors list it that a chemist would expect to get it.
-  const counts = await Promise.all(marks.startingMaterials.map(vendorsOf));
-  marks.startingMaterials.forEach((s, i) => { marks.vendors[s] = counts[i] ?? -1; });
+  // Really on sale? Enough vendors list it that a chemist would expect to get it. Commodity
+  // chemicals (hydrazine, methylamine, HCl) are not worth asking about: nobody wonders where to buy them.
+  const commodity = async (smiles: string) => { try { return (await readStructure(smiles, { format: 'smiles' })).mol.atomCount <= COMMODITY_ATOMS; } catch { return false; } };
+  const counts = await Promise.all(marks.startingMaterials.map(async (s) => ((await commodity(s)) ? Infinity : vendorsOf(s))));
+  marks.startingMaterials.forEach((s, i) => { marks.vendors[s] = Number.isFinite(counts[i]) ? counts[i]! : counts[i] === null ? -1 : VENDORS_NEEDED; });
   marks.notSold = marks.startingMaterials.filter((_, i) => (counts[i] ?? 0) < VENDORS_NEEDED)
     .sort((a, b) => (marks.vendors[a] ?? 0) - (marks.vendors[b] ?? 0));
   marks.buyable = counts.some((x) => x === null) ? null : !marks.notSold.length;
@@ -171,19 +178,22 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
     marks.forward = checked.every((c) => c.reaction);
   } catch { marks.forward = false; }
 
-  // The last step: an accepted disconnection, or the chemist's verdict.
-  const last = steps.at(-1)!.reactants;
-  for (const set of key.accepted) {
-    if (set.length !== last.length) continue;
-    const used = new Set<number>();
-    let all = true;
-    for (const want of set) {
-      let hit = -1;
-      for (const [i, r] of last.entries()) if (!used.has(i) && (await sameConstitution(r, want))) { hit = i; break; }
-      if (hit < 0) { all = false; break; }
-      used.add(hit);
+  // One of the couplings the chemist accepts, at any step: a published route often ends in a
+  // deprotection, so where the key bond is made matters, not whether it is made last.
+  for (const [n, step] of steps.entries()) {
+    for (const set of key.accepted) {
+      if (set.length !== step.reactants.length) continue;
+      const used = new Set<number>();
+      let all = true;
+      for (const want of set) {
+        let hit = -1;
+        for (const [i, r] of step.reactants.entries()) if (!used.has(i) && (await sameConstitution(r, want))) { hit = i; break; }
+        if (hit < 0) { all = false; break; }
+        used.add(hit);
+      }
+      if (all) { marks.accepted = true; marks.acceptedStep = n + 1; break; }
     }
-    if (all) { marks.accepted = true; break; }
+    if (marks.accepted) break;
   }
   marks.approved = grades.routes[id]?.viable ?? null;
   marks.pending = !marks.accepted && marks.approved === null;

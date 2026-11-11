@@ -93,10 +93,10 @@ export function readQuestionDrawing(xml: string, id: string): ReadQuestion {
     else if (key.kind === 'structures' && alt.kind === 'structures') (key.also ??= []).push(alt.smiles);
     else if (key.kind === 'sequence' && alt.kind === 'sequence') (key.also ??= []).push(alt.stages);
   }
-  // A route question: what is drawn under "Answer" (and each "Also accept") is a last step the chemist accepts, its building blocks.
+  // A route question: what is drawn under "Answer" (and each "Also accept") is a coupling the chemist accepts, its building blocks; the route may make it at any step.
   if (type === 'route') {
     const sets = key.kind === 'structure' ? [[key.smiles], ...(key.also ?? []).map((s) => [s])] : key.kind === 'structures' ? [key.smiles, ...(key.also ?? [])] : null;
-    if (!sets) throw new Error('a route question\'s answer is the building blocks of an accepted last step: draw them, without arrows, under "Answer" (others under "Also accept")');
+    if (!sets) throw new Error('a route question\'s answer is the building blocks of an accepted coupling: draw them, without arrows, under "Answer" (others under "Also accept")');
     if (given.length !== 1) throw new Error('a route question shows one target');
     const steps = /(?:at most|in|within|no more than)\s+(\d+)\s+steps?/i.exec(ask);
     if (!steps) warnings.push('the question does not say how many steps ("in at most 3 steps"): 4 allowed');

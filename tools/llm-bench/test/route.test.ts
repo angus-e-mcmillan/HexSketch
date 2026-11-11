@@ -49,3 +49,20 @@ test('a route that misses the target, or starts from a compound too few vendors 
   const long = await markRoute({ ...q, key: { ...q.key, maxSteps: 1 } as Question['key'] }, 'STEP: Clc1ncccn1.OC(=O)C1CCNCC1>>OC(=O)C1CCN(c2ncccn2)CC1 K2CO3\nSTEP: OC(=O)C1CCN(c2ncccn2)CC1.NCc1ccc(F)cc1>>' + TARGET + ' HATU', none, vendors);
   assert.match(long.why!, /more than 1/);
 });
+
+test('a key coupling counts wherever the route makes it, not only last: published routes end in a deprotection', async () => {
+  // Abrocitinib's own order: the SNAr that joins the two halves, then the sulfonamide, then the protecting group off.
+  const target = 'CCCS(=O)(=O)NC1CC(C1)N(C)c1ncnc2[nH]ccc12';
+  const q: Question = {
+    id: 'route-last', type: 'route', ask: 'Plan a synthesis in at most 4 steps.', marks: 5, drawing: '', given: [target], scheme: [],
+    key: { kind: 'route', target, maxSteps: 4, accepted: [['CNC1CC(N)C1', 'Clc1ncnc2[nH]ccc12']] },
+  };
+  const text = [
+    'STEP: CNC1CC(N)C1.Clc1ncnc2[nH]ccc12>>CN(C1CC(N)C1)c1ncnc2[nH]ccc12 DIPEA, iPrOH, 75 C',
+    'STEP: CN(C1CC(N)C1)c1ncnc2[nH]ccc12.CCCS(=O)(=O)Cl>>' + target + ' Et3N, THF',
+  ].join('\n');
+  const m = await markRoute(q, text, none, async () => 60);
+  assert.equal(m.accepted, true);
+  assert.equal(m.acceptedStep, 1, 'the coupling is made first, and still counts');
+  assert.equal(m.score, 1);
+});

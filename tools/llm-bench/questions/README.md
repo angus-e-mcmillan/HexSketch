@@ -79,3 +79,23 @@ This reads every drawing, reports anything it cannot follow, and writes
 `questions/questions.html`. Open that page to check what you drew, what the
 model receives with and without HexSketch, and the answer it will be marked
 against.
+
+## Route questions (a synthesis the model plans itself)
+
+Draw the target alone above `Q:`, and end the question with how many steps
+are allowed ("in at most 4 steps"). Under `Answer`, draw the two building
+blocks of a coupling you would accept, side by side with no arrow between
+them; each `Also accept` holds another such pair. The route earns those
+marks when any of its steps makes one of those couplings — published routes
+usually end in a deprotection, so where the key bond is made is what counts,
+not whether it is made last.
+
+The other marks are automatic: the structures read and reach the target,
+every starting material is really on sale (at least 30 vendors in PubChem;
+commodity chemicals are not asked about), and every step is a known reaction
+class. A sound route that matches none of your couplings waits for you on
+the grading page.
+
+Three of the candidates (`route-c3`, `route-c4`, `route-c5`) come from
+published routes on Chemistry By Design (Njardarson group), redrawn here
+from the chemistry alone: abrocitinib, acoramidis and baricitinib.
