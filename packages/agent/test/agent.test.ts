@@ -400,5 +400,5 @@ test('retrosynthesis: disconnections are marked across their bonds, and steps ar
   assert.deepEqual(await schemeBalance({ stages: ['CC(=O)O.OC', 'CC(=O)OC'] }), [{ step: 1, unbalanced: 'H2O on the left is not on the right' }]);
   assert.deepEqual(await schemeBalance({ stages: ['CC(=O)O', 'CCO'], arrows: [{ type: 'retrosynthetic' }] }), []);
   const x = imbalance((await readStructure('[OH-].CBr')).mol, (await readStructure('CO')).mol);
-  assert.deepEqual(x, { lost: 'Br', gained: '', charge: 1 });
+  assert.deepEqual(x, { lost: 'Br', gained: '', added: '', charge: 1 });
 });

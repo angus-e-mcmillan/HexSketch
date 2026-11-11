@@ -199,7 +199,15 @@ export function bestPlace(mol: Molecule, at: string): number | undefined {
 export async function balanceOf(r: Scheme | undefined): Promise<Record<string, unknown>> {
   if (!r) return {};
   const b = await schemeBalance(r).catch(() => []);
-  return b.length ? { balance: b, balance_note: 'Atoms that do not balance across an arrow: fine when they come from a reagent written above it or leave as an unshown byproduct; otherwise add the missing byproduct (H2O, HCl...) or correct the product.' } : {};
+  if (!b.length) return {};
+  // A product with a carbon (or N, O...) that nothing before the arrow has is most often drawn wrong: say so plainly,
+  // apart from the general note, which a model reads as leave to explain any imbalance away as a lost byproduct.
+  const added = b.filter((x) => x.added).map((x) => `${x.scheme ? `Scheme ${x.scheme}, step` : 'Step'} ${x.step}: the product has ${x.added} that no structure before the arrow has. Unless a reagent written above the arrow puts it there (say which), the product is wrong: correct its SMILES and show it again.`);
+  return {
+    ...(added.length ? { check_product: added } : {}),
+    balance: b.map(({ added: _, ...x }) => x),
+    balance_note: 'Atoms that do not balance across an arrow: fine when they come from a reagent written above it or leave as an unshown byproduct; otherwise add the missing byproduct (H2O, HCl...) or correct the product.',
+  };
 }
 
 /**

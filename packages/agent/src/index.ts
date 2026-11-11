@@ -394,15 +394,16 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
  * byproduct not drawn, or atoms from a reagent written above the arrow
  * (which is fine). Retrosynthetic arrows are skipped: they never balance.
  */
-export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; step: number; unbalanced: string }[]> {
+export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; step: number; unbalanced: string; added?: string }[]> {
   const all = sequences(input);
-  const out: { scheme?: number; step: number; unbalanced: string }[] = [];
+  const out: { scheme?: number; step: number; unbalanced: string; added?: string }[] = [];
   for (const [k, seq] of all.entries()) {
     const stages = await Promise.all(seq.stages.map((t) => readStructure(t.trim(), { format: 'smiles' })));
     for (let i = 1; i < stages.length; i++) {
       if (seq.arrows?.[i - 1]?.type === 'retrosynthetic') continue;
       const x = imbalance(expanded(stages[i - 1]!), expanded(stages[i]!));
-      if (x) out.push({ ...(all.length > 1 ? { scheme: k + 1 } : {}), step: i, unbalanced: describeImbalance(x) });
+      // Atoms other than H the product gains: named on their own, as they are most often a mistake in the product.
+      if (x) out.push({ ...(all.length > 1 ? { scheme: k + 1 } : {}), step: i, unbalanced: describeImbalance(x), ...(x.added ? { added: x.added } : {}) });
     }
   }
   return out;
