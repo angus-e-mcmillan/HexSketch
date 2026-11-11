@@ -1,0 +1,544 @@
+{
+  "run": "sat-check-2247",
+  "model": "the key",
+  "when": "2026-11-11T20:00:44.551Z",
+  "settings": {
+    "effort": "n/a",
+    "maxTokens": 0,
+    "repeats": 1
+  },
+  "questions": {
+    "count": 26,
+    "marks": 100,
+    "types": {
+      "reaction": 5,
+      "multistep": 3,
+      "mechanism": 3,
+      "retrosynthesis": 3,
+      "structure": 5,
+      "analysis": 5,
+      "hazard": 2
+    }
+  },
+  "conditions": {
+    "human": {
+      "score": 100,
+      "scoreRange": [
+        100,
+        100
+      ],
+      "outOf": 100,
+      "byType": {
+        "reaction": {
+          "score": 20,
+          "outOf": 20
+        },
+        "multistep": {
+          "score": 15,
+          "outOf": 15
+        },
+        "mechanism": {
+          "score": 15,
+          "outOf": 15
+        },
+        "retrosynthesis": {
+          "score": 15,
+          "outOf": 15
+        },
+        "structure": {
+          "score": 10,
+          "outOf": 10
+        },
+        "analysis": {
+          "score": 15,
+          "outOf": 15
+        },
+        "hazard": {
+          "score": 10,
+          "outOf": 10
+        }
+      },
+      "correct": {
+        "rate": 1,
+        "n": 26
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 26
+      },
+      "valid": {
+        "rate": 1,
+        "n": 24
+      },
+      "consistent": {
+        "rate": null,
+        "n": 0
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 17
+      },
+      "flagged": {
+        "rate": 1,
+        "n": 3
+      },
+      "oriented": {
+        "rate": 0.6470588235294118,
+        "n": 17
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0,
+      "tokens": 0,
+      "reasoning": 0,
+      "prompt": 0,
+      "cachedPrompt": 0,
+      "seconds": 0,
+      "toolCalls": 0
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "reaction-1",
+      "type": "reaction",
+      "marks": 4,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "reaction-2",
+      "type": "reaction",
+      "marks": 4,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "reaction-3",
+      "type": "reaction",
+      "marks": 4,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "reaction-4",
+      "type": "reaction",
+      "marks": 4,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "reaction-5",
+      "type": "reaction",
+      "marks": 4,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "multistep-1",
+      "type": "multistep",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "multistep-2",
+      "type": "multistep",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "multistep-3",
+      "type": "multistep",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "mechanism-1",
+      "type": "mechanism",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "mechanism-2",
+      "type": "mechanism",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "mechanism-3",
+      "type": "mechanism",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "retrosynthesis-1",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "retrosynthesis-2",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "retrosynthesis-3",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "structure-1",
+      "type": "structure",
+      "marks": 2,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "structure-2",
+      "type": "structure",
+      "marks": 2,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "structure-3",
+      "type": "structure",
+      "marks": 2,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "structure-4",
+      "type": "structure",
+      "marks": 2,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "structure-5",
+      "type": "structure",
+      "marks": 2,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "analysis-1",
+      "type": "analysis",
+      "marks": 3,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "analysis-2",
+      "type": "analysis",
+      "marks": 3,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "analysis-3",
+      "type": "analysis",
+      "marks": 3,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "analysis-4",
+      "type": "analysis",
+      "marks": 3,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "analysis-5",
+      "type": "analysis",
+      "marks": 3,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "hazard-1",
+      "type": "hazard",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "hazard-2",
+      "type": "hazard",
+      "marks": 5,
+      "human": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 0,
+        "outputTokens": 0,
+        "thinkingTokens": 0,
+        "cost": 0,
+        "seconds": 0,
+        "toolCalls": 0
+      }
+    }
+  ]
+}

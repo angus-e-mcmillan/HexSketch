@@ -21,3 +21,5 @@ tools/llm-bench/grading/
 tools/llm-bench/questions/questions.html
 
 tools/llm-bench/chemdraw/wanted.*
+
+tools/llm-bench/answer-sheet*.cdxml

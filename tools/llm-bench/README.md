@@ -110,6 +110,29 @@ never made, so one or two listings mean nothing. This is only a screen:
 SciFinder is the authority, and the vendor counts are shown on the grading
 page so you can overrule it.
 
+## Sitting the paper yourself
+
+A human score says what the paper's ceiling is, so a model's score means
+something. Build the sheet, answer it in HexSketch, and have it marked the
+same way a model's answers are:
+
+```sh
+npm run llm-bench:sheet
+npm run llm-bench:sat -- --file answer-sheet.cdxml --who "Angus"
+```
+
+`answer-sheet.cdxml` holds every question under a heading naming it, with
+room below to draw. Answers are found by the heading above them, so they can
+be moved and spaced however suits. Under a heading, draw what the question
+asks for, exactly as a question file's answer is drawn: one structure, a set
+of them, stages with arrows between them, the atoms highlighted, 1/2/3
+beside atoms, or a caption `Answer: 8.1` for a number or a word. Protecting
+groups may be abbreviated as usual. Anything else written under the heading
+counts as what you said, so a hazard question's warning belongs there.
+
+It writes `results/<run>.json` and `.md` in the same shape as a model's run,
+so the ceiling sits beside the models in the figures.
+
 ## Output
 
 - `results/<run>.md` and `.json`: the score and each measure in each

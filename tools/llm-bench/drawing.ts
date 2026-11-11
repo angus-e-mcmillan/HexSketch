@@ -22,17 +22,17 @@ import { readCdxmlDocument, readCdxmlStyle, writeCdxml, writeSmiles, type Arrow,
 import { TYPES, type Key, type Question, type QuestionType } from './questions.ts';
 
 type Pt = { x: number; y: number };
-interface Box { x0: number; y0: number; x1: number; y1: number; cx: number; cy: number }
-interface Fragment { ids: number[]; mol: Molecule; smiles: string; box: Box }
+export interface Box { x0: number; y0: number; x1: number; y1: number; cx: number; cy: number }
+export interface Fragment { ids: number[]; mol: Molecule; smiles: string; box: Box }
 
 const ANSWER = /^answers?\b\s*:?/i;
 const ALSO = /^also\s+accept(?:ed)?\b\s*:?/i;
 const ASK = /^q(?:uestion)?\s*:\s*/i;
 const HAZARD = /^hazards?\s*:\s*/i;
-const isSchemeArrow = (o: DocObject): o is Arrow => o.kind === 'arrow' && !o.curve && !o.arc;
+export const isSchemeArrow = (o: DocObject): o is Arrow => o.kind === 'arrow' && !o.curve && !o.arc;
 const isRetro = (a: Arrow) => a.headStyle === 'hollow' && a.shaftSpacing > 0;
 const isEquilibrium = (a: Arrow) => a.shaftSpacing > 0 && a.headStyle !== 'hollow' && a.tailEnd !== 'none';
-const mid = (a: Arrow): Pt => ({ x: (a.tail.x + a.head.x) / 2, y: (a.tail.y + a.head.y) / 2 });
+export const mid = (a: Arrow): Pt => ({ x: (a.tail.x + a.head.x) / 2, y: (a.tail.y + a.head.y) / 2 });
 
 export interface ReadQuestion { question: Question; warnings: string[] }
 
@@ -111,7 +111,7 @@ export function readQuestionDrawing(xml: string, id: string): ReadQuestion {
 }
 
 /** The answer written after "Answer:": a number (with "± tolerance"), or else a word or phrase (alternatives joined by " / " or " or "). */
-function readWrittenKey(text: string): Key | null {
+export function readWrittenKey(text: string): Key | null {
   if (!text) return null;
   const num = /^(-?\d+(?:\.\d+)?)\s*(?:(?:±|\+\/-|\+-)\s*(\d+(?:\.\d+)?))?$/.exec(text);
   if (num) {
@@ -129,14 +129,14 @@ function withMaps(f: Fragment, maps: { atom: number; map: number }[]): string {
   return writeSmiles(m).replace(/\[9(\d\d)([^\]]*)\]/g, (_, n: string, rest: string) => `[${rest}:${Number(n)}]`);
 }
 
-interface Marks { mol: Molecule; captions: Caption[]; L: number; style: DrawingStyle }
+export interface Marks { mol: Molecule; captions: Caption[]; L: number; style: DrawingStyle }
 
 /**
  * The answer drawn in region `r`: one structure, a set, or stages along
  * arrows; or one structure with atoms highlighted (the atoms asked for), or
  * with 1, 2, 3 beside atoms (a ranking).
  */
-function readKey(r: number, fragments: Fragment[], arrows: Arrow[], regionOf: (y: number) => number, warnings: string[], marks: Marks): Key | null {
+export function readKey(r: number, fragments: Fragment[], arrows: Arrow[], regionOf: (y: number) => number, warnings: string[], marks: Marks): Key | null {
   const frags = fragments.filter((f) => regionOf(f.box.cy) === r);
   const arrs = arrows.filter((a) => regionOf(mid(a).y) === r);
   if (!frags.length) return null;
@@ -147,8 +147,16 @@ function readKey(r: number, fragments: Fragment[], arrows: Arrow[], regionOf: (y
     for (const c of marks.captions) {
       if (regionOf(c.y) !== r || !/^\d{1,2}$/.test(c.text.trim())) continue;
       const b = captionBox(c, marks.style);
-      let best: { atom: number; d: number } | null = null;
-      for (const id of f.ids) { const a = marks.mol.atom(id), d = Math.hypot(a.x - b.cx, a.y - b.cy); if (d < marks.L * 1.3 && (!best || d < best.d)) best = { atom: id, d }; }
+      let best: { atom: number; d: number } | null = null, next: number | null = null;
+      for (const id of f.ids) {
+        const a = marks.mol.atom(id), d = Math.hypot(a.x - b.cx, a.y - b.cy);
+        if (d >= marks.L * 1.3) continue;
+        if (!best || d < best.d) { next = best?.d ?? next; best = { atom: id, d }; } else if (next === null || d < next) next = d;
+      }
+      // A number sitting between two atoms is read as the nearer one's: say so, rather than mark the wrong atom in silence.
+      if (best && next !== null && next < best.d * 1.3) {
+        warnings.push(`the "${c.text.trim()}" beside ${marks.mol.atom(best.atom).element} sits nearly as close to another atom: move it closer to the one it means`);
+      }
       if (best) ranked.push({ atom: best.atom, map: Number(c.text.trim()) });
     }
     if (ranked.length) {
@@ -205,7 +213,7 @@ function fragmentsAt(given: Fragment[], a: Arrow, end: Pt, L: number): Fragment[
     .sort((p, q) => p.box.cx - q.box.cx);
 }
 
-function splitFragments(mol: Molecule): Fragment[] {
+export function splitFragments(mol: Molecule): Fragment[] {
   return mol.fragments().map((ids) => {
     const keep = new Set(ids);
     const part = mol.clone();
@@ -217,7 +225,7 @@ function splitFragments(mol: Molecule): Fragment[] {
 
 const box = (x0: number, y0: number, x1: number, y1: number): Box => ({ x0, y0, x1, y1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2 });
 
-function captionBox(c: Caption, style: DrawingStyle): Box {
+export function captionBox(c: Caption, style: DrawingStyle): Box {
   const size = c.runs?.[0]?.size ?? style.captionSize ?? 10;
   const lines = c.text.split('\n');
   const w = Math.max(...lines.map((l) => l.length)) * size * 0.55, h = lines.length * size * 1.2;
