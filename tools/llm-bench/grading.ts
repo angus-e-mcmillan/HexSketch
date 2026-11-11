@@ -49,7 +49,7 @@ if (command === 'push') {
         const item = {
           kind: 'route', id: `${run}/${r.key}`, routeId: r.route.id, order: routes, title: q ? `${q.id}: a route to judge` : r.id,
           question: q?.ask ?? '', target: q?.given[0] ? await svg(q.given[0]) : null, steps,
-          checks: { valid: r.route.valid, why: r.route.why, buyable: r.route.buyable, notSold: r.route.notSold, forward: r.route.forward, accepted: r.route.accepted },
+          checks: { valid: r.route.valid, why: r.route.why, buyable: r.route.buyable, notSold: r.route.notSold.map((x) => `${x} (${r.route!.vendors[x] ?? 0} vendors)`), vendors: r.route.vendors, forward: r.route.forward, accepted: r.route.accepted },
         };
         writeFileSync(new URL(`${docId(item.id)}.json`, out), JSON.stringify(item));
         routes++;

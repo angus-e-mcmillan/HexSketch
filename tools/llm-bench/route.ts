@@ -31,8 +31,11 @@ export interface RouteMarks {
   /** Why it is not valid, in a few words. */
   why: string | null;
   startingMaterials: string[];
-  /** Null when PubChem could not be asked. */
+  /** How many chemical vendors PubChem lists for each starting material; -1 where it could not be asked. */
+  vendors: Record<string, number>;
+  /** Every starting material has at least VENDORS_NEEDED vendors; null when PubChem could not be asked. */
   buyable: boolean | null;
+  /** Starting materials too few vendors list, worst first. */
   notSold: string[];
   forward: boolean;
   accepted: boolean;
@@ -62,12 +65,20 @@ export function parseRoute(text: string): RouteStep[] {
 
 // ------------------------------------------------------------ the catalogue
 
-const CACHE = new URL('results/catalogue.json', import.meta.url);
-let catalogue: Record<string, boolean> | null = null;
+const CACHE = new URL('results/vendors.json', import.meta.url);
+let catalogue: Record<string, number> | null = null;
 
-/** Whether a compound is sold, by PubChem's "Chemical Vendors" section; null when PubChem cannot be asked. Cached in results/catalogue.json. */
-export async function sold(smiles: string): Promise<boolean | null> {
-  catalogue ??= existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, 'utf8')) as Record<string, boolean> : {};
+/**
+ * How many vendors to believe a compound can really be bought. Many suppliers
+ * list compounds they have never made, so one listing means nothing: a
+ * chemist checking in SciFinder treats about thirty suppliers as a decent
+ * chance of getting it. SciFinder is the authority; this is only a screen.
+ */
+export const VENDORS_NEEDED = 30;
+
+/** How many chemical vendors PubChem lists for a compound; null when PubChem cannot be asked. Cached in results/vendors.json. */
+export async function vendorCount(smiles: string): Promise<number | null> {
+  catalogue ??= existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, 'utf8')) as Record<string, number> : {};
   if (smiles in catalogue) return catalogue[smiles]!;
   const get = async (url: string, body?: string): Promise<Response | null> => {
     for (let a = 0; a < 4; a++) {
@@ -82,15 +93,20 @@ export async function sold(smiles: string): Promise<boolean | null> {
   const ids = await get('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/cids/TXT', `smiles=${encodeURIComponent(smiles)}`);
   if (!ids) return null;
   const cid = Number((await ids.text()).trim().split('\n')[0]);
-  let found = false;
+  let n = 0;
   if (cid > 0) {
-    const v = await get(`https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/data/compound/${cid}/JSON?heading=Chemical+Vendors`);
+    // The sources of this compound by category: the vendors are the ones that sell it, not the databases that list it.
+    const v = await get(`https://pubchem.ncbi.nlm.nih.gov/rest/pug_view/categories/compound/${cid}/JSON`);
     if (!v) return null;
-    found = v.ok && /"Chemical Vendors"/.test(await v.text());
+    if (v.ok) {
+      const body = JSON.parse(await v.text()) as { SourceCategories?: { Categories?: { Category?: string; Sources?: { SourceName?: string }[] }[] } };
+      const vendors = body.SourceCategories?.Categories?.find((c) => c.Category === 'Chemical Vendors')?.Sources ?? [];
+      n = new Set(vendors.map((x) => x.SourceName).filter(Boolean)).size;
+    }
   }
-  catalogue[smiles] = found;
+  catalogue[smiles] = n;
   writeFileSync(CACHE, JSON.stringify(catalogue, null, 1) + '\n');
-  return found;
+  return n;
 }
 
 // --------------------------------------------------------------- the grades
@@ -104,12 +120,12 @@ export const loadGrades = (): Grades => (existsSync(GRADES) ? JSON.parse(readFil
 const same = async (a: string, b: string) => { try { return (await compare(a, b)).same; } catch { return false; } };
 const sameConstitution = async (a: string, b: string) => { try { return (await compare(a, b)).sameConnectivity; } catch { return false; } };
 
-export async function markRoute(q: Question, final: string, grades: Grades = loadGrades(), isSold: (smiles: string) => Promise<boolean | null> = sold): Promise<RouteMarks> {
+export async function markRoute(q: Question, final: string, grades: Grades = loadGrades(), vendorsOf: (smiles: string) => Promise<number | null> = vendorCount): Promise<RouteMarks> {
   if (q.key.kind !== 'route') throw new Error(`${q.id} is not a route question`);
   const key = q.key;
   const steps = parseRoute(final);
   const id = createHash('sha256').update(`${q.id}\n${steps.map((s) => `${s.reactants.join('.')}>>${s.product}`).join('\n')}`).digest('hex').slice(0, 16);
-  const marks: RouteMarks = { id, steps: steps.map((s) => ({ ...s, reaction: null })), valid: false, why: null, startingMaterials: [], buyable: null, notSold: [], forward: false, accepted: false, approved: null, pending: false, score: 0 };
+  const marks: RouteMarks = { id, steps: steps.map((s) => ({ ...s, reaction: null })), valid: false, why: null, startingMaterials: [], vendors: {}, buyable: null, notSold: [], forward: false, accepted: false, approved: null, pending: false, score: 0 };
   const fail = (why: string) => { marks.why = why; return marks; };
   if (!steps.length) return fail('no STEP lines');
   if (steps.length > key.maxSteps) return fail(`${steps.length} steps, more than ${key.maxSteps}`);
@@ -140,10 +156,12 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
   }
   marks.valid = true;
 
-  // Sold?
-  const sales = await Promise.all(marks.startingMaterials.map(isSold));
-  marks.notSold = marks.startingMaterials.filter((_, i) => sales[i] === false);
-  marks.buyable = sales.some((x) => x === null) ? null : !marks.notSold.length;
+  // Really on sale? Enough vendors list it that a chemist would expect to get it.
+  const counts = await Promise.all(marks.startingMaterials.map(vendorsOf));
+  marks.startingMaterials.forEach((s, i) => { marks.vendors[s] = counts[i] ?? -1; });
+  marks.notSold = marks.startingMaterials.filter((_, i) => (counts[i] ?? 0) < VENDORS_NEEDED)
+    .sort((a, b) => (marks.vendors[a] ?? 0) - (marks.vendors[b] ?? 0));
+  marks.buyable = counts.some((x) => x === null) ? null : !marks.notSold.length;
 
   // Each step a known reaction.
   try {

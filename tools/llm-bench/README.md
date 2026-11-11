@@ -101,6 +101,15 @@ One pass of a free model is noisy (a single answer is worth 2 to 5 marks):
 use free models to find problems with the questions and with HexSketch, and
 paid models with three repeats for the numbers.
 
+### Can it be bought?
+
+A route's starting materials are screened against PubChem's chemical-vendor
+list, and a compound counts as available only when at least 30 vendors list
+it (`VENDORS_NEEDED` in `route.ts`). Many suppliers list compounds they have
+never made, so one or two listings mean nothing. This is only a screen:
+SciFinder is the authority, and the vendor counts are shown on the grading
+page so you can overrule it.
+
 ## Output
 
 - `results/<run>.md` and `.json`: the score and each measure in each
@@ -121,9 +130,12 @@ paid models with three repeats for the numbers.
   nothing apart; one none gets right may have a wrong key.
 - `results/layout-<run>.html` from `npm run llm-bench:layout -- --run RUN`:
   how well the right answers are drawn (angles, bond lengths, clashes,
-  crossings, bonds through labels), as HexSketch drew them beside RDKit's
-  drawing of the same SMILES. Not scored. It also writes
-  `results/ab-<run>.json`, the pairs for the chemist's blind comparison.
+  crossings, bonds through labels). Not scored. The comparison a chemist
+  would make is with ChemDraw, so that is the only comparator: the run
+  writes `chemdraw/wanted.txt`, you paste those answers into ChemDraw, Clean
+  Up Structure, save each as CDXML, and run again with `--chemdraw DIR`.
+  Both drawings then go through HexSketch's renderer, so the style never
+  says which is which, and the pairs land in `results/ab-<run>.json`.
 - The chemist's grading page, a claude.ai artifact: routes the checks could not
   settle, and the blind drawing pairs. `npm run llm-bench:grading -- push
   --runs RUN` writes its items to `grading/items/` (Claude puts them on the
