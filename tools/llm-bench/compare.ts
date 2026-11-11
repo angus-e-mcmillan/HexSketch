@@ -75,9 +75,10 @@ function scatter(id: string, title: string, xName: string, x: (d: Dot) => number
     if (Math.abs(ly - (cy + 4)) > 1) out.push(`<line x1="${cx + 6}" y1="${cy}" x2="${cx + 10}" y2="${ly - 4}" stroke="${ink('muted')}"/>`);
     out.push(`<text x="${cx + 12}" y="${ly}" font-size="11" fill="${ink('text')}">${esc(text)}</text>`);
   }
-  // Legend: which colour is which.
-  out.push(`<circle cx="${L + pw - 150}" cy="18" r="5" fill="${ink('without')}"/><text x="${L + pw - 141}" y="22" font-size="11" fill="${ink('text2')}">Without HexSketch</text>`);
-  out.push(`<circle cx="${L + pw - 30}" cy="18" r="5" fill="${ink('with')}"/><text x="${L + pw - 21}" y="22" font-size="11" fill="${ink('text2')}">With HexSketch</text>`);
+  // Legend: which colour is which, on the subtitle's line after its text.
+  const lx = L + 330;
+  out.push(`<circle cx="${lx}" cy="34" r="5" fill="${ink('without')}"/><text x="${lx + 9}" y="38" font-size="11" fill="${ink('text2')}">Without HexSketch</text>`);
+  out.push(`<circle cx="${lx + 125}" cy="34" r="5" fill="${ink('with')}"/><text x="${lx + 134}" y="38" font-size="11" fill="${ink('text2')}">With HexSketch</text>`);
   out.push('</svg>');
   return out.join('');
 }
