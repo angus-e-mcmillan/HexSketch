@@ -248,7 +248,8 @@ for (const r of ok) {
   r.refusal = r.refusal ?? refusalOf(r.text, r.answer ?? null, r.finish);
   r.refused = !!r.refusal;
   r.cutOff = /length|max.?tokens/i.test(r.finish ?? '');
-  r.marks = r.correct ? byId.get(r.id)!.marks : 0;
+  // A route earns its marks in parts (route.ts); any other answer all or nothing.
+  r.marks = r.route ? Math.round(r.route.score * byId.get(r.id)!.marks * 10) / 10 : r.correct ? byId.get(r.id)!.marks : 0;
 }
 writeFileSync(recordsFile, records.map((r) => JSON.stringify(r)).join('\n') + '\n');
 

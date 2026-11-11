@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 
 /** The kind of task, from the drawing's file name (reaction-1.cdxml): results are reported per type. */
-export const TYPES = ['reaction', 'multistep', 'mechanism', 'retrosynthesis', 'structure', 'analysis', 'hazard'] as const;
+export const TYPES = ['reaction', 'multistep', 'mechanism', 'retrosynthesis', 'route', 'structure', 'analysis', 'hazard'] as const;
 export type QuestionType = (typeof TYPES)[number];
 
 export interface Question {
@@ -42,7 +42,9 @@ export type Key =
   /** A number (a pKa, an angle), right within the tolerance. */
   | { kind: 'number'; value: number; tolerance: number }
   /** A word or short phrase ("sp2"): any of these, ignoring case, spaces and superscripts. */
-  | { kind: 'term'; accept: string[] };
+  | { kind: 'term'; accept: string[] }
+  /** A synthesis the model plans itself, in at most maxSteps steps (route.ts marks it): accepted holds the last-step disconnections the chemist accepts, each a set of building blocks. */
+  | { kind: 'route'; target: string; accepted: string[][]; maxSteps: number };
 
 /** How the model is asked to end its reply, in both conditions alike. */
 export const ANSWER_FORMAT: Record<Key['kind'], string> = {
@@ -53,6 +55,7 @@ export const ANSWER_FORMAT: Record<Key['kind'], string> = {
   ranking: 'End your reply with one line: "ANSWER: " followed by the SMILES of the structure with the atoms marked in the order asked by atom-map numbers 1, 2, 3 and so on, e.g. [NH2:2]CC[NH:1]C.',
   number: 'End your reply with one line: "ANSWER: " followed by the number alone.',
   term: 'End your reply with one line: "ANSWER: " followed by the answer alone, in a word or a short phrase.',
+  route: 'End your reply with one line per step, in order from the starting materials: "STEP: " followed by the reaction SMILES (reactants joined by ".", then ">>", then the product), a space, and the reagents and conditions in words. For example: STEP: OC(=O)c1ccccc1.NCC>>O=C(NCC)c1ccccc1 HATU, DIPEA, DMF',
 };
 
 /** Answers that are structures (the others are about the structures in the question). */

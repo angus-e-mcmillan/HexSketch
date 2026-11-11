@@ -28,7 +28,7 @@ createServer(async (req, res) => {
   const usage = { prompt_tokens: 100, completion_tokens: 50, completion_tokens_details: { reasoning_tokens: 20 }, cost: 0.001 };
   const k = q.key;
   const answer = k.kind === 'structure' ? k.smiles : k.kind === 'structures' ? k.smiles.join('.') : k.kind === 'sequence' ? k.stages.map((s) => s.join('.')).join(' >> ')
-    : k.kind === 'atoms' || k.kind === 'ranking' ? k.smiles : k.kind === 'number' ? String(k.value) : k.accept[0]!;
+    : k.kind === 'atoms' || k.kind === 'ranking' ? k.smiles : k.kind === 'number' ? String(k.value) : k.kind === 'term' ? k.accept[0]! : k.target;
   const toolCall = (n: string, args: object) => send({ model: 'mock/model-1', provider: 'Mock', usage, choices: [{ finish_reason: 'tool_calls', message: { role: 'assistant', content: '', tool_calls: [{ id: `c${calls}`, type: 'function', function: { name: n, arguments: JSON.stringify(args) } }] } }] });
   const called = b.messages.flatMap((m) => m.tool_calls ?? []).map((t) => t.function.name);
   if (b.tools?.length) {

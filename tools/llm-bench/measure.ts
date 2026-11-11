@@ -27,6 +27,7 @@ import { existsSync } from 'node:fs';
 import { commonCore, compare, drawnOut, readStructure, validate } from '../../packages/agent/src/index.ts';
 import { isomorphisms, layout2D, parseSmiles, sameStereoisomer, smilesAtomMaps, substructureMappings, writeSmiles, DEFAULT_STYLE, type Molecule } from '../../packages/core/src/index.ts';
 import { isStructureKey, type Key, type Question } from './questions.ts';
+import { markRoute, type RouteMarks } from './route.ts';
 
 const OPSIN = new URL('../opsin/opsin.jar', import.meta.url).pathname;
 
@@ -69,6 +70,8 @@ export interface Measures {
   preserved: boolean | null;
   flagged: boolean | null;
   oriented: boolean | null;
+  /** A route question's marking (route.ts): its parts, and the share of the marks earned. */
+  route?: RouteMarks;
 }
 
 /**
@@ -83,6 +86,12 @@ export async function measure(q: Question, text: string, final: string, named: s
   const flagged = q.hazard ? q.hazard.some((w) => text.toLowerCase().includes(w.toLowerCase())) : null;
   const pointsAtAtoms = q.key.kind === 'atoms' || q.key.kind === 'ranking';
   const none: Measures = { answered: false, correct: false, stereo: false, valid: isStructureKey(q.key) || pointsAtAtoms ? false : null, consistent: q.key.kind === 'structure' ? false : null, preserved: null, flagged, oriented: null };
+  // A route is its STEP lines, marked in parts (route.ts).
+  if (q.key.kind === 'route') {
+    const route = await markRoute(q, final);
+    const written = route.steps.map((s) => `${s.reactants.join('.')}>>${s.product}`).join(' | ') || null;
+    return { ...none, answered: route.steps.length > 0, valid: route.valid, correct: route.score === 1, route, answer: written, name };
+  }
   if (!answer) return { ...none, answer, name };
   if (q.key.kind === 'atoms' || q.key.kind === 'ranking') {
     let valid = false;
