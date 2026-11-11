@@ -67,6 +67,17 @@ TEMPLATES = [
     ("azide substitution", f"[CX4:1]{LEAVING}>>[C:1]N=[N+]=[N-]"),
     ("alcohol to mesylate or tosylate", "[CX4:1][OX2H1:2]>>[C:1][O:2]S(=O)(=O)C"),
     ("alcohol to halide", "[CX4:1][OX2H1]>>[C:1]Br"),
+    ("acid chloride", "[C:1](=[O:2])[OX2H1]>>[C:1](=[O:2])Cl"),
+    ("C-alkylation of an active methylene", f"[CH2:1]([C:3]=[O:4])[C:5]=[O:6].[CX4:2]{LEAVING}>>[CH1:1]([C:2])([C:3]=[O:4])[C:5]=[O:6]"),
+    ("Knorr pyrazole synthesis", "[CH3:1][C:2](=O)[CH1:3]([#6:7])[C:4](=O)[CH3:5].[NH2:8][NH2:9]>>[CH3:1][c:2]1[c:3]([#6:7])[c:4]([CH3:5])[nH:8][n:9]1"),
+    ("aza-Michael addition", "[nH1:1].[C:2]=[CH1:3][C:4]#[N:5]>>[n:1][C:2][CH2:3][C:4]#[N:5]"),
+    ("N-aryl protection (SEM)", "[nH1:1]>>[n:1]COCC[Si](C)(C)C"),
+    ("N-aryl deprotection (SEM)", "[n:1]COCC[Si](C)(C)C>>[nH1:1]"),
+    ("N-aryl deprotection (Ts)", "[n:1]S(=O)(=O)c1ccc(C)cc1>>[nH1:1]"),
+    ("N-aryl deprotection (THP)", "[n:1]C1CCCCO1>>[nH1:1]"),
+    ("N-aryl deprotection (ethoxyethyl)", "[n:1]C(C)OCC>>[nH1:1]"),
+    ("N-aryl deprotection (Boc)", "[n:1]C(=O)OC(C)(C)C>>[nH1:1]"),
+    ("acid reduction to alcohol (borane)", "[C:1](=O)[OX2H1]>>[CH2:1]O"),
 ]
 
 REACTIONS = []
@@ -114,7 +125,19 @@ def check(step):
     for name, rxn in REACTIONS:
         n = rxn.GetNumReactantTemplates()
         for combo in itertools.permutations(reactants, n):
-            if wanted & products_of(rxn, combo):
+            made = products_of(rxn, combo)
+            # A protecting group off (or on) at every site in one step: apply the template again to what it made.
+            if n == 1:
+                for _ in range(3):
+                    more = set()
+                    for s in made:
+                        m = Chem.MolFromSmiles(s)
+                        if m is not None:
+                            more |= products_of(rxn, (m,))
+                    if more <= made:
+                        break
+                    made |= more
+            if wanted & made:
                 return {"valid": True, "reaction": name, "error": None}
     return {"valid": True, "reaction": None, "error": None}
 
