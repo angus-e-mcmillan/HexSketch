@@ -24,7 +24,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { compare, drawnOut, readStructure, render } from '../../packages/agent/src/index.ts';
-import { writeMolfile, writeSmiles, type Molecule } from '../../packages/core/src/index.ts';
+import { parseSmiles, writeMolfile, writeSmiles, type Molecule } from '../../packages/core/src/index.ts';
 import { finalAnswer } from './measure.ts';
 import { loadQuestions } from './questions.ts';
 
@@ -117,7 +117,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     for (const ids of d.mol.fragments()) {
       const part = d.mol.clone();
       for (const a of d.mol.atoms()) if (!ids.includes(a.id)) part.removeAtom(a.id);
-      try { if ((await compare(writeSmiles(drawnOut(part, d.style)), answer)).same) { items.push({ key: r.key, id: r.id, smiles: answer, hex: part }); break; } } catch { /* not this one */ }
+      // The answer written as HexSketch writes it: Kekule, never the lowercase aromatic form, which
+      // ChemDraw draws as a circle in the ring rather than as alternating double bonds.
+      try { if ((await compare(writeSmiles(drawnOut(part, d.style)), answer)).same) { items.push({ key: r.key, id: r.id, smiles: writeSmiles(parseSmiles(answer)), hex: part }); break; } } catch { /* not this one */ }
     }
   }
   if (!items.length) throw new Error('No right answers drawn with HexSketch in that run');
