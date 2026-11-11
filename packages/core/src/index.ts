@@ -5,6 +5,7 @@ export * from './style.ts';
 export * from './rings.ts';
 export * from './cdxml.ts';
 export * from './smiles.ts';
+export * from './kekulize.ts';
 export * from './isomorphism.ts';
 export * from './stereo.ts';
 export * from './payload.ts';
