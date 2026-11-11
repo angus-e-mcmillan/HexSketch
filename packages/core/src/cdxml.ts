@@ -1,5 +1,6 @@
 import { elementBySymbol, elementByNumber } from './elements.ts';
 import { Molecule, type BondDisplay, type BondOrder, type DoubleBondPosition } from './model.ts';
+import { kekulize } from './kekulize.ts';
 import { DEFAULT_STYLE, type DrawingStyle } from './style.ts';
 import { analysisCode, analysisItemOf, type AnalysisItem } from './analysis.ts';
 import { pageCdxmlAttrs, type PageSettings } from './page.ts';
@@ -642,6 +643,8 @@ export function readCdxml(xml: string): Molecule {
       if (color && atoms.length >= 3 && atoms.every((a) => a !== undefined)) mol.ringFills.push({ atoms: atoms as number[], color });
     }
   }
+  // A ring ChemDraw drew as a circle (Order="1.5") becomes alternating double bonds.
+  kekulize(mol);
   return mol;
 }
 
