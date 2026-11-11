@@ -223,7 +223,7 @@ function orientLikeOthers(mol: Molecule, targets: readonly AtomId[][], refs: { m
     const mine = subMolecule(mol, ids);
     // A peptide keeps its own way round: N-terminus on the left.
     if (isPeptide(mine)) { known.push({ mol, ids }); continue; }
-    let best: { ref: Molecule; maps: Map<AtomId, AtomId>[]; size: number; refSize: number } | null = null;
+    const candidates: { ref: Molecule; maps: Map<AtomId, AtomId>[]; size: number; refSize: number }[] = [];
     for (const r of known) {
       const theirs = r.mol.atomCount === r.ids.length ? r.mol : subMolecule(r.mol, r.ids);
       // The smaller one is the pattern; pairs always run from this structure to the reference.
@@ -231,8 +231,13 @@ function orientLikeOthers(mol: Molecule, targets: readonly AtomId[][], refs: { m
         ? commonCore(mine, theirs)
         : commonCore(theirs, mine).map((m) => new Map([...m].map(([t, x]) => [x, t])));
       const size = maps[0]?.size ?? 0;
-      if (size && (!best || size > best.size)) best = { ref: theirs, maps, size, refSize: theirs.atomCount };
+      if (size) candidates.push({ ref: theirs, maps, size, refSize: theirs.atomCount });
     }
+    // Two starting materials a product cannot follow at once: it follows the largest, as a chemist
+    // would draw it, rather than whichever happens to share a few more atoms. Only one that shares a
+    // real part of the product counts, so a big bystander never takes the orientation from a true parent.
+    const most = Math.max(0, ...candidates.map((c) => c.size));
+    const best = candidates.filter((c) => c.size * 2 >= most).sort((a, b) => b.refSize - a.refSize || b.size - a.size)[0];
     if (best) alignOnto(mol, ids, best.ref, best.maps, best.refSize);
     known.push({ mol, ids });
   }

@@ -66,3 +66,12 @@ test('a key coupling counts wherever the route makes it, not only last: publishe
   assert.equal(m.acceptedStep, 1, 'the coupling is made first, and still counts');
   assert.equal(m.score, 1);
 });
+
+test('a vendor check that could not be made costs nothing: a route must not score lower for a network that was down', async () => {
+  const text = 'STEP: Clc1ncccn1.OC(=O)C1CCNCC1>>OC(=O)C1CCN(c2ncccn2)CC1 K2CO3, DMF\nSTEP: OC(=O)C1CCN(c2ncccn2)CC1.NCc1ccc(F)cc1>>' + TARGET + ' HATU, DIPEA';
+  const asked = await markRoute(q, text, none, vendors);
+  const unreachable = await markRoute(q, text, none, async () => null);
+  assert.equal(asked.score, 1);
+  assert.equal(unreachable.buyable, null, 'nothing is claimed about what is on sale');
+  assert.equal(unreachable.score, 1, 'and the route keeps the mark');
+});

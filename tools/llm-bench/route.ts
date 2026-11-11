@@ -197,6 +197,8 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
   }
   marks.approved = grades.routes[id]?.viable ?? null;
   marks.pending = !marks.accepted && marks.approved === null;
-  marks.score = (1 + (marks.buyable ? 1 : 0) + (marks.forward ? 1 : 0) + (marks.accepted || marks.approved ? 2 : 0)) / 5;
+  // Only a compound known to be hard to buy costs the mark: when PubChem cannot be reached the
+  // check says nothing, and a route must not score lower for a network that was down.
+  marks.score = (1 + (marks.buyable === false ? 0 : 1) + (marks.forward ? 1 : 0) + (marks.accepted || marks.approved ? 2 : 0)) / 5;
   return marks;
 }

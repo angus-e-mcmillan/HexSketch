@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
-import { computeMass, payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE } from '@hexsketch/core';
-import { alignByMaps, analyze, PROTECTING_GROUPS, arrangeForArrows, disconnectionMarks, highlighted, highlightPlaces, imbalance, schemeBalance, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
+import { computeMass, payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE, type Molecule } from '@hexsketch/core';
+import { alignByMaps, analyze, commonCore, PROTECTING_GROUPS, arrangeForArrows, disconnectionMarks, highlighted, highlightPlaces, imbalance, schemeBalance, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
 
@@ -402,3 +402,25 @@ test('retrosynthesis: disconnections are marked across their bonds, and steps ar
   const x = imbalance((await readStructure('[OH-].CBr')).mol, (await readStructure('CO')).mol);
   assert.deepEqual(x, { lost: 'Br', gained: '', charge: 1 });
 });
+
+/** How far (degrees) `mol`'s structure `ids` is turned against `ref`, by the atoms they share; null if mirrored. */
+function turnAgainst(ref: Molecule, mol: Molecule, ids: number[]): number | null {
+  const part = mol.clone(); for (const a of mol.atoms()) if (!ids.includes(a.id)) part.removeAtom(a.id);
+  const map = commonCore(ref, part)[0];
+  if (!map) return null;
+  const pairs = [...map].map(([r, t]) => [ref.atom(r), part.atom(t)] as const);
+  const c = (k: 0 | 1) => ({ x: pairs.reduce((s, p) => s + p[k].x, 0) / pairs.length, y: pairs.reduce((s, p) => s + p[k].y, 0) / pairs.length });
+  const ca = c(0), cb = c(1);
+  let sxx = 0, sxy = 0, err = 0;
+  for (const [p, q] of pairs) { const ax = p.x - ca.x, ay = p.y - ca.y, bx = q.x - cb.x, by = q.y - cb.y; sxx += ax * bx + ay * by; sxy += ax * by - ay * bx; }
+  const th = Math.atan2(sxy, sxx);
+  for (const [p, q] of pairs) { const ax = p.x - ca.x, ay = p.y - ca.y; err += Math.hypot(ax * Math.cos(th) - ay * Math.sin(th) - (q.x - cb.x), ax * Math.sin(th) + ay * Math.cos(th) - (q.y - cb.y)); }
+  return err / pairs.length > 2 ? null : (th * 180) / Math.PI;
+}
+
+/** A structure laid out from SMILES and turned by `deg`, as a chemist might have drawn it. */
+async function drawnTurned(smiles: string, deg: number): Promise<Molecule> {
+  const m = (await readStructure(smiles, { format: 'smiles' })).mol, t = (deg * Math.PI) / 180;
+  for (const a of m.atoms()) { const { x, y } = a; a.x = x * Math.cos(t) - y * Math.sin(t); a.y = x * Math.sin(t) + y * Math.cos(t); }
+  return m;
+}
