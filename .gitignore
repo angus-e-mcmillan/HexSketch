@@ -17,4 +17,5 @@ packages/hexsketch/installer-build/
 packages/hexsketch/release/
 tools/bench/out/
 tools/llm-bench/out/
+tools/llm-bench/grading/
 tools/llm-bench/questions/questions.html

@@ -124,6 +124,11 @@ paid models with three repeats for the numbers.
   crossings, bonds through labels), as HexSketch drew them beside RDKit's
   drawing of the same SMILES. Not scored. It also writes
   `results/ab-<run>.json`, the pairs for the chemist's blind comparison.
+- The chemist's grading page, a claude.ai artifact: routes the checks could not
+  settle, and the blind drawing pairs. `npm run llm-bench:grading -- push
+  --runs RUN` writes its items to `grading/items/` (Claude puts them on the
+  page); `npm run llm-bench:grading -- pull DIR` turns the grades saved from
+  the page into `results/grades.json`, which the marking reads.
 - `out/<run>/report.html`: every answer drawn beside the question and the
   answer key, with its measures and the model's reply. Not committed.
 - `out/<run>/transcripts/`: every conversation in full.
