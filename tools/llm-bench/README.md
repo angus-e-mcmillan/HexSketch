@@ -119,6 +119,11 @@ paid models with three repeats for the numbers.
   `npm run llm-bench:items -- --runs "run:hexsketch=Label;..."`: which question
   each setup got right, as a grid. A question every setup gets right tells
   nothing apart; one none gets right may have a wrong key.
+- `results/layout-<run>.html` from `npm run llm-bench:layout -- --run RUN`:
+  how well the right answers are drawn (angles, bond lengths, clashes,
+  crossings, bonds through labels), as HexSketch drew them beside RDKit's
+  drawing of the same SMILES. Not scored. It also writes
+  `results/ab-<run>.json`, the pairs for the chemist's blind comparison.
 - `out/<run>/report.html`: every answer drawn beside the question and the
   answer key, with its measures and the model's reply. Not committed.
 - `out/<run>/transcripts/`: every conversation in full.
