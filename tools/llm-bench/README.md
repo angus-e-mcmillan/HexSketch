@@ -27,6 +27,7 @@ per type), and for every answer, automatically:
 | Hazard flagged | On questions with a hazard: did the reply warn of it, unasked? |
 | Drawn the same way round | Is the answer oriented like the chemist's drawing? With HexSketch, as the model drew it; without, laid out from its SMILES as any drawing program would |
 | Refused | Did the model decline? By the provider's stop reason (`refusal`, `content_filter`), a request the provider blocked, or a reply with no answer that says it won't |
+| Cut off | Did it stop at `--max-tokens`, still thinking, without an answer? Counted wrong, and shown apart from wrong answers |
 
 And what each answer took: input, output and thinking tokens, cost, time and
 tool calls, for every question in each condition (the "Each question" table
@@ -80,6 +81,23 @@ npm run llm-bench -- --model MODEL_ID --provider anthropic --repeats 1
 | `--concurrency` | 4 | Questions in flight at once |
 | `--run` | date-model | Name of the run; give an old one to carry on where it stopped |
 | `--dry-run` | | Show how many requests it would make, then stop |
+
+### Free models
+
+To try the paper out without spending anything, use a free model
+(`--list-models free`). Not all of them work. These were tried in November 2026:
+
+| Model | |
+|---|---|
+| `nvidia/nemotron-3.5-super-vl:free` | Works: uses the tools, about 2 minutes an answer. Run with `--repeats 1 --concurrency 3 --timeout 1200` (an hour for the paper) |
+| `nvidia/nemotron-3-ultra-550b-a55b:free` | Works, but up to 16 minutes an answer |
+| `baidu/ernie-5.5-flash-preview:free` | Often thinks to the token limit without answering |
+| `google/gemma-4-31b-it:free` | Rate-limited by its provider (429) |
+| `thinkingmachines/inkling-2-small:free` | Refused: OpenRouter serves it only to agent apps (403) |
+
+One pass of a free model is noisy (a single answer is worth 2 to 5 marks):
+use free models to find problems with the questions and with HexSketch, and
+paid models with three repeats for the numbers.
 
 ## Output
 

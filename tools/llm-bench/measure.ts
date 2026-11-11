@@ -279,13 +279,15 @@ export function retainedCore(given: string[], key: string): Molecule | null {
 async function sameWayRound(question: string, drawn: string | null, answer: string): Promise<boolean | null> {
   const q = await readStructure(question);
   let target: Molecule | null = null;
+  // The atoms on the page: drawn out, a Boc's atoms are placed anew, not by the model, so they are matched but not measured.
+  let shown: Set<number> | null = null;
   if (drawn) {
     const d = await readStructure(drawn);
     // Protecting groups in the editor are abbreviations (Boc); drawn out, the structure is the model's.
     const full = drawnOut(d.mol, d.style);
     for (const ids of full.fragments()) {
       const part = sub(full, ids);
-      try { if ((await compare(writeSmiles(part), answer)).sameConnectivity) { target = part; break; } } catch { /* not this one */ }
+      try { if ((await compare(writeSmiles(part), answer)).sameConnectivity) { target = part; shown = new Set(ids.filter((id) => d.mol.hasAtom(id))); break; } } catch { /* not this one */ }
     }
   }
   if (!target) { try { target = parseSmiles(answer); layout2D(target, DEFAULT_STYLE.bondLength); } catch { return null; } }
@@ -293,13 +295,16 @@ async function sameWayRound(question: string, drawn: string | null, answer: stri
   let best: { turn: number; mirrored: boolean; err: number } | null = null, shared = 0;
   for (const ids of q.mol.fragments()) {
     const ref = sub(q.mol, ids);
-    const maps = ref.atomCount <= target.atomCount ? commonCore(ref, target) : commonCore(target, ref).map((m) => new Map([...m].map(([t, r]) => [r, t])));
+    // Both ways round, the larger kept: trimming one side's chain ends alone misses a ring the other lacks.
+    const there = commonCore(ref, target), back = commonCore(target, ref).map((m) => new Map([...m].map(([t, r]) => [r, t])));
+    const maps = (back[0]?.size ?? 0) > (there[0]?.size ?? 0) ? back : there;
     if (!maps[0] || maps[0].size < 6 || maps[0].size < shared) continue;
     if (maps[0].size > shared) best = null;
     shared = maps[0].size;
     for (const map of maps) {
-      const fit = turnBetween([...map].map(([r, t]) => [ref.atom(r), target!.atom(t)] as const));
-      if (!best || fit.err < best.err) best = fit;
+      const fit = turnBetween([...map].filter(([, t]) => !shown || shown.has(t)).map(([r, t]) => [ref.atom(r), target!.atom(t)] as const));
+      // Near ties (a symmetric core fits either way) go to the drawing as it is, not its mirror image.
+      if (!best || fit.err < best.err - 1e-6 || (fit.err < best.err + 1e-6 && best.mirrored && !fit.mirrored)) best = fit;
     }
   }
   // The same way round: turned less than 30 degrees, and not a mirror image.
@@ -325,7 +330,7 @@ function turnBetween(pairs: (readonly [{ x: number; y: number }, { x: number; y:
     return { turn: (Math.atan2(sxy, sxx) * 180) / Math.PI, err: 1 - (2 * Math.hypot(sxx, sxy)) / (ss || 1) };
   };
   const plain = fit(false), flipped = fit(true);
-  return flipped.err < plain.err * 0.5 ? { turn: flipped.turn, mirrored: true, err: flipped.err } : { ...plain, mirrored: false };
+  return flipped.err < plain.err * 0.5 - 1e-6 ? { turn: flipped.turn, mirrored: true, err: flipped.err } : { ...plain, mirrored: false };
 }
 
 function sub(mol: Molecule, ids: readonly number[]): Molecule {
