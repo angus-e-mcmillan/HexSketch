@@ -143,6 +143,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const wanted = items.filter((x) => !drawn.has(x.key));
   if (wanted.length) {
     mkdirSync(new URL('chemdraw/', here), { recursive: true });
+    // One SMILES file holding them all: ChemDraw opens it, lays every structure out, and one Clean Up
+    // Structure and one Save As gives the whole comparison, rather than pasting each structure in turn.
+    writeFileSync(new URL('chemdraw/wanted.smi', here), `${wanted.map((x) => `${x.smiles}\t${x.key}`).join('\n')}\n`);
     writeFileSync(new URL('chemdraw/wanted.txt', here), `${wanted.map((x) => `${x.key}\t${x.smiles}`).join('\n')}\n`);
   }
 
@@ -206,5 +209,5 @@ body{margin:0;background:var(--page);color:var(--text);font:14px/1.5 system-ui,s
   console.log(`${items.length} drawings: results/layout-${opt.run}.html`);
   for (const m of metrics) console.log(`  ${m.label}: HexSketch ${m.fmt(m.value(hexF))}${cdF.length ? `, ChemDraw ${m.fmt(m.value(cdF))}` : ''}`);
   if (pairs.length) console.log(`${pairs.length} pairs in results/ab-${opt.run}.json`);
-  if (wanted.length) console.log(`To compare with ChemDraw: paste the ${wanted.length} answers in chemdraw/wanted.txt into ChemDraw, Clean Up Structure, save each as CDXML, and run again with --chemdraw DIR`);
+  if (wanted.length) console.log(`To compare with ChemDraw: open chemdraw/wanted.smi in ChemDraw (all ${wanted.length} answers at once), Select All and Clean Up Structure, Save As CDXML into a folder, and run again with --chemdraw that folder`);
 }
