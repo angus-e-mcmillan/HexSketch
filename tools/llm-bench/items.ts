@@ -47,7 +47,9 @@ type Ink = (r: Role) => string;
 const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
 
 function grid(ink: Ink): string {
-  const cw = 64, rh = 22, left = 150, top = 110, right = 70;
+  const cw = 64, rh = 22, left = 150, right = 70;
+  // Room above the grid for the slanted column labels.
+  const top = 64 + Math.max(...columns.map((c) => c.label.length)) * 6.4 * Math.sin(35 * Math.PI / 180);
   const W = Math.max(740, left + columns.length * cw + right), H = top + questions.length * rh + 24;
   const out: string[] = [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(opt.title ?? 'Which question each setup got right')}" font-family="system-ui,-apple-system,'Segoe UI',sans-serif">`];
   out.push(`<rect width="${W}" height="${H}" fill="${ink('surface')}"/>`);
@@ -70,7 +72,7 @@ function grid(ink: Ink): string {
       out.push(`<text x="${x + cw / 2}" y="${y + rh / 2 + 4}" font-size="10" text-anchor="middle" fill="${share >= 0.5 ? '#ffffff' : ink('text2')}">${text}</text>`);
     });
     const p = of ? right / of : 0;
-    out.push(`<text x="${left + columns.length * cw + 10}" y="${y + rh / 2 + 4}" font-size="11" fill="${p === 1 ? ink('muted') : ink('text')}" font-weight="${p > 0 && p < 1 ? 600 : 400}">${Math.round(100 * p)}%</text>`);
+    out.push(`<text x="${left + columns.length * cw + 10}" y="${y + rh / 2 + 4}" font-size="11" fill="${p === 1 || !of ? ink('muted') : ink('text')}" font-weight="${p > 0 && p < 1 ? 600 : 400}">${of ? `${Math.round(100 * p)}%` : '–'}</text>`);
   });
   out.push('</svg>');
   return out.join('');
