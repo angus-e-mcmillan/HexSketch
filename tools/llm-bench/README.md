@@ -110,6 +110,10 @@ paid models with three repeats for the numbers.
   the score, the score by question type, each measure, and cost, tokens and
   time per question. The SVGs are for slides. Remake them with
   `npm run llm-bench:plot` (`-- --runs a,b` for particular runs).
+- `results/<name>.html` and `results/plots/<name>-tokens.svg`, `-time.svg`:
+  setups compared, one dot per run and condition, the score against output
+  tokens and against time (top left is best). For trying settings on a free
+  model: `npm run llm-bench:compare -- --runs "run;run:hexsketch=Label" --name settings`.
 - `out/<run>/report.html`: every answer drawn beside the question and the
   answer key, with its measures and the model's reply. Not committed.
 - `out/<run>/transcripts/`: every conversation in full.
