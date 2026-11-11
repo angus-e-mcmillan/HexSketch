@@ -84,5 +84,5 @@
 <t id="1074" p="301.89 112.46" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">DMF, 80 °C</s></t>
 <t id="1075" p="361.96 101.46" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">?</s></t>
 <t id="1076" p="40.00 167.13" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
-<t id="1077" p="40.00 326.89" LineHeight="auto"><s font="3" size="10.00" face="0">Hazard: runaway, decompos, self-heat, uncontrolled exotherm, thermal hazard</s></t>
+<t id="1077" p="40.00 326.89" LineHeight="auto"><s font="3" size="10.00" face="0">Hazard: runaway, run away, decompos, self-heat, uncontrolled exotherm, thermal hazard</s></t>
 </page></CDXML>
