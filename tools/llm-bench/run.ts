@@ -104,6 +104,8 @@ export interface RunRecord extends Partial<Measures> {
   answer?: string | null; name?: string | null; named?: string | null;
   /** The model declined to answer (see refusal()), and why it was counted as one. */
   refused?: boolean; refusal?: string | null;
+  /** The model stopped at the output limit (--max-tokens), mid-thought, before it answered. */
+  cutOff?: boolean;
   /** Marks earned: the question's marks when correct, else 0. */
   marks?: number;
   rounds: number; tools: { name: string; error: boolean }[]; finish: string | null;
@@ -238,6 +240,7 @@ for (const r of ok) {
   Object.assign(r, await measure(byId.get(r.id)!, r.text, r.final, r.named ?? null, r.drawn));
   r.refusal = r.refusal ?? refusalOf(r.text, r.answer ?? null, r.finish);
   r.refused = !!r.refusal;
+  r.cutOff = /length|max.?tokens/i.test(r.finish ?? '');
   r.marks = r.correct ? byId.get(r.id)!.marks : 0;
 }
 writeFileSync(recordsFile, records.map((r) => JSON.stringify(r)).join('\n') + '\n');
@@ -272,6 +275,7 @@ const summary = {
       byType: Object.fromEntries(typesIn.map((t) => [t, { score: mean(scores(rs.filter((r) => r.type === t))), outOf: marksOf(t) }])),
       ...rates(rs),
       refused: rs.filter((r) => r.refused).length,
+      cutOff: rs.filter((r) => r.cutOff).length,
       cost: mean(rs.map((r) => r.cost)), tokens: mean(rs.map((r) => r.tokens.completion)), reasoning: mean(rs.map((r) => r.tokens.reasoning)),
       prompt: mean(rs.map((r) => r.tokens.prompt)), cachedPrompt: mean(rs.map((r) => r.tokens.cached ?? 0)), seconds: median(rs.map((r) => r.ms / 1000)), toolCalls: mean(rs.map((r) => r.tools.length)),
     }];
@@ -282,7 +286,7 @@ const summary = {
     ...Object.fromEntries(conditions.map((c) => {
       const rs = ok.filter((r) => r.id === q.id && r.condition === c);
       return [c, {
-        right: rs.filter((r) => r.correct).length, of: rs.length, refused: rs.filter((r) => r.refused).length,
+        right: rs.filter((r) => r.correct).length, of: rs.length, refused: rs.filter((r) => r.refused).length, cutOff: rs.filter((r) => r.cutOff).length,
         promptTokens: mean(rs.map((r) => r.tokens.prompt)), outputTokens: mean(rs.map((r) => r.tokens.completion)), thinkingTokens: mean(rs.map((r) => r.tokens.reasoning)),
         cost: mean(rs.map((r) => r.cost)), seconds: mean(rs.map((r) => r.ms / 1000)), toolCalls: mean(rs.map((r) => r.tools.length)),
       }];
@@ -308,6 +312,7 @@ const lines = [
   ...typesIn.map((t) => `| ${t} | ${conditions.map((c) => score(cs[c]!.byType[t]!)).join(' | ')} |`),
   ...MEASURES.map((m) => `| ${LABEL[m]} | ${conditions.map((c) => pct(cs[c]![m])).join(' | ')} |`),
   `| Refused | ${conditions.map((c) => cs[c]!.refused).join(' | ')} |`,
+  `| Cut off at ${maxTokens} tokens, no answer | ${conditions.map((c) => cs[c]!.cutOff).join(' | ')} |`,
   `| cost / question | ${conditions.map((c) => `$${cs[c]!.cost.toFixed(3)}`).join(' | ')} |`,
   `| input tokens / question (from cache) | ${conditions.map((c) => `${cs[c]!.prompt.toFixed(0)} (${cs[c]!.cachedPrompt.toFixed(0)})`).join(' | ')} |`,
   `| output tokens / question (thinking) | ${conditions.map((c) => `${cs[c]!.tokens.toFixed(0)} (${cs[c]!.reasoning.toFixed(0)})`).join(' | ')} |`,
@@ -317,8 +322,8 @@ const lines = [
   '', '## Each question', '',
   `| Question | Marks | ${conditions.map((c) => `${head(c)}: right · tokens out · $ · s`).join(' | ')} |`, `|---|---|${conditions.map(() => '---').join('|')}|`,
   ...summary.perQuestion.map((p) => `| ${p.id} | ${p.marks} | ${conditions.map((c) => {
-    const x = (p as unknown as Record<string, { right: number; of: number; refused: number; outputTokens: number; cost: number; seconds: number }>)[c]!;
-    return `${x.right}/${x.of}${x.refused ? ` (${x.refused} refused)` : ''} · ${x.outputTokens.toFixed(0)} · ${x.cost.toFixed(3)} · ${x.seconds.toFixed(0)}`;
+    const x = (p as unknown as Record<string, { right: number; of: number; refused: number; cutOff: number; outputTokens: number; cost: number; seconds: number }>)[c]!;
+    return `${x.right}/${x.of}${x.refused ? ` (${x.refused} refused)` : ''}${x.cutOff ? ` (${x.cutOff} cut off)` : ''} · ${x.outputTokens.toFixed(0)} · ${x.cost.toFixed(3)} · ${x.seconds.toFixed(0)}`;
   }).join(' | ')} |`),
 ];
 writeFileSync(new URL(`results/${runName}.md`, here), lines.join('\n') + '\n');
