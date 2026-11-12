@@ -17,7 +17,10 @@ import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
 export type Condition = 'smiles' | 'hexsketch' | 'hexsketch-draw-first';
+/** The two a run compares unless told otherwise. */
 export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
+/** Every condition --conditions will take, the ones being tried included. */
+export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'hexsketch-draw-first'];
 
 /**
  * An extra line tried on top of HexSketch's own instructions, to see whether

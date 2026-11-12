@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
+import { ALL_CONDITIONS, CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
 import { measure, opsin, finalAnswer, refusalOf, REFUSAL_ERROR, type Measures } from './measure.ts';
 import { countBy, loadQuestions, questionsFile, TYPES, type Question } from './questions.ts';
 import { writeReport } from './report.ts';
@@ -67,7 +67,7 @@ if (opt['list-models'] !== undefined) {
 if (!opt.model) throw new Error('Give --model, an OpenRouter model id (find one with --list-models opus)');
 const model = opt.model;
 const conditions = opt.conditions!.split(',').map((c) => c.trim()) as Condition[];
-for (const c of conditions) if (!CONDITIONS.includes(c)) throw new Error(`Unknown condition ${c}: use ${CONDITIONS.join(', ')}`);
+for (const c of conditions) if (!ALL_CONDITIONS.includes(c)) throw new Error(`Unknown condition ${c}: use ${ALL_CONDITIONS.join(', ')}`);
 /** How hexsketch.com's chat asks (apps/web/src/openrouter.ts complete() and maxTokensFor()). */
 const WEBSITE = { effort: 'low', maxTokens: (model: string) => (model.startsWith('anthropic/') ? 4096 : 16384) } as const;
 const repeats = Number(opt.repeats), maxTokens = Number(opt['max-tokens']), maxRounds = Number(opt['max-rounds']);
