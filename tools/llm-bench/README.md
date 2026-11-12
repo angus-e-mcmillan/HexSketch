@@ -89,6 +89,21 @@ proofread them.
   not that nobody sells it. The vendor check this benchmark already uses
   (route.ts, 30 suppliers) would answer exactly the question the model got
   wrong.
+- **It is the description that saves the tokens, not the instructions.** Four
+  conditions on one model, holding one thing still at a time: the question as
+  a SMILES costs 19257 output tokens a question and 214 s, with nine answers
+  cut off; the same question with the drawing described instead -- same plain
+  system prompt, no tools, only the structure given as a name, a formula and
+  a scheme rather than a SMILES to parse -- costs 7141 tokens and 57 s, with
+  nothing cut off. That one change is 86% of the whole saving. HexSketch's
+  own instructions, added on top, cost 1549 tokens rather than saving any,
+  and the tools then save 3516 more. So a model is faster here because of
+  what it is told about the drawing, not because of how it is told to behave.
+  (The instructions are measured unfairly: that condition hands the model
+  instructions that tell it to draw with tools it has not been given, which
+  is also why its structures are the worst of the four. Read 1549 as the most
+  the instructions could be costing, not as a measurement.) None of this
+  touches the score: all four conditions landed inside each other's ranges.
 - **"Draw before you think" was tried and rejected.** An extra prompt line
   telling the model to draw as soon as it could write a structure moved the
   score by a noise-sized amount and dropped structures drawn the same way

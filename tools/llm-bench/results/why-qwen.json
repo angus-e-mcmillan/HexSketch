@@ -1,0 +1,1190 @@
+{
+  "run": "why-qwen",
+  "date": "2026-11-12T20:02:01.654Z",
+  "model": "qwen/qwen3.7-flash",
+  "served": [
+    "qwen/qwen3.7-flash"
+  ],
+  "providers": [
+    "Alibaba"
+  ],
+  "settings": {
+    "provider": null,
+    "effort": "medium",
+    "maxTokens": 32000,
+    "likeWebsite": null,
+    "maxRounds": 12,
+    "repeats": 2,
+    "timeoutSeconds": 600,
+    "temperature": "default"
+  },
+  "questions": {
+    "hash": "0be98c9c5dc9",
+    "count": 16,
+    "marks": 62,
+    "types": {
+      "reaction": 5,
+      "multistep": 2,
+      "mechanism": 1,
+      "retrosynthesis": 2,
+      "structure": 3,
+      "analysis": 2,
+      "hazard": 1
+    }
+  },
+  "commit": "c848a5c",
+  "failedRuns": 0,
+  "totalCost": 0.18253562600000003,
+  "conditions": {
+    "smiles": {
+      "score": 20,
+      "scoreRange": [
+        19,
+        21
+      ],
+      "outOf": 62,
+      "byType": {
+        "reaction": {
+          "score": 6,
+          "outOf": 20
+        },
+        "multistep": {
+          "score": 2.5,
+          "outOf": 10
+        },
+        "mechanism": {
+          "score": 0,
+          "outOf": 5
+        },
+        "retrosynthesis": {
+          "score": 0,
+          "outOf": 10
+        },
+        "structure": {
+          "score": 3,
+          "outOf": 6
+        },
+        "analysis": {
+          "score": 6,
+          "outOf": 6
+        },
+        "hazard": {
+          "score": 2.5,
+          "outOf": 5
+        }
+      },
+      "correct": {
+        "rate": 0.375,
+        "n": 32
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 32
+      },
+      "valid": {
+        "rate": 0.65625,
+        "n": 32
+      },
+      "consistent": {
+        "rate": 0.2222222222222222,
+        "n": 18
+      },
+      "preserved": {
+        "rate": 0.9166666666666666,
+        "n": 12
+      },
+      "flagged": {
+        "rate": 1,
+        "n": 2
+      },
+      "oriented": {
+        "rate": 0.5454545454545454,
+        "n": 11
+      },
+      "refused": 0,
+      "cutOff": 9,
+      "cost": 0.0025078284375,
+      "tokens": 19257.28125,
+      "reasoning": 18909.03125,
+      "prompt": 146.0625,
+      "cachedPrompt": 0,
+      "seconds": 214.382,
+      "toolCalls": 0
+    },
+    "smiles-described": {
+      "score": 22.5,
+      "scoreRange": [
+        19,
+        26
+      ],
+      "outOf": 62,
+      "byType": {
+        "reaction": {
+          "score": 4,
+          "outOf": 20
+        },
+        "multistep": {
+          "score": 5,
+          "outOf": 10
+        },
+        "mechanism": {
+          "score": 0,
+          "outOf": 5
+        },
+        "retrosynthesis": {
+          "score": 2.5,
+          "outOf": 10
+        },
+        "structure": {
+          "score": 5,
+          "outOf": 6
+        },
+        "analysis": {
+          "score": 6,
+          "outOf": 6
+        },
+        "hazard": {
+          "score": 0,
+          "outOf": 5
+        }
+      },
+      "correct": {
+        "rate": 0.4375,
+        "n": 32
+      },
+      "stereo": {
+        "rate": 0.03125,
+        "n": 32
+      },
+      "valid": {
+        "rate": 0.8125,
+        "n": 32
+      },
+      "consistent": {
+        "rate": 0.5,
+        "n": 18
+      },
+      "preserved": {
+        "rate": 0.7,
+        "n": 20
+      },
+      "flagged": {
+        "rate": 1,
+        "n": 2
+      },
+      "oriented": {
+        "rate": 0.625,
+        "n": 16
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.0009356712499999999,
+      "tokens": 7140.5,
+      "reasoning": 6813.8125,
+      "prompt": 246.875,
+      "cachedPrompt": 0,
+      "seconds": 57.084,
+      "toolCalls": 0
+    },
+    "hexsketch-no-tools": {
+      "score": 19,
+      "scoreRange": [
+        14,
+        24
+      ],
+      "outOf": 62,
+      "byType": {
+        "reaction": {
+          "score": 4,
+          "outOf": 20
+        },
+        "multistep": {
+          "score": 5,
+          "outOf": 10
+        },
+        "mechanism": {
+          "score": 0,
+          "outOf": 5
+        },
+        "retrosynthesis": {
+          "score": 0,
+          "outOf": 10
+        },
+        "structure": {
+          "score": 3,
+          "outOf": 6
+        },
+        "analysis": {
+          "score": 4.5,
+          "outOf": 6
+        },
+        "hazard": {
+          "score": 2.5,
+          "outOf": 5
+        }
+      },
+      "correct": {
+        "rate": 0.34375,
+        "n": 32
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 32
+      },
+      "valid": {
+        "rate": 0.5,
+        "n": 32
+      },
+      "consistent": {
+        "rate": 0.3333333333333333,
+        "n": 18
+      },
+      "preserved": {
+        "rate": 0.7692307692307693,
+        "n": 13
+      },
+      "flagged": {
+        "rate": 1,
+        "n": 2
+      },
+      "oriented": {
+        "rate": 0.5,
+        "n": 10
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.0011655539999999999,
+      "tokens": 8689.875,
+      "reasoning": 8415.03125,
+      "prompt": 1294.875,
+      "cachedPrompt": 124,
+      "seconds": 74.431,
+      "toolCalls": 0
+    },
+    "hexsketch": {
+      "score": 22,
+      "scoreRange": [
+        19,
+        25
+      ],
+      "outOf": 62,
+      "byType": {
+        "reaction": {
+          "score": 6,
+          "outOf": 20
+        },
+        "multistep": {
+          "score": 2.5,
+          "outOf": 10
+        },
+        "mechanism": {
+          "score": 0,
+          "outOf": 5
+        },
+        "retrosynthesis": {
+          "score": 0,
+          "outOf": 10
+        },
+        "structure": {
+          "score": 5,
+          "outOf": 6
+        },
+        "analysis": {
+          "score": 6,
+          "outOf": 6
+        },
+        "hazard": {
+          "score": 2.5,
+          "outOf": 5
+        }
+      },
+      "correct": {
+        "rate": 0.4375,
+        "n": 32
+      },
+      "stereo": {
+        "rate": 0.03125,
+        "n": 32
+      },
+      "valid": {
+        "rate": 0.875,
+        "n": 32
+      },
+      "consistent": {
+        "rate": 0.5555555555555556,
+        "n": 18
+      },
+      "preserved": {
+        "rate": 0.75,
+        "n": 20
+      },
+      "flagged": {
+        "rate": 1,
+        "n": 2
+      },
+      "oriented": {
+        "rate": 0.7368421052631579,
+        "n": 19
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.0010951846249999998,
+      "tokens": 5174.46875,
+      "reasoning": 4496.5625,
+      "prompt": 31046.65625,
+      "cachedPrompt": 21204,
+      "seconds": 52.525999999999996,
+      "toolCalls": 1.90625
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "reaction-1",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 2,
+        "promptTokens": 174,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
+        "cost": 0.00416522,
+        "seconds": 297.53499999999997,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 367,
+        "outputTokens": 7550.5,
+        "thinkingTokens": 7257.5,
+        "cost": 0.0009925749999999999,
+        "seconds": 75.3395,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1415,
+        "outputTokens": 5623,
+        "thinkingTokens": 5306,
+        "cost": 0.00077344,
+        "seconds": 62.18,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 26912.5,
+        "outputTokens": 7036.5,
+        "thinkingTokens": 6342,
+        "cost": 0.0013273680000000002,
+        "seconds": 82.167,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "reaction-4",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 161,
+        "outputTokens": 26491,
+        "thinkingTokens": 26159,
+        "cost": 0.00344866,
+        "seconds": 254.5335,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 293,
+        "outputTokens": 14260.5,
+        "thinkingTokens": 13831,
+        "cost": 0.001862655,
+        "seconds": 138.0975,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1341,
+        "outputTokens": 6800.5,
+        "thinkingTokens": 6584,
+        "cost": 0.000908935,
+        "seconds": 79.038,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 34521.5,
+        "outputTokens": 5421,
+        "thinkingTokens": 4676.5,
+        "cost": 0.001062999,
+        "seconds": 62.263000000000005,
+        "toolCalls": 2.5
+      }
+    },
+    {
+      "id": "reaction-6",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 133,
+        "outputTokens": 4556,
+        "thinkingTokens": 4095,
+        "cost": 0.00059627,
+        "seconds": 49.4445,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 206,
+        "outputTokens": 7489,
+        "thinkingTokens": 7099,
+        "cost": 0.00097975,
+        "seconds": 76.7555,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1254,
+        "outputTokens": 4094,
+        "thinkingTokens": 4032.5,
+        "cost": 0.00056984,
+        "seconds": 50.082,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 16818.5,
+        "outputTokens": 3731,
+        "thinkingTokens": 3306,
+        "cost": 0.000682385,
+        "seconds": 41.123000000000005,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "reaction-h3",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 137,
+        "outputTokens": 30335.5,
+        "thinkingTokens": 29822,
+        "cost": 0.003947725,
+        "seconds": 301.84799999999996,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 210,
+        "outputTokens": 6249.5,
+        "thinkingTokens": 5936,
+        "cost": 0.000818735,
+        "seconds": 67.94,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1258,
+        "outputTokens": 23876,
+        "thinkingTokens": 23656,
+        "cost": 0.0031416200000000003,
+        "seconds": 250.2825,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 40410.5,
+        "outputTokens": 7408,
+        "thinkingTokens": 6464.5,
+        "cost": 0.0019495629999999999,
+        "seconds": 84.74600000000001,
+        "toolCalls": 2.5
+      }
+    },
+    {
+      "id": "reaction-h7",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 156,
+        "outputTokens": 26420.5,
+        "thinkingTokens": 26139,
+        "cost": 0.003439345,
+        "seconds": 255.3125,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 286,
+        "outputTokens": 6258,
+        "thinkingTokens": 5864.5,
+        "cost": 0.00082212,
+        "seconds": 63.333,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1334,
+        "outputTokens": 19749.5,
+        "thinkingTokens": 19329.5,
+        "cost": 0.002607455,
+        "seconds": 198.60250000000002,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 23135,
+        "outputTokens": 5478,
+        "thinkingTokens": 4902.5,
+        "cost": 0.00112203,
+        "seconds": 59.4805,
+        "toolCalls": 1.5
+      }
+    },
+    {
+      "id": "multistep-1",
+      "type": "multistep",
+      "marks": 5,
+      "smiles": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 192,
+        "outputTokens": 26298,
+        "thinkingTokens": 25422.5,
+        "cost": 0.0034245,
+        "seconds": 254.73199999999997,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 270,
+        "outputTokens": 5921,
+        "thinkingTokens": 5492.5,
+        "cost": 0.00077783,
+        "seconds": 62.929,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1318,
+        "outputTokens": 18545.5,
+        "thinkingTokens": 17827,
+        "cost": 0.002450455,
+        "seconds": 175.31650000000002,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 19466,
+        "outputTokens": 6577,
+        "thinkingTokens": 6009,
+        "cost": 0.0012085899999999998,
+        "seconds": 67.7975,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-3",
+      "type": "multistep",
+      "marks": 5,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 192,
+        "outputTokens": 19787,
+        "thinkingTokens": 19598,
+        "cost": 0.00257807,
+        "seconds": 190.92849999999999,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 285,
+        "outputTokens": 14751.5,
+        "thinkingTokens": 14372,
+        "cost": 0.001926245,
+        "seconds": 138.0565,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1333,
+        "outputTokens": 8370,
+        "thinkingTokens": 7977,
+        "cost": 0.00112809,
+        "seconds": 86.944,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 18033,
+        "outputTokens": 5035,
+        "thinkingTokens": 4595,
+        "cost": 0.00096514,
+        "seconds": 50.552,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "mechanism-1",
+      "type": "mechanism",
+      "marks": 5,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 138,
+        "outputTokens": 20641,
+        "thinkingTokens": 20302,
+        "cost": 0.00268747,
+        "seconds": 207.5495,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 211,
+        "outputTokens": 4959.5,
+        "thinkingTokens": 4611.5,
+        "cost": 0.0006510649999999999,
+        "seconds": 50.872,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1259,
+        "outputTokens": 6746.5,
+        "thinkingTokens": 6376,
+        "cost": 0.000914815,
+        "seconds": 78.55449999999999,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 129060.5,
+        "outputTokens": 13103,
+        "thinkingTokens": 10428,
+        "cost": 0.003205157,
+        "seconds": 136.14,
+        "toolCalls": 6.5
+      }
+    },
+    {
+      "id": "retrosynthesis-1",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 118,
+        "outputTokens": 25845.5,
+        "thinkingTokens": 25185,
+        "cost": 0.003363455,
+        "seconds": 248.39249999999998,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 214,
+        "outputTokens": 17937.5,
+        "thinkingTokens": 17361,
+        "cost": 0.002338295,
+        "seconds": 190.14499999999998,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1262,
+        "outputTokens": 6295,
+        "thinkingTokens": 5771.5,
+        "cost": 0.000845458,
+        "seconds": 65.511,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 45426,
+        "outputTokens": 6159.5,
+        "thinkingTokens": 5192.5,
+        "cost": 0.001251131,
+        "seconds": 70.95100000000001,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "retrosynthesis-3",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 116,
+        "outputTokens": 5883,
+        "thinkingTokens": 5672,
+        "cost": 0.0007682699999999999,
+        "seconds": 59.0515,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 223,
+        "outputTokens": 7226,
+        "thinkingTokens": 7015.5,
+        "cost": 0.00094607,
+        "seconds": 76.2925,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1271,
+        "outputTokens": 4304.5,
+        "thinkingTokens": 4035.5,
+        "cost": 0.000586963,
+        "seconds": 46.2375,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 11933,
+        "outputTokens": 4660.5,
+        "thinkingTokens": 4326,
+        "cost": 0.0008102550000000001,
+        "seconds": 49.42100000000001,
+        "toolCalls": 0.5
+      }
+    },
+    {
+      "id": "structure-1",
+      "type": "structure",
+      "marks": 2,
+      "smiles": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 124,
+        "outputTokens": 6134,
+        "thinkingTokens": 6008,
+        "cost": 0.00080114,
+        "seconds": 63.2545,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 219,
+        "outputTokens": 2444.5,
+        "thinkingTokens": 2299,
+        "cost": 0.000324355,
+        "seconds": 23.314999999999998,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1267,
+        "outputTokens": 4876.5,
+        "thinkingTokens": 4786.5,
+        "cost": 0.000671955,
+        "seconds": 48.967,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14161,
+        "outputTokens": 1059,
+        "thinkingTokens": 869.5,
+        "cost": 0.0003321,
+        "seconds": 15.001,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "structure-4",
+      "type": "structure",
+      "marks": 2,
+      "smiles": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 128,
+        "outputTokens": 19078,
+        "thinkingTokens": 18995.5,
+        "cost": 0.00248398,
+        "seconds": 188.7385,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 219,
+        "outputTokens": 4389.5,
+        "thinkingTokens": 4211,
+        "cost": 0.000577205,
+        "seconds": 43.505,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1267,
+        "outputTokens": 8474,
+        "thinkingTokens": 8383,
+        "cost": 0.00113963,
+        "seconds": 89.4205,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 16580,
+        "outputTokens": 3765,
+        "thinkingTokens": 3531.5,
+        "cost": 0.00067965,
+        "seconds": 39.442,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "structure-h2",
+      "type": "structure",
+      "marks": 2,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 2,
+        "promptTokens": 127,
+        "outputTokens": 32000,
+        "thinkingTokens": 31846.5,
+        "cost": 0.00416381,
+        "seconds": 300.935,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 254,
+        "outputTokens": 2551,
+        "thinkingTokens": 2353,
+        "cost": 0.00033925000000000003,
+        "seconds": 25.634,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1302,
+        "outputTokens": 2898.5,
+        "thinkingTokens": 2781.5,
+        "cost": 0.00041586499999999996,
+        "seconds": 31.24,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 13908.5,
+        "outputTokens": 742.5,
+        "thinkingTokens": 553.5,
+        "cost": 0.00020658,
+        "seconds": 9.246,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "analysis-1",
+      "type": "analysis",
+      "marks": 3,
+      "smiles": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 153,
+        "outputTokens": 19262.5,
+        "thinkingTokens": 18617.5,
+        "cost": 0.002508715,
+        "seconds": 200.7525,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 239,
+        "outputTokens": 4694,
+        "thinkingTokens": 4343.5,
+        "cost": 0.00061739,
+        "seconds": 50.3065,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1287,
+        "outputTokens": 4867.5,
+        "thinkingTokens": 4807,
+        "cost": 0.000671385,
+        "seconds": 58.2915,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 21673,
+        "outputTokens": 3806.5,
+        "thinkingTokens": 3287.5,
+        "cost": 0.000719563,
+        "seconds": 43.6545,
+        "toolCalls": 1.5
+      }
+    },
+    {
+      "id": "analysis-4",
+      "type": "analysis",
+      "marks": 3,
+      "smiles": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 155,
+        "outputTokens": 6233,
+        "thinkingTokens": 5997.5,
+        "cost": 0.00081494,
+        "seconds": 60.8775,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 255,
+        "outputTokens": 4021,
+        "thinkingTokens": 3826.5,
+        "cost": 0.00053038,
+        "seconds": 38.9435,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1303,
+        "outputTokens": 5826,
+        "thinkingTokens": 5590.5,
+        "cost": 0.0007857179999999999,
+        "seconds": 62.291,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 44027.5,
+        "outputTokens": 5699,
+        "thinkingTokens": 4868,
+        "cost": 0.001309055,
+        "seconds": 63.224,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "hazard-1",
+      "type": "hazard",
+      "marks": 5,
+      "smiles": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 133,
+        "outputTokens": 7151.5,
+        "thinkingTokens": 6685,
+        "cost": 0.000933685,
+        "seconds": 80.7315,
+        "toolCalls": 0
+      },
+      "smiles-described": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 199,
+        "outputTokens": 3545,
+        "thinkingTokens": 3147.5,
+        "cost": 0.00046681999999999995,
+        "seconds": 42.1,
+        "toolCalls": 0
+      },
+      "hexsketch-no-tools": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 1247,
+        "outputTokens": 7691,
+        "thinkingTokens": 7397,
+        "cost": 0.00103724,
+        "seconds": 90.08699999999999,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 20680,
+        "outputTokens": 3110,
+        "thinkingTokens": 2593,
+        "cost": 0.000691388,
+        "seconds": 36.288,
+        "toolCalls": 1.5
+      }
+    }
+  ]
+}
