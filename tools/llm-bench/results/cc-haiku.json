@@ -1,6 +1,6 @@
 {
   "run": "cc-haiku",
-  "date": "2026-11-12T20:28:56.493Z",
+  "date": "2026-11-12T21:03:45.424Z",
   "model": "claude-haiku-5-5",
   "served": [
     "claude-haiku-5-5"
@@ -32,9 +32,9 @@
       "hazard": 3
     }
   },
-  "commit": "343c139",
+  "commit": "f154ecc",
   "failedRuns": 0,
-  "totalCost": 0.3753814799999999,
+  "totalCost": 1.1829837100000002,
   "conditions": {
     "cc-plain": {
       "score": 158,
@@ -112,15 +112,15 @@
       "toolCalls": 0
     },
     "cc-hexsketch": {
-      "score": 166,
+      "score": 160.33333333333334,
       "scoreRange": [
-        159,
-        170
+        160,
+        161
       ],
       "outOf": 174,
       "byType": {
         "reaction": {
-          "score": 78.66666666666667,
+          "score": 77.33333333333333,
           "outOf": 80
         },
         "multistep": {
@@ -128,7 +128,7 @@
           "outOf": 20
         },
         "mechanism": {
-          "score": 8.333333333333334,
+          "score": 5,
           "outOf": 10
         },
         "retrosynthesis": {
@@ -140,7 +140,7 @@
           "outOf": 14
         },
         "analysis": {
-          "score": 15,
+          "score": 14,
           "outOf": 15
         },
         "hazard": {
@@ -149,7 +149,7 @@
         }
       },
       "correct": {
-        "rate": 0.9629629629629629,
+        "rate": 0.9333333333333333,
         "n": 135
       },
       "stereo": {
@@ -161,11 +161,11 @@
         "n": 135
       },
       "consistent": {
-        "rate": 0.8333333333333334,
+        "rate": 0.8666666666666667,
         "n": 90
       },
       "preserved": {
-        "rate": 0.989247311827957,
+        "rate": 1,
         "n": 93
       },
       "flagged": {
@@ -173,18 +173,93 @@
         "n": 12
       },
       "oriented": {
-        "rate": 0.4945054945054945,
+        "rate": 0.4838709677419355,
+        "n": 93
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.001892116666666666,
+      "tokens": 1856.325925925926,
+      "reasoning": 0,
+      "prompt": 17343.4,
+      "cachedPrompt": 13181.148148148148,
+      "seconds": 10.289,
+      "toolCalls": 0.8740740740740741
+    },
+    "cc-drawn": {
+      "score": 164.66666666666666,
+      "scoreRange": [
+        159,
+        169
+      ],
+      "outOf": 174,
+      "byType": {
+        "reaction": {
+          "score": 78.66666666666667,
+          "outOf": 80
+        },
+        "multistep": {
+          "score": 16.666666666666668,
+          "outOf": 20
+        },
+        "mechanism": {
+          "score": 8.333333333333334,
+          "outOf": 10
+        },
+        "retrosynthesis": {
+          "score": 20,
+          "outOf": 20
+        },
+        "structure": {
+          "score": 14,
+          "outOf": 14
+        },
+        "analysis": {
+          "score": 12,
+          "outOf": 15
+        },
+        "hazard": {
+          "score": 15,
+          "outOf": 15
+        }
+      },
+      "correct": {
+        "rate": 0.9481481481481482,
+        "n": 135
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 135
+      },
+      "valid": {
+        "rate": 0.9555555555555556,
+        "n": 135
+      },
+      "consistent": {
+        "rate": 0.9,
+        "n": 90
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 93
+      },
+      "flagged": {
+        "rate": 1,
+        "n": 12
+      },
+      "oriented": {
+        "rate": 0.4725274725274725,
         "n": 91
       },
       "refused": 0,
       "cutOff": 0,
-      "cost": 0.001782961407407407,
-      "tokens": 1952.1185185185186,
+      "cost": 0.0058730834814814835,
+      "tokens": 6705.851851851852,
       "reasoning": 0,
-      "prompt": 20093.088888888888,
-      "cachedPrompt": 16901.77037037037,
-      "seconds": 12.202,
-      "toolCalls": 1.3185185185185184
+      "prompt": 49940.718518518515,
+      "cachedPrompt": 39301.82962962963,
+      "seconds": 21.97,
+      "toolCalls": 2.8
     }
   },
   "perQuestion": [
@@ -209,12 +284,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 27645.666666666668,
-        "outputTokens": 5032,
+        "promptTokens": 28061,
+        "outputTokens": 3693.6666666666665,
         "thinkingTokens": 0,
-        "cost": 0.0038698600000000006,
-        "seconds": 26.114666666666665,
+        "cost": 0.00330618,
+        "seconds": 19.254666666666665,
         "toolCalls": 2.3333333333333335
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 81598.33333333333,
+        "outputTokens": 5717.666666666667,
+        "thinkingTokens": 0,
+        "cost": 0.00655853,
+        "seconds": 32.346,
+        "toolCalls": 4.333333333333333
       }
     },
     {
@@ -238,12 +325,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 17379.333333333332,
-        "outputTokens": 1714,
+        "promptTokens": 18933.666666666668,
+        "outputTokens": 1681.3333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0015435866666666668,
-        "seconds": 11.741999999999999,
-        "toolCalls": 0.6666666666666666
+        "cost": 0.0018893566666666666,
+        "seconds": 11.296666666666667,
+        "toolCalls": 1
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 54106.333333333336,
+        "outputTokens": 4164.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.004972356666666666,
+        "seconds": 20.153666666666666,
+        "toolCalls": 3
       }
     },
     {
@@ -267,12 +366,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 24317,
-        "outputTokens": 1169.3333333333333,
+        "promptTokens": 14822.666666666666,
+        "outputTokens": 879.6666666666666,
         "thinkingTokens": 0,
-        "cost": 0.0014186499999999998,
-        "seconds": 9.398000000000001,
-        "toolCalls": 1.6666666666666667
+        "cost": 0.0013052966666666666,
+        "seconds": 6.915,
+        "toolCalls": 0.6666666666666666
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 50377.666666666664,
+        "outputTokens": 4248,
+        "thinkingTokens": 0,
+        "cost": 0.004862653333333333,
+        "seconds": 24.720666666666663,
+        "toolCalls": 3
       }
     },
     {
@@ -296,12 +407,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 35883.666666666664,
-        "outputTokens": 3680.6666666666665,
+        "promptTokens": 18304,
+        "outputTokens": 2554,
         "thinkingTokens": 0,
-        "cost": 0.0032266599999999997,
-        "seconds": 22.054333333333332,
-        "toolCalls": 3
+        "cost": 0.0022056466666666667,
+        "seconds": 15.485,
+        "toolCalls": 1.3333333333333333
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 76522,
+        "outputTokens": 5339.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.006192123333333334,
+        "seconds": 24.255,
+        "toolCalls": 4.666666666666667
       }
     },
     {
@@ -321,16 +444,28 @@
         "toolCalls": 0
       },
       "cc-hexsketch": {
-        "right": 2,
+        "right": 3,
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13796.333333333334,
-        "outputTokens": 1779.3333333333333,
+        "promptTokens": 9943.333333333334,
+        "outputTokens": 1447.3333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0015707633333333334,
-        "seconds": 13.633666666666668,
-        "toolCalls": 0.6666666666666666
+        "cost": 0.0012528066666666665,
+        "seconds": 10.960333333333333,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 45691.333333333336,
+        "outputTokens": 5368,
+        "thinkingTokens": 0,
+        "cost": 0.005229363333333334,
+        "seconds": 28.817333333333334,
+        "toolCalls": 2.3333333333333335
       }
     },
     {
@@ -354,12 +489,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 9912.666666666666,
-        "outputTokens": 530.3333333333334,
+        "promptTokens": 14473,
+        "outputTokens": 590,
         "thinkingTokens": 0,
-        "cost": 0.0007946333333333334,
-        "seconds": 6.196000000000001,
-        "toolCalls": 0
+        "cost": 0.00109813,
+        "seconds": 6.5680000000000005,
+        "toolCalls": 0.3333333333333333
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 43869,
+        "outputTokens": 2864.6666666666665,
+        "thinkingTokens": 0,
+        "cost": 0.0037117766666666667,
+        "seconds": 15.323999999999998,
+        "toolCalls": 2.6666666666666665
       }
     },
     {
@@ -383,12 +530,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13573,
-        "outputTokens": 1593,
+        "promptTokens": 13717.333333333334,
+        "outputTokens": 1251.3333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0014312200000000002,
-        "seconds": 10.949666666666666,
-        "toolCalls": 0.3333333333333333
+        "cost": 0.0012782333333333335,
+        "seconds": 9.683333333333335,
+        "toolCalls": 0.6666666666666666
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 56192.666666666664,
+        "outputTokens": 4946.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.005088323333333334,
+        "seconds": 24.500333333333334,
+        "toolCalls": 3.6666666666666665
       }
     },
     {
@@ -408,16 +567,28 @@
         "toolCalls": 0
       },
       "cc-hexsketch": {
+        "right": 1,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 29616.333333333332,
+        "outputTokens": 2570.6666666666665,
+        "thinkingTokens": 0,
+        "cost": 0.00289355,
+        "seconds": 15.490333333333334,
+        "toolCalls": 2
+      },
+      "cc-drawn": {
         "right": 3,
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13826.333333333334,
-        "outputTokens": 2279.3333333333335,
+        "promptTokens": 47975.333333333336,
+        "outputTokens": 4548.333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0018244833333333332,
-        "seconds": 16.093333333333334,
-        "toolCalls": 0.6666666666666666
+        "cost": 0.0050603,
+        "seconds": 22.983333333333334,
+        "toolCalls": 3
       }
     },
     {
@@ -441,12 +612,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 16928,
-        "outputTokens": 789.3333333333334,
+        "promptTokens": 23856.666666666668,
+        "outputTokens": 2145.3333333333335,
         "thinkingTokens": 0,
-        "cost": 0.0010393733333333335,
-        "seconds": 7.071666666666666,
-        "toolCalls": 0.6666666666666666
+        "cost": 0.0024890866666666665,
+        "seconds": 13.560333333333332,
+        "toolCalls": 1
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 49722,
+        "outputTokens": 3043.3333333333335,
+        "thinkingTokens": 0,
+        "cost": 0.0037254966666666668,
+        "seconds": 21.459333333333333,
+        "toolCalls": 2.6666666666666665
       }
     },
     {
@@ -470,12 +653,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 21548,
-        "outputTokens": 2049.6666666666665,
+        "promptTokens": 15216.666666666666,
+        "outputTokens": 1915.3333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0018940200000000004,
-        "seconds": 13.511000000000001,
-        "toolCalls": 1.3333333333333333
+        "cost": 0.0019080733333333335,
+        "seconds": 12.850999999999999,
+        "toolCalls": 0.6666666666666666
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 47407.666666666664,
+        "outputTokens": 5029.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.0053133,
+        "seconds": 27.721,
+        "toolCalls": 3
       }
     },
     {
@@ -499,12 +694,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 17002.333333333332,
-        "outputTokens": 1123,
+        "promptTokens": 9934.666666666666,
+        "outputTokens": 774.6666666666666,
         "thinkingTokens": 0,
-        "cost": 0.00117503,
-        "seconds": 8.831,
-        "toolCalls": 0.6666666666666666
+        "cost": 0.0008751566666666668,
+        "seconds": 6.691333333333333,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 42689.666666666664,
+        "outputTokens": 3754.3333333333335,
+        "thinkingTokens": 0,
+        "cost": 0.0038584233333333333,
+        "seconds": 21.076666666666668,
+        "toolCalls": 2
       }
     },
     {
@@ -528,12 +735,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 17043.333333333332,
-        "outputTokens": 1022.3333333333334,
+        "promptTokens": 14740,
+        "outputTokens": 1495,
         "thinkingTokens": 0,
-        "cost": 0.0012143433333333333,
-        "seconds": 7.68,
-        "toolCalls": 1
+        "cost": 0.0016066266666666669,
+        "seconds": 9.538333333333334,
+        "toolCalls": 0.3333333333333333
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 44466.666666666664,
+        "outputTokens": 3803.6666666666665,
+        "thinkingTokens": 0,
+        "cost": 0.0042888399999999995,
+        "seconds": 22.269333333333332,
+        "toolCalls": 2.3333333333333335
       }
     },
     {
@@ -557,12 +776,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13537,
-        "outputTokens": 1201,
+        "promptTokens": 19398.666666666668,
+        "outputTokens": 1638.3333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0012275766666666667,
-        "seconds": 9.285,
-        "toolCalls": 0.3333333333333333
+        "cost": 0.00197783,
+        "seconds": 12.385666666666665,
+        "toolCalls": 1
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 47800.333333333336,
+        "outputTokens": 4837,
+        "thinkingTokens": 0,
+        "cost": 0.005143286666666667,
+        "seconds": 22.712666666666667,
+        "toolCalls": 2.6666666666666665
       }
     },
     {
@@ -586,12 +817,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 24947.666666666668,
-        "outputTokens": 1391.6666666666667,
+        "promptTokens": 9990,
+        "outputTokens": 1103,
         "thinkingTokens": 0,
-        "cost": 0.0015135766666666665,
-        "seconds": 10.519666666666668,
-        "toolCalls": 1.6666666666666667
+        "cost": 0.0010844000000000001,
+        "seconds": 8.542333333333334,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 49745.333333333336,
+        "outputTokens": 4946.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.00528156,
+        "seconds": 23.56533333333333,
+        "toolCalls": 3.3333333333333335
       }
     },
     {
@@ -615,12 +858,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 25174,
-        "outputTokens": 1988.3333333333333,
+        "promptTokens": 14902,
+        "outputTokens": 1363,
         "thinkingTokens": 0,
-        "cost": 0.0019496433333333334,
-        "seconds": 13.947999999999999,
-        "toolCalls": 1.6666666666666667
+        "cost": 0.00156245,
+        "seconds": 10.878666666666666,
+        "toolCalls": 0.3333333333333333
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 57472,
+        "outputTokens": 4092.3333333333335,
+        "thinkingTokens": 0,
+        "cost": 0.0052511500000000004,
+        "seconds": 19.47,
+        "toolCalls": 3.6666666666666665
       }
     },
     {
@@ -644,12 +899,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 28736,
-        "outputTokens": 1977.3333333333333,
+        "promptTokens": 13815.666666666666,
+        "outputTokens": 1848,
         "thinkingTokens": 0,
-        "cost": 0.001984636666666667,
-        "seconds": 14.251666666666665,
-        "toolCalls": 2.6666666666666665
+        "cost": 0.0015943966666666666,
+        "seconds": 13.076666666666666,
+        "toolCalls": 0.6666666666666666
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 43061.666666666664,
+        "outputTokens": 3875.6666666666665,
+        "thinkingTokens": 0,
+        "cost": 0.00400717,
+        "seconds": 22.346999999999998,
+        "toolCalls": 2.3333333333333335
       }
     },
     {
@@ -673,12 +940,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 17827.666666666668,
-        "outputTokens": 2114,
+        "promptTokens": 20565.666666666668,
+        "outputTokens": 2937.6666666666665,
         "thinkingTokens": 0,
-        "cost": 0.0017971533333333333,
-        "seconds": 13.339666666666666,
-        "toolCalls": 0.6666666666666666
+        "cost": 0.002855893333333333,
+        "seconds": 16.453333333333333,
+        "toolCalls": 1
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 51132.333333333336,
+        "outputTokens": 3814.3333333333335,
+        "thinkingTokens": 0,
+        "cost": 0.0041593,
+        "seconds": 20.355,
+        "toolCalls": 2.3333333333333335
       }
     },
     {
@@ -702,12 +981,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13649,
-        "outputTokens": 1252.6666666666667,
+        "promptTokens": 19443,
+        "outputTokens": 2567.6666666666665,
         "thinkingTokens": 0,
-        "cost": 0.0012770133333333334,
-        "seconds": 10.907333333333334,
+        "cost": 0.0024526933333333333,
+        "seconds": 17.863666666666663,
         "toolCalls": 0.6666666666666666
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 43666,
+        "outputTokens": 3173,
+        "thinkingTokens": 0,
+        "cost": 0.0038059000000000005,
+        "seconds": 19.729666666666663,
+        "toolCalls": 2.6666666666666665
       }
     },
     {
@@ -731,12 +1022,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 21464,
-        "outputTokens": 2407,
+        "promptTokens": 23675,
+        "outputTokens": 2109,
         "thinkingTokens": 0,
-        "cost": 0.0021392966666666665,
-        "seconds": 14.950666666666669,
-        "toolCalls": 2
+        "cost": 0.00241603,
+        "seconds": 13.653333333333334,
+        "toolCalls": 1.6666666666666667
+      },
+      "cc-drawn": {
+        "right": 2,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 61630.333333333336,
+        "outputTokens": 4984.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.00519001,
+        "seconds": 24.563,
+        "toolCalls": 3
       }
     },
     {
@@ -760,12 +1063,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 21103,
-        "outputTokens": 2361,
+        "promptTokens": 22578.666666666668,
+        "outputTokens": 1664.6666666666667,
         "thinkingTokens": 0,
-        "cost": 0.0020461233333333335,
-        "seconds": 14.191333333333333,
-        "toolCalls": 2
+        "cost": 0.00197751,
+        "seconds": 11.76,
+        "toolCalls": 1.6666666666666667
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 50371.333333333336,
+        "outputTokens": 4948,
+        "thinkingTokens": 0,
+        "cost": 0.0052246233333333334,
+        "seconds": 23.294333333333338,
+        "toolCalls": 3.6666666666666665
       }
     },
     {
@@ -789,12 +1104,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 14186.666666666666,
-        "outputTokens": 2425.6666666666665,
+        "promptTokens": 10030,
+        "outputTokens": 2028,
         "thinkingTokens": 0,
-        "cost": 0.001955023333333333,
-        "seconds": 14.691,
-        "toolCalls": 0.3333333333333333
+        "cost": 0.0015494533333333333,
+        "seconds": 12.652,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 60236.666666666664,
+        "outputTokens": 7447.666666666667,
+        "thinkingTokens": 0,
+        "cost": 0.006839863333333334,
+        "seconds": 36.40266666666667,
+        "toolCalls": 3
       }
     },
     {
@@ -818,12 +1145,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 26406,
-        "outputTokens": 3489.6666666666665,
+        "promptTokens": 21569.333333333332,
+        "outputTokens": 4152.333333333333,
         "thinkingTokens": 0,
-        "cost": 0.002910166666666667,
-        "seconds": 18.982,
-        "toolCalls": 2
+        "cost": 0.0036466066666666665,
+        "seconds": 22.131,
+        "toolCalls": 1
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 48035.666666666664,
+        "outputTokens": 6479.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.005982703333333335,
+        "seconds": 35.937333333333335,
+        "toolCalls": 2.6666666666666665
       }
     },
     {
@@ -847,12 +1186,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13726.333333333334,
-        "outputTokens": 1310,
+        "promptTokens": 15247.666666666666,
+        "outputTokens": 2334.3333333333335,
         "thinkingTokens": 0,
-        "cost": 0.001304743333333333,
-        "seconds": 8.981666666666667,
-        "toolCalls": 0.6666666666666666
+        "cost": 0.002110663333333333,
+        "seconds": 13.762333333333332,
+        "toolCalls": 0.3333333333333333
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 48285.333333333336,
+        "outputTokens": 8484,
+        "thinkingTokens": 0,
+        "cost": 0.0068975366666666664,
+        "seconds": 35.89633333333334,
+        "toolCalls": 3
       }
     },
     {
@@ -876,12 +1227,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 25693,
-        "outputTokens": 2250,
+        "promptTokens": 24426,
+        "outputTokens": 3831.6666666666665,
         "thinkingTokens": 0,
-        "cost": 0.0021692033333333333,
-        "seconds": 13.685333333333332,
-        "toolCalls": 1.6666666666666667
+        "cost": 0.003429083333333333,
+        "seconds": 18.608333333333334,
+        "toolCalls": 1.3333333333333333
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 49046.333333333336,
+        "outputTokens": 4751.666666666667,
+        "thinkingTokens": 0,
+        "cost": 0.005325183333333333,
+        "seconds": 24.729333333333333,
+        "toolCalls": 3
       }
     },
     {
@@ -905,12 +1268,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 21988,
-        "outputTokens": 2840,
+        "promptTokens": 26801.333333333332,
+        "outputTokens": 6393,
         "thinkingTokens": 0,
-        "cost": 0.00247852,
-        "seconds": 15.814333333333332,
-        "toolCalls": 1.6666666666666667
+        "cost": 0.005201916666666666,
+        "seconds": 30.88533333333333,
+        "toolCalls": 1
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 77429.33333333333,
+        "outputTokens": 16021.333333333334,
+        "thinkingTokens": 0,
+        "cost": 0.012874796666666665,
+        "seconds": 69.55366666666667,
+        "toolCalls": 3
       }
     },
     {
@@ -930,16 +1305,28 @@
         "toolCalls": 0
       },
       "cc-hexsketch": {
+        "right": 0,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 15029.666666666666,
+        "outputTokens": 2926.3333333333335,
+        "thinkingTokens": 0,
+        "cost": 0.002328863333333333,
+        "seconds": 16.42833333333333,
+        "toolCalls": 0.3333333333333333
+      },
+      "cc-drawn": {
         "right": 2,
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 14267,
-        "outputTokens": 3068,
+        "promptTokens": 119741,
+        "outputTokens": 15853.666666666666,
         "thinkingTokens": 0,
-        "cost": 0.0023022000000000003,
-        "seconds": 17.984,
-        "toolCalls": 0.3333333333333333
+        "cost": 0.013612180000000002,
+        "seconds": 72.41333333333334,
+        "toolCalls": 4.666666666666667
       }
     },
     {
@@ -959,16 +1346,28 @@
         "toolCalls": 0
       },
       "cc-hexsketch": {
-        "right": 2,
+        "right": 1,
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 21662,
-        "outputTokens": 2361,
+        "promptTokens": 15418.666666666666,
+        "outputTokens": 2196,
         "thinkingTokens": 0,
-        "cost": 0.0021819266666666666,
-        "seconds": 13.846333333333334,
-        "toolCalls": 1.6666666666666667
+        "cost": 0.0020929866666666666,
+        "seconds": 13.167333333333332,
+        "toolCalls": 0.3333333333333333
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 46083,
+        "outputTokens": 5692.666666666667,
+        "thinkingTokens": 0,
+        "cost": 0.005443493333333334,
+        "seconds": 28.501,
+        "toolCalls": 2
       }
     },
     {
@@ -988,16 +1387,28 @@
         "toolCalls": 0
       },
       "cc-hexsketch": {
-        "right": 2,
+        "right": 3,
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 9896.333333333334,
-        "outputTokens": 1857.6666666666667,
+        "promptTokens": 9941.666666666666,
+        "outputTokens": 1734.3333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0014569333333333335,
-        "seconds": 11.950666666666665,
+        "cost": 0.0013963533333333335,
+        "seconds": 12.683,
         "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 39293.666666666664,
+        "outputTokens": 4280.666666666667,
+        "thinkingTokens": 0,
+        "cost": 0.0043010033333333334,
+        "seconds": 26.971,
+        "toolCalls": 1.6666666666666667
       }
     },
     {
@@ -1021,12 +1432,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 20558.666666666668,
-        "outputTokens": 1173.3333333333333,
+        "promptTokens": 9945,
+        "outputTokens": 978.3333333333334,
         "thinkingTokens": 0,
-        "cost": 0.0013650833333333334,
-        "seconds": 9.013333333333334,
-        "toolCalls": 1.3333333333333333
+        "cost": 0.0010185133333333333,
+        "seconds": 7.323666666666667,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 46669,
+        "outputTokens": 5431.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.005340156666666668,
+        "seconds": 25.698666666666668,
+        "toolCalls": 2
       }
     },
     {
@@ -1050,12 +1473,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13633.333333333334,
-        "outputTokens": 1400.6666666666667,
+        "promptTokens": 20425.666666666668,
+        "outputTokens": 2503,
         "thinkingTokens": 0,
-        "cost": 0.0013450933333333335,
-        "seconds": 9.637666666666668,
-        "toolCalls": 0.3333333333333333
+        "cost": 0.0026135366666666673,
+        "seconds": 13.078333333333333,
+        "toolCalls": 1
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 40847.333333333336,
+        "outputTokens": 4983.666666666667,
+        "thinkingTokens": 0,
+        "cost": 0.004843790000000001,
+        "seconds": 29.87733333333333,
+        "toolCalls": 1.6666666666666667
       }
     },
     {
@@ -1079,11 +1514,23 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 31535.666666666668,
-        "outputTokens": 3261.6666666666665,
+        "promptTokens": 22344.666666666668,
+        "outputTokens": 1177.6666666666667,
         "thinkingTokens": 0,
-        "cost": 0.002576643333333333,
-        "seconds": 19.977666666666664,
+        "cost": 0.0017081099999999999,
+        "seconds": 8.261333333333333,
+        "toolCalls": 2.3333333333333335
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 40121.666666666664,
+        "outputTokens": 2369,
+        "thinkingTokens": 0,
+        "cost": 0.0028790166666666666,
+        "seconds": 16.214,
         "toolCalls": 3.6666666666666665
       }
     },
@@ -1108,12 +1555,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 24149.333333333332,
-        "outputTokens": 1385,
+        "promptTokens": 20908.333333333332,
+        "outputTokens": 1194.3333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0015294933333333336,
-        "seconds": 11.557666666666668,
+        "cost": 0.00143551,
+        "seconds": 8.728666666666667,
         "toolCalls": 1.6666666666666667
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 46311.333333333336,
+        "outputTokens": 2883.3333333333335,
+        "thinkingTokens": 0,
+        "cost": 0.003533996666666667,
+        "seconds": 19.653333333333336,
+        "toolCalls": 3
       }
     },
     {
@@ -1137,11 +1596,23 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 34958.666666666664,
-        "outputTokens": 2136,
+        "promptTokens": 21598.333333333332,
+        "outputTokens": 1003.3333333333334,
         "thinkingTokens": 0,
-        "cost": 0.0020308733333333335,
-        "seconds": 16.18166666666667,
+        "cost": 0.0014740200000000001,
+        "seconds": 7.967,
+        "toolCalls": 2
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 46554.666666666664,
+        "outputTokens": 2538,
+        "thinkingTokens": 0,
+        "cost": 0.00315546,
+        "seconds": 18.682000000000002,
         "toolCalls": 2.6666666666666665
       }
     },
@@ -1166,11 +1637,23 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 29049.666666666668,
-        "outputTokens": 4291.666666666667,
+        "promptTokens": 26541.333333333332,
+        "outputTokens": 1761.6666666666667,
         "thinkingTokens": 0,
-        "cost": 0.00316109,
-        "seconds": 30.096999999999998,
+        "cost": 0.00212732,
+        "seconds": 11.907666666666666,
+        "toolCalls": 2.3333333333333335
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 48555.666666666664,
+        "outputTokens": 4580.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.004566313333333333,
+        "seconds": 25.491,
         "toolCalls": 3.3333333333333335
       }
     },
@@ -1195,12 +1678,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 31221,
-        "outputTokens": 1407.6666666666667,
+        "promptTokens": 21543,
+        "outputTokens": 759.6666666666666,
         "thinkingTokens": 0,
-        "cost": 0.0016152733333333336,
-        "seconds": 11.783666666666667,
-        "toolCalls": 2.6666666666666665
+        "cost": 0.0013359266666666668,
+        "seconds": 6.683333333333334,
+        "toolCalls": 2
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 41493,
+        "outputTokens": 2422,
+        "thinkingTokens": 0,
+        "cost": 0.0031853566666666666,
+        "seconds": 16.957666666666665,
+        "toolCalls": 3
       }
     },
     {
@@ -1224,12 +1719,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 16882.666666666668,
-        "outputTokens": 947.6666666666666,
+        "promptTokens": 9942.666666666666,
+        "outputTokens": 783.6666666666666,
         "thinkingTokens": 0,
-        "cost": 0.00114437,
-        "seconds": 8.815,
-        "toolCalls": 1
+        "cost": 0.0009207133333333334,
+        "seconds": 7.872333333333334,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 68470.33333333333,
+        "outputTokens": 4383.333333333333,
+        "thinkingTokens": 0,
+        "cost": 0.00495252,
+        "seconds": 25.639,
+        "toolCalls": 4.333333333333333
       }
     },
     {
@@ -1253,12 +1760,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 31586.333333333332,
-        "outputTokens": 3592,
+        "promptTokens": 25821.333333333332,
+        "outputTokens": 1094.6666666666667,
         "thinkingTokens": 0,
-        "cost": 0.0027040000000000002,
-        "seconds": 22.040666666666667,
-        "toolCalls": 3.6666666666666665
+        "cost": 0.00161619,
+        "seconds": 8.344333333333333,
+        "toolCalls": 3.3333333333333335
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 40785.666666666664,
+        "outputTokens": 2700,
+        "thinkingTokens": 0,
+        "cost": 0.00292772,
+        "seconds": 19.012333333333334,
+        "toolCalls": 3.3333333333333335
       }
     },
     {
@@ -1278,16 +1797,28 @@
         "toolCalls": 0
       },
       "cc-hexsketch": {
-        "right": 3,
+        "right": 2,
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 9938,
-        "outputTokens": 1188.6666666666667,
+        "promptTokens": 9981,
+        "outputTokens": 1200,
         "thinkingTokens": 0,
-        "cost": 0.0011258266666666667,
-        "seconds": 8.509333333333334,
+        "cost": 0.0011321133333333335,
+        "seconds": 8.581000000000001,
         "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 32523.666666666668,
+        "outputTokens": 88540.33333333333,
+        "thinkingTokens": 0,
+        "cost": 0.045922716666666676,
+        "seconds": 316.19433333333336,
+        "toolCalls": 1
       }
     },
     {
@@ -1311,12 +1842,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 9911.333333333334,
-        "outputTokens": 1001.3333333333334,
+        "promptTokens": 9952.333333333334,
+        "outputTokens": 1016,
         "thinkingTokens": 0,
-        "cost": 0.00103012,
-        "seconds": 8.141666666666667,
+        "cost": 0.0010376733333333334,
+        "seconds": 8.647,
         "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 2,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 37476,
+        "outputTokens": 3266.3333333333335,
+        "thinkingTokens": 0,
+        "cost": 0.00303985,
+        "seconds": 21.778999999999996,
+        "toolCalls": 2
       }
     },
     {
@@ -1340,12 +1883,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 9918.333333333334,
-        "outputTokens": 535.3333333333334,
+        "promptTokens": 9957.666666666666,
+        "outputTokens": 535.6666666666666,
         "thinkingTokens": 0,
-        "cost": 0.0007978866666666666,
-        "seconds": 6.149,
+        "cost": 0.0007979399999999999,
+        "seconds": 5.620333333333334,
         "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 28575.333333333332,
+        "outputTokens": 2435.6666666666665,
+        "thinkingTokens": 0,
+        "cost": 0.0024307633333333334,
+        "seconds": 17.14033333333333,
+        "toolCalls": 1.3333333333333333
       }
     },
     {
@@ -1369,12 +1924,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13624,
-        "outputTokens": 1794,
+        "promptTokens": 9975.666666666666,
+        "outputTokens": 1669.3333333333333,
         "thinkingTokens": 0,
-        "cost": 0.0015367266666666665,
-        "seconds": 12.311333333333332,
-        "toolCalls": 0.3333333333333333
+        "cost": 0.0013658400000000001,
+        "seconds": 11.275666666666666,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 30018.333333333332,
+        "outputTokens": 3953.3333333333335,
+        "thinkingTokens": 0,
+        "cost": 0.0034105566666666667,
+        "seconds": 21.596666666666664,
+        "toolCalls": 1.6666666666666667
       }
     },
     {
@@ -1398,12 +1965,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 13465.666666666666,
-        "outputTokens": 957.6666666666666,
+        "promptTokens": 9975,
+        "outputTokens": 740.3333333333334,
         "thinkingTokens": 0,
-        "cost": 0.0010872100000000001,
-        "seconds": 8.194333333333333,
-        "toolCalls": 0.3333333333333333
+        "cost": 0.0009015866666666669,
+        "seconds": 6.992666666666666,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 30797.666666666668,
+        "outputTokens": 2650.6666666666665,
+        "thinkingTokens": 0,
+        "cost": 0.0027969099999999997,
+        "seconds": 17.288,
+        "toolCalls": 1.3333333333333333
       }
     },
     {
@@ -1423,16 +2002,28 @@
         "toolCalls": 0
       },
       "cc-hexsketch": {
+        "right": 2,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14512,
+        "outputTokens": 1276.6666666666667,
+        "thinkingTokens": 0,
+        "cost": 0.0014485666666666666,
+        "seconds": 9.842333333333334,
+        "toolCalls": 0.6666666666666666
+      },
+      "cc-drawn": {
         "right": 3,
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 17248.333333333332,
-        "outputTokens": 1603.6666666666667,
+        "promptTokens": 37201,
+        "outputTokens": 2990.6666666666665,
         "thinkingTokens": 0,
-        "cost": 0.00154183,
-        "seconds": 11.912333333333331,
-        "toolCalls": 1
+        "cost": 0.0034137266666666665,
+        "seconds": 18.816333333333336,
+        "toolCalls": 2.3333333333333335
       }
     },
     {
@@ -1452,16 +2043,28 @@
         "toolCalls": 0
       },
       "cc-hexsketch": {
-        "right": 2,
+        "right": 3,
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 25647,
-        "outputTokens": 2682.6666666666665,
+        "promptTokens": 23042.666666666668,
+        "outputTokens": 2224.6666666666665,
         "thinkingTokens": 0,
-        "cost": 0.0023614533333333335,
-        "seconds": 17.116333333333333,
-        "toolCalls": 2.3333333333333335
+        "cost": 0.0023513233333333334,
+        "seconds": 15.306666666666667,
+        "toolCalls": 1.3333333333333333
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 53347,
+        "outputTokens": 5530,
+        "thinkingTokens": 0,
+        "cost": 0.005662669999999999,
+        "seconds": 26.71666666666667,
+        "toolCalls": 3.3333333333333335
       }
     },
     {
@@ -1485,12 +2088,24 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 27741.666666666668,
-        "outputTokens": 1429,
+        "promptTokens": 19534,
+        "outputTokens": 1790,
         "thinkingTokens": 0,
-        "cost": 0.00158393,
-        "seconds": 11.769,
-        "toolCalls": 2
+        "cost": 0.0020750933333333332,
+        "seconds": 12.356666666666667,
+        "toolCalls": 1
+      },
+      "cc-drawn": {
+        "right": 3,
+        "of": 3,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 43935.666666666664,
+        "outputTokens": 3596,
+        "thinkingTokens": 0,
+        "cost": 0.004025986666666666,
+        "seconds": 19.626333333333335,
+        "toolCalls": 2.6666666666666665
       }
     }
   ]

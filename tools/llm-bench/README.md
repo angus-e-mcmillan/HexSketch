@@ -104,6 +104,18 @@ proofread them.
   is also why its structures are the worst of the four. Read 1549 as the most
   the instructions could be costing, not as a measurement.) None of this
   touches the score: all four conditions landed inside each other's ranges.
+- **In Claude Code, a question drawn in HexSketch is a question HexSketch is
+  used for.** Haiku 5.5 inside Claude Code, nothing loaded but HexSketch's
+  connector, three repeats of the whole paper. Asked in text with the
+  connector attached, half its answers (49%) never call HexSketch and 39%
+  draw their answer. Asked the way a chemist using HexSketch asks -- their
+  words and a link to what they drew -- every answer calls it, and 77% draw
+  their answer. The marks: 158.0 (156-159) with no tools, 160.3 (160-161)
+  with the connector, 164.7 (159-169) with the question drawn, retrosynthesis
+  going to 20 / 20. Suggestive rather than settled. The drawn question costs
+  six times as much and takes twice as long: the model reads the drawing,
+  draws its answer, and 8% of its calls fail, most of them render_structure
+  given a malformed mechanism, which it then corrects.
 - **"Draw before you think" was tried and rejected.** An extra prompt line
   telling the model to draw as soon as it could write a structure moved the
   score by a noise-sized amount and dropped structures drawn the same way
