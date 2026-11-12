@@ -21,21 +21,20 @@ test('the STEP lines: reactants, product and the reagents in words', () => {
   ]);
 });
 
-test('an accepted route from bought materials by known reactions earns every mark', async () => {
+test('an accepted route from bought materials earns every mark', async () => {
   const m = await markRoute(q, 'STEP: Clc1ncccn1.OC(=O)C1CCNCC1>>OC(=O)C1CCN(c2ncccn2)CC1 K2CO3, DMF\nSTEP: OC(=O)C1CCN(c2ncccn2)CC1.NCc1ccc(F)cc1>>' + TARGET + ' HATU, DIPEA', none, vendors);
-  assert.equal(m.valid, true); assert.equal(m.buyable, true); assert.equal(m.forward, true); assert.equal(m.accepted, true);
-  assert.deepEqual(m.steps.map((s) => s.reaction), ['SNAr or Buchwald amination', 'amide coupling']);
+  assert.equal(m.valid, true); assert.equal(m.buyable, true); assert.equal(m.accepted, true);
   assert.equal(m.score, 1);
 });
 
-test('another sound route waits for the chemist, who decides its last two fifths', async () => {
+test('another sound route waits for the chemist, who decides its last half', async () => {
   // Through the ester: the last step (aminolysis) is no accepted disconnection, and no template knows it.
   const text = 'STEP: Clc1ncccn1.CCOC(=O)C1CCNCC1>>CCOC(=O)C1CCN(c2ncccn2)CC1 DIPEA, iPrOH\nSTEP: CCOC(=O)C1CCN(c2ncccn2)CC1.NCc1ccc(F)cc1>>' + TARGET + ' AlMe3, toluene';
   const m = await markRoute(q, text, none, vendors);
-  assert.equal(m.valid, true); assert.equal(m.accepted, false); assert.equal(m.forward, false); assert.equal(m.pending, true);
-  assert.equal(m.score, 2 / 5);
+  assert.equal(m.valid, true); assert.equal(m.accepted, false); assert.equal(m.pending, true);
+  assert.equal(m.score, 2 / 4);
   const approved = await markRoute(q, text, { routes: { [m.id]: { viable: true } } }, vendors);
-  assert.equal(approved.pending, false); assert.equal(approved.score, 4 / 5);
+  assert.equal(approved.pending, false); assert.equal(approved.score, 1);
 });
 
 test('a route that misses the target, or starts from a compound too few vendors really sell, loses marks', async () => {
@@ -45,7 +44,7 @@ test('a route that misses the target, or starts from a compound too few vendors 
   const unsold = await markRoute(q, 'STEP: OC(=O)C1CCN(c2ncccn2)CC1.NCc1ccc(F)cc1>>' + TARGET + ' HATU, DIPEA', none, vendors);
   assert.deepEqual(unsold.notSold, ['OC(=O)C1CCN(c2ncccn2)CC1']);
   assert.equal(unsold.vendors['OC(=O)C1CCN(c2ncccn2)CC1'], 2);
-  assert.equal(unsold.score, 4 / 5);
+  assert.equal(unsold.score, 3 / 4);
   const long = await markRoute({ ...q, key: { ...q.key, maxSteps: 1 } as Question['key'] }, 'STEP: Clc1ncccn1.OC(=O)C1CCNCC1>>OC(=O)C1CCN(c2ncccn2)CC1 K2CO3\nSTEP: OC(=O)C1CCN(c2ncccn2)CC1.NCc1ccc(F)cc1>>' + TARGET + ' HATU', none, vendors);
   assert.match(long.why!, /more than 1/);
 });

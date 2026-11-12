@@ -1,21 +1,22 @@
 /**
  * Marking an open synthesis question (type "route"): the model proposes its
  * own route, one "STEP: reactants>>product reagents" line per step, and there
- * are many right answers. Five parts, each a fifth of the marks:
+ * are many right answers. Four parts, each a quarter of the marks:
  *
  *   1  valid: every SMILES reads, the last product is the target, each
  *      step's reactants are starting materials or earlier products, no atom
  *      from nowhere, at most the steps asked for (if not, the route earns 0)
  *   1  buyable: every starting material is sold (PubChem's vendor list)
- *   1  each step is a known reaction (route_check.py's templates)
  *   2  the last step is one of the disconnections the chemist accepts (drawn
  *      in the question's answer), or the chemist approves the route
  *
  * A valid route that is not an accepted one and not yet graded is pending:
  * it is listed for the chemist (grades.json), who approves or rejects it.
+ * Whether each step is a reaction that works is the chemist's to judge, as
+ * they judge the route: a template list would only guess at it, and needed
+ * RDKit to do so.
  */
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { compare, imbalance, readStructure } from '../../packages/agent/src/index.ts';
 import { parseFormula } from '../../packages/core/src/index.ts';
@@ -26,7 +27,7 @@ export interface RouteStep { reactants: string[]; product: string; reagents: str
 export interface RouteMarks {
   /** Names the route for grades.json: the question and its steps. */
   id: string;
-  steps: (RouteStep & { reaction: string | null })[];
+  steps: RouteStep[];
   valid: boolean;
   /** Why it is not valid, in a few words. */
   why: string | null;
@@ -37,7 +38,6 @@ export interface RouteMarks {
   buyable: boolean | null;
   /** Starting materials too few vendors list, worst first. */
   notSold: string[];
-  forward: boolean;
   accepted: boolean;
   /** The step that made one of the couplings the chemist accepts, from 1; 0 when none did. */
   acceptedStep: number;
@@ -130,7 +130,7 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
   const key = q.key;
   const steps = parseRoute(final);
   const id = createHash('sha256').update(`${q.id}\n${steps.map((s) => `${s.reactants.join('.')}>>${s.product}`).join('\n')}`).digest('hex').slice(0, 16);
-  const marks: RouteMarks = { id, steps: steps.map((s) => ({ ...s, reaction: null })), valid: false, why: null, startingMaterials: [], vendors: {}, buyable: null, notSold: [], forward: false, accepted: false, acceptedStep: 0, approved: null, pending: false, score: 0 };
+  const marks: RouteMarks = { id, steps, valid: false, why: null, startingMaterials: [], vendors: {}, buyable: null, notSold: [], accepted: false, acceptedStep: 0, approved: null, pending: false, score: 0 };
   const fail = (why: string) => { marks.why = why; return marks; };
   if (!steps.length) return fail('no STEP lines');
   if (steps.length > key.maxSteps) return fail(`${steps.length} steps, more than ${key.maxSteps}`);
@@ -170,20 +170,6 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
     .sort((a, b) => (marks.vendors[a] ?? 0) - (marks.vendors[b] ?? 0));
   marks.buyable = counts.some((x) => x === null) ? null : !marks.notSold.length;
 
-  // Each step a known reaction.
-  try {
-    const out = execFileSync('python3', ['-I', new URL('route_check.py', import.meta.url).pathname], { input: JSON.stringify({ steps }), encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
-    const checked = (JSON.parse(out) as { steps: { reaction: string | null }[] }).steps;
-    checked.forEach((c, i) => { marks.steps[i]!.reaction = c.reaction; });
-    marks.forward = checked.every((c) => c.reaction);
-  } catch (e) {
-    // A check that cannot run is the machine's fault, not the route's: say so, rather than quietly
-    // taking a fifth of the marks from every route marked on a machine without RDKit.
-    const said = `${(e as { stderr?: string }).stderr ?? ''} ${(e as Error).message}`;
-    if (/No module named .?rdkit|ENOENT/.test(said)) throw new Error('Marking a route needs Python 3 with RDKit, for the check that each step is a known reaction: pip install rdkit');
-    marks.forward = false;
-  }
-
   // One of the couplings the chemist accepts, at any step: a published route often ends in a
   // deprotection, so where the key bond is made matters, not whether it is made last.
   for (const [n, step] of steps.entries()) {
@@ -205,6 +191,6 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
   marks.pending = !marks.accepted && marks.approved === null;
   // Only a compound known to be hard to buy costs the mark: when PubChem cannot be reached the
   // check says nothing, and a route must not score lower for a network that was down.
-  marks.score = (1 + (marks.buyable === false ? 0 : 1) + (marks.forward ? 1 : 0) + (marks.accepted || marks.approved ? 2 : 0)) / 5;
+  marks.score = (1 + (marks.buyable === false ? 0 : 1) + (marks.accepted || marks.approved ? 2 : 0)) / 4;
   return marks;
 }

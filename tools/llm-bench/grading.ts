@@ -47,12 +47,12 @@ if (command === 'push') {
         for (const s of r.route.steps) {
           let picture: string | null = null;
           try { picture = await svg(await scheme({ stages: [s.reactants.join('.'), s.product], arrows: [{ reagents: s.reagents }] }, { abbreviate: true })); } catch { picture = null; }
-          steps.push({ reaction: s.reaction, smiles: `${s.reactants.join('.')}>>${s.product}`, reagents: s.reagents, svg: picture });
+          steps.push({ smiles: `${s.reactants.join('.')}>>${s.product}`, reagents: s.reagents, svg: picture });
         }
         const item = {
           kind: 'route', id: `${run}/${r.key}`, routeId: r.route.id, order: routes, title: q ? `${q.id}: a route to judge` : r.id,
           question: q?.ask ?? '', target: q?.given[0] ? await svg(q.given[0]) : null, steps,
-          checks: { valid: r.route.valid, why: r.route.why, buyable: r.route.buyable, notSold: r.route.notSold.map((x) => `${x} (${r.route!.vendors[x] ?? 0} vendors)`), vendors: r.route.vendors, forward: r.route.forward, accepted: r.route.accepted },
+          checks: { valid: r.route.valid, why: r.route.why, buyable: r.route.buyable, notSold: r.route.notSold.map((x) => `${x} (${r.route!.vendors[x] ?? 0} vendors)`), vendors: r.route.vendors, accepted: r.route.accepted },
         };
         writeFileSync(new URL(`${docId(item.id)}.json`, out), JSON.stringify(item));
         routes++;

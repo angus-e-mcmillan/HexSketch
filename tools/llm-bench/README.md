@@ -130,15 +130,10 @@ proofread them.
 
 ## Running it
 
-Once: OPSIN (needs Java), to read the names models give, and RDKit (needs
-Python 3), to check that each step of a route is a known reaction.
+Once: OPSIN (needs Java), to read the names models give.
 
 ```sh
 sh tools/opsin/fetch.sh
-```
-
-```sh
-pip install rdkit
 ```
 
 ### In Claude Code, with Claude's models
