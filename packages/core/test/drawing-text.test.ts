@@ -59,3 +59,17 @@ test('the summary for an AI carries the arrows and text, after the structures', 
   assert.match(text, /SMILES: O=C1CCCCC1[\s\S]*Arrows and text in the drawing:\n- the structure → nothing {2}\(above the arrow: NaBH4\)/);
   assert.ok(!aiSummary(mol).includes('Arrows and text'), 'without the objects, the summary is as before');
 });
+
+test('conditions that wrap to fit the arrow read back as the chemist wrote them', () => {
+  const mol = drawing([['CS(=O)c1ccccc1', 100, 100]]);
+  const arrow = makeArrow({ x: 170, y: 100 }, { x: 250, y: 100 });
+  // As the scheme layout wraps a long line: a reagent's name is cut in two, and
+  // one line already ends at a comma.
+  const wrapped = makeCaption(210, 72, 'ammonium\ncarbamate,\nPhI(OAc)2, MeOH,\nrt', undefined, 'center');
+  assert.deepEqual(drawingText(mol, [arrow, wrapped], L),
+    ['the structure → nothing  (above the arrow: ammonium carbamate, PhI(OAc)2, MeOH, rt)']);
+  // A break that starts something new is still a boundary between reagents.
+  const items = makeCaption(210, 86, 'NaBH4\nMeOH', undefined, 'center');
+  assert.deepEqual(drawingText(mol, [arrow, items], L),
+    ['the structure → nothing  (above the arrow: NaBH4, MeOH)']);
+});

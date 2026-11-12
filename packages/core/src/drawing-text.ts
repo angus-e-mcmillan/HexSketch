@@ -20,7 +20,17 @@ const mid = (a: Arrow): Pt => ({ x: (a.tail.x + a.head.x) / 2, y: (a.tail.y + a.
 const isSchemeArrow = (o: DocObject): o is Arrow => o.kind === 'arrow' && !o.curve && !o.arc && o.headEnd !== 'none';
 const isRetro = (a: Arrow) => a.headStyle === 'hollow' && a.shaftSpacing > 0;
 const isEquilibrium = (a: Arrow) => a.shaftSpacing > 0 && a.headStyle !== 'hollow' && a.tailEnd !== 'none';
-const oneLine = (t: string) => t.trim().replace(/\s*\n\s*/g, ', ');
+/**
+ * A caption's lines as one line. Conditions wrap to fit the arrow, so a line
+ * break is not always a boundary between reagents: where the line before it
+ * already ends in a comma the break adds nothing, and where the next line
+ * carries on in lower case ("ammonium" / "carbamate") it is one reagent's name
+ * cut in two. Only a break that starts something new becomes a comma, so what
+ * a chemist writes above an arrow is what a reader gets back.
+ */
+const oneLine = (t: string) =>
+  t.trim().split(/\s*\n\s*/).filter(Boolean)
+    .reduce((a, b) => (a ? `${a}${/[,;:]$/.test(a) || /^[a-z(]/.test(b) ? ' ' : ', '}${b}` : b), '');
 
 /** Where a caption's text sits, roughly: its lines at the caption size, from its first baseline. */
 function captionBox(c: Caption, size: number): Box {
