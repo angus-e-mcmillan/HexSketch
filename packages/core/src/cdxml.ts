@@ -76,6 +76,14 @@ function readColorTable(xml: string): (i: number | undefined) => string | null {
 }
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
 
+/** An atom's label as HexSketch shows it ("N+", "15NH", "O-"), for the <t> ChemDraw reads it from. */
+function atomLabelText(mol: Molecule, a: ReturnType<Molecule['atom']>): string {
+  const h = mol.implicitHydrogens(a.id);
+  const charge = a.charge === 0 ? '' : `${a.charge > 0 ? '+' : '-'}${Math.abs(a.charge) > 1 ? Math.abs(a.charge) : ''}`;
+  const radical = a.radical === 1 ? '\u2022' : a.radical === 2 ? '\u2022\u2022' : '';
+  return `${a.isotope ?? ''}${a.element}${h > 0 ? `H${h > 1 ? h : ''}` : ''}${charge}${radical}`;
+}
+
 export function writeCdxml(mol: Molecule, style: DrawingStyle = DEFAULT_STYLE, objects: readonly DocObject[] = [], opts: { page?: PageSettings; groups?: readonly ObjectGroup[] } = {}): string {
   let nextId = 1000;
   const nodeIds = new Map<number, number>();
@@ -142,8 +150,14 @@ export function writeCdxml(mol: Molecule, style: DrawingStyle = DEFAULT_STYLE, o
       if (a.color) attrs.push(`color="${colors.index(a.color)}"`);
       // Highlight Colors, as ChemDraw 20.1 writes them (checked against a ChemDraw export).
       if (a.highlight) attrs.push(`highlightColor="${colors.index(a.highlight)}"`);
-      if (a.label !== null) {
-        lines.push(`<n ${attrs.join(' ')}><t><s font="3" size="${fmt(style.labelSize)}" face="${labelFace(style)}"${colorAttr(a.color)}>${esc(a.label)}</s></t></n>`);
+      // ChemDraw takes an atom's displayed label from its <t>, and writes one for every atom it
+      // labels: without it a charge, an isotope or a radical is simply not shown there, so a nitro
+      // group arrives as a neutral N. Written for the atoms that carry such a mark, as ChemDraw
+      // writes them ("N+", "O-"), and ignored when HexSketch reads the file back.
+      const marked = a.label === null && (a.charge !== 0 || a.isotope !== null || a.radical !== 0);
+      const text = a.label !== null ? a.label : marked ? atomLabelText(mol, a) : null;
+      if (text !== null) {
+        lines.push(`<n ${attrs.join(' ')}><t><s font="3" size="${fmt(style.labelSize)}" face="${labelFace(style)}"${colorAttr(a.color)}>${esc(text)}</s></t></n>`);
       } else {
         lines.push(`<n ${attrs.join(' ')}/>`);
       }
