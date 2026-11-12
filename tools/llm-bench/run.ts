@@ -11,7 +11,8 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { ALL_CONDITIONS, CONDITION_NAME, CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
+import { ALL_CONDITIONS, CLAUDE_CODE, CONDITION_NAME, CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
+import { runClaudeCode } from './claude-code.ts';
 import { measure, opsin, finalAnswer, refusalOf, REFUSAL_ERROR, type Measures } from './measure.ts';
 import { countBy, loadQuestions, questionsFile, TYPES, type Question } from './questions.ts';
 import { writeReport } from './report.ts';
@@ -88,7 +89,8 @@ const runName = opt.run ?? `${new Date().toISOString().slice(0, 10)}-${slug}`;
 const outDir = new URL(`out/${runName}/`, here);
 console.log(`${runName}: ${questions.length} questions × ${conditions.join('/')} × ${repeats} = ${jobs.length} runs of ${model}${opt.provider ? ` on ${opt.provider}` : ''}`);
 if (opt['dry-run']) process.exit(0);
-const key = apiKey();
+// Only an OpenRouter condition needs the key: a run entirely in Claude Code goes on Claude Code's own subscription.
+const key = conditions.every((c) => CLAUDE_CODE.includes(c)) ? '' : apiKey();
 mkdirSync(new URL('transcripts/', outDir), { recursive: true });
 
 // ------------------------------------------------------------------ one run
@@ -115,6 +117,8 @@ export interface RunRecord extends Partial<Measures> {
   rounds: number; tools: { name: string; error: boolean }[]; finish: string | null;
   /** cached: input tokens read from the provider's prompt cache (charged at a fraction). */
   tokens: { prompt: number; completion: number; reasoning: number; cached?: number }; cost: number; ms: number; error?: string;
+  /** In Claude Code: the tools, MCP servers and skills it said it loaded, the proof a run had nothing but HexSketch. */
+  loaded?: { tools: string[]; mcp: string[]; skills: number };
 }
 
 /**
@@ -165,6 +169,15 @@ async function runOne(job: Job): Promise<RunRecord> {
     rounds: 0, tools: [], finish: null, tokens: { prompt: 0, completion: 0, reasoning: 0 }, cost: 0, ms: 0,
   };
   const t0 = Date.now(), deadline = t0 + Number(opt.timeout) * 1000;
+  if (CLAUDE_CODE.includes(condition)) {
+    try {
+      const cc = await runClaudeCode(start.user, { model, withHexsketch: condition === 'cc-hexsketch', effort: opt.effort!, timeoutMs: Number(opt.timeout) * 1000 });
+      Object.assign(rec, { final: cc.final, text: cc.text, model: cc.model, providers: ['Claude Code'], rounds: cc.rounds, tools: cc.tools, finish: cc.finish, tokens: cc.tokens, cost: cc.cost, loaded: cc.loaded });
+    } catch (err) { rec.error = (err as Error).message; }
+    rec.ms = Date.now() - t0;
+    writeFileSync(new URL(`transcripts/${job.key}.json`, outDir), JSON.stringify({ record: rec, prompt: start.user }, null, 2));
+    return rec;
+  }
   try {
     for (;;) {
       // Out of rounds: one last turn without tools, so the model has to answer.

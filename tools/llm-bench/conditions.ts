@@ -16,7 +16,7 @@ import { analyze, compare, convert, drawingSummary, link, name, readStructure, v
 import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
-export type Condition = 'smiles' | 'hexsketch' | 'smiles-described' | 'hexsketch-no-tools';
+export type Condition = 'smiles' | 'hexsketch' | 'smiles-described' | 'hexsketch-no-tools' | 'cc-plain' | 'cc-hexsketch';
 /** The two conditions a run compares. */
 export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
 /**
@@ -35,7 +35,21 @@ export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
  *                        the tools are worth; against `smiles-described`, what
  *                        the instructions are worth.
  */
-export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-described', 'hexsketch-no-tools'];
+export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-described', 'hexsketch-no-tools', 'cc-plain', 'cc-hexsketch'];
+/**
+ * The two Claude Code conditions: the model runs inside Claude Code itself
+ * (claude -p), on the subscription Claude Code runs on rather than through
+ * OpenRouter, with every built-in tool, skill, setting and MCP server taken
+ * away. Both get the same words -- the question as a chemist types it, with
+ * the SMILES and the reagents -- so the only difference between them is
+ * whether HexSketch's connector is attached.
+ *
+ *   cc-plain       Claude Code with no tools at all.
+ *   cc-hexsketch   Claude Code with HexSketch's connector and nothing else,
+ *                  run from this checkout, so a change to HexSketch is in the
+ *                  next run without deploying anything.
+ */
+export const CLAUDE_CODE: Condition[] = ['cc-plain', 'cc-hexsketch'];
 
 /** What each condition is called in a report, so four columns can be told apart. */
 export const CONDITION_NAME: Record<Condition, string> = {
@@ -43,6 +57,8 @@ export const CONDITION_NAME: Record<Condition, string> = {
   'smiles-described': 'The drawing described, no tools',
   'hexsketch-no-tools': "HexSketch's instructions, no tools",
   hexsketch: 'With HexSketch',
+  'cc-plain': 'Claude Code, no tools',
+  'cc-hexsketch': 'Claude Code with HexSketch',
 };
 
 /** The system prompt without HexSketch: neutral, so only HexSketch's own instructions differ. */
@@ -53,7 +69,7 @@ export interface Opening { system: string; user: string; tools: FunctionTool[] }
 /** What the model is given first, in each condition. */
 export async function opening(q: Question, c: Condition): Promise<Opening> {
   const end = ANSWER_FORMAT[q.key.kind];
-  if (c === 'smiles') {
+  if (c === 'smiles' || c === 'cc-plain' || c === 'cc-hexsketch') {
     const parts = [q.ask];
     if (q.given.length) parts.push(q.given.length === 1 && !q.scheme.length ? `SMILES: ${q.given[0]}` : q.given.map((s, i) => `Structure ${i + 1}: ${s}`).join('\n'));
     if (q.scheme.length) parts.push(q.scheme.join('\n'));
