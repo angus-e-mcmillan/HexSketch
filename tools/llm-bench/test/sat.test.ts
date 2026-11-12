@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { drawnOut, readStructure } from '../../../packages/agent/src/index.ts';
@@ -69,7 +69,11 @@ test('the official answers, drawn on the answer sheet, score full marks', async 
   const filled = join(tmpdir(), `answers-${process.pid}.cdxml`);
   writeFileSync(filled, writeCdxml(drawnOut(doc.mol, style), style, objects));
 
-  const out = execFileSync('node', ['--experimental-strip-types', '--no-warnings', join(here, 'sat.ts'), '--file', filled, '--who', 'the key', '--run', `sat-check-${process.pid}`], { encoding: 'utf8' });
+  const run = `sat-check-${process.pid}`;
+  const out = execFileSync('node', ['--experimental-strip-types', '--no-warnings', join(here, 'sat.ts'), '--file', filled, '--who', 'the key', '--run', run], { encoding: 'utf8' });
+  // Marking writes a result like any other run: this one is the test's, not a result to keep.
+  for (const f of [`results/${run}.json`, `results/${run}.md`]) rmSync(join(here, f), { force: true });
+  rmSync(filled, { force: true });
   const total = questions.reduce((sum, q) => sum + q.marks, 0);
   assert.match(out, new RegExp(`the key: ${total} / ${total}`), out.split('\n').filter((l) => / \d+ \/ \d+ /.test(l) && !/ (\d+) \/ \1$/.test(l.trim())).join('\n'));
 });

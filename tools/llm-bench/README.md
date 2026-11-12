@@ -35,10 +35,12 @@ in the results).
 
 ## Questions
 
-Questions are drawn in HexSketch: see [questions/README.md](questions/README.md).
-Then:
+The paper is written in [paper.ts](paper.ts), one spec per question, and
+drawn from there; a question may also be drawn by hand in HexSketch. See
+[questions/README.md](questions/README.md). Then:
 
 ```sh
+npm run llm-bench:author   # draw the paper from paper.ts
 npm run llm-bench:prep
 ```
 

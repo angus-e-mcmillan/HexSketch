@@ -7,7 +7,7 @@ import { readQuestionDrawing } from '../drawing.ts';
 import { finalAnswer, measure, sameAsKey } from '../measure.ts';
 import { opening } from '../conditions.ts';
 
-const example = readQuestionDrawing(readFileSync(new URL('../questions/reaction-1.cdxml', import.meta.url), 'utf8'), 'reaction-1');
+const example = readQuestionDrawing(readFileSync(new URL('./questions/reaction-1.cdxml', import.meta.url), 'utf8'), 'reaction-1');
 const q = example.question;
 const KEY = 'COc1ccc(CNC2C[C@@H]3OCC(c4cc(F)c(F)c(F)c4)N[C@H]3C2)cc1';
 
@@ -86,7 +86,7 @@ test('orientation: an answer laid out afresh from SMILES is not drawn as the che
 });
 
 test('a retrosynthesis: the target, the retrosynthetic arrow, and starting materials as a set with an alternative', async () => {
-  const r = readQuestionDrawing(readFileSync(new URL('../questions/retrosynthesis-1.cdxml', import.meta.url), 'utf8'), 'retrosynthesis-1');
+  const r = readQuestionDrawing(readFileSync(new URL('./questions/retrosynthesis-1.cdxml', import.meta.url), 'utf8'), 'retrosynthesis-1');
   assert.deepEqual(r.warnings, []);
   assert.deepEqual(r.question.scheme, ['Structure 1 ⇒ ?']);
   assert.equal(r.question.key.kind, 'structures');
@@ -104,7 +104,7 @@ test('a retrosynthesis: the target, the retrosynthetic arrow, and starting mater
 });
 
 test('analysis: the atom asked about is highlighted in the answer, and the model marks it with :1', async () => {
-  const a1 = readQuestionDrawing(readFileSync(new URL('../questions/analysis-1.cdxml', import.meta.url), 'utf8'), 'analysis-1').question;
+  const a1 = readQuestionDrawing(readFileSync(new URL('./questions/analysis-1.cdxml', import.meta.url), 'utf8'), 'analysis-1').question;
   assert.equal(a1.key.kind, 'atoms');
   assert.ok(!a1.given[0]!.includes(':'), 'the question carries no marks');
   const mark = async (smiles: string) => (await measure(a1, `ANSWER: ${smiles}`, `ANSWER: ${smiles}`, null, null)).correct;
@@ -123,14 +123,14 @@ test('analysis: an atom equivalent by symmetry counts, and a ranking must keep i
   const { markedRight } = await import('../measure.ts');
   // Either nitrogen of piperazine is the same atom.
   assert.ok(markedRight({ kind: 'atoms', smiles: 'C1C[NH:1]CCN1' }, 'C1CNCC[NH:1]1'));
-  const a3 = readQuestionDrawing(readFileSync(new URL('../questions/analysis-3.cdxml', import.meta.url), 'utf8'), 'analysis-3').question;
+  const a3 = readQuestionDrawing(readFileSync(new URL('./questions/analysis-3.cdxml', import.meta.url), 'utf8'), 'analysis-3').question;
   assert.equal(a3.key.kind, 'ranking');
   assert.ok(a3.key.kind === 'ranking' && markedRight(a3.key, 'c1c[n:1]ccc1[N:2](C)C'));
   assert.ok(a3.key.kind === 'ranking' && !markedRight(a3.key, 'c1c[n:2]ccc1[N:1](C)C'));
 });
 
 test('analysis: a word or a number, as written after "Answer:"', async () => {
-  const a2 = readQuestionDrawing(readFileSync(new URL('../questions/analysis-2.cdxml', import.meta.url), 'utf8'), 'analysis-2').question;
+  const a2 = readQuestionDrawing(readFileSync(new URL('./questions/analysis-2.cdxml', import.meta.url), 'utf8'), 'analysis-2').question;
   for (const [answer, right] of [['sp2', true], ['sp²', true], ['SP^2', true], ['sp3', false]] as const) assert.equal((await measure(a2, `ANSWER: ${answer}`, `ANSWER: ${answer}`, null, null)).correct, right, answer);
   const { writtenRight } = await import('../measure.ts');
   assert.ok(writtenRight({ kind: 'number', value: 8.1, tolerance: 1 }, '7.5'));
@@ -151,7 +151,7 @@ test('refusals: by the provider\'s stop reason, or a reply that declines with no
 
 test('marks come from the question; a safety question needs the warning as well as the answer', async () => {
   assert.equal(q.marks, 4);
-  const h = readQuestionDrawing(readFileSync(new URL('../questions/hazard-1.cdxml', import.meta.url), 'utf8'), 'hazard-1').question;
+  const h = readQuestionDrawing(readFileSync(new URL('./questions/hazard-1.cdxml', import.meta.url), 'utf8'), 'hazard-1').question;
   assert.equal(h.marks, 5);
   const azide = '[N-]=[N+]=NCCCN=[N+]=[N-]';
   const silent = await measure(h, `ANSWER: ${azide}\nNAME: 1,3-diazidopropane`, `ANSWER: ${azide}\nNAME: 1,3-diazidopropane`, azide, null);

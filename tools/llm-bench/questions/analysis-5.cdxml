@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="51.06 73.43 178.71 370.59" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
-<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/><color r="1" g="0.8353" b="0.3098"/></colortable>
+<CDXML CreationProgram="HexSketch" BoundingBox="13.81 5.55 141.46 298.16" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/><color r="1" g="0.9569" b="0.6588"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
 <fragment id="1001">
-<n id="1002" p="178.71 73.43"/>
-<n id="1003" p="178.71 91.85"/>
-<n id="1004" p="162.75 101.06"/>
-<n id="1005" p="162.75 119.49" Element="8"/>
-<n id="1006" p="146.80 128.70" NumHydrogens="1"/>
-<n id="1007" p="146.80 147.13" NumHydrogens="1"/>
-<n id="1008" p="162.75 156.34" Element="7"/>
-<n id="1009" p="162.75 174.76"/>
-<n id="1010" p="146.80 183.98"/>
-<n id="1011" p="178.71 183.98" Element="8"/>
-<n id="1012" p="130.84 156.34" NumHydrogens="1"/>
-<n id="1013" p="130.84 174.76" Element="7"/>
-<n id="1014" p="114.88 147.13"/>
-<n id="1015" p="114.88 128.70"/>
-<n id="1016" p="98.93 119.49"/>
-<n id="1017" p="82.97 128.70" Element="8"/>
-<n id="1018" p="67.01 119.49"/>
-<n id="1019" p="51.06 128.70"/>
-<n id="1020" p="98.93 101.06" Element="8"/>
-<n id="1021" p="130.84 119.49"/>
-<n id="1022" p="146.80 91.85"/>
-<n id="1023" p="130.84 101.06"/>
+<n id="1002" p="141.46 5.55"/>
+<n id="1003" p="141.46 23.97"/>
+<n id="1004" p="125.51 33.19"/>
+<n id="1005" p="125.51 51.61" Element="8"/>
+<n id="1006" p="109.55 60.82" NumHydrogens="1"/>
+<n id="1007" p="109.55 79.25" NumHydrogens="1"/>
+<n id="1008" p="125.51 88.46" Element="7"/>
+<n id="1009" p="125.51 106.89"/>
+<n id="1010" p="109.55 116.10"/>
+<n id="1011" p="141.46 116.10" Element="8"/>
+<n id="1012" p="93.59 88.46" NumHydrogens="1"/>
+<n id="1013" p="93.59 106.89" Element="7"/>
+<n id="1014" p="77.64 79.25"/>
+<n id="1015" p="77.64 60.82"/>
+<n id="1016" p="61.68 51.61"/>
+<n id="1017" p="45.72 60.82" Element="8"/>
+<n id="1018" p="29.77 51.61"/>
+<n id="1019" p="13.81 60.82"/>
+<n id="1020" p="61.68 33.19" Element="8"/>
+<n id="1021" p="93.59 51.61"/>
+<n id="1022" p="109.55 23.97"/>
+<n id="1023" p="93.59 33.19"/>
 <b id="1024" B="1002" E="1003"/>
 <b id="1025" B="1003" E="1004"/>
 <b id="1026" B="1004" E="1022"/>
@@ -51,28 +51,28 @@
 <b id="1045" B="1018" E="1019"/>
 </fragment>
 <fragment id="1046">
-<n id="1047" p="178.71 260.04"/>
-<n id="1048" p="178.71 278.46"/>
-<n id="1049" p="162.75 287.68"/>
-<n id="1050" p="162.75 306.10" Element="8"/>
-<n id="1051" p="146.80 315.31" NumHydrogens="1" highlightColor="19"/>
-<n id="1052" p="146.80 333.74" NumHydrogens="1" highlightColor="19"/>
-<n id="1053" p="162.75 342.95" Element="7"/>
-<n id="1054" p="162.75 361.38"/>
-<n id="1055" p="146.80 370.59"/>
-<n id="1056" p="178.71 370.59" Element="8"/>
-<n id="1057" p="130.84 342.95" NumHydrogens="1" highlightColor="19"/>
-<n id="1058" p="130.84 361.38" Element="7"/>
-<n id="1059" p="114.88 333.74"/>
-<n id="1060" p="114.88 315.31"/>
-<n id="1061" p="98.93 306.10"/>
-<n id="1062" p="82.97 315.31" Element="8"/>
-<n id="1063" p="67.01 306.10"/>
-<n id="1064" p="51.06 315.31"/>
-<n id="1065" p="98.93 287.68" Element="8"/>
-<n id="1066" p="130.84 306.10"/>
-<n id="1067" p="146.80 278.46"/>
-<n id="1068" p="130.84 287.68"/>
+<n id="1047" p="141.46 187.61"/>
+<n id="1048" p="141.46 206.04"/>
+<n id="1049" p="125.51 215.25"/>
+<n id="1050" p="125.51 233.67" Element="8"/>
+<n id="1051" p="109.55 242.89" NumHydrogens="1" highlightColor="19"/>
+<n id="1052" p="109.55 261.31" NumHydrogens="1" highlightColor="19"/>
+<n id="1053" p="125.51 270.53" Element="7"/>
+<n id="1054" p="125.51 288.95"/>
+<n id="1055" p="109.55 298.16"/>
+<n id="1056" p="141.46 298.16" Element="8"/>
+<n id="1057" p="93.59 270.53" NumHydrogens="1" highlightColor="19"/>
+<n id="1058" p="93.59 288.95" Element="7"/>
+<n id="1059" p="77.64 261.31"/>
+<n id="1060" p="77.64 242.89"/>
+<n id="1061" p="61.68 233.67"/>
+<n id="1062" p="45.72 242.89" Element="8"/>
+<n id="1063" p="29.77 233.67"/>
+<n id="1064" p="13.81 242.89"/>
+<n id="1065" p="61.68 215.25" Element="8"/>
+<n id="1066" p="93.59 233.67"/>
+<n id="1067" p="109.55 206.04"/>
+<n id="1068" p="93.59 215.25"/>
 <b id="1069" B="1047" E="1048"/>
 <b id="1070" B="1048" E="1049"/>
 <b id="1071" B="1049" E="1067"/>
@@ -96,6 +96,6 @@
 <b id="1089" B="1062" E="1063"/>
 <b id="1090" B="1063" E="1064"/>
 </fragment>
-<t id="1091" p="40.00 40.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Which atoms are stereocentres? [3]</s></t>
-<t id="1092" p="40.00 231.61" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1091" p="0.00 154.06" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Which atoms are stereocentres? [3]</s></t>
+<t id="1092" p="0.00 173.06" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
 </page></CDXML>

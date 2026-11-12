@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="51.06 73.43 194.67 248.36" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="0.77 80.20 144.38 250.59" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
 <fragment id="1001">
-<n id="1002" p="187.92 73.43"/>
-<n id="1003" p="178.71 89.38"/>
-<n id="1004" p="162.75 80.17" Element="8"/>
-<n id="1005" p="146.80 89.38"/>
-<n id="1006" p="130.84 80.17" Element="7"/>
-<n id="1007" p="114.88 89.38" NumHydrogens="1"/>
-<n id="1008" p="114.88 107.81"/>
-<n id="1009" p="98.93 117.02" Element="8"/>
-<n id="1010" p="130.84 117.02" Element="8"/>
-<n id="1011" p="98.93 80.17"/>
-<n id="1012" p="82.97 89.38"/>
-<n id="1013" p="82.97 107.81"/>
-<n id="1014" p="67.01 117.02"/>
-<n id="1015" p="51.06 107.81"/>
-<n id="1016" p="51.06 89.38"/>
-<n id="1017" p="67.01 80.17"/>
-<n id="1018" p="146.80 107.81" Element="8"/>
-<n id="1019" p="169.50 105.34"/>
-<n id="1020" p="194.67 98.59"/>
+<n id="1002" p="137.63 80.20"/>
+<n id="1003" p="128.42 96.16"/>
+<n id="1004" p="112.46 86.95" Element="8"/>
+<n id="1005" p="96.51 96.16"/>
+<n id="1006" p="80.55 86.95" Element="7"/>
+<n id="1007" p="64.59 96.16" NumHydrogens="1"/>
+<n id="1008" p="64.59 114.58"/>
+<n id="1009" p="48.64 123.80" Element="8"/>
+<n id="1010" p="80.55 123.80" Element="8"/>
+<n id="1011" p="48.64 86.95"/>
+<n id="1012" p="32.68 96.16"/>
+<n id="1013" p="32.68 114.58" Element="7"/>
+<n id="1014" p="16.72 123.80"/>
+<n id="1015" p="0.77 114.58"/>
+<n id="1016" p="0.77 96.16"/>
+<n id="1017" p="16.72 86.95"/>
+<n id="1018" p="96.51 114.58" Element="8"/>
+<n id="1019" p="119.21 112.12"/>
+<n id="1020" p="144.38 105.37"/>
 <b id="1021" B="1002" E="1003"/>
 <b id="1022" B="1003" E="1020"/>
 <b id="1023" B="1003" E="1019"/>
@@ -45,34 +45,34 @@
 <b id="1039" B="1008" E="1009"/>
 </fragment>
 <fragment id="1040">
-<n id="1041" p="130.84 193.08"/>
-<n id="1042" p="130.84 211.51"/>
-<n id="1043" p="114.88 220.72" NumHydrogens="1"/>
-<n id="1044" p="98.93 211.51"/>
-<n id="1045" p="82.97 220.72"/>
-<n id="1046" p="82.97 239.15"/>
-<n id="1047" p="67.01 248.36"/>
-<n id="1048" p="51.06 239.15"/>
-<n id="1049" p="51.06 220.72"/>
-<n id="1050" p="67.01 211.51"/>
-<n id="1051" p="114.88 239.15" Element="7"/>
-<n id="1052" p="146.80 220.72" Element="8"/>
-<b id="1053" B="1041" E="1042"/>
-<b id="1054" B="1042" E="1052" Order="2"/>
-<b id="1055" B="1042" E="1043"/>
-<b id="1056" B="1043" E="1051" Display="WedgeBegin"/>
-<b id="1057" B="1043" E="1044"/>
-<b id="1058" B="1044" E="1045"/>
-<b id="1059" B="1045" E="1050" Order="2"/>
-<b id="1060" B="1050" E="1049"/>
-<b id="1061" B="1049" E="1048" Order="2"/>
-<b id="1062" B="1048" E="1047"/>
-<b id="1063" B="1047" E="1046" Order="2"/>
-<b id="1064" B="1045" E="1046"/>
+<n id="1041" p="64.59 241.37" Element="7"/>
+<n id="1042" p="64.59 222.95" NumHydrogens="1"/>
+<n id="1043" p="80.55 213.74"/>
+<n id="1044" p="96.51 222.95" Element="8"/>
+<n id="1045" p="80.55 195.31"/>
+<n id="1046" p="48.64 213.74"/>
+<n id="1047" p="32.68 222.95"/>
+<n id="1048" p="32.68 241.37" Element="7"/>
+<n id="1049" p="16.72 250.59"/>
+<n id="1050" p="0.77 241.37"/>
+<n id="1051" p="0.77 222.95"/>
+<n id="1052" p="16.72 213.74"/>
+<b id="1053" B="1041" E="1042" Display="WedgeEnd"/>
+<b id="1054" B="1042" E="1046"/>
+<b id="1055" B="1046" E="1047"/>
+<b id="1056" B="1047" E="1052" Order="2"/>
+<b id="1057" B="1052" E="1051"/>
+<b id="1058" B="1051" E="1050" Order="2"/>
+<b id="1059" B="1050" E="1049"/>
+<b id="1060" B="1049" E="1048" Order="2"/>
+<b id="1061" B="1047" E="1048"/>
+<b id="1062" B="1042" E="1043"/>
+<b id="1063" B="1043" E="1045"/>
+<b id="1064" B="1043" E="1044" Order="2"/>
 </fragment>
-<t id="1065" p="40.00 40.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product after the three steps? Give it as the free amine. [5]</s></t>
-<arrow id="1069" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="398.12 95.22 0" Tail3D="211.72 95.22 0"/>
-<t id="1066" p="304.92 64.22" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">1. MeNH(OMe)·HCl, HATU, DIPEA&#10;2. MeMgBr, THF, 0 °C&#10;3. TFA, CH2Cl2</s></t>
-<t id="1067" p="412.12 100.22" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">?</s></t>
-<t id="1068" p="40.00 164.66" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<arrow id="1069" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="269.25 102.00 0" Tail3D="164.64 102.00 0"/>
+<t id="1065" p="209.29 7.50" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">i.&#10;HN(Me)OMe·HCl,&#10;HATU, DIPEA&#10;ii. MeMgBr&#10;(3 equiv), THF,&#10;0 °C&#10;iii. 4 M HCl,&#10;dioxane</s></t>
+<t id="1066" p="289.52 106.00" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1067" p="0.00 161.76" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product after the three steps? Give its neutral form. [5]</s></t>
+<t id="1068" p="0.00 180.76" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
 </page></CDXML>

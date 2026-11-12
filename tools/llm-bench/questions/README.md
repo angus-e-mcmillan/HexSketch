@@ -1,11 +1,33 @@
 # Writing a question
 
-Each question is one drawing in HexSketch, saved with **File › Save as CDXML**
-into this folder. Open an example, change it, and save it under a new name:
+The paper is written in `../paper.ts`, one spec per question — the chemistry
+in a line or two — and drawn by
+
+```sh
+npm run llm-bench:author            # or -- --only reaction-1,hazard-2
+```
+
+which writes the `.cdxml` files in this folder, reads each one back with the
+same reader the benchmark uses, and refuses to write a question that does not
+read back as the spec meant. Change the chemistry there, not in the drawings.
+
+Two rules hold across the paper:
+
+- **A molecule appears in one question only.** A compound met twice lets the
+  second question be answered from the first; `llm-bench:author` warns when a
+  structure comes back.
+- **Each question tests one thing**, and says only what a chemist would say:
+  it never names the bond to break, the position that reacts, or the
+  intermediate expected.
+
+A question may also be drawn by hand in HexSketch and saved here with
+**File › Save as CDXML** — the reader does not mind which wrote it. The rest
+of this page is that convention, which `paper.ts` follows.
 
 | Example | Shows |
 |---|---|
-| `reaction-1.cdxml` | A reaction with reagents on the arrow, and a hazard (all 26 examples are in this folder) |
+| `reaction-1.cdxml` | A reaction with reagents on the arrow (all 26 are in this folder) |
+| `hazard-1.cdxml` | A hazard: the words that count as a warning |
 | `retrosynthesis-1.cdxml` | A retrosynthetic arrow; starting materials as a set; an alternative answer |
 | `analysis-1.cdxml` | Which atom: the answer is the structure with that atom highlighted |
 | `analysis-2.cdxml` | The answer is a word (sp2) |

@@ -176,16 +176,32 @@ export function readKey(r: number, fragments: Fragment[], arrows: Arrow[], regio
   return { kind: 'sequence', stages: filled };
 }
 
+/** A step written "i.", "ii.", "1)" at the start of a line. */
+const STEP = /^(?:[ivx]+|\d+)\s*[.)]/i;
+
+/**
+ * A caption's lines as one line, the way it was typed: a drawing wraps
+ * reagents to fit the arrow, so "NaBH(OAc)3 (1.3 equiv)" may sit on two
+ * lines and "THF, 0 °C" on two more. Lines are joined by a space where the
+ * break fell inside a phrase, and by a semicolon before a new step.
+ */
+export const unwrap = (text: string): string =>
+  text.split('\n').map((l) => l.trim()).filter(Boolean)
+    .reduce((a, b) => (a ? `${a}${/[,;]$/.test(a) ? ' ' : STEP.test(b) ? '; ' : ' '}${b}` : b), '');
+
 /** The arrows of the question as a chemist would type them. */
 function describeScheme(arrows: Arrow[], given: Fragment[], captions: Caption[], L: number, style: DrawingStyle): { lines: string[] } {
   const lines: string[] = [];
   const nameOf = (f: Fragment) => `Structure ${given.indexOf(f) + 1}`;
   for (const a of [...arrows].sort((p, q) => mid(p).y - mid(q).y || mid(p).x - mid(q).x)) {
     const x0 = Math.min(a.tail.x, a.head.x) - L * 0.5, x1 = Math.max(a.tail.x, a.head.x) + L * 0.5, y = mid(a).y;
-    const near = captions.filter((c) => { const b = captionBox(c, style); return b.cx >= x0 && b.cx <= x1 && Math.abs(b.cy - y) < L * 1.6 && !/^\?+$/.test(c.text.trim()); })
-      .sort((p, q) => p.y - q.y);
-    const above = near.filter((c) => captionBox(c, style).cy < y).map((c) => c.text.trim().replace(/\n/g, ', '));
-    const below = near.filter((c) => captionBox(c, style).cy >= y).map((c) => c.text.trim().replace(/\n/g, ', '));
+    // Measured from the text's nearest edge, not its middle: reagents written over three lines sit far above the shaft.
+    const near = captions.filter((c) => {
+      const b = captionBox(c, style);
+      return b.cx >= x0 && b.cx <= x1 && Math.max(b.y0 - y, y - b.y1, 0) < L * 1.6 && !/^\?+$/.test(c.text.trim());
+    }).sort((p, q) => p.y - q.y);
+    const above = near.filter((c) => captionBox(c, style).cy < y).map((c) => unwrap(c.text));
+    const below = near.filter((c) => captionBox(c, style).cy >= y).map((c) => unwrap(c.text));
     const side = (end: Pt) => {
       const fs = fragmentsAt(given, a, end, L);
       if (fs.length) return fs.map(nameOf).join(' + ');
@@ -209,6 +225,9 @@ function fragmentsAt(given: Fragment[], a: Arrow, end: Pt, L: number): Fragment[
   }
   if (!nearest) return [];
   const n = nearest;
+  // Only what stands on this end's side of the arrow: the target of a retrosynthesis is not also its answer.
+  const m = { x: (a.tail.x + a.head.x) / 2 };
+  if ((n.box.cx - m.x) * dir <= 0) return [];
   return given.filter((f) => f === n || ((f.box.cx - end.x) * dir > 0 && f.box.y0 < n.box.y1 && f.box.y1 > n.box.y0 && Math.abs(f.box.cx - n.box.cx) < L * 10))
     .sort((p, q) => p.box.cx - q.box.cx);
 }
