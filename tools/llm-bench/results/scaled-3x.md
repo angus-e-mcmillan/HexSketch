@@ -15,16 +15,16 @@ nvidia/nemotron-3.5-super-vl:free (served as nvidia/nemotron-3.5-super-vl:free, 
 | Correct | 91% (78) | 91% (78) |
 | Right compound, wrong stereochemistry | 0% (78) | 0% (78) |
 | Valid structures | 95% (78) | 100% (78) |
-| Name matches structure | 91% (45) | 98% (45) |
+| Name matches structure | 90% (42) | 98% (42) |
 | Unchanged part kept | 100% (47) | 98% (51) |
 | Hazard flagged | 100% (6) | 100% (6) |
 | Drawn the same way round | 40% (45) | 84% (49) |
 | Refused | 0 | 0 |
 | Cut off at the token limit, no answer | 4 | 0 |
 | cost / question | $0.000 | $0.000 |
-| input tokens / question (from cache) | 146 (0) | 25953 (15287) |
-| output tokens / question (thinking) | 15740 (15662) | 8893 (8483) |
-| median time | 135 s | 74 s |
+| input tokens / question (from cache) | 146 (0) | 25997 (15343) |
+| output tokens / question (thinking) | 15556 (15477) | 8964 (8551) |
+| median time | 135 s | 75 s |
 | tool calls / question | 0.0 | 1.2 |
 
 Score: marks for answers that are right, averaged over the repeats (range in brackets). Each measure is the share of the answers it applies to (how many in brackets).
@@ -41,7 +41,7 @@ Score: marks for answers that are right, averaged over the repeats (range in bra
 | reaction-6 | 4 | 3/3 · 7049 · 0.000 · 68 | 3/3 · 4476 · 0.000 · 57 |
 | reaction-7 | 4 | 3/3 · 13481 · 0.000 · 113 | 3/3 · 8155 · 0.000 · 86 |
 | multistep-1 | 5 | 3/3 · 17643 · 0.000 · 154 | 3/3 · 11374 · 0.000 · 98 |
-| multistep-2 | 5 | 3/3 · 25228 · 0.000 · 270 | 3/3 · 8508 · 0.000 · 72 |
+| multistep-2 | 5 | 3/3 · 20446 · 0.000 · 202 | 3/3 · 10352 · 0.000 · 79 |
 | multistep-3 | 5 | 3/3 · 13076 · 0.000 · 125 | 3/3 · 7980 · 0.000 · 64 |
 | mechanism-1 | 5 | 3/3 · 10440 · 0.000 · 107 | 3/3 · 20835 · 0.000 · 172 |
 | mechanism-2 | 5 | 3/3 · 24812 · 0.000 · 241 | 3/3 · 22378 · 0.000 · 214 |

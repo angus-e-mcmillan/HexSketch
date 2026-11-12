@@ -60,9 +60,9 @@ proofread them.
   paper on the free model, 78 answers a condition: 88.7 / 100 (86–90) with
   HexSketch against 90.3 (86–94) without. The ranges overlap, so there is no
   score difference to report, in either direction. What does separate, as means
-  over every answer: 8.9k output tokens a question against 15.7k, 74 s against
+  over every answer: 9.0k output tokens a question against 15.6k, 75 s against
   135 s, no answer cut off against four, every structure valid against 95%,
-  98% of names matching their structure against 91%, and 84% of structures
+  98% of names matching their structure against 90%, and 84% of structures
   drawn the same way round as the question against 40%. A chemist gets the same
   marks in half the time and half the tokens, and gets drawings they can read.
   (An earlier single run read 95 against 91, and was quoted here as a win. One

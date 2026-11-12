@@ -1,6 +1,6 @@
 {
   "run": "scaled-3x",
-  "date": "2026-11-12T11:09:25.162Z",
+  "date": "2026-11-12T12:15:17.447Z",
   "model": "nvidia/nemotron-3.5-super-vl:free",
   "served": [
     "nvidia/nemotron-3.5-super-vl:free"
@@ -19,7 +19,7 @@
     "temperature": "default"
   },
   "questions": {
-    "hash": "41e4dad506f6",
+    "hash": "0693df5e2301",
     "count": 26,
     "marks": 100,
     "types": {
@@ -32,7 +32,7 @@
       "hazard": 2
     }
   },
-  "commit": "1c5af82",
+  "commit": "68a5d3d",
   "failedRuns": 0,
   "totalCost": 0,
   "conditions": {
@@ -86,8 +86,8 @@
         "n": 78
       },
       "consistent": {
-        "rate": 0.9111111111111111,
-        "n": 45
+        "rate": 0.9047619047619048,
+        "n": 42
       },
       "preserved": {
         "rate": 1,
@@ -104,9 +104,9 @@
       "refused": 0,
       "cutOff": 4,
       "cost": 0,
-      "tokens": 15739.75641025641,
-      "reasoning": 15661.76923076923,
-      "prompt": 145.76923076923077,
+      "tokens": 15555.846153846154,
+      "reasoning": 15476.653846153846,
+      "prompt": 146.07692307692307,
       "cachedPrompt": 0,
       "seconds": 135.36450000000002,
       "toolCalls": 0
@@ -161,8 +161,8 @@
         "n": 78
       },
       "consistent": {
-        "rate": 0.9777777777777777,
-        "n": 45
+        "rate": 0.9761904761904762,
+        "n": 42
       },
       "preserved": {
         "rate": 0.9803921568627451,
@@ -179,12 +179,12 @@
       "refused": 0,
       "cutOff": 0,
       "cost": 0,
-      "tokens": 8892.76923076923,
-      "reasoning": 8483,
-      "prompt": 25952.628205128207,
-      "cachedPrompt": 15287.179487179486,
-      "seconds": 73.9905,
-      "toolCalls": 1.2307692307692308
+      "tokens": 8963.692307692309,
+      "reasoning": 8551.166666666666,
+      "prompt": 25997.128205128207,
+      "cachedPrompt": 15342.76923076923,
+      "seconds": 75.429,
+      "toolCalls": 1.205128205128205
     }
   },
   "perQuestion": [
@@ -429,11 +429,11 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 189,
-        "outputTokens": 25228,
-        "thinkingTokens": 25132.333333333332,
+        "promptTokens": 197,
+        "outputTokens": 20446.333333333332,
+        "thinkingTokens": 20319.333333333332,
         "cost": 0,
-        "seconds": 269.865,
+        "seconds": 202.41233333333332,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -441,12 +441,12 @@
         "of": 3,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 22253.666666666668,
-        "outputTokens": 8508,
-        "thinkingTokens": 8015,
+        "promptTokens": 23410.666666666668,
+        "outputTokens": 10352,
+        "thinkingTokens": 9787.333333333334,
         "cost": 0,
-        "seconds": 71.545,
-        "toolCalls": 1.6666666666666667
+        "seconds": 79.219,
+        "toolCalls": 1
       }
     },
     {
