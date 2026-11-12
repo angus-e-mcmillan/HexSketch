@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { ALL_CONDITIONS, CLAUDE_CODE, CONDITION_NAME, CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
+import { ALL_CONDITIONS, CLAUDE_CODE, CLAUDE_CODE_PAIR, CONDITION_NAME, CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
 import { runClaudeCode } from './claude-code.ts';
 import { measure, opsin, finalAnswer, refusalOf, REFUSAL_ERROR, type Measures } from './measure.ts';
 import { countBy, loadQuestions, questionsFile, TYPES, type Question } from './questions.ts';
@@ -25,7 +25,7 @@ const { values: opt } = parseArgs({
   options: {
     model: { type: 'string' },
     provider: { type: 'string' },
-    conditions: { type: 'string', default: CONDITIONS.join(',') },
+    conditions: { type: 'string' },
     repeats: { type: 'string', default: '3' },
     types: { type: 'string' },
     only: { type: 'string' },
@@ -67,7 +67,9 @@ if (opt['list-models'] !== undefined) {
 
 if (!opt.model) throw new Error('Give --model, an OpenRouter model id (find one with --list-models opus)');
 const model = opt.model;
-const conditions = opt.conditions!.split(',').map((c) => c.trim()) as Condition[];
+// An OpenRouter model id has a slash in it (anthropic/claude-haiku-5.5); Claude Code's never does (claude-haiku-5-5).
+const inClaudeCode = !model.includes('/');
+const conditions = (opt.conditions ?? (inClaudeCode ? CLAUDE_CODE_PAIR : CONDITIONS).join(',')).split(',').map((c) => c.trim()) as Condition[];
 for (const c of conditions) if (!ALL_CONDITIONS.includes(c)) throw new Error(`Unknown condition ${c}: use ${ALL_CONDITIONS.join(', ')}`);
 /** How hexsketch.com's chat asks (apps/web/src/openrouter.ts complete() and maxTokensFor()). */
 const WEBSITE = { effort: 'low', maxTokens: (model: string) => (model.startsWith('anthropic/') ? 4096 : 16384) } as const;

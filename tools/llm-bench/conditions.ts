@@ -1,5 +1,7 @@
 /**
- * The two ways a chemist can put a question to a model.
+ * How a question is put to a model, with HexSketch and without, in two places.
+ *
+ * Through OpenRouter, for any model:
  *
  * smiles     Without HexSketch: the chemist types the question and pastes the
  *            structures as SMILES, with the reagents written out. No tools.
@@ -11,31 +13,20 @@
  *            in the chat and draws in the editor with show_in_sketcher. The
  *            tools run here exactly as the website runs them (apps/web/src/chat.ts),
  *            against a stand-in editor that keeps the current drawing.
+ *
+ * Inside Claude Code, for Claude's own models on the subscription Claude Code
+ * runs on: cc-plain, cc-hexsketch and cc-drawn, described at CLAUDE_CODE below.
+ * The comparison that matters there is cc-plain against cc-drawn: the question
+ * typed, and the question drawn in HexSketch the way a chemist hands it over.
  */
 import { analyze, compare, convert, drawingSummary, link, name, readStructure, validate } from '../../packages/agent/src/index.ts';
 import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
-export type Condition = 'smiles' | 'hexsketch' | 'smiles-described' | 'hexsketch-no-tools' | 'cc-plain' | 'cc-hexsketch' | 'cc-drawn';
-/** The two conditions a run compares. */
+export type Condition = 'smiles' | 'hexsketch' | 'cc-plain' | 'cc-hexsketch' | 'cc-drawn';
+/** The two conditions an OpenRouter run compares: the question typed, and the question drawn on hexsketch.com. */
 export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
-/**
- * Conditions a run may ask for, to take apart why HexSketch halves a model's
- * thinking. Three things differ between the two conditions above at once: what
- * the model is told about the structure (a name and a formula, or a SMILES to
- * parse itself), what its instructions are, and whether it has tools. These two
- * hold one of those still:
- *
- *   smiles-described     What the editor shows, without HexSketch's instructions
- *                        and without tools: the drawing described in the same
- *                        words, under the plain system prompt. Against `smiles`,
- *                        it measures what the description alone is worth.
- *   hexsketch-no-tools   HexSketch's instructions and the same description, but
- *                        no tools to call. Against `hexsketch`, it measures what
- *                        the tools are worth; against `smiles-described`, what
- *                        the instructions are worth.
- */
-export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-described', 'hexsketch-no-tools', 'cc-plain', 'cc-hexsketch', 'cc-drawn'];
+export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'cc-plain', 'cc-hexsketch', 'cc-drawn'];
 /**
  * The Claude Code conditions: the model runs inside Claude Code itself
  * (claude -p), on the subscription Claude Code runs on rather than through
@@ -56,12 +47,12 @@ export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-descr
  *                  drawing the question rather than typing it changes.
  */
 export const CLAUDE_CODE: Condition[] = ['cc-plain', 'cc-hexsketch', 'cc-drawn'];
+/** The two conditions a Claude Code run compares unless told otherwise: the question typed, and drawn. */
+export const CLAUDE_CODE_PAIR: Condition[] = ['cc-plain', 'cc-drawn'];
 
 /** What each condition is called in a report, so four columns can be told apart. */
 export const CONDITION_NAME: Record<Condition, string> = {
   smiles: 'Without HexSketch',
-  'smiles-described': 'The drawing described, no tools',
-  'hexsketch-no-tools': "HexSketch's instructions, no tools",
   hexsketch: 'With HexSketch',
   'cc-plain': 'Claude Code, no tools',
   'cc-hexsketch': 'Claude Code with HexSketch',
@@ -86,14 +77,11 @@ export async function opening(q: Question, c: Condition): Promise<Opening> {
     return { system: PLAIN_SYSTEM, user: parts.join('\n\n'), tools: [] };
   }
   const shown = q.drawing ? await describe(q.drawing) : null;
-  const withDrawing = `${q.ask}\n\n${end}${shown ? `\n\nWhat the editor shows now:\n${shown}` : ''}`;
-  // The drawing described, but nothing else of HexSketch: no instructions, no tools.
-  if (c === 'smiles-described') return { system: PLAIN_SYSTEM, user: withDrawing, tools: [] };
   return {
     system: PAGE_INSTRUCTIONS,
     // As the website sends it: the message, then what the editor shows (when anything is drawn).
-    user: withDrawing,
-    tools: c === 'hexsketch-no-tools' ? [] : pageTools(),
+    user: `${q.ask}\n\n${end}${shown ? `\n\nWhat the editor shows now:\n${shown}` : ''}`,
+    tools: pageTools(),
   };
 }
 

@@ -1,19 +1,26 @@
 # LLM benchmark
 
 Does HexSketch make a model's chemistry more reliable? Each question is a
-drawing a chemist would make. It is put to a model twice, through OpenRouter:
+drawing a chemist would make. It is put to a model twice -- through OpenRouter,
+for any model, or inside Claude Code, for Claude's own:
 
 | Condition | How the question reaches the model | How it answers |
 |---|---|---|
 | Without HexSketch (`smiles`) | The chemist's question, the structures as SMILES, and the reagents and conditions written out. No tools. | In text |
 | With HexSketch (`hexsketch`) | As on hexsketch.com: the question in the chat beside the editor, which holds the drawing. HexSketch's own system prompt, all its tools, and the drawing as HexSketch describes it. | In the chat, and by drawing in the editor (`show_in_sketcher`) |
+| Claude Code, typed (`cc-plain`) | In Claude Code with nothing attached: the same words as `smiles`. | In text |
+| Claude Code, drawn (`cc-drawn`) | In Claude Code with HexSketch's connector and nothing else: the chemist's words and a link to their drawing, which the model reads through HexSketch. | In text, drawing with `render_structure` |
 
-The tools run here exactly as the website runs them, against a stand-in
-editor, so the benchmark measures HexSketch as it is.
+Through OpenRouter, the tools run here exactly as the website runs them,
+against a stand-in editor; in Claude Code, HexSketch's connector runs from
+this checkout. Either way the benchmark measures HexSketch as it is.
 
 ## What is measured
 
-The paper is 100 marks over seven types of question (`questions/`). Each run
+The paper is 100 marks over seven types of question (`questions/`); `--set hard`
+is 19 harder questions on less common chemistry, six of them ending at a drug
+whose structure PubChem confirms, and `--set all` is the two together, 45
+questions and 174 marks. Each run
 reports the **score** in each condition (marks for right answers, overall and
 per type), and for every answer, automatically:
 
@@ -129,6 +136,36 @@ Once: OPSIN (needs Java), to read the names models give.
 sh tools/opsin/fetch.sh
 ```
 
+### In Claude Code, with Claude's models
+
+Claude's own models run inside Claude Code itself, on the subscription Claude
+Code is signed in with: no OpenRouter, no key. Each question runs in its own
+`claude -p` with every built-in tool, skill, setting, CLAUDE.md and MCP server
+taken away, and HexSketch's connector -- run from this checkout, so a change
+to HexSketch is in the next run with nothing deployed -- as the only thing
+attached. Claude Code reports what it loaded before it starts; a run that
+loaded anything more, or whose HexSketch call was refused, is failed rather
+than measured.
+
+```sh
+npm run llm-bench -- --model claude-haiku-5-5 --set all
+```
+
+A model id without a slash runs in Claude Code and compares, by default:
+
+| Condition | The question | HexSketch |
+|---|---|---|
+| `cc-plain` | typed: the words, with the structures as SMILES and the reagents written out | none |
+| `cc-drawn` | drawn: the words, and a link to the drawing in HexSketch, as a chemist hands it over | the connector, which the model needs to read the drawing |
+| `cc-hexsketch` | typed, exactly as `cc-plain` | the connector, unasked for -- what attaching it alone changes |
+
+`--effort` is passed to Claude Code. The cost a report gives is Claude Code's
+own count; on a subscription it is usage against the plan's limits, not a bill.
+Claude Code does not report thinking apart from output, so a report's thinking
+figure reads 0 there: the thinking is in the output count.
+
+### Through OpenRouter, with any model
+
 Put your OpenRouter key in `tools/llm-bench/.env` (git ignores it; never
 paste it anywhere else):
 
@@ -145,9 +182,9 @@ npm run llm-bench -- --model MODEL_ID --provider anthropic --repeats 1
 
 | Option | Default | |
 |---|---|---|
-| `--model` | required | OpenRouter model id |
+| `--model` | required | OpenRouter model id, or a Claude Code one (`claude-haiku-5-5`) |
 | `--provider` | any | Pin one provider, with no fallbacks |
-| `--conditions` | `smiles,hexsketch` | Either or both |
+| `--conditions` | `smiles,hexsketch`, or `cc-plain,cc-drawn` in Claude Code | Any of `smiles`, `hexsketch`, `cc-plain`, `cc-hexsketch`, `cc-drawn` |
 | `--repeats` | 3 | Passes through the questions |
 | `--types` | all | e.g. `reaction,mechanism` |
 | `--only` | | Question ids, e.g. `reaction-1` |
