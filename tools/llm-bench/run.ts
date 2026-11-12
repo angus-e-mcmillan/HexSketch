@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
-import { ALL_CONDITIONS, CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
+import { ALL_CONDITIONS, CONDITION_NAME, CONDITIONS, opening, runTool, type Condition } from './conditions.ts';
 import { measure, opsin, finalAnswer, refusalOf, REFUSAL_ERROR, type Measures } from './measure.ts';
 import { countBy, loadQuestions, questionsFile, TYPES, type Question } from './questions.ts';
 import { writeReport } from './report.ts';
@@ -310,7 +310,7 @@ const LABEL: Record<(typeof MEASURES)[number], string> = {
   preserved: 'Unchanged part kept', flagged: 'Hazard flagged', oriented: 'Drawn the same way round',
 };
 const cs = summary.conditions;
-const head = (c: Condition) => (c === 'smiles' ? 'Without HexSketch' : 'With HexSketch');
+const head = (c: Condition) => CONDITION_NAME[c];
 const score = (x: { score: number; outOf: number }, range?: number[]) => `${x.score.toFixed(1)} / ${x.outOf}${range && repeats > 1 ? ` (${range[0]}–${range[1]})` : ''}`;
 const lines = [
   `# ${runName}`, '',

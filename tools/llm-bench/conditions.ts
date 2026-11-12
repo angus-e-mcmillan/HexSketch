@@ -37,6 +37,14 @@ export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
  */
 export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-described', 'hexsketch-no-tools'];
 
+/** What each condition is called in a report, so four columns can be told apart. */
+export const CONDITION_NAME: Record<Condition, string> = {
+  smiles: 'Without HexSketch',
+  'smiles-described': 'The drawing described, no tools',
+  'hexsketch-no-tools': "HexSketch's instructions, no tools",
+  hexsketch: 'With HexSketch',
+};
+
 /** The system prompt without HexSketch: neutral, so only HexSketch's own instructions differ. */
 const PLAIN_SYSTEM = 'You are an expert chemist helping a colleague. Answer their question about the structures they give you.';
 

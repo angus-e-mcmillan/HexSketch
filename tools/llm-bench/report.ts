@@ -4,7 +4,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { link, render } from '../../packages/agent/src/index.ts';
-import { opening, type Condition } from './conditions.ts';
+import { CONDITION_NAME, opening, type Condition } from './conditions.ts';
 import type { Key, Question } from './questions.ts';
 import type { RunRecord } from './run.ts';
 
@@ -85,7 +85,7 @@ export async function writeReport(file: URL, run: string, questions: Question[],
 <p><code>${esc(r.answer ?? '(no ANSWER line)')}</code>${r.name ? `<br>${esc(r.name)}` : ''}</p>
 <details><summary>The reply</summary><pre>${esc(r.text)}</pre></details></div>`);
       }
-      cols.push(`<div><h3>${c === 'smiles' ? 'Without HexSketch' : 'With HexSketch'}</h3>${answers.join('') || '<p class="none">no runs</p>'}</div>`);
+      cols.push(`<div><h3>${CONDITION_NAME[c]}</h3>${answers.join('') || '<p class="none">no runs</p>'}</div>`);
     }
     parts.push(`<section class="q"><h2>${esc(q.id)} <small>${q.type} · ${q.marks} marks</small></h2><p>${esc(q.ask)}</p>
 <div class="cols"><div><h3>Question</h3><div class="d">${await svg(q.drawing, 'nothing drawn')}</div></div><div><h3>Answer</h3>${await keyCell(q.key)}</div></div>
