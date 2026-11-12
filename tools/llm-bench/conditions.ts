@@ -16,9 +16,26 @@ import { analyze, compare, convert, drawingSummary, link, name, readStructure, v
 import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
-export type Condition = 'smiles' | 'hexsketch';
+export type Condition = 'smiles' | 'hexsketch' | 'smiles-described' | 'hexsketch-no-tools';
 /** The two conditions a run compares. */
 export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
+/**
+ * Conditions a run may ask for, to take apart why HexSketch halves a model's
+ * thinking. Three things differ between the two conditions above at once: what
+ * the model is told about the structure (a name and a formula, or a SMILES to
+ * parse itself), what its instructions are, and whether it has tools. These two
+ * hold one of those still:
+ *
+ *   smiles-described     What the editor shows, without HexSketch's instructions
+ *                        and without tools: the drawing described in the same
+ *                        words, under the plain system prompt. Against `smiles`,
+ *                        it measures what the description alone is worth.
+ *   hexsketch-no-tools   HexSketch's instructions and the same description, but
+ *                        no tools to call. Against `hexsketch`, it measures what
+ *                        the tools are worth; against `smiles-described`, what
+ *                        the instructions are worth.
+ */
+export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-described', 'hexsketch-no-tools'];
 
 /** The system prompt without HexSketch: neutral, so only HexSketch's own instructions differ. */
 const PLAIN_SYSTEM = 'You are an expert chemist helping a colleague. Answer their question about the structures they give you.';
@@ -36,11 +53,14 @@ export async function opening(q: Question, c: Condition): Promise<Opening> {
     return { system: PLAIN_SYSTEM, user: parts.join('\n\n'), tools: [] };
   }
   const shown = q.drawing ? await describe(q.drawing) : null;
+  const withDrawing = `${q.ask}\n\n${end}${shown ? `\n\nWhat the editor shows now:\n${shown}` : ''}`;
+  // The drawing described, but nothing else of HexSketch: no instructions, no tools.
+  if (c === 'smiles-described') return { system: PLAIN_SYSTEM, user: withDrawing, tools: [] };
   return {
     system: PAGE_INSTRUCTIONS,
     // As the website sends it: the message, then what the editor shows (when anything is drawn).
-    user: `${q.ask}\n\n${end}${shown ? `\n\nWhat the editor shows now:\n${shown}` : ''}`,
-    tools: pageTools(),
+    user: withDrawing,
+    tools: c === 'hexsketch-no-tools' ? [] : pageTools(),
   };
 }
 
