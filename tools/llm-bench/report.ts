@@ -3,7 +3,7 @@
  * run's answers beside their drawings (run.ts). Drawn by HexSketch.
  */
 import { writeFileSync } from 'node:fs';
-import { render } from '../../packages/agent/src/index.ts';
+import { link, render } from '../../packages/agent/src/index.ts';
 import { opening, type Condition } from './conditions.ts';
 import type { Key, Question } from './questions.ts';
 import type { RunRecord } from './run.ts';
@@ -13,6 +13,12 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 async function svg(input: string | null | undefined, empty = 'nothing to draw'): Promise<string> {
   if (!input) return `<p class="none">${esc(empty)}</p>`;
   try { return String((await render(input, { padding: 10, abbreviate: true })).data); } catch (e) { return `<p class="none">${esc((e as Error).message)}</p>`; }
+}
+
+/** The drawing as a link that opens it in HexSketch, to check it by hand (on a phone, one tap). */
+async function openIn(input: string | null | undefined): Promise<string> {
+  if (!input) return '';
+  try { return `<p class="open"><a href="${esc(await link(input, { format: 'cdxml' }))}">Open in HexSketch</a></p>`; } catch { return ''; }
 }
 
 /** The key as SMILES to draw (one structure, a set, the stages as a reaction, or the structure whose atoms are asked about); null for a number or a word. */
@@ -38,6 +44,7 @@ h1 small,h2 small{font-weight:normal;color:#5b6875;font-size:.75em;margin-left:.
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}@media(max-width:820px){.cols{grid-template-columns:1fr}}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f5f7;padding:10px;border-radius:6px;font-size:.82em;max-height:420px;overflow:auto}
 h3{margin:0 0 6px;font-size:.8em;text-transform:uppercase;letter-spacing:.05em;color:#5b6875}
+.open{margin:8px 0 0}.open a{font-size:.85em;color:#1f4e79}
 .none{color:#8a96a3;font-style:italic}.written{font-size:1.3em;font-weight:600;margin:8px 0}.warn{color:#b3261e}
 .m{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.m span{font-size:.75em;border-radius:4px;padding:1px 7px;background:#eef1f4}
 .m .y{background:#e4f1e6;color:#2f6b3a}.m .n{background:#fbeceb;color:#b3261e}
@@ -53,7 +60,7 @@ export async function writeQuestionsPage(file: URL, questions: Question[], warni
     const w = warnings.get(q.id) ?? [];
     parts.push(`<section class="q" id="${esc(q.id)}"><h2>${esc(q.id)} <small>${q.type} · ${q.marks} marks${q.hazard ? ` · hazard: ${esc(q.hazard.join(', '))}` : ''}</small></h2>
 ${w.length ? `<ul class="warn">${w.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
-<div class="cols"><div><h3>In the editor</h3><div class="d">${await svg(q.drawing, 'nothing drawn')}</div></div>
+<div class="cols"><div><h3>In the editor</h3><div class="d">${await svg(q.drawing, 'nothing drawn')}</div>${await openIn(q.drawing)}</div>
 <div><h3>Answer (${q.key.kind})</h3>${await keyCell(q.key)}${'also' in q.key && q.key.also?.length ? `<p>Also accepted: ${q.key.also.length}</p>` : ''}</div></div>
 <div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>${esc(plain.user)}</pre></div>
 <div><h3>With HexSketch, the model receives</h3><pre>${esc(hex.user)}</pre></div></div></section>`);
