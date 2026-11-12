@@ -115,10 +115,10 @@ export const PAPER: Spec[] = [
   {
     // Weinreb amide, Grignard, then the acid: the stereocentre is carried through, and the salt is asked for as its neutral form.
     id: 'multistep-2',
-    ask: 'What is the product after the three steps? Give its neutral form.',
+    ask: 'Give the product of each step, in order, the last as its neutral form.',
     marks: 5,
     shown: { stages: ['CC(C)(C)OC(=O)N[C@@H](Cc1cccc(c1)-c1ccccc1)C(=O)O', '?'], arrows: [{ reagents: 'i. HN(Me)OMe·HCl, HATU, DIPEA\nii. MeMgBr (3 equiv), THF, 0 °C\niii. 4 M HCl, dioxane' }] },
-    answer: { structures: ['N[C@@H](Cc1cccc(c1)-c1ccccc1)C(C)=O'] },
+    answer: { sequence: ['CC(C)(C)OC(=O)N[C@@H](Cc1cccc(c1)-c1ccccc1)C(=O)N(C)OC', 'CC(C)(C)OC(=O)N[C@@H](Cc1cccc(c1)-c1ccccc1)C(C)=O', 'N[C@@H](Cc1cccc(c1)-c1ccccc1)C(C)=O'] },
   },
   {
     // Hydrogenolysis takes the Cbz and leaves the sulfonamide, and the freed amine does the SNAr.
