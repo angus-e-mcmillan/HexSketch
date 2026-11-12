@@ -172,11 +172,17 @@ export async function markRoute(q: Question, final: string, grades: Grades = loa
 
   // Each step a known reaction.
   try {
-    const out = execFileSync('python3', ['-I', new URL('route_check.py', import.meta.url).pathname], { input: JSON.stringify({ steps }), encoding: 'utf8' });
+    const out = execFileSync('python3', ['-I', new URL('route_check.py', import.meta.url).pathname], { input: JSON.stringify({ steps }), encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
     const checked = (JSON.parse(out) as { steps: { reaction: string | null }[] }).steps;
     checked.forEach((c, i) => { marks.steps[i]!.reaction = c.reaction; });
     marks.forward = checked.every((c) => c.reaction);
-  } catch { marks.forward = false; }
+  } catch (e) {
+    // A check that cannot run is the machine's fault, not the route's: say so, rather than quietly
+    // taking a fifth of the marks from every route marked on a machine without RDKit.
+    const said = `${(e as { stderr?: string }).stderr ?? ''} ${(e as Error).message}`;
+    if (/No module named .?rdkit|ENOENT/.test(said)) throw new Error('Marking a route needs Python 3 with RDKit, for the check that each step is a known reaction: pip install rdkit');
+    marks.forward = false;
+  }
 
   // One of the couplings the chemist accepts, at any step: a published route often ends in a
   // deprotection, so where the key bond is made matters, not whether it is made last.

@@ -35,6 +35,11 @@ jobs:
           path: tools/opsin/opsin.jar
           key: opsin-${{ hashFiles('tools/opsin/fetch.sh') }}
       - run: sh tools/opsin/fetch.sh
+      # The LLM benchmark marks a route's steps as known reactions with RDKit (tools/llm-bench/route_check.py).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: pip install rdkit==2026.9.2
       - run: npm ci
       - run: npm run typecheck
       # The npm package (with the in-chat editor) first, so the tests check what was built.
