@@ -575,6 +575,53 @@ export const HARD: Spec[] = [
     answer: { structures: ['Cc1cc(/C=C/C#N)cc(C)c1Nc1ccnc(Nc2ccc(C#N)cc2)n1'] },
   },
   {
+    // Vortioxetine in the two steps its route uses. The test is chemoselectivity
+    // in the first: the iodide reacts and the bromide waits for the palladium.
+    // Product checked against PubChem's record for vortioxetine.
+    id: 'multistep-h1',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['Cc1ccc(S)c(C)c1.Ic1ccccc1Br', '?'], arrows: [{ reagents: 'i. CuI, K2CO3, DMF, 90 °C\nii. piperazine, Pd2(dba)3, BINAP, NaOtBu, toluene, 100 °C' }] },
+    answer: { sequence: ['Cc1ccc(Sc2ccccc2Br)c(C)c1', 'Cc1ccc(Sc2ccccc2N3CCNCC3)c(C)c1'] },
+  },
+  {
+    // Celecoxib, which is made from exactly these two in one step. The
+    // regiochemistry of the pyrazole is the whole question: the other way round
+    // is a different compound that failed. Both halves are sold by the drum.
+    id: 'retrosynthesis-h1',
+    ask: 'Give two starting materials you could buy for a one-step synthesis of this compound.',
+    marks: 5,
+    shown: { stages: ['Cc1ccc(cc1)-c1cc(nn1-c1ccc(cc1)S(N)(=O)=O)C(F)(F)F', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['Cc1ccc(cc1)C(=O)CC(=O)C(F)(F)F', 'NNc1ccc(cc1)S(N)(=O)=O'] },
+  },
+  {
+    // Ciprofloxacin: the far piperazine nitrogen is the base, not the one on
+    // the ring, and not the one the quinolone is built on.
+    id: 'analysis-h1',
+    ask: 'Which nitrogen is the most basic?',
+    marks: 3,
+    shown: { stages: ['OC(=O)C1=CN(C2CC2)c2cc(N3CCNCC3)c(F)cc2C1=O'] },
+    answer: { atoms: 'OC(=O)C1=CN(C2CC2)c2cc(N3CC[NH:1]CC3)c(F)cc2C1=O' },
+  },
+  {
+    // Efavirenz has one stereocentre and it is quaternary, with an alkyne on it.
+    id: 'structure-h2',
+    ask: 'Draw the enantiomer of this compound.',
+    marks: 2,
+    shown: { stages: ['C1CC1C#C[C@]2(C3=C(C=CC(=C3)Cl)NC(=O)O2)C(F)(F)F', '?'], arrows: [{ reagents: '' }] },
+    answer: { structures: ['C1CC1C#C[C@@]2(C3=C(C=CC(=C3)Cl)NC(=O)O2)C(F)(F)F'] },
+  },
+  {
+    // Sodium hydride in DMF: the combination that has run away and destroyed
+    // plant, and the one a chemist is expected to flag before the methylation.
+    id: 'hazard-h1',
+    ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
+    marks: 5,
+    shown: { stages: ['Oc1ccc(cc1)C(=O)N1CCOCC1', '?'], arrows: [{ reagents: 'NaH (1.2 equiv), MeI, DMF, 0 °C to rt' }] },
+    answer: { structures: ['COc1ccc(cc1)C(=O)N1CCOCC1'] },
+    hazard: ['sodium hydride', 'NaH', 'DMF', 'runaway', 'exotherm', 'thermal', 'decomposition'],
+  },
+  {
     // The sulfoximine: nitrogen is delivered to sulfur, not to carbon, and the
     // sulfur keeps four different things on it.
     id: 'structure-h1',

@@ -19,5 +19,7 @@
  "O=C(O)c1ccc(-c2ccc3[nH]ncc3c2)cc1": 0,
  "CN": 31,
  "CNC(=O)c1ccc(Br)cc1": 57,
- "OB(O)c1ccc2[nH]ncc2c1": 64
+ "OB(O)c1ccc2[nH]ncc2c1": 64,
+ "Cc1ccc(cc1)C(=O)CC(=O)C(F)(F)F": 72,
+ "NNc1ccc(cc1)S(N)(=O)=O": 60
 }
