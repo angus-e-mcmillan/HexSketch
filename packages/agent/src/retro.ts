@@ -29,8 +29,13 @@ export function disconnectionMarks(mol: Molecule, style: DrawingStyle, bonds: re
   });
 }
 
-/** What does not balance across a step: atoms only on the left (lost), only on the right (gained), and the change in charge. */
-export interface Imbalance { lost: string; gained: string; charge: number }
+/**
+ * What does not balance across a step: atoms only on the left (lost), only on
+ * the right (gained), the gained atoms other than hydrogen (added: a carbon or
+ * a nitrogen from nowhere is an error unless a reagent brings it), and the
+ * change in charge.
+ */
+export interface Imbalance { lost: string; gained: string; added: string; charge: number }
 
 export function imbalance(before: Molecule, after: Molecule): Imbalance | null {
   const l = computeMass(before), r = computeMass(after);
@@ -42,7 +47,7 @@ export function imbalance(before: Molecule, after: Molecule): Imbalance | null {
   }
   const charge = r.charge - l.charge;
   if (!lost.size && !gained.size && !charge) return null;
-  return { lost: formatHill(lost), gained: formatHill(gained), charge };
+  return { lost: formatHill(lost), gained: formatHill(gained), added: formatHill(new Map([...gained].filter(([el]) => el !== 'H'))), charge };
 }
 
 /** The imbalance in words, for a tool result: "H2O on the left is not on the right". */

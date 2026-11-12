@@ -1,7 +1,7 @@
 import {
-  aiSummary, altTextFor, assignWedges, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
+  aiSummary, altTextFor, assignWedges, parseFormula, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
-  structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
+  perceiveRings, structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
   hazardLine, screenHazards, type Hazard,
 } from '@hexsketch/core';
@@ -134,20 +134,49 @@ function subMolecule(mol: Molecule, ids: readonly AtomId[]): Molecule {
 }
 
 /**
- * Atom mappings a → b of the largest part of `a` found in `b`, trimming `a`
- * a chain end at a time until it fits; none under 4 atoms in common.
+ * Atom mappings a → b of the largest part the two share: `a` trimmed a chain
+ * end at a time until it fits in `b`, or `b` trimmed until it fits in `a`,
+ * whichever keeps more (a Suzuki product has a ring its bromide lacks, which
+ * no trimming of the product's chain ends removes); none under 4 atoms.
  */
-function commonCore(a: Molecule, b: Molecule): Map<AtomId, AtomId>[] {
+export function commonCore(a: Molecule, b: Molecule): Map<AtomId, AtomId>[] {
   if (a.atomCount > 80 || b.atomCount > 80) return [];
-  let pattern = a;
-  while (pattern.atomCount >= 4) {
-    const maps = substructureMappings(pattern, b, 24, true);
-    if (maps.length) return maps.map((m) => m.map);
-    const leaves = [...pattern.atoms()].filter((x) => pattern.neighbours(x.id).length <= 1).map((x) => x.id);
-    if (!leaves.length) return [];
-    const without = (id: AtomId) => { const t = pattern.clone(); t.removeAtom(id); return t; };
-    // The chain end whose loss makes it fit, else the first.
-    pattern = leaves.map(without).find((t) => substructureMappings(t, b, 1).length) ?? without(leaves[0]!);
+  const forward = trimToFit(a, b);
+  const back = trimToFit(b, a).map((m) => new Map([...m].map(([y, x]) => [x, y])));
+  return (back[0]?.size ?? 0) > (forward[0]?.size ?? 0) ? back : forward;
+}
+
+/**
+ * Mappings a → b of `a`, trimmed a chain end at a time until it fits in `b`.
+ * Several trimmings are followed at once (a beam), so the end that has to go
+ * is found even when taking off any single one does not yet make it fit: the
+ * nitro group of a nitroarene that became a carbamate, say, not its fluorine.
+ * Charges are not compared.
+ */
+function trimToFit(a: Molecule, b: Molecule, beam = 6): Map<AtomId, AtomId>[] {
+  // Charges aside: a nitro group's N+ is where the amine made from it has its N.
+  const neutral = a.clone();
+  for (const x of neutral.atoms()) x.charge = 0;
+  let level: Molecule[] = [neutral];
+  while (level.length && level[0]!.atomCount >= 4) {
+    for (const pattern of level) {
+      const maps = substructureMappings(pattern, b, 24, true);
+      if (maps.length) return maps.map((m) => m.map);
+    }
+    const next = new Map<string, Molecule>();
+    for (const pattern of level) {
+      for (const x of pattern.atoms()) {
+        if (pattern.neighbours(x.id).length > 1) continue;
+        const t = pattern.clone(); t.removeAtom(x.id);
+        const key = [...t.atoms()].map((y) => y.id).sort((p, q) => p - q).join(',');
+        if (!next.has(key)) next.set(key, t);
+      }
+    }
+    // Those whose loss leaves most of the elements `b` has: carbon for carbon, nitrogen for nitrogen.
+    const counts = (m: Molecule) => { const c = new Map<string, number>(); for (const y of m.atoms()) c.set(y.element, (c.get(y.element) ?? 0) + 1); return c; };
+    const want = counts(b);
+    const excess = (m: Molecule) => [...counts(m)].reduce((t, [el, n]) => t + Math.max(0, n - (want.get(el) ?? 0)), 0);
+    level = [...next.values()].sort((p, q) => excess(p) - excess(q)).slice(0, beam);
   }
   return [];
 }
@@ -162,31 +191,42 @@ const WEDGE_FLIP: Record<string, string> = { wedgeBegin: 'hashBegin', hashBegin:
  */
 function alignOnto(mol: Molecule, ids: readonly AtomId[], ref: Molecule, maps: Map<AtomId, AtomId>[], refSize: number): void {
   if (maps[0] && maps[0].size === ids.length && ids.length === refSize) { copyDrawing(mol, ids, ref, maps[0]); return; }
-  let best: { err: number; flip: boolean; cos: number; sin: number; c: Pt2 } | null = null;
-  for (const map of maps) {
-    const pairs = [...map].map(([m, r]) => [mol.atom(m), ref.atom(r)] as const);
+  type Pair = readonly [Pt2, Pt2];
+  /** Best rotation of the centred points (2D Procrustes), after an optional mirror in y, and how far it leaves each of `all`. */
+  const solve = (pairs: readonly Pair[], flip: boolean, all: readonly Pair[] = pairs) => {
     const n = pairs.length;
     const c = { x: pairs.reduce((t, [p]) => t + p.x, 0) / n, y: pairs.reduce((t, [p]) => t + p.y, 0) / n };
     const d = { x: pairs.reduce((t, [, q]) => t + q.x, 0) / n, y: pairs.reduce((t, [, q]) => t + q.y, 0) / n };
+    let sxx = 0, sxy = 0;
+    for (const [p, q] of pairs) {
+      const px = p.x - c.x, py = (flip ? -1 : 1) * (p.y - c.y), qx = q.x - d.x, qy = q.y - d.y;
+      sxx += px * qx + py * qy; sxy += px * qy - py * qx;
+    }
+    const th = Math.atan2(sxy, sxx), cos = Math.cos(th), sin = Math.sin(th);
+    const miss = all.map(([p, q]) => {
+      const px = p.x - c.x, py = (flip ? -1 : 1) * (p.y - c.y);
+      return Math.hypot(px * cos - py * sin - (q.x - d.x), px * sin + py * cos - (q.y - d.y));
+    });
+    return { flip, cos, sin, c, miss };
+  };
+  // Which way round (map and mirror) by the fit of all the shared atoms; ties go to the unflipped drawing.
+  let best: { err: number; flip: boolean; map: Map<AtomId, AtomId> } | null = null;
+  for (const map of maps) {
+    const pairs: Pair[] = [...map].map(([m, r]) => [mol.atom(m), ref.atom(r)] as const);
     for (const flip of [false, true]) {
-      // Best rotation of the centred points (2D Procrustes), after an optional mirror in y.
-      let sxx = 0, sxy = 0;
-      for (const [p, q] of pairs) {
-        const px = p.x - c.x, py = (flip ? -1 : 1) * (p.y - c.y), qx = q.x - d.x, qy = q.y - d.y;
-        sxx += px * qx + py * qy; sxy += px * qy - py * qx;
-      }
-      const th = Math.atan2(sxy, sxx), cos = Math.cos(th), sin = Math.sin(th);
-      let err = 0;
-      for (const [p, q] of pairs) {
-        const px = p.x - c.x, py = (flip ? -1 : 1) * (p.y - c.y);
-        err += (px * cos - py * sin - (q.x - d.x)) ** 2 + (px * sin + py * cos - (q.y - d.y)) ** 2;
-      }
-      // Ties go to the unflipped drawing.
-      if (!best || err < best.err - 1e-6) best = { err, flip, cos, sin, c };
+      const err = solve(pairs, flip).miss.reduce((t, x) => t + x * x, 0);
+      if (!best || err < best.err - 1e-6) best = { err, flip, map };
     }
   }
   if (!best) return;
-  const { flip, cos, sin, c } = best;
+  // Then the angle from the ring atoms the two share, when there are some: a ring lies as it did, rather than
+  // turned to split the difference with a chain laid out another way (a Boc group, an amide's NH).
+  const ringOf = (m: Molecule) => new Set(perceiveRings(m).flatMap((r) => r.atoms));
+  const mine = ringOf(mol), theirs = ringOf(ref);
+  const pair = ([m, r]: [AtomId, AtomId]): Pair => [mol.atom(m), ref.atom(r)];
+  const rigid = [...best.map].filter(([m, r]) => mine.has(m) && theirs.has(r)).map(pair);
+  const fit = solve(rigid.length >= 3 ? rigid : [...best.map].map(pair), best.flip);
+  const { flip, cos, sin, c } = fit;
   const keep = new Set(ids);
   for (const id of ids) {
     const a = mol.atom(id);
@@ -209,7 +249,8 @@ function copyDrawing(mol: Molecule, ids: readonly AtomId[], ref: Molecule, map: 
   assignWedges(mol, new Map([...mol.atoms()].filter((a) => a.chirality).map((a) => [a.id, { ...a.chirality! }])));
 }
 
-const isPeptide = (mol: Molecule) => { try { return mol.atomCount >= 7 && recognisePeptide(mol) !== null; } catch { return false; } };
+/** A peptide: two residues or more (Boc-Pro-OH alone is a building block, turned like any other structure). */
+const isPeptide = (mol: Molecule) => { try { return mol.atomCount >= 7 && (recognisePeptide(mol)?.residues.length ?? 0) >= 2; } catch { return false; } };
 
 /**
  * Draw related structures the same way round: each structure in `targets`
@@ -295,13 +336,15 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
     if (detectFormat(t) !== 'smiles') throw new Error(`Stage ${i + 1}: give each stage as SMILES`);
     try { counts.push((await readStructure(t, { ...opts, format: 'smiles' })).mol.fragments().length); } catch (err) { throw new Error(`Stage ${i + 1}: ${(err as Error).message}`); }
   }
-  const s = await readStructure(stages.join('.'), { ...(opts.style ? { style: opts.style } : {}), ...(opts.abbreviate ? { abbreviate: true } : {}), format: 'smiles' });
+  const s = await readStructure(stages.join('.'), { ...(opts.style ? { style: opts.style } : {}), format: 'smiles' });
   const { mol, style } = s;
   const L = style.bondLength, size = style.captionSize, line = size * 1.25;
+  // Each structure the same way round as the first related one before it (or in `like`, the drawing it replaces),
+  // matched with every atom drawn out: a Boc written out in one and abbreviated in the other still counts as shared.
+  const ref = opts.like?.atomCount ? drawnOut(opts.like, style) : null;
+  orientLikeOthers(mol, mol.fragments(), ref ? ref.fragments().map((ids) => ({ mol: ref, ids })) : []);
+  if (opts.abbreviate) abbreviateGroups(mol);
   const fragments = mol.fragments();
-  // Each structure the same way round as the first related one before it (or in `like`, the drawing it replaces).
-  const like = opts.like?.atomCount ? opts.like.fragments().map((ids) => ({ mol: opts.like!, ids })) : [];
-  orientLikeOthers(mol, fragments, like);
   const objects: DocObject[] = [];
   const lines = (t?: string) => (t?.trim() ? t.trim().split('\n') : []);
   const lineWidth = (l: string) => l.length * size * 0.55;
@@ -389,20 +432,49 @@ export async function scheme(input: Scheme, opts: ReadOptions & { like?: Molecul
   return { mol, objects, groups: [], style, format: 'smiles' };
 }
 
+/** Reagents that give a product none of their C, N or O: reducing agents, bases, coupling agents, catalysts' ligands. */
+const SPECTATORS = new Set(['nabh3cn', 'nabh(oac)3', 'stab', 'nabh4', 'libh4', 'lialh4', 'dibal', 'dibal-h', 'k2co3', 'cs2co3', 'na2co3', 'nahco3', 'khco3', 'koac', 'naoac', 'et3n', 'dipea', 'dbu', 'tea', 'nmm', 'pyridine', 'dmap', 'hatu', 'hbtu', 'tbtu', 'pybop', 'edc', 'edci', 'dcc', 'dic', 'hobt', 'hoat', 'oxyma', 't3p', 'cdi', 'pph3', 'dppf', 'xphos', 'sphos', 'binap', 'tfa', 'hcl', 'acoh', 'naoh', 'koh', 'lioh', 'tbaf']);
+
+/**
+ * Whether the reagents written above an arrow may bring the atoms `added`
+ * (a formula such as "C2"): yes when a reagent written as a formula has them
+ * (NaN3, CH2N2), or when one is a name we cannot read (morpholine, DPPA);
+ * no when every reagent is a formula without them or one that gives the
+ * product none of its atoms (NaBH3CN in a reductive amination).
+ */
+function mayBring(reagents: string, added: string): boolean {
+  const need = [...parseFormula(added).keys()];
+  const have = new Set<string>();
+  for (const raw of reagents.split(/[,;+/\n]|\s+(?:then|and)\s+|\s+/i)) {
+    const t = raw.replace(/^\d+\.\s*|\(cat\.?\)|\(?\d+(?:\.\d+)?\s*(?:equiv|eq|mol\s*%|%)\.?\)?/gi, '').trim();
+    if (!t || SPECTATORS.has(t.toLowerCase())) continue;
+    let counts: Map<string, number> | null = null;
+    if (/^(?:[A-Z][a-z]?\d*|\((?:[A-Z][a-z]?\d*)+\)\d*)+$/.test(t)) { try { counts = parseFormula(t); } catch { counts = null; } }
+    // A name, or an abbreviation that is not a formula (Me, Boc2O): it may bring anything.
+    if (!counts || [...counts.keys()].some((el) => !ELEMENTS.has(el))) return true;
+    for (const el of counts.keys()) have.add(el);
+  }
+  return need.every((el) => have.has(el));
+}
+const ELEMENTS = new Set(['H', 'B', 'C', 'N', 'O', 'F', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'K', 'Ca', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Se', 'Br', 'Rh', 'Pd', 'Ag', 'Sn', 'I', 'Cs', 'Os', 'Pt', 'Hg', 'Li', 'Ti', 'Ru', 'Ir', 'Au']);
+
 /**
  * Atoms that do not balance across each forward arrow of a scheme: a
  * byproduct not drawn, or atoms from a reagent written above the arrow
  * (which is fine). Retrosynthetic arrows are skipped: they never balance.
  */
-export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; step: number; unbalanced: string }[]> {
+export async function schemeBalance(input: Scheme): Promise<{ scheme?: number; step: number; unbalanced: string; added?: string }[]> {
   const all = sequences(input);
-  const out: { scheme?: number; step: number; unbalanced: string }[] = [];
+  const out: { scheme?: number; step: number; unbalanced: string; added?: string }[] = [];
   for (const [k, seq] of all.entries()) {
     const stages = await Promise.all(seq.stages.map((t) => readStructure(t.trim(), { format: 'smiles' })));
     for (let i = 1; i < stages.length; i++) {
       if (seq.arrows?.[i - 1]?.type === 'retrosynthetic') continue;
       const x = imbalance(expanded(stages[i - 1]!), expanded(stages[i]!));
-      if (x) out.push({ ...(all.length > 1 ? { scheme: k + 1 } : {}), step: i, unbalanced: describeImbalance(x) });
+      // Atoms other than H the product gains: named on their own, as they are most often a mistake in the product,
+      // unless a reagent above the arrow may bring them (NaN3 its N; morpholine, a name, anything).
+      const added = x?.added && !mayBring(seq.arrows?.[i - 1]?.reagents ?? '', x.added) ? x.added : '';
+      if (x) out.push({ ...(all.length > 1 ? { scheme: k + 1 } : {}), step: i, unbalanced: describeImbalance(x), ...(added ? { added } : {}) });
     }
   }
   return out;
@@ -571,12 +643,17 @@ const expanded = (s: Structure): Molecule => drawnOut(s.mol, s.style);
  * A drawing as an AI reads it with a message: per structure its name,
  * SMILES, formula and masses (abbreviations drawn out, so it sees every
  * atom), then the arrows and text drawn with them (the reagents on an
- * arrow), and the link if one is given. Null when nothing is drawn. The same
- * on hexsketch.com and in the editor in Claude.
+ * arrow), the hazards screening finds in them (so a model warns of the
+ * diazomethane written above an arrow without being asked), and the link if
+ * one is given. Null when nothing is drawn. The same on hexsketch.com and in
+ * the editor in Claude.
  */
 export function drawingSummary(s: Pick<Structure, 'mol' | 'objects' | 'style'>, opts: { link?: string } = {}): string | null {
   if (!s.mol.atomCount) return null;
-  return aiSummary(drawnOut(s.mol, s.style), { nameOf: (m) => nameMolecule(m).name, objects: s.objects, style: s.style, ...opts });
+  const mol = drawnOut(s.mol, s.style);
+  let risks: Hazard[] = [];
+  try { risks = screenHazards(mol, s.objects.flatMap((o) => (o.kind === 'text' && !o.analysis ? [o.text] : [])).join('\n')); } catch { /* screening is a help, never a failure */ }
+  return aiSummary(mol, { nameOf: (m) => nameMolecule(m).name, objects: s.objects, style: s.style, hazards: risks.map(hazardLine), ...opts });
 }
 
 /** A drawing with its abbreviations (Ph, OMe, Boc...) drawn out; the drawing itself if it has none. */

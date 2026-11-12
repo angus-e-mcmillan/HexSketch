@@ -158,7 +158,7 @@ function aromaticAtoms(mol: Molecule): Set<AtomId> {
  * no ring of its own, so only the spelling says it must be an aromatic atom.
  */
 export function parsePattern(smiles: string): Molecule {
-  const mol = parseSmiles(smiles);
+  const mol = readPattern(smiles);
   const tokens = smiles.match(/\[[^\]]*\]|Cl|Br|[BCNOSPFI*]|[bcnops]/g) ?? [];
   const atoms = [...mol.atoms()];
   if (tokens.length === atoms.length) {
@@ -169,6 +169,50 @@ export function parsePattern(smiles: string): Molecule {
   return mol;
 }
 const writtenAromatic = new WeakMap<Molecule, Set<AtomId>>();
+
+/**
+ * A fragment as written, else forgiven the two slips models make most, each
+ * of which would cost a round trip: a ring label left open ("O=C1CC2OCC", a
+ * piece cut from a ring), dropped so the rest matches as a chain; and an
+ * aromatic piece that cannot take alternating double bonds on its own
+ * ("n1ccnc1", "c1ccncc1-c"), read with its atoms aromatic, which matches
+ * ring atoms whatever their bond orders.
+ */
+function readPattern(smiles: string): Molecule {
+  try { return parseSmiles(smiles); } catch (first) {
+    let text = smiles;
+    if (/unclosed ring/i.test((first as Error).message)) {
+      text = closeOpenRings(text);
+      try { return parseSmiles(text); } catch { /* and perhaps aromatic as well */ }
+    }
+    // Lowercase atoms (outside brackets, and the first letter inside) as uppercase; parsePattern marks them aromatic.
+    const upper = text.replace(/\[([a-z])|(^|[^A-Z[])([bcnops])/g, (m, inBracket?: string, before?: string, atom?: string) => (inBracket ? `[${inBracket.toUpperCase()}` : `${before}${atom!.toUpperCase()}`));
+    try { return parseSmiles(upper); } catch { throw first; }
+  }
+}
+
+/** The SMILES without ring labels that are opened and never closed. */
+function closeOpenRings(text: string): string {
+  const open = new Map<string, number>();
+  let depth = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
+    if (ch === '[') depth++;
+    else if (ch === ']') depth--;
+    else if (depth === 0 && (/\d/.test(ch) || ch === '%')) {
+      const label = ch === '%' ? text.slice(i, i + 3) : ch;
+      if (open.has(label)) open.delete(label); else open.set(label, i);
+      if (ch === '%') i += 2;
+    }
+  }
+  const drop = new Set([...open.values()]);
+  let out = '';
+  for (let i = 0; i < text.length; i++) {
+    if (drop.has(i)) { if (text[i] === '%') i += 2; continue; }
+    out += text[i];
+  }
+  return out;
+}
 
 export function substructureMatches(pattern: Molecule, target: Molecule, limit = 50): { atoms: AtomId[]; bonds: BondId[] }[] {
   return substructureMappings(pattern, target, limit).map(({ atoms, bonds }) => ({ atoms, bonds }));
