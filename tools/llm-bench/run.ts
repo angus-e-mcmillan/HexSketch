@@ -310,7 +310,7 @@ const LABEL: Record<(typeof MEASURES)[number], string> = {
   preserved: 'Unchanged part kept', flagged: 'Hazard flagged', oriented: 'Drawn the same way round',
 };
 const cs = summary.conditions;
-const head = (c: Condition) => (c === 'smiles' ? 'Without HexSketch' : 'With HexSketch');
+const head = (c: Condition) => (c === 'smiles' ? 'Without HexSketch' : c === 'hexsketch' ? 'With HexSketch' : `With HexSketch, ${c.slice('hexsketch-'.length).replace(/-/g, ' ')}`);
 const score = (x: { score: number; outOf: number }, range?: number[]) => `${x.score.toFixed(1)} / ${x.outOf}${range && repeats > 1 ? ` (${range[0]}–${range[1]})` : ''}`;
 const lines = [
   `# ${runName}`, '',
