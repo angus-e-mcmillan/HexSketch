@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="5.56 5.73 256.88 229.08" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="20.55 40.12"/>
+<n id="1003" p="29.77 24.16"/>
+<n id="1004" p="45.72 33.37" Element="8"/>
+<n id="1005" p="61.68 24.16"/>
+<n id="1006" p="77.64 33.37" Element="7"/>
+<n id="1007" p="93.59 24.16"/>
+<n id="1008" p="109.55 33.37" NumHydrogens="1"/>
+<n id="1009" p="125.51 24.16" Element="8"/>
+<n id="1010" p="109.55 51.80"/>
+<n id="1011" p="93.59 61.01"/>
+<n id="1012" p="77.64 51.80"/>
+<n id="1013" p="61.68 5.73" Element="8"/>
+<n id="1014" p="38.98 8.20"/>
+<n id="1015" p="13.81 14.95"/>
+<b id="1016" B="1002" E="1003"/>
+<b id="1017" B="1003" E="1015"/>
+<b id="1018" B="1003" E="1014"/>
+<b id="1019" B="1003" E="1004"/>
+<b id="1020" B="1004" E="1005"/>
+<b id="1021" B="1005" E="1013" Order="2"/>
+<b id="1022" B="1005" E="1006"/>
+<b id="1023" B="1006" E="1012"/>
+<b id="1024" B="1012" E="1011"/>
+<b id="1025" B="1011" E="1010"/>
+<b id="1026" B="1010" E="1008"/>
+<b id="1027" B="1008" E="1009" Display="WedgedHashBegin"/>
+<b id="1028" B="1008" E="1007"/>
+<b id="1029" B="1006" E="1007"/>
+</fragment>
+<fragment id="1030">
+<n id="1031" p="177.10 14.95" Element="8"/>
+<n id="1032" p="193.05 24.16"/>
+<n id="1033" p="209.01 14.95"/>
+<n id="1034" p="224.97 24.16"/>
+<n id="1035" p="224.97 42.58"/>
+<n id="1036" p="240.92 51.80" Element="7"/>
+<n id="1037" p="256.88 42.58"/>
+<n id="1038" p="256.88 24.16"/>
+<n id="1039" p="209.01 51.80"/>
+<n id="1040" p="240.92 14.95"/>
+<n id="1041" p="193.05 42.58"/>
+<b id="1042" B="1031" E="1032"/>
+<b id="1043" B="1032" E="1041" Order="2"/>
+<b id="1044" B="1041" E="1039"/>
+<b id="1045" B="1039" E="1035" Order="2"/>
+<b id="1046" B="1035" E="1036"/>
+<b id="1047" B="1036" E="1037" Order="2"/>
+<b id="1048" B="1037" E="1038"/>
+<b id="1049" B="1038" E="1040" Order="2"/>
+<b id="1050" B="1040" E="1034"/>
+<b id="1051" B="1035" E="1034"/>
+<b id="1052" B="1034" E="1033" Order="2"/>
+<b id="1053" B="1032" E="1033"/>
+</fragment>
+<fragment id="1054">
+<n id="1055" p="135.68 210.65"/>
+<n id="1056" p="117.26 210.65"/>
+<n id="1057" p="117.26 192.23" Element="8"/>
+<n id="1058" p="101.30 183.01"/>
+<n id="1059" p="101.30 164.59" Element="7"/>
+<n id="1060" p="85.34 155.38"/>
+<n id="1061" p="85.34 136.95" NumHydrogens="1"/>
+<n id="1062" p="69.39 127.74" Element="8"/>
+<n id="1063" p="53.43 136.95"/>
+<n id="1064" p="53.43 155.38"/>
+<n id="1065" p="37.47 164.59"/>
+<n id="1066" p="21.52 155.38"/>
+<n id="1067" p="5.56 164.59" Element="7"/>
+<n id="1068" p="5.56 183.01"/>
+<n id="1069" p="21.52 192.23"/>
+<n id="1070" p="21.52 136.95"/>
+<n id="1071" p="37.47 183.01"/>
+<n id="1072" p="37.47 127.74"/>
+<n id="1073" p="101.30 127.74"/>
+<n id="1074" p="117.26 136.95"/>
+<n id="1075" p="117.26 155.38"/>
+<n id="1076" p="85.34 192.23" Element="8"/>
+<n id="1077" p="98.83 210.65"/>
+<n id="1078" p="117.26 229.08"/>
+<b id="1079" B="1055" E="1056"/>
+<b id="1080" B="1056" E="1078"/>
+<b id="1081" B="1056" E="1077"/>
+<b id="1082" B="1056" E="1057"/>
+<b id="1083" B="1057" E="1058"/>
+<b id="1084" B="1058" E="1076" Order="2"/>
+<b id="1085" B="1058" E="1059"/>
+<b id="1086" B="1059" E="1075"/>
+<b id="1087" B="1075" E="1074"/>
+<b id="1088" B="1074" E="1073"/>
+<b id="1089" B="1073" E="1061"/>
+<b id="1090" B="1061" E="1062" Display="WedgeBegin"/>
+<b id="1091" B="1062" E="1063"/>
+<b id="1092" B="1063" E="1072" Order="2"/>
+<b id="1093" B="1072" E="1070"/>
+<b id="1094" B="1070" E="1066" Order="2"/>
+<b id="1095" B="1066" E="1067"/>
+<b id="1096" B="1067" E="1068" Order="2"/>
+<b id="1097" B="1068" E="1069"/>
+<b id="1098" B="1069" E="1071" Order="2"/>
+<b id="1099" B="1071" E="1065"/>
+<b id="1100" B="1066" E="1065"/>
+<b id="1101" B="1065" E="1064" Order="2"/>
+<b id="1102" B="1063" E="1064"/>
+<b id="1103" B="1061" E="1060"/>
+<b id="1104" B="1059" E="1060"/>
+</fragment>
+<t id="1105" p="151.30 36.87" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">+</s></t>
+<arrow id="1111" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="376.26 33.37 0" Tail3D="277.15 33.37 0"/>
+<t id="1106" p="319.05 26.37" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">DIAD, PPh3</s></t>
+<t id="1107" p="319.05 48.37" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">THF, 0 °C → rt</s></t>
+<t id="1108" p="396.52 37.37" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1109" p="0.00 94.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product, with its stereochemistry? [4]</s></t>
+<t id="1110" p="0.00 113.00" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+</page></CDXML>

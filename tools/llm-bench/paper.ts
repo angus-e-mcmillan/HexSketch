@@ -493,8 +493,8 @@ export const HARD: Spec[] = [
     id: 'reaction-h5',
     ask: 'What is the product?',
     marks: 4,
-    shown: { stages: ['CC(=O)c1ccc(OC)cc1', '?'], arrows: [{ reagents: 'mCPBA, CH2Cl2, rt' }] },
-    answer: { structures: ['CC(=O)Oc1ccc(OC)cc1'] },
+    shown: { stages: ['CC(=O)c1ccc(OC)c(OC)c1', '?'], arrows: [{ reagents: 'mCPBA, CH2Cl2, rt' }] },
+    answer: { structures: ['CC(=O)Oc1ccc(OC)c(OC)c1'] },
   },
   {
     // Meinwald: the Lewis acid opens the epoxide to the benzylic cation and a
@@ -632,4 +632,10 @@ export const HARD: Spec[] = [
   },
 ];
 
-export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD };
+/**
+ * The sets a run can ask for. `all` is the paper and the harder questions
+ * together: the first measures whether a model can carry a drug-sized molecule
+ * through a transformation, the second whether it knows the chemistry, and a
+ * benchmark that is to tell models apart wants both in one score.
+ */
+export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, all: [...PAPER, ...HARD] };

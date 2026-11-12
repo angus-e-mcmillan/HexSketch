@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="5.56 5.55 76.50 182.64" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="53.43 5.55"/>
+<n id="1003" p="53.43 23.97" Element="7"/>
+<n id="1004" p="37.47 33.19"/>
+<n id="1005" p="37.47 51.61"/>
+<n id="1006" p="21.52 60.82"/>
+<n id="1007" p="5.56 51.61" Element="7"/>
+<n id="1008" p="5.56 33.19"/>
+<n id="1009" p="21.52 23.97"/>
+<n id="1010" p="69.39 33.19"/>
+<b id="1011" B="1002" E="1003"/>
+<b id="1012" B="1003" E="1010"/>
+<b id="1013" B="1003" E="1004"/>
+<b id="1014" B="1004" E="1009" Order="2"/>
+<b id="1015" B="1009" E="1008"/>
+<b id="1016" B="1008" E="1007" Order="2"/>
+<b id="1017" B="1007" E="1006"/>
+<b id="1018" B="1006" E="1005" Order="2"/>
+<b id="1019" B="1004" E="1005"/>
+</fragment>
+<fragment id="1020">
+<n id="1021" p="60.54 127.36"/>
+<n id="1022" p="60.54 145.79" Element="7"/>
+<n id="1023" p="44.59 155.00"/>
+<n id="1024" p="44.59 173.43"/>
+<n id="1025" p="28.63 182.64"/>
+<n id="1026" p="12.67 173.43" Element="7"/>
+<n id="1027" p="12.67 155.00"/>
+<n id="1028" p="28.63 145.79"/>
+<n id="1029" p="76.50 155.00"/>
+<b id="1030" B="1021" E="1022"/>
+<b id="1031" B="1022" E="1029"/>
+<b id="1032" B="1022" E="1023"/>
+<b id="1033" B="1023" E="1028" Order="2"/>
+<b id="1034" B="1028" E="1027"/>
+<b id="1035" B="1027" E="1026" Order="2"/>
+<b id="1036" B="1026" E="1025"/>
+<b id="1037" B="1025" E="1024" Order="2"/>
+<b id="1038" B="1023" E="1024"/>
+</fragment>
+<t id="1039" p="0.00 93.82" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Rank the nitrogens by nucleophilicity, most nucleophilic first. [3]</s></t>
+<t id="1040" p="0.00 112.82" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1041" p="70.44 144.08" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">2</s></t>
+<t id="1042" p="2.78 183.14" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">1</s></t>
+</page></CDXML>
