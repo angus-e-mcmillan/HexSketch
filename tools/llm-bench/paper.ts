@@ -299,6 +299,133 @@ export const CANDIDATES: Spec[] = [
       { structures: ['O=C(OCc1ccccc1)NC1CC(C1)N', 'ClC1=NC=NC=2NC=CC12'] },
     ],
   },
+  {
+    // Which group migrates: the aryl, not the methyl.
+    id: 'reaction-c6',
+    ask: 'What is the major product?',
+    marks: 4,
+    shown: { stages: ['ON=C(C)c1ccccc1', '?'], arrows: [{ reagents: 'TsCl, pyridine', conditions: 'then H2O, reflux' }] },
+    answer: { structures: ['CC(=O)Nc1ccccc1'] },
+  },
+  {
+    // A Baeyer-Villiger: the electron-rich aryl migrates, so the oxygen ends up between it and the carbonyl.
+    id: 'reaction-c7',
+    ask: 'What is the major product?',
+    marks: 4,
+    shown: { stages: ['CC(=O)c1ccc(OC)cc1', '?'], arrows: [{ reagents: 'mCPBA (1.2 equiv)', conditions: 'CH2Cl2, rt, 12 h' }] },
+    answer: { structures: ['CC(=O)Oc1ccc(OC)cc1'] },
+  },
+  {
+    // Two equivalents: the ketone does not survive the second.
+    id: 'reaction-c8',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['COC(=O)c1ccc(Cl)cc1', '?'], arrows: [{ reagents: 'MeMgBr (2.2 equiv)', conditions: 'THF, 0 °C → rt' }] },
+    answer: { structures: ['CC(C)(O)c1ccc(Cl)cc1'] },
+  },
+  {
+    // DIBAL stops at the imine, so the workup gives the aldehyde, not the amine.
+    id: 'reaction-c9',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N#Cc1cccc(Br)c1', '?'], arrows: [{ reagents: 'DIBAL-H (1.1 equiv)', conditions: 'toluene, −78 → 0 °C; then aq. HCl' }] },
+    answer: { structures: ['O=Cc1cccc(Br)c1'] },
+  },
+  {
+    // The azide opens the epoxide from the back: the two groups end up trans, and the product is racemic.
+    id: 'reaction-c10',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['C1CCC2OC2C1', '?'], arrows: [{ reagents: 'NaN3, NH4Cl', conditions: 'MeOH/H2O, 65 °C' }] },
+    answer: { structures: ['O[C@H]1CCCC[C@@H]1N=[N+]=[N-]'] },
+    also: [{ structures: ['O[C@@H]1CCCC[C@H]1N=[N+]=[N-]'] }],
+  },
+  {
+    // LDA takes the less hindered proton, so the methyl lands on the far side.
+    id: 'reaction-c11',
+    ask: 'What is the major product?',
+    marks: 4,
+    shown: { stages: ['O=C1CCCCC1C', '?'], arrows: [{ reagents: 'LDA (1.05 equiv), THF, −78 °C; then MeI', conditions: '−78 °C → rt' }] },
+    answer: { structures: ['CC1CCCC(C)C1=O'] },
+  },
+  {
+    // A Staudinger reduction: the azide goes, the nitro group stays.
+    id: 'reaction-c12',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['[N-]=[N+]=NCc1ccc([N+](=O)[O-])cc1', '?'], arrows: [{ reagents: 'PPh3 (1.1 equiv), H2O', conditions: 'THF, rt' }] },
+    answer: { structures: ['NCc1ccc([N+](=O)[O-])cc1'] },
+  },
+  {
+    // A stabilised ylide gives the E-alkene.
+    id: 'reaction-c13',
+    ask: 'What is the major product, with its geometry?',
+    marks: 4,
+    shown: { stages: ['O=Cc1cccnc1.CCOC(=O)C=P(c1ccccc1)(c1ccccc1)c1ccccc1', '?'], arrows: [{ reagents: '', conditions: 'CH2Cl2, rt, 12 h' }] },
+    answer: { structures: ['CCOC(=O)/C=C/c1cccnc1'] },
+  },
+  {
+    // Freed, the amine closes onto the ester rather than staying as the amino ester.
+    id: 'multistep-c3',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['COC(=O)CCCNC(=O)OC(C)(C)C', '?'], arrows: [{ reagents: 'i. TFA, CH2Cl2, rt\nii. Et3N, MeOH, 60 °C' }] },
+    answer: { sequence: ['COC(=O)CCCN', 'O=C1CCCN1'] },
+  },
+  {
+    // The silyl ether goes, the carbamate stays, and the alcohol is carried on to the azide.
+    id: 'multistep-c4',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['CC(C)(C)[Si](C)(C)OCC1CCN(C(=O)OC(C)(C)C)C1', '?'], arrows: [{ reagents: 'i. TBAF, THF, rt\nii. MsCl, Et3N, 0 °C\niii. NaN3, DMF, 60 °C' }] },
+    answer: { sequence: ['OCC1CCN(C(=O)OC(C)(C)C)C1', 'CS(=O)(=O)OCC1CCN(C(=O)OC(C)(C)C)C1', '[N-]=[N+]=NCC1CCN(C(=O)OC(C)(C)C)C1'] },
+  },
+  {
+    // A pinacol rearrangement: the cation forms, then a methyl migrates to it.
+    id: 'mechanism-c1',
+    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
+    marks: 5,
+    shown: { stages: ['CC(C)(O)C(C)(C)O', '?'], arrows: [{ reagents: 'H2SO4 (cat.)', conditions: 'heat' }] },
+    answer: { sequence: ['CC(C)(O)[C+](C)C', 'CC(=O)C(C)(C)C'] },
+  },
+  {
+    // A Baeyer-Villiger through its Criegee intermediate.
+    id: 'mechanism-c2',
+    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
+    marks: 5,
+    shown: { stages: ['O=C1CCCC1', '?'], arrows: [{ reagents: 'mCPBA (1.2 equiv)', conditions: 'CH2Cl2, rt' }] },
+    answer: { sequence: ['OC1(OOC(=O)c2cccc(Cl)c2)CCCC1', 'O=C1CCCCO1'] },
+  },
+  {
+    id: 'analysis-c2',
+    ask: 'How many stereoisomers does this compound have? Count each enantiomer and each meso form.',
+    marks: 3,
+    shown: { stages: ['CC(Br)C(Br)C'] },
+    answer: { written: '3' },
+  },
+  {
+    // The sulfonamide NH, not the anilide: about ten orders of magnitude apart.
+    id: 'analysis-c3',
+    ask: 'Which NH is the most acidic?',
+    marks: 3,
+    shown: { stages: ['CS(=O)(=O)Nc1ccc(NC(C)=O)cc1'] },
+    answer: { atoms: 'CS(=O)(=O)[NH:1]c1ccc(NC(C)=O)cc1' },
+  },
+  {
+    // Three fluorines four bonds away take about four units off.
+    id: 'analysis-c4',
+    ask: 'Estimate the pKa of the conjugate acid of this amine.',
+    marks: 3,
+    shown: { stages: ['FC(F)(F)CNC'] },
+    answer: { written: '6.1 ± 1.2' },
+  },
+  {
+    id: 'structure-c2',
+    ask: 'Draw the tautomer that predominates.',
+    marks: 2,
+    shown: { stages: ['Oc1ccccn1'] },
+    answer: { structures: ['O=C1C=CC=CN1'] },
+  },
 ];
 
 /** The papers author.ts can draw, by --set. */
