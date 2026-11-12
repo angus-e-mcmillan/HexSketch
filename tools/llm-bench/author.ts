@@ -15,7 +15,7 @@
  * top as a chemist would have it in the editor, then "Q: … [4]", then
  * "Answer" and the answer, then any "Also accept", then any "Hazard:".
  */
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { readStructure, scheme, type SchemeArrow, type Structure } from '../../packages/agent/src/index.ts';
 import { depict } from '../../packages/render/src/index.ts';
@@ -228,6 +228,11 @@ for (const spec of specs) {
       if (key.length > 24) seen.set(key, spec.id);
     }
   } catch (e) { failed++; console.error(`${spec.id}: ${(e as Error).message}`); }
+}
+// A drawing left behind when a question is dropped from the spec still counts as a question: say so.
+if (!pick) {
+  const spare = readdirSync(dir).filter((f) => f.endsWith('.cdxml') && !paper.some((s) => `${s.id}.cdxml` === f));
+  if (spare.length) console.warn(`Not in paper.ts, and still in ${dir.pathname}: ${spare.join(', ')} — delete them, or write their specs.`);
 }
 console.log(`${wrote} question${wrote === 1 ? '' : 's'} drawn in ${dir.pathname}${failed ? `, ${failed} not written` : ''}`);
 if (failed) process.exit(1);

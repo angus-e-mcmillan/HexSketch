@@ -1,0 +1,641 @@
+{
+  "run": "hard-screen",
+  "date": "2026-11-12T08:06:09.541Z",
+  "model": "nvidia/nemotron-3.5-super-vl:free",
+  "served": [
+    "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "providers": [
+    "Nvidia"
+  ],
+  "settings": {
+    "provider": null,
+    "effort": "medium",
+    "maxTokens": 32000,
+    "likeWebsite": {
+      "effort": "low",
+      "maxTokens": 16384
+    },
+    "maxRounds": 12,
+    "repeats": 1,
+    "timeoutSeconds": 600,
+    "temperature": "default"
+  },
+  "questions": {
+    "hash": "59ba91081a1b",
+    "count": 16,
+    "marks": 63,
+    "types": {
+      "reaction": 8,
+      "multistep": 2,
+      "mechanism": 2,
+      "structure": 1,
+      "analysis": 3
+    }
+  },
+  "commit": "8e252cd",
+  "failedRuns": 0,
+  "totalCost": 0,
+  "conditions": {
+    "smiles": {
+      "score": 56,
+      "scoreRange": [
+        56,
+        56
+      ],
+      "outOf": 63,
+      "byType": {
+        "reaction": {
+          "score": 28,
+          "outOf": 32
+        },
+        "multistep": {
+          "score": 10,
+          "outOf": 10
+        },
+        "mechanism": {
+          "score": 10,
+          "outOf": 10
+        },
+        "structure": {
+          "score": 2,
+          "outOf": 2
+        },
+        "analysis": {
+          "score": 6,
+          "outOf": 9
+        }
+      },
+      "correct": {
+        "rate": 0.875,
+        "n": 16
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 16
+      },
+      "valid": {
+        "rate": 0.9285714285714286,
+        "n": 14
+      },
+      "consistent": {
+        "rate": 0.8888888888888888,
+        "n": 9
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 8
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": 0.5,
+        "n": 8
+      },
+      "refused": 0,
+      "cutOff": 2,
+      "cost": 0,
+      "tokens": 12628.5625,
+      "reasoning": 12562.5,
+      "prompt": 128.9375,
+      "cachedPrompt": 0,
+      "seconds": 83.561,
+      "toolCalls": 0
+    },
+    "hexsketch": {
+      "score": 46,
+      "scoreRange": [
+        46,
+        46
+      ],
+      "outOf": 63,
+      "byType": {
+        "reaction": {
+          "score": 28,
+          "outOf": 32
+        },
+        "multistep": {
+          "score": 10,
+          "outOf": 10
+        },
+        "mechanism": {
+          "score": 0,
+          "outOf": 10
+        },
+        "structure": {
+          "score": 2,
+          "outOf": 2
+        },
+        "analysis": {
+          "score": 6,
+          "outOf": 9
+        }
+      },
+      "correct": {
+        "rate": 0.75,
+        "n": 16
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 16
+      },
+      "valid": {
+        "rate": 0.7857142857142857,
+        "n": 14
+      },
+      "consistent": {
+        "rate": 0.8888888888888888,
+        "n": 9
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 8
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": 0.875,
+        "n": 8
+      },
+      "refused": 0,
+      "cutOff": 4,
+      "cost": 0,
+      "tokens": 7296.9375,
+      "reasoning": 7078.9375,
+      "prompt": 12312.4375,
+      "cachedPrompt": 7588,
+      "seconds": 45.851,
+      "toolCalls": 0.75
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "reaction-c6",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 124,
+        "outputTokens": 15034,
+        "thinkingTokens": 14960,
+        "cost": 0,
+        "seconds": 160.373,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 13961,
+        "outputTokens": 5249,
+        "thinkingTokens": 5021,
+        "cost": 0,
+        "seconds": 42.115,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "reaction-c7",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 133,
+        "outputTokens": 5756,
+        "thinkingTokens": 5701,
+        "cost": 0,
+        "seconds": 56.948,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14122,
+        "outputTokens": 3227,
+        "thinkingTokens": 2978,
+        "cost": 0,
+        "seconds": 25.264,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "reaction-c8",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 130,
+        "outputTokens": 1520,
+        "thinkingTokens": 1485,
+        "cost": 0,
+        "seconds": 9.015,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14225,
+        "outputTokens": 1821,
+        "thinkingTokens": 1508,
+        "cost": 0,
+        "seconds": 22.994,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "reaction-c9",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 135,
+        "outputTokens": 10274,
+        "thinkingTokens": 10224,
+        "cost": 0,
+        "seconds": 82.71,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 13947,
+        "outputTokens": 2075,
+        "thinkingTokens": 1883,
+        "cost": 0,
+        "seconds": 18.479,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "reaction-c10",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 129,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
+        "cost": 0,
+        "seconds": 246.673,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 6837,
+        "outputTokens": 16384,
+        "thinkingTokens": 16384,
+        "cost": 0,
+        "seconds": 130.423,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "reaction-c11",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 133,
+        "outputTokens": 9156,
+        "thinkingTokens": 9022,
+        "cost": 0,
+        "seconds": 84.412,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14138,
+        "outputTokens": 7580,
+        "thinkingTokens": 7297,
+        "cost": 0,
+        "seconds": 57.22,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "reaction-c12",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 139,
+        "outputTokens": 5170,
+        "thinkingTokens": 5135,
+        "cost": 0,
+        "seconds": 42.156,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14242,
+        "outputTokens": 1738,
+        "thinkingTokens": 1425,
+        "cost": 0,
+        "seconds": 13.749,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "reaction-c13",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 163,
+        "outputTokens": 16963,
+        "thinkingTokens": 16892,
+        "cost": 0,
+        "seconds": 235.991,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14293,
+        "outputTokens": 9852,
+        "thinkingTokens": 9504,
+        "cost": 0,
+        "seconds": 76.765,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-c3",
+      "type": "multistep",
+      "marks": 5,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 148,
+        "outputTokens": 13728,
+        "thinkingTokens": 13707,
+        "cost": 0,
+        "seconds": 106.395,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14228,
+        "outputTokens": 2526,
+        "thinkingTokens": 2239,
+        "cost": 0,
+        "seconds": 30.389,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-c4",
+      "type": "multistep",
+      "marks": 5,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 170,
+        "outputTokens": 8893,
+        "thinkingTokens": 8812,
+        "cost": 0,
+        "seconds": 72.643,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14651,
+        "outputTokens": 9018,
+        "thinkingTokens": 8548,
+        "cost": 0,
+        "seconds": 74.364,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "mechanism-c1",
+      "type": "mechanism",
+      "marks": 5,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 129,
+        "outputTokens": 7830,
+        "thinkingTokens": 7761,
+        "cost": 0,
+        "seconds": 71.615,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 6837,
+        "outputTokens": 16384,
+        "thinkingTokens": 16384,
+        "cost": 0,
+        "seconds": 143.223,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "mechanism-c2",
+      "type": "mechanism",
+      "marks": 5,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 131,
+        "outputTokens": 15422,
+        "thinkingTokens": 15302,
+        "cost": 0,
+        "seconds": 104.403,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 6828,
+        "outputTokens": 16384,
+        "thinkingTokens": 16384,
+        "cost": 0,
+        "seconds": 170.73,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "structure-c2",
+      "type": "structure",
+      "marks": 2,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 92,
+        "outputTokens": 23708,
+        "thinkingTokens": 23681,
+        "cost": 0,
+        "seconds": 186.323,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 21105,
+        "outputTokens": 1239,
+        "thinkingTokens": 804,
+        "cost": 0,
+        "seconds": 9.933,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "analysis-c2",
+      "type": "analysis",
+      "marks": 3,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 88,
+        "outputTokens": 947,
+        "thinkingTokens": 783,
+        "cost": 0,
+        "seconds": 19.347,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 6782,
+        "outputTokens": 671,
+        "thinkingTokens": 531,
+        "cost": 0,
+        "seconds": 6.099,
+        "toolCalls": 0
+      }
+    },
+    {
+      "id": "analysis-c3",
+      "type": "analysis",
+      "marks": 3,
+      "smiles": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 140,
+        "outputTokens": 3656,
+        "thinkingTokens": 3535,
+        "cost": 0,
+        "seconds": 49.911,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 14019,
+        "outputTokens": 6219,
+        "thinkingTokens": 5989,
+        "cost": 0,
+        "seconds": 49.587,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "analysis-c4",
+      "type": "analysis",
+      "marks": 3,
+      "smiles": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 79,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
+        "cost": 0,
+        "seconds": 298.987,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 6784,
+        "outputTokens": 16384,
+        "thinkingTokens": 16384,
+        "cost": 0,
+        "seconds": 110.361,
+        "toolCalls": 0
+      }
+    }
+  ]
+}

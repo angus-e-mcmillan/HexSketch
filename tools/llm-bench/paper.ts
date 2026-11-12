@@ -42,77 +42,98 @@ export interface Spec {
 }
 
 export const PAPER: Spec[] = [
-  // ------------------------------------------------------------- reaction: the product of a drawn reaction
+  // ---------------------------------------------------------------- reaction
+  // Four at the size a chemist works at, then three where the answer turns on
+  // which group moves: a paper of only small molecules does not tell models
+  // apart, and a paper of only large ones tests bookkeeping and nothing else.
   {
-    // Chemoselectivity: the aldehyde is condensed, the ester is left alone.
+    // Chemoselectivity at scale: the acid is coupled to the ring NH, and the carbamate is untouched.
     id: 'reaction-1',
-    ask: 'What is the product of this reaction?',
+    ask: 'What is the product of this coupling?',
     marks: 4,
-    shown: { stages: ['COC(=O)c1ccc(C=O)cc1.FC1(F)CCNC1', '?'], arrows: [{ reagents: 'NaBH(OAc)3 (1.3 equiv)', conditions: 'DCE, rt, 16 h' }] },
-    answer: { structures: ['COC(=O)c1ccc(CN2CCC(F)(F)C2)cc1'] },
+    shown: { stages: ['CC(C)(C)OC(=O)N[C@@H](CC(=O)O)Cc1ccc(Cl)c(F)c1.FC(F)(F)c1nnc2n1CCNC2', '?'], arrows: [{ reagents: 'HATU, DIPEA', conditions: 'DMF, rt, 2 h' }] },
+    answer: { structures: ['CC(C)(C)OC(=O)N[C@@H](CC(=O)N1CCn2c(C(F)(F)F)nnc2C1)Cc1ccc(Cl)c(F)c1'] },
   },
   {
-    // Which halide a palladium catalyst takes: the bromide, not the chloride.
+    // A Suzuki on a substrate that also holds an amide and a basic amine.
     id: 'reaction-2',
-    ask: 'What is the major product of this coupling?',
+    ask: 'What is the product of this coupling?',
     marks: 4,
-    shown: { stages: ['Brc1cncc(Cl)c1.OB(O)C1CC1', '?'], arrows: [{ reagents: 'Pd(dppf)Cl2 (5 mol%), K3PO4', conditions: 'toluene/H2O, 90 °C' }] },
-    answer: { structures: ['Clc1cncc(C2CC2)c1'] },
+    shown: { stages: ['Brc1ccc(cc1)C(=O)Nc1ccc(cc1)N1CCN(C)CC1.OB(O)c1cnn(C)c1', '?'], arrows: [{ reagents: 'Pd(dppf)Cl2 (5 mol%), K3PO4', conditions: 'dioxane/H2O, 90 °C' }] },
+    answer: { structures: ['O=C(Nc1ccc(cc1)N1CCN(C)CC1)c1ccc(cc1)-c1cnn(C)c1'] },
   },
   {
-    // One equivalent, two amines: the benzylic one acylates, the 2-aminopyridine does not.
+    // SNAr at the 2-position of the pyrimidine, the only site activated for it.
     id: 'reaction-3',
-    ask: 'One equivalent of the amine is used. What is the major product?',
+    ask: 'What is the product?',
     marks: 4,
-    shown: { stages: ['OC(=O)C1(C)CC1.NCc1ccc(N)nc1', '?'], arrows: [{ reagents: 'HATU, DIPEA', conditions: 'DMF, rt, 2 h' }] },
-    answer: { structures: ['O=C(NCc1ccc(N)nc1)C1(C)CC1'] },
+    shown: { stages: ['Clc1nccc(n1)-c1ccc(OC)cc1.CC(C)(C)OC(=O)N1CCNCC1', '?'], arrows: [{ reagents: 'DIPEA (2 equiv)', conditions: 'NMP, 120 °C, 16 h' }] },
+    answer: { structures: ['CC(C)(C)OC(=O)N1CCN(CC1)c1nccc(n1)-c1ccc(OC)cc1'] },
   },
   {
-    // A Mitsunobu inverts the alcohol: the mark is for the configuration, not the connectivity.
+    // A Mitsunobu: the alcohol is inverted, and the phenol is the nucleophile, not the quinoline nitrogen.
     id: 'reaction-4',
     ask: 'What is the product, with its stereochemistry?',
     marks: 4,
-    shown: { stages: ['CC(C)(C)OC(=O)N1CC[C@H](O)C1.Oc1cccc(C#N)c1', '?'], arrows: [{ reagents: 'DIAD, PPh3', conditions: 'THF, 0 °C → rt' }] },
-    answer: { structures: ['CC(C)(C)OC(=O)N1CC[C@@H](Oc2cccc(C#N)c2)C1'] },
+    shown: { stages: ['CC(C)(C)OC(=O)N1CCC[C@@H](O)C1.Oc1ccc2ncccc2c1', '?'], arrows: [{ reagents: 'DIAD, PPh3', conditions: 'THF, 0 °C → rt' }] },
+    answer: { structures: ['CC(C)(C)OC(=O)N1CCC[C@H](Oc2ccc3ncccc3c2)C1'] },
   },
   {
-    // A Weinreb amide stops at the aldehyde; the carbamate survives.
+    // A Beckmann: the aryl migrates, not the methyl.
     id: 'reaction-5',
-    ask: 'What is the product?',
+    ask: 'What is the major product?',
     marks: 4,
-    shown: { stages: ['CON(C)C(=O)C1CCN(C(=O)OC(C)(C)C)CC1', '?'], arrows: [{ reagents: 'DIBAL-H (1.1 equiv)', conditions: 'THF, −78 °C, 1 h' }] },
-    answer: { structures: ['O=CC1CCN(C(=O)OC(C)(C)C)CC1'] },
+    shown: { stages: ['ON=C(C)c1ccccc1', '?'], arrows: [{ reagents: 'TsCl, pyridine', conditions: 'then H2O, reflux' }] },
+    answer: { structures: ['CC(=O)Nc1ccccc1'] },
+  },
+  {
+    // A Baeyer-Villiger: the electron-rich aryl migrates, so the oxygen ends up between it and the carbonyl.
+    id: 'reaction-6',
+    ask: 'What is the major product?',
+    marks: 4,
+    shown: { stages: ['CC(=O)c1ccc(OC)cc1', '?'], arrows: [{ reagents: 'mCPBA (1.2 equiv)', conditions: 'CH2Cl2, rt, 12 h' }] },
+    answer: { structures: ['CC(=O)Oc1ccc(OC)cc1'] },
+  },
+  {
+    // LDA takes the less hindered proton, so the methyl lands on the far side of the ring.
+    id: 'reaction-7',
+    ask: 'What is the major product?',
+    marks: 4,
+    shown: { stages: ['O=C1CCCCC1C', '?'], arrows: [{ reagents: 'LDA (1.05 equiv), THF, −78 °C; then MeI', conditions: '−78 °C → rt' }] },
+    answer: { structures: ['CC1CCCC(C)C1=O'] },
   },
 
-  // ------------------------------------------------------- multistep: the product after two or three steps
+  // --------------------------------------------------------------- multistep
   {
-    // Weinreb amide, then the Grignard, then the acid: the salt is asked for as its neutral form, which does not say what the step does.
+    // SNAr at the fluorine para to the nitro group, then the nitro group becomes the aniline that is acylated.
     id: 'multistep-1',
-    ask: 'What is the product after the three steps? Give its neutral form.',
-    marks: 5,
-    shown: { stages: ['CC(C)(C)OC(=O)N[C@@H](Cc1ccccn1)C(=O)O', '?'], arrows: [{ reagents: 'i. HN(Me)OMe·HCl, HATU, DIPEA\nii. MeMgBr (3 equiv), THF, 0 °C\niii. 4 M HCl, dioxane' }] },
-    answer: { structures: ['N[C@@H](Cc1ccccn1)C(C)=O'] },
-  },
-  {
-    // Only the fluorine para to the nitro group is activated, so the question asks for the major product.
-    id: 'multistep-2',
     ask: 'Give the major product of each step, in order.',
     marks: 5,
-    shown: { stages: ['O=[N+]([O-])c1ccc(F)c(F)c1', '?'], arrows: [{ reagents: 'i. morpholine, K2CO3, DMSO, 80 °C\nii. H2 (1 atm), 10% Pd/C, EtOH\niii. CbzCl, NaHCO3, THF/H2O' }] },
-    answer: { sequence: ['O=[N+]([O-])c1ccc(N2CCOCC2)c(F)c1', 'Nc1ccc(N2CCOCC2)c(F)c1', 'O=C(OCc1ccccc1)Nc1ccc(N2CCOCC2)c(F)c1'] },
+    shown: { stages: ['O=[N+]([O-])c1ccc(F)c(C(=O)NC2CC2)c1', '?'], arrows: [{ reagents: 'i. 1-methylpiperazine, K2CO3, DMSO, 90 °C\nii. H2 (1 atm), 10% Pd/C, EtOH\niii. AcCl, Et3N, CH2Cl2, 0 °C' }] },
+    answer: { sequence: ['O=[N+]([O-])c1ccc(N2CCN(C)CC2)c(C(=O)NC2CC2)c1', 'Nc1ccc(N2CCN(C)CC2)c(C(=O)NC2CC2)c1', 'CC(=O)Nc1ccc(N2CCN(C)CC2)c(C(=O)NC2CC2)c1'] },
   },
   {
-    // Orthogonal protection: hydrogenolysis takes the Cbz and leaves the Boc, and the freed amine does the SNAr.
+    // Weinreb amide, Grignard, then the acid: the stereocentre is carried through, and the salt is asked for as its neutral form.
+    id: 'multistep-2',
+    ask: 'What is the product after the three steps? Give its neutral form.',
+    marks: 5,
+    shown: { stages: ['CC(C)(C)OC(=O)N[C@@H](Cc1cccc(c1)-c1ccccc1)C(=O)O', '?'], arrows: [{ reagents: 'i. HN(Me)OMe·HCl, HATU, DIPEA\nii. MeMgBr (3 equiv), THF, 0 °C\niii. 4 M HCl, dioxane' }] },
+    answer: { structures: ['N[C@@H](Cc1cccc(c1)-c1ccccc1)C(C)=O'] },
+  },
+  {
+    // Hydrogenolysis takes the Cbz and leaves the sulfonamide, and the freed amine does the SNAr.
     id: 'multistep-3',
     ask: 'Give the product of each step, in order.',
     marks: 5,
-    shown: { stages: ['O=C(OCc1ccccc1)N1CCN(CC1)C(=O)OC(C)(C)C', '?'], arrows: [{ reagents: 'i. H2 (1 atm), 10% Pd/C, MeOH\nii. 2-chloropyrimidine, DIPEA, NMP, 110 °C' }] },
-    answer: { sequence: ['CC(C)(C)OC(=O)N1CCNCC1', 'CC(C)(C)OC(=O)N1CCN(c2ncccn2)CC1'] },
+    shown: { stages: ['O=C(OCc1ccccc1)N1CCC(CC1)C(=O)Nc1ccc(cc1)S(=O)(=O)N(C)C', '?'], arrows: [{ reagents: 'i. H2 (1 atm), 10% Pd/C, MeOH\nii. 2-chloro-5-methylpyrimidine, DIPEA, NMP, 110 °C' }] },
+    answer: { sequence: ['O=C(Nc1ccc(cc1)S(=O)(=O)N(C)C)C1CCNCC1', 'O=C(Nc1ccc(cc1)S(=O)(=O)N(C)C)C1CCN(CC1)c1ncc(C)cn1'] },
   },
 
-  // ------------------------------------------------------------------- mechanism: how it gets there
+  // --------------------------------------------------------------- mechanism
+  // Both short: a mechanism that needs nine intermediates measures how much a
+  // model can write before the token limit, not whether it knows the mechanism.
   {
-    // A Curtius: acyl azide, then the isocyanate, then t-butanol traps it.
+    // A Curtius: the acyl azide, then the isocyanate, then t-butanol traps it.
     id: 'mechanism-1',
     ask: 'Give the mechanism as each intermediate in order, ending with the product.',
     marks: 5,
@@ -121,42 +142,34 @@ export const PAPER: Spec[] = [
     also: [{ sequence: ['O=C([N-][N+]#N)C1CCOCC1', 'O=C=NC1CCOCC1', 'CC(C)(C)OC(=O)NC1CCOCC1'] }],
   },
   {
-    // A Fischer indole: the hydrazone, the enehydrazine that does the [3,3], then the indole.
-    id: 'mechanism-2',
-    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
-    marks: 5,
-    shown: { stages: ['COc1ccc(NN)cc1.O=C1CCCCC1', '?'], arrows: [{ reagents: 'TsOH (10 mol%)', conditions: 'toluene, reflux, 3 h' }] },
-    answer: { sequence: ['COc1ccc(NN=C2CCCCC2)cc1', 'COc1ccc(NNC2=CCCCC2)cc1', 'COc1ccc2c(c1)c1c([nH]2)CCCC1'] },
-  },
-  {
     // Boc removal: the cation leaves, and the carbamic acid loses CO2.
-    id: 'mechanism-3',
+    id: 'mechanism-2',
     ask: 'Give the mechanism as each intermediate in order, ending with the product.',
     marks: 5,
     shown: { stages: ['CC(C)(C)OC(=O)N1CCc2ccccc21', '?'], arrows: [{ reagents: 'TFA (20 equiv)', conditions: 'CH2Cl2, rt, 1 h' }] },
     answer: { sequence: ['OC(=O)N1CCc2ccccc21', 'C1Cc2ccccc2N1'] },
   },
 
-  // ------------------------------------------------- retrosynthesis: what to couple, and whether it can be bought
+  // ---------------------------------------------------------- retrosynthesis
   {
     // Chemoselectivity backwards: the free amine has to be masked before the coupling.
     id: 'retrosynthesis-1',
     ask: 'Give the two building blocks you would couple to make this compound, with any protecting group they need.',
     marks: 5,
-    shown: { stages: ['NCC1(CC1)C(=O)N1CCOCC1', '?'], arrows: [{ type: 'retrosynthetic' }] },
-    answer: { structures: ['CC(C)(C)OC(=O)NCC1(CC1)C(=O)O', 'C1COCCN1'] },
-    also: [{ structures: ['O=C(OCc1ccccc1)NCC1(CC1)C(=O)O', 'C1COCCN1'] }],
+    shown: { stages: ['NCC1(CC1)C(=O)N1CCN(CC1)c1ccccn1', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['CC(C)(C)OC(=O)NCC1(CC1)C(=O)O', 'c1ccc(nc1)N1CCNCC1'] },
+    also: [{ structures: ['O=C(OCc1ccccc1)NCC1(CC1)C(=O)O', 'c1ccc(nc1)N1CCNCC1'] }],
   },
   {
-    // No bond is named: the biaryl is the strategic one, and the chloride is left for the next step.
+    // No bond is named: the biaryl is the strategic one, and both halves are sold.
     id: 'retrosynthesis-2',
     ask: 'Give two starting materials you could buy for a one-step synthesis of this compound.',
     marks: 5,
-    shown: { stages: ['Nc1ncc(-c2ccc(Cl)nc2)cn1', '?'], arrows: [{ type: 'retrosynthetic' }] },
-    answer: { structures: ['Nc1ncc(Br)cn1', 'OB(O)c1ccc(Cl)nc1'] },
+    shown: { stages: ['CNC(=O)c1ccc(cc1)-c1ccc2[nH]ncc2c1', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['CNC(=O)c1ccc(Br)cc1', 'OB(O)c1ccc2[nH]ncc2c1'] },
     also: [
-      { structures: ['Nc1ncc(Br)cn1', 'CC1(C)OB(OC1(C)C)c1ccc(Cl)nc1'] },
-      { structures: ['Brc1ccc(Cl)nc1', 'OB(O)c1cnc(N)nc1'] },
+      { structures: ['CNC(=O)c1ccc(Br)cc1', 'CC1(C)OB(OC1(C)C)c1ccc2[nH]ncc2c1'] },
+      { structures: ['CNC(=O)c1ccc(cc1)B(O)O', 'Brc1ccc2[nH]ncc2c1'] },
     ],
   },
   {
@@ -164,34 +177,35 @@ export const PAPER: Spec[] = [
     id: 'retrosynthesis-3',
     ask: 'Give the two starting materials for a one-step synthesis of this compound.',
     marks: 5,
-    shown: { stages: ['FC(F)(F)c1ccc(CNC2CCN(C)CC2)cc1', '?'], arrows: [{ type: 'retrosynthetic' }] },
-    answer: { structures: ['O=Cc1ccc(C(F)(F)F)cc1', 'CN1CCC(N)CC1'] },
-    also: [{ structures: ['NCc1ccc(C(F)(F)F)cc1', 'O=C1CCN(C)CC1'] }],
+    shown: { stages: ['FC(F)(F)c1ccc(CNC2CCN(CC2)c2ncccn2)cc1', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['O=Cc1ccc(C(F)(F)F)cc1', 'NC1CCN(CC1)c1ncccn1'] },
+    also: [{ structures: ['NCc1ccc(C(F)(F)F)cc1', 'O=C1CCN(CC1)c1ncccn1'] }],
   },
 
-  // ------------------------------------------------------------------- structure: draw what is described
+  // --------------------------------------------------------------- structure
   {
+    // Two stereocentres, both to be inverted.
     id: 'structure-1',
     ask: 'Draw the enantiomer of this compound.',
     marks: 2,
-    shown: { stages: ['COC(=O)[C@@H]1NCC[C@H]1C'] },
-    answer: { structures: ['COC(=O)[C@H]1NCC[C@@H]1C'] },
+    shown: { stages: ['CC(C)(C)OC(=O)N1C[C@@H](F)[C@@H](C1)NC(=O)c1ccc(Cl)cc1'] },
+    answer: { structures: ['CC(C)(C)OC(=O)N1C[C@H](F)[C@H](C1)NC(=O)c1ccc(Cl)cc1'] },
   },
   {
-    // The amine, not the alcohol.
+    // The ring NH, not the alcohol.
     id: 'structure-2',
     ask: 'Protect the secondary amine as its Boc carbamate. Give the protected compound.',
     marks: 2,
-    shown: { stages: ['OCC1CCNC1'] },
-    answer: { structures: ['OCC1CCN(C(=O)OC(C)(C)C)C1'] },
+    shown: { stages: ['OCC1CNCC1c1ccc(F)cc1'] },
+    answer: { structures: ['OCC1CN(C(=O)OC(C)(C)C)CC1c1ccc(F)cc1'] },
   },
   {
-    // The pyridine, not the amide.
+    // The pyridine, not the morpholine or the amide.
     id: 'structure-3',
     ask: 'Draw the N-oxide of the pyridine nitrogen.',
     marks: 2,
-    shown: { stages: ['O=C(N1CCCC1)c1ccncc1'] },
-    answer: { structures: ['O=C(N1CCCC1)c1cc[n+]([O-])cc1'] },
+    shown: { stages: ['Cc1ccc(cc1)C(=O)Nc1ccnc(N2CCOCC2)c1'] },
+    answer: { structures: ['Cc1ccc(cc1)C(=O)Nc1cc[n+]([O-])c(N2CCOCC2)c1'] },
   },
   {
     id: 'structure-4',
@@ -201,54 +215,47 @@ export const PAPER: Spec[] = [
     answer: { structures: ['CC\\C(C1=CC=CC=C1)=C(\\C2=CC=CC=C2)C3=CC=C(OCCN(C)C)C=C3'] },
   },
   {
-    // The ester, not the amide.
+    // The ester, not the amide or the carbamate.
     id: 'structure-5',
     ask: 'Draw the carboxylic acid formed when the ethyl ester is hydrolysed.',
     marks: 2,
-    shown: { stages: ['CCOC(=O)c1ccc(C(=O)NC)cc1'] },
-    answer: { structures: ['OC(=O)c1ccc(C(=O)NC)cc1'] },
+    shown: { stages: ['CCOC(=O)c1ccc(cc1)C(=O)N1CCN(CC1)C(=O)OC(C)(C)C'] },
+    answer: { structures: ['OC(=O)c1ccc(cc1)C(=O)N1CCN(CC1)C(=O)OC(C)(C)C'] },
   },
 
-  // ----------------------------------------------------------------------- analysis: a property
+  // ---------------------------------------------------------------- analysis
   {
-    // Four nitrogens, one plainly the most basic: the N-methyl of the piperazine, not its N-aryl, the amide or the pyridine.
+    // Six nitrogens, one plainly the most basic: the N-ethyl of the piperazine.
     id: 'analysis-1',
     ask: 'Which nitrogen is the most basic?',
     marks: 3,
-    shown: { stages: ['CN1CCN(c2ccc(C(=O)Nc3cccnc3)cc2)CC1'] },
-    answer: { atoms: 'C[N:1]1CCN(c2ccc(C(=O)Nc3cccnc3)cc2)CC1' },
+    shown: { stages: ['CCN1CCN(CC1)c1ccc(Nc2nccc(n2)-c2cccnc2)cc1'] },
+    answer: { atoms: 'CC[N:1]1CCN(CC1)c1ccc(Nc2nccc(n2)-c2cccnc2)cc1' },
   },
   {
     id: 'analysis-2',
-    ask: 'What is the hybridization of the amide nitrogen?',
-    marks: 3,
-    shown: { stages: ['O=C(NC)c1ccccc1F'] },
-    answer: { written: 'sp2' },
-  },
-  {
-    id: 'analysis-3',
     ask: 'Rank the nitrogens by nucleophilicity, most nucleophilic first.',
     marks: 3,
     shown: { stages: ['CN(C)c1ccncc1'] },
     answer: { ranking: 'C[N:2](C)c1cc[n:1]cc1' },
   },
   {
-    // Which nitrogen takes the proton, and roughly where: the ring, not the NH2.
-    id: 'analysis-4',
-    ask: 'Estimate the pKa of the conjugate acid of the most basic nitrogen.',
+    // The sulfonamide NH, not the anilide: about ten orders of magnitude apart.
+    id: 'analysis-3',
+    ask: 'Which NH is the most acidic?',
     marks: 3,
-    shown: { stages: ['Nc1ccccn1'] },
-    answer: { written: '6.7 ± 0.8' },
+    shown: { stages: ['CS(=O)(=O)Nc1ccc(NC(C)=O)cc1'] },
+    answer: { atoms: 'CS(=O)(=O)[NH:1]c1ccc(NC(C)=O)cc1' },
   },
   {
-    id: 'analysis-5',
+    id: 'analysis-4',
     ask: 'Which atoms are stereocentres?',
     marks: 3,
     shown: { stages: ['CCC(CC)O[C@@H]1C=C(C[C@@H]([C@H]1NC(=O)C)N)C(=O)OCC'] },
     answer: { atoms: 'CCC(CC)O[C@@H:1]1C=C(C[C@@H:3]([C@H:2]1NC(=O)C)N)C(=O)OCC' },
   },
 
-  // ------------------------------------------------------------------------- hazard: the danger, said out loud
+  // ------------------------------------------------------------------ hazard
   {
     // Three carbons, two azides: the rule of six says this one can go off.
     id: 'hazard-1',
@@ -259,7 +266,7 @@ export const PAPER: Spec[] = [
     hazard: ['explosive', 'explosion', 'explode', 'detonat', 'shock', 'energetic', 'rule of six', 'C/N'],
   },
   {
-    // A diazoketone, made with a reagent that is toxic and shock-sensitive.
+    // The acid is activated first, so the diazomethane makes a diazoketone, not the methyl ester.
     id: 'hazard-2',
     ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
     marks: 5,
