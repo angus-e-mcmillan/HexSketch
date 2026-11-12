@@ -1,67 +1,103 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="0.77 14.77 177.10 175.08" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="6.17 14.77 288.80 224.68" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
 <fragment id="1001">
-<n id="1002" p="13.81 28.58"/>
-<n id="1003" p="29.77 19.37"/>
-<n id="1004" p="45.72 28.58"/>
-<n id="1005" p="45.72 47.01" Element="8"/>
-<n id="1006" p="61.68 19.37"/>
-<b id="1007" B="1002" E="1003"/>
-<b id="1008" B="1003" E="1004"/>
-<b id="1009" B="1004" E="1006"/>
-<b id="1010" B="1004" E="1005" Order="2"/>
+<n id="1002" p="141.47 14.77"/>
+<n id="1003" p="123.04 14.77" Element="7"/>
+<n id="1004" p="113.83 30.72" Element="16"/>
+<n id="1005" p="97.87 21.51"/>
+<n id="1006" p="81.91 30.72"/>
+<n id="1007" p="81.91 49.15"/>
+<n id="1008" p="65.96 58.36"/>
+<n id="1009" p="50.00 49.15"/>
+<n id="1010" p="34.04 58.36" Element="7"/>
+<n id="1011" p="18.09 49.15" Element="7"/>
+<n id="1012" p="50.00 30.72"/>
+<n id="1013" p="65.96 21.51"/>
+<n id="1014" p="104.61 46.68" Element="8"/>
+<n id="1015" p="129.78 39.93" Element="8"/>
+<b id="1016" B="1002" E="1003"/>
+<b id="1017" B="1003" E="1004"/>
+<b id="1018" B="1004" E="1015" Order="2"/>
+<b id="1019" B="1004" E="1014" Order="2"/>
+<b id="1020" B="1004" E="1005"/>
+<b id="1021" B="1005" E="1006"/>
+<b id="1022" B="1006" E="1013" Order="2"/>
+<b id="1023" B="1013" E="1012"/>
+<b id="1024" B="1012" E="1009" Order="2"/>
+<b id="1025" B="1009" E="1010"/>
+<b id="1026" B="1010" E="1011"/>
+<b id="1027" B="1009" E="1008"/>
+<b id="1028" B="1008" E="1007" Order="2"/>
+<b id="1029" B="1006" E="1007"/>
 </fragment>
-<fragment id="1011">
-<n id="1012" p="177.10 23.98" Element="7"/>
-<n id="1013" p="161.14 14.77" Element="7"/>
-<n id="1014" p="145.18 23.98"/>
-<n id="1015" p="145.18 42.40"/>
-<n id="1016" p="129.23 51.62"/>
-<n id="1017" p="113.27 42.40"/>
-<n id="1018" p="113.27 23.98"/>
-<n id="1019" p="129.23 14.77"/>
-<b id="1020" B="1012" E="1013"/>
-<b id="1021" B="1013" E="1014"/>
-<b id="1022" B="1014" E="1019" Order="2"/>
-<b id="1023" B="1019" E="1018"/>
-<b id="1024" B="1018" E="1017" Order="2"/>
-<b id="1025" B="1017" E="1016"/>
-<b id="1026" B="1016" E="1015" Order="2"/>
-<b id="1027" B="1014" E="1015"/>
-</fragment>
-<fragment id="1028">
-<n id="1029" p="79.46 142.65"/>
-<n id="1030" p="61.03 142.65"/>
-<n id="1031" p="50.20 157.55"/>
-<n id="1032" p="55.90 175.08"/>
-<n id="1033" p="32.68 151.86"/>
-<n id="1034" p="32.68 133.43"/>
-<n id="1035" p="16.72 124.22"/>
-<n id="1036" p="0.77 133.43"/>
-<n id="1037" p="0.77 151.86"/>
-<n id="1038" p="16.72 161.07"/>
-<n id="1039" p="50.20 127.74" Element="7" NumHydrogens="1"/>
-<b id="1040" B="1029" E="1030"/>
-<b id="1041" B="1030" E="1039"/>
-<b id="1042" B="1039" E="1034"/>
-<b id="1043" B="1034" E="1035" Order="2"/>
+<fragment id="1030">
+<n id="1031" p="193.06 22.74"/>
+<n id="1032" p="209.01 31.96" Element="7"/>
+<n id="1033" p="224.97 22.74"/>
+<n id="1034" p="240.93 31.96"/>
+<n id="1035" p="256.88 22.74"/>
+<n id="1036" p="272.84 31.96"/>
+<n id="1037" p="288.80 22.74" Element="8"/>
+<n id="1038" p="209.01 50.38"/>
+<b id="1039" B="1031" E="1032"/>
+<b id="1040" B="1032" E="1038"/>
+<b id="1041" B="1032" E="1033"/>
+<b id="1042" B="1033" E="1034"/>
+<b id="1043" B="1034" E="1035"/>
 <b id="1044" B="1035" E="1036"/>
 <b id="1045" B="1036" E="1037" Order="2"/>
-<b id="1046" B="1037" E="1038"/>
-<b id="1047" B="1038" E="1033" Order="2"/>
-<b id="1048" B="1034" E="1033"/>
-<b id="1049" B="1033" E="1031"/>
-<b id="1050" B="1030" E="1031" Order="2"/>
-<b id="1051" B="1031" E="1032"/>
 </fragment>
-<t id="1052" p="87.47 36.69" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">+</s></t>
-<arrow id="1057" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="285.47 33.19 0" Tail3D="197.36 33.19 0"/>
-<t id="1053" p="233.77 13.69" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">H2SO4, EtOH,&#10;reflux</s></t>
-<t id="1054" p="305.74 37.19" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
-<t id="1055" p="0.00 84.98" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [4]</s></t>
-<t id="1056" p="0.00 103.98" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<fragment id="1046">
+<n id="1047" p="6.17 153.45"/>
+<n id="1048" p="15.38 169.41" Element="7"/>
+<n id="1049" p="33.81 169.41" Element="16"/>
+<n id="1050" p="33.81 187.83"/>
+<n id="1051" p="49.76 197.05"/>
+<n id="1052" p="65.72 187.83"/>
+<n id="1053" p="81.68 197.05"/>
+<n id="1054" p="81.68 215.47"/>
+<n id="1055" p="99.20 221.17" Element="7" NumHydrogens="1"/>
+<n id="1056" p="110.03 206.26"/>
+<n id="1057" p="65.72 224.68"/>
+<n id="1058" p="99.20 191.35"/>
+<n id="1059" p="104.89 173.83"/>
+<n id="1060" p="122.92 170.00"/>
+<n id="1061" p="128.61 152.48" Element="7"/>
+<n id="1062" p="146.63 148.64"/>
+<n id="1063" p="116.28 138.78"/>
+<n id="1064" p="49.76 215.47"/>
+<n id="1065" p="52.23 169.41" Element="8"/>
+<n id="1066" p="33.81 150.98" Element="8"/>
+<b id="1067" B="1047" E="1048"/>
+<b id="1068" B="1048" E="1049"/>
+<b id="1069" B="1049" E="1066" Order="2"/>
+<b id="1070" B="1049" E="1065" Order="2"/>
+<b id="1071" B="1049" E="1050"/>
+<b id="1072" B="1050" E="1051"/>
+<b id="1073" B="1051" E="1064" Order="2"/>
+<b id="1074" B="1064" E="1057"/>
+<b id="1075" B="1057" E="1054" Order="2"/>
+<b id="1076" B="1054" E="1055"/>
+<b id="1077" B="1055" E="1056"/>
+<b id="1078" B="1056" E="1058" Order="2"/>
+<b id="1079" B="1058" E="1059"/>
+<b id="1080" B="1059" E="1060"/>
+<b id="1081" B="1060" E="1061"/>
+<b id="1082" B="1061" E="1063"/>
+<b id="1083" B="1061" E="1062"/>
+<b id="1084" B="1058" E="1053"/>
+<b id="1085" B="1054" E="1053"/>
+<b id="1086" B="1053" E="1052" Order="2"/>
+<b id="1087" B="1051" E="1052"/>
+</fragment>
+<t id="1088" p="167.26 40.06" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">+</s></t>
+<arrow id="1093" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="397.17 36.56 0" Tail3D="309.06 36.56 0"/>
+<t id="1089" p="345.47 17.06" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">aqueous HCl,&#10;EtOH, 80 °C</s></t>
+<t id="1090" p="417.44 40.56" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1091" p="0.00 105.24" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [4]</s></t>
+<t id="1092" p="0.00 124.24" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
 </page></CDXML>

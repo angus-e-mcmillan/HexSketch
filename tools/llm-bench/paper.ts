@@ -506,13 +506,14 @@ export const HARD: Spec[] = [
     answer: { structures: ['O=CC(c1ccccc1)c1ccccc1'] },
   },
   {
-    // Ruthenium, not copper: Cp*Ru gives the 1,5-triazole. The 1,4-isomer every
-    // model reaches for first is the copper answer.
+    // Rufinamide, the anticonvulsant, made as it is made: copper gives the
+    // 1,4-triazole, which is the drug. The 1,5-isomer is a different compound.
+    // Product checked against PubChem's record for rufinamide.
     id: 'reaction-h7',
     ask: 'What is the product?',
     marks: 4,
-    shown: { stages: ['[N-]=[N+]=NCc1ccccc1.C#Cc1ccc(F)cc1', '?'], arrows: [{ reagents: 'Cp*RuCl(PPh3)2, toluene, 80 °C' }] },
-    answer: { structures: ['Fc1ccc(-c2cnnn2Cc2ccccc2)cc1'] },
+    shown: { stages: ['[N-]=[N+]=NCc1c(F)cccc1F.NC(=O)C#C', '?'], arrows: [{ reagents: 'CuSO4·5H2O, sodium ascorbate, t-BuOH/H2O, 50 °C' }] },
+    answer: { structures: ['NC(=O)c1cn(Cc2c(F)cccc2F)nn1'] },
   },
   {
     // Groebke-Blackburn-Bienayme: the three components close to the
@@ -532,12 +533,14 @@ export const HARD: Spec[] = [
     answer: { structures: ['C[C@@H](N1C(=O)c2ccccc2C1=O)c1ccc(cc1)C#N'] },
   },
   {
-    // Fischer: the ketone's two carbons become C2 and C3 of the indole.
+    // Sumatriptan by the Fischer indolisation its route is built on: the
+    // aldehyde's carbons become C2 and C3, so the side chain ends up at C3 and
+    // C2 is left bare. Product checked against PubChem's record for sumatriptan.
     id: 'reaction-h10',
     ask: 'What is the product?',
     marks: 4,
-    shown: { stages: ['CCC(C)=O.NNc1ccccc1', '?'], arrows: [{ reagents: 'H2SO4, EtOH, reflux' }] },
-    answer: { structures: ['Cc1[nH]c2ccccc2c1C'] },
+    shown: { stages: ['CNS(=O)(=O)Cc1ccc(NN)cc1.CN(C)CCCC=O', '?'], arrows: [{ reagents: 'aqueous HCl, EtOH, 80 °C' }] },
+    answer: { structures: ['CNS(=O)(=O)Cc1ccc2[nH]cc(CCN(C)C)c2c1'] },
   },
   {
     // Schmidt: nitrogen inserts next to the carbonyl and the ring expands to
@@ -549,6 +552,27 @@ export const HARD: Spec[] = [
     shown: { stages: ['O=C1CCC(CC1)c1ccccc1', '?'], arrows: [{ reagents: 'NaN3, H2SO4, CHCl3, 50 °C' }] },
     answer: { structures: ['O=C1CCC(c2ccccc2)CCN1'] },
     hazard: ['azide', 'hydrazoic', 'HN3', 'explosive', 'toxic'],
+  },
+  {
+    // Nirmatrelvir's nitrile, by the dehydration its published route uses.
+    // The test is chemoselectivity: the primary amide goes, and the lactam and
+    // the two secondary amides do not. Product checked against PubChem's
+    // record for nirmatrelvir.
+    id: 'reaction-h12',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['CC1([C@@H]2[C@H]1[C@H](N(C2)C(=O)[C@H](C(C)(C)C)NC(=O)C(F)(F)F)C(=O)N[C@@H](C[C@@H]3CCNC3=O)C(N)=O)C', '?'], arrows: [{ reagents: 'Burgess reagent, CH2Cl2, 0 °C to rt' }] },
+    answer: { structures: ['CC1([C@@H]2[C@H]1[C@H](N(C2)C(=O)[C@H](C(C)(C)C)NC(=O)C(F)(F)F)C(=O)N[C@@H](C[C@@H]3CCNC3=O)C#N)C'] },
+  },
+  {
+    // Rilpivirine's acrylonitrile, by the Heck its route uses: the alkene comes
+    // out E, and the aryl bromide is the only halide that reacts. Product
+    // checked against PubChem's record for rilpivirine.
+    id: 'reaction-h13',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['Cc1cc(Br)cc(C)c1Nc1ccnc(Nc2ccc(C#N)cc2)n1.C=CC#N', '?'], arrows: [{ reagents: 'Pd(OAc)2, P(o-tol)3, Et3N, DMF, 120 °C' }] },
+    answer: { structures: ['Cc1cc(/C=C/C#N)cc(C)c1Nc1ccnc(Nc2ccc(C#N)cc2)n1'] },
   },
   {
     // The sulfoximine: nitrogen is delivered to sulfur, not to carbon, and the
