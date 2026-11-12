@@ -45,6 +45,9 @@ export async function runClaudeCode(prompt: string, opts: { model: string; withH
   const args = [
     '-p', prompt, '--model', opts.model,
     '--tools', '', '--strict-mcp-config', '--mcp-config', config,
+    // Headless, there is no one to approve a tool: without this every HexSketch call is refused, and the
+    // model answers alone while the run looks as if HexSketch were in it. Only HexSketch's tools are approved.
+    ...(opts.withHexsketch ? ['--allowedTools', 'mcp__hexsketch'] : []),
     '--disable-slash-commands', '--setting-sources', '',
     '--output-format', 'stream-json', '--verbose',
     ...(opts.effort && opts.effort !== 'none' ? ['--effort', opts.effort] : []),
@@ -54,6 +57,8 @@ export async function runClaudeCode(prompt: string, opts: { model: string; withH
     tokens: { prompt: 0, completion: 0, reasoning: 0, cached: 0 }, cost: 0, loaded: { tools: [], mcp: [], skills: 0 },
   };
   const byId = new Map<string, number>();
+  /** Calls to HexSketch's own tools, as against any tool a model invents. */
+  const hexsketchCalls = new Set<string>();
   let failure: string | null = null;
   try {
     await new Promise<void>((resolve, reject) => {
@@ -84,10 +89,20 @@ export async function runClaudeCode(prompt: string, opts: { model: string; withH
             run.rounds++;
             for (const block of e.message?.content ?? []) {
               if (block.type === 'text' && block.text) run.text += `${block.text}\n`;
-              if (block.type === 'tool_use') { byId.set(block.id, run.tools.length); run.tools.push({ name: String(block.name).replace(/^mcp__hexsketch__/, ''), error: false }); }
+              if (block.type === 'tool_use') { if (String(block.name).startsWith('mcp__hexsketch__')) hexsketchCalls.add(block.id); byId.set(block.id, run.tools.length); run.tools.push({ name: String(block.name).replace(/^mcp__hexsketch__/, ''), error: false }); }
             }
           } else if (e.type === 'user') {
-            for (const block of e.message?.content ?? []) if (block.type === 'tool_result' && block.is_error && byId.has(block.tool_use_id)) run.tools[byId.get(block.tool_use_id)!]!.error = true;
+            for (const block of e.message?.content ?? []) {
+              if (block.type !== 'tool_result' || !block.is_error || !byId.has(block.tool_use_id)) continue;
+              const tool = run.tools[byId.get(block.tool_use_id)!]!;
+              tool.error = true;
+              // A call refused for want of permission is the run's set-up failing, not the model's mistake: fail it.
+              const said = typeof block.content === 'string' ? block.content : JSON.stringify(block.content ?? '');
+              if (hexsketchCalls.has(block.tool_use_id) && /permission|haven.t granted|not granted|denied/i.test(said) && !failure) {
+                failure = `HexSketch's ${tool.name} was refused permission, so HexSketch was never in this run: ${said.slice(0, 160)}`;
+                child.kill('SIGTERM');
+              }
+            }
           } else if (e.type === 'result') {
             run.final = e.result ?? '';
             run.finish = e.stop_reason ?? e.subtype ?? null;

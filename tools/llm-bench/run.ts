@@ -171,7 +171,7 @@ async function runOne(job: Job): Promise<RunRecord> {
   const t0 = Date.now(), deadline = t0 + Number(opt.timeout) * 1000;
   if (CLAUDE_CODE.includes(condition)) {
     try {
-      const cc = await runClaudeCode(start.user, { model, withHexsketch: condition === 'cc-hexsketch', effort: opt.effort!, timeoutMs: Number(opt.timeout) * 1000 });
+      const cc = await runClaudeCode(start.user, { model, withHexsketch: condition !== 'cc-plain', effort: opt.effort!, timeoutMs: Number(opt.timeout) * 1000 });
       Object.assign(rec, { final: cc.final, text: cc.text, model: cc.model, providers: ['Claude Code'], rounds: cc.rounds, tools: cc.tools, finish: cc.finish, tokens: cc.tokens, cost: cc.cost, loaded: cc.loaded });
     } catch (err) { rec.error = (err as Error).message; }
     rec.ms = Date.now() - t0;

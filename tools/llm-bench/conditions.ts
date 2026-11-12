@@ -16,7 +16,7 @@ import { analyze, compare, convert, drawingSummary, link, name, readStructure, v
 import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
-export type Condition = 'smiles' | 'hexsketch' | 'smiles-described' | 'hexsketch-no-tools' | 'cc-plain' | 'cc-hexsketch';
+export type Condition = 'smiles' | 'hexsketch' | 'smiles-described' | 'hexsketch-no-tools' | 'cc-plain' | 'cc-hexsketch' | 'cc-drawn';
 /** The two conditions a run compares. */
 export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
 /**
@@ -35,9 +35,9 @@ export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
  *                        the tools are worth; against `smiles-described`, what
  *                        the instructions are worth.
  */
-export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-described', 'hexsketch-no-tools', 'cc-plain', 'cc-hexsketch'];
+export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-described', 'hexsketch-no-tools', 'cc-plain', 'cc-hexsketch', 'cc-drawn'];
 /**
- * The two Claude Code conditions: the model runs inside Claude Code itself
+ * The Claude Code conditions: the model runs inside Claude Code itself
  * (claude -p), on the subscription Claude Code runs on rather than through
  * OpenRouter, with every built-in tool, skill, setting and MCP server taken
  * away. Both get the same words -- the question as a chemist types it, with
@@ -48,8 +48,14 @@ export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'smiles-descr
  *   cc-hexsketch   Claude Code with HexSketch's connector and nothing else,
  *                  run from this checkout, so a change to HexSketch is in the
  *                  next run without deploying anything.
+ *   cc-drawn       The same connector, with the question as a chemist using
+ *                  HexSketch hands it over: what they type, and a link to what
+ *                  they drew. The model has to read the drawing through
+ *                  HexSketch to see it at all. Against cc-plain it measures
+ *                  HexSketch as a chemist uses it; against cc-hexsketch, what
+ *                  drawing the question rather than typing it changes.
  */
-export const CLAUDE_CODE: Condition[] = ['cc-plain', 'cc-hexsketch'];
+export const CLAUDE_CODE: Condition[] = ['cc-plain', 'cc-hexsketch', 'cc-drawn'];
 
 /** What each condition is called in a report, so four columns can be told apart. */
 export const CONDITION_NAME: Record<Condition, string> = {
@@ -59,6 +65,7 @@ export const CONDITION_NAME: Record<Condition, string> = {
   hexsketch: 'With HexSketch',
   'cc-plain': 'Claude Code, no tools',
   'cc-hexsketch': 'Claude Code with HexSketch',
+  'cc-drawn': 'Claude Code with HexSketch, question drawn',
 };
 
 /** The system prompt without HexSketch: neutral, so only HexSketch's own instructions differ. */
@@ -69,7 +76,9 @@ export interface Opening { system: string; user: string; tools: FunctionTool[] }
 /** What the model is given first, in each condition. */
 export async function opening(q: Question, c: Condition): Promise<Opening> {
   const end = ANSWER_FORMAT[q.key.kind];
-  if (c === 'smiles' || c === 'cc-plain' || c === 'cc-hexsketch') {
+  // As a chemist using HexSketch from Claude Code asks: their words, and a link to what they drew.
+  if (c === 'cc-drawn' && q.drawing) return { system: PLAIN_SYSTEM, user: `${q.ask}\n\nMy drawing in HexSketch: ${await link(q.drawing, { format: 'cdxml' })}\n\n${end}`, tools: [] };
+  if (c === 'smiles' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn') {
     const parts = [q.ask];
     if (q.given.length) parts.push(q.given.length === 1 && !q.scheme.length ? `SMILES: ${q.given[0]}` : q.given.map((s, i) => `Structure ${i + 1}: ${s}`).join('\n'));
     if (q.scheme.length) parts.push(q.scheme.join('\n'));
