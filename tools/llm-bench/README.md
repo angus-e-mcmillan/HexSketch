@@ -47,6 +47,35 @@ npm run llm-bench:prep
 checks them and writes `questions.jsonl`, and `questions/questions.html` to
 proofread them.
 
+## What the runs have settled
+
+- **One repeat cannot tell a ten-mark difference from noise.** The same
+  condition, settings and model scored 95 / 100 and 80 / 100 in two runs an
+  hour apart: a question answered twice before spent its whole budget and
+  answered nothing. Any claim about a score needs the default three repeats
+  and the range the report prints. Token, time and orientation figures are
+  means over every question and move far less.
+- **At equal settings HexSketch scores higher for a third fewer tokens.**
+  On the drug-scale paper, the free model: 95 / 100 against 91, 10.1k output
+  tokens a question against 15.9k, 78 s against 135 s, every structure valid
+  against 96%, 88% drawn the same way round against 40%. Both figures inside
+  the noise band above, so the direction is the result, not the margin.
+- **Difficulty comes from the size of the molecule, not the cleverness of the
+  question.** Sixteen questions on migration selectivity, kinetic enolates and
+  the rest scored 56 / 63 on a free model, and every mark dropped was a token
+  cut-off. What models come apart on is carrying twenty-five heavy atoms
+  through a transformation.
+- **HexSketch trades thinking for drawing.** That is what rescues the
+  bookkeeping questions — a drug-scale coupling the model could not finish in
+  32000 tokens it answered in 9582 with HexSketch — and what can cut a trap
+  short: asked for a diazoketone from a mixed anhydride it drew an answer
+  after 5.7k tokens and committed to the methyl ester, where without
+  HexSketch it thought for 26k and got it right.
+- **"Draw before you think" was tried and rejected.** An extra prompt line
+  telling the model to draw as soon as it could write a structure moved the
+  score by a noise-sized amount and dropped structures drawn the same way
+  round from 94% to 35%.
+
 ## Running it
 
 Once: OPSIN (needs Java), to read the names models give.

@@ -16,19 +16,9 @@ import { analyze, compare, convert, drawingSummary, link, name, readStructure, v
 import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
-export type Condition = 'smiles' | 'hexsketch' | 'hexsketch-draw-first';
-/** The two a run compares unless told otherwise. */
+export type Condition = 'smiles' | 'hexsketch';
+/** The two conditions a run compares. */
 export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
-/** Every condition --conditions will take, the ones being tried included. */
-export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'hexsketch-draw-first'];
-
-/**
- * An extra line tried on top of HexSketch's own instructions, to see whether
- * it earns its place in the product. On the hardest questions a model spends
- * its whole budget reasoning and never calls a tool, so it answers nothing:
- * this tells it to draw what it has as soon as it has it.
- */
-const DRAW_FIRST = 'Do not work the whole answer out before you act. As soon as you can write a structure, draw it with show_in_sketcher and read what comes back: it checks the structure for you, and a drawing you correct afterwards costs less than an answer you never finish.';
 
 /** The system prompt without HexSketch: neutral, so only HexSketch's own instructions differ. */
 const PLAIN_SYSTEM = 'You are an expert chemist helping a colleague. Answer their question about the structures they give you.';
@@ -47,7 +37,7 @@ export async function opening(q: Question, c: Condition): Promise<Opening> {
   }
   const shown = q.drawing ? await describe(q.drawing) : null;
   return {
-    system: c === 'hexsketch-draw-first' ? `${PAGE_INSTRUCTIONS}\n${DRAW_FIRST}` : PAGE_INSTRUCTIONS,
+    system: PAGE_INSTRUCTIONS,
     // As the website sends it: the message, then what the editor shows (when anything is drawn).
     user: `${q.ask}\n\n${end}${shown ? `\n\nWhat the editor shows now:\n${shown}` : ''}`,
     tools: pageTools(),
