@@ -149,6 +149,14 @@ export function assignWedges(mol: Molecule, want: Map<AtomId, { order: AtomId[];
     return swaps % 2;
   };
   const used = new Set<number>();
+  // Which rings hold each bond, so a fused stereocentre keeps its smaller ring flat.
+  const rings = perceiveRings(mol);
+  const ringsOf = (u: AtomId, v: AtomId) => rings.filter((r) => {
+    const i = r.atoms.indexOf(u), j = r.atoms.indexOf(v);
+    if (i < 0 || j < 0) return false;
+    const d = Math.abs(i - j);
+    return d === 1 || d === r.atoms.length - 1;
+  });
   for (const [centre, ch] of want) {
     // Prefer an acyclic bond to a terminal-ish neighbour that is not itself a stereocentre, and one in `prefer` (a side chain) to the rest.
     const candidates = mol.incidentBonds(centre)
@@ -156,7 +164,11 @@ export function assignWedges(mol: Molecule, want: Map<AtomId, { order: AtomId[];
       .sort((x, y) => score(y) - score(x));
     function score(b: number) {
       const n = mol.otherAtom(mol.bond(b), centre);
-      return (inRing(mol, centre, n) ? 0 : 4) + (want.has(n) ? 0 : 2) + (mol.neighbours(n).length === 1 ? 1 : 0) + (prefer.has(n) ? 3 : 0);
+      // Where every bond is a ring bond (a fused centre), a chemist marks the larger ring and leaves
+      // the smaller one flat, and never marks the bond the two rings share.
+      const held = ringsOf(centre, n);
+      const ringChoice = held.length === 0 ? 0 : (held.length === 1 ? 1.2 : 0) + (held[0]!.atoms.length >= 6 ? 0.6 : 0.3);
+      return (inRing(mol, centre, n) ? 0 : 4) + (want.has(n) ? 0 : 2) + (mol.neighbours(n).length === 1 ? 1 : 0) + (prefer.has(n) ? 3 : 0) + ringChoice;
     }
     const bondId = candidates[0];
     if (bondId === undefined) continue;
