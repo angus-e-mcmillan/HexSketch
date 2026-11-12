@@ -436,4 +436,129 @@ export const CANDIDATES: Spec[] = [
 ];
 
 /** The papers author.ts can draw, by --set. */
-export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES };
+/**
+ * Harder chemistry: rearrangements, ring-forming reactions and functional
+ * groups a chemist meets less often.
+ *
+ * The paper above separates models by the size of the molecule — whether they
+ * can carry twenty-five heavy atoms through a transformation. These separate
+ * them by whether they know the chemistry: each is a named reaction whose
+ * outcome a rule decides (which group migrates, which end of an allyl system
+ * the nitrogen lands on, which regiochemistry a catalyst gives), so a model
+ * that knows the rule gets it and a model that pattern-matches on functional
+ * groups does not. The molecules are small on purpose: nothing here is lost
+ * to bookkeeping.
+ */
+export const HARD: Spec[] = [
+  {
+    // Beckmann: the group anti to the oxime OH migrates to nitrogen. Here the
+    // aryl group migrates, so the product is the anilide, not the N-methyl amide.
+    id: 'reaction-h1',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['CC(=NO)c1ccc2OCOc2c1', '?'], arrows: [{ reagents: 'TsCl, pyridine, CH2Cl2, 0 °C to rt' }] },
+    answer: { structures: ['CC(=O)Nc1ccc2OCOc2c1'] },
+  },
+  {
+    // Curtius: the acyl azide loses N2 to the isocyanate, the carbon that
+    // migrates keeps its configuration, and t-BuOH traps it as the Boc amine.
+    id: 'reaction-h2',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['OC(=O)C1(CC1)c1ccc(F)cc1', '?'], arrows: [{ reagents: 'i. DPPA, Et3N, toluene, 90 °C\nii. t-BuOH, reflux' }] },
+    answer: { structures: ['CC(C)(C)OC(=O)NC1(CC1)c1ccc(F)cc1'] },
+  },
+  {
+    // Overman: [3,3] through the trichloroacetimidate, so the nitrogen arrives
+    // at the far end of the allyl system and the alkene moves to where the
+    // oxygen was. An amide at the carbinol carbon is the wrong answer.
+    id: 'reaction-h3',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['CC(O)/C=C/c1ccccc1', '?'], arrows: [{ reagents: 'i. NaH, Cl3CCN, CH2Cl2, 0 °C\nii. xylene, 140 °C' }] },
+    answer: { structures: ['C/C=C/C(NC(=O)C(Cl)(Cl)Cl)c1ccccc1'] },
+  },
+  {
+    // Favorskii: the cyclopropanone collapses to the ring-contracted ester.
+    // Simple substitution of the chloride is the wrong answer.
+    id: 'reaction-h4',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['O=C1CCCCC1Cl', '?'], arrows: [{ reagents: 'NaOMe, MeOH, 0 °C' }] },
+    answer: { structures: ['COC(=O)C1CCCC1'] },
+  },
+  {
+    // Baeyer-Villiger: the electron-rich aryl migrates in preference to methyl,
+    // so the oxygen ends up between the carbonyl and the ring.
+    id: 'reaction-h5',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['CC(=O)c1ccc(OC)cc1', '?'], arrows: [{ reagents: 'mCPBA, CH2Cl2, rt' }] },
+    answer: { structures: ['CC(=O)Oc1ccc(OC)cc1'] },
+  },
+  {
+    // Meinwald: the Lewis acid opens the epoxide to the benzylic cation and a
+    // hydride shifts, so a 1,1-diaryl epoxide becomes the aldehyde, not the ketone.
+    id: 'reaction-h6',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['C1OC1(c1ccccc1)c1ccccc1', '?'], arrows: [{ reagents: 'BF3·OEt2, CH2Cl2, -78 °C' }] },
+    answer: { structures: ['O=CC(c1ccccc1)c1ccccc1'] },
+  },
+  {
+    // Ruthenium, not copper: Cp*Ru gives the 1,5-triazole. The 1,4-isomer every
+    // model reaches for first is the copper answer.
+    id: 'reaction-h7',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['[N-]=[N+]=NCc1ccccc1.C#Cc1ccc(F)cc1', '?'], arrows: [{ reagents: 'Cp*RuCl(PPh3)2, toluene, 80 °C' }] },
+    answer: { structures: ['Fc1ccc(-c2cnnn2Cc2ccccc2)cc1'] },
+  },
+  {
+    // Groebke-Blackburn-Bienayme: the three components close to the
+    // imidazo[1,2-a]pyridine, the isocyanide nitrogen left as the 3-amino group.
+    id: 'reaction-h8',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['Nc1ccccn1.O=Cc1ccc(Cl)cc1.CC(C)(C)[N+]#[C-]', '?'], arrows: [{ reagents: 'Sc(OTf)3 (10 mol%), MeOH, 60 °C' }] },
+    answer: { structures: ['CC(C)(C)Nc1c(-c2ccc(Cl)cc2)nc2ccccn12'] },
+  },
+  {
+    // Mitsunobu: the alcohol carbon inverts.
+    id: 'reaction-h9',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['C[C@H](O)c1ccc(cc1)C#N', '?'], arrows: [{ reagents: 'phthalimide, PPh3, DIAD, THF, 0 °C to rt' }] },
+    answer: { structures: ['C[C@@H](N1C(=O)c2ccccc2C1=O)c1ccc(cc1)C#N'] },
+  },
+  {
+    // Fischer: the ketone's two carbons become C2 and C3 of the indole.
+    id: 'reaction-h10',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['CCC(C)=O.NNc1ccccc1', '?'], arrows: [{ reagents: 'H2SO4, EtOH, reflux' }] },
+    answer: { structures: ['Cc1[nH]c2ccccc2c1C'] },
+  },
+  {
+    // Schmidt: nitrogen inserts next to the carbonyl and the ring expands to
+    // the seven-membered lactam. The ketone is symmetric about the carbonyl,
+    // so which side migrates does not change the answer.
+    id: 'reaction-h11',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['O=C1CCC(CC1)c1ccccc1', '?'], arrows: [{ reagents: 'NaN3, H2SO4, CHCl3, 50 °C' }] },
+    answer: { structures: ['O=C1CCC(c2ccccc2)CCN1'] },
+    hazard: ['azide', 'hydrazoic', 'HN3', 'explosive', 'toxic'],
+  },
+  {
+    // The sulfoximine: nitrogen is delivered to sulfur, not to carbon, and the
+    // sulfur keeps four different things on it.
+    id: 'structure-h1',
+    ask: 'What is the product?',
+    marks: 2,
+    shown: { stages: ['CS(=O)c1ccccc1', '?'], arrows: [{ reagents: 'ammonium carbamate, PhI(OAc)2, MeOH, rt' }] },
+    answer: { structures: ['CS(=N)(=O)c1ccccc1'] },
+  },
+];
+
+export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD };
