@@ -102,7 +102,7 @@ export async function readStructureLink(hash: string, bondLength = DEFAULT_STYLE
  * the drawing's `objects`, its arrows (with the reagents written on them) and
  * other text; then a link that opens the drawing again.
  */
-export function aiSummary(mol: Molecule, opts: { nameOf?: (m: Molecule) => string | null; link?: string; objects?: readonly DocObject[]; style?: DrawingStyle } = {}): string {
+export function aiSummary(mol: Molecule, opts: { nameOf?: (m: Molecule) => string | null; link?: string; objects?: readonly DocObject[]; style?: DrawingStyle; hazards?: readonly string[] } = {}): string {
   const parts = mol.fragments().map((ids) => {
     if (ids.length === mol.atomCount) return mol;
     const keep = new Set(ids);
@@ -124,6 +124,7 @@ export function aiSummary(mol: Molecule, opts: { nameOf?: (m: Molecule) => strin
   });
   const text = opts.objects ? drawingText(mol, opts.objects, (opts.style ?? DEFAULT_STYLE).bondLength, (opts.style ?? DEFAULT_STYLE).captionSize) : [];
   if (text.length) lines.push('', 'Arrows and text in the drawing:', ...text.map((t) => `- ${t}`));
+  if (opts.hazards?.length) lines.push('', 'Hazards (screening rules only: check the SDS):', ...opts.hazards.map((h) => `- ${h}`));
   if (opts.link) lines.push('', `Open and edit in HexSketch: ${opts.link}`);
   return lines.join('\n');
 }

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { deflateSync, crc32 } from 'node:zlib';
-import { computeMass, payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE, type Molecule } from '@hexsketch/core';
+import { computeMass, payloadFromPng, decodePayload, parsePattern, parseSmiles, substructureMatches, sameStructure, substructureMappings, writeMolfile, writeCdxml, layout2D, DEFAULT_STYLE, Molecule } from '@hexsketch/core';
 import { alignByMaps, analyze, commonCore, PROTECTING_GROUPS, arrangeForArrows, disconnectionMarks, highlighted, highlightPlaces, imbalance, schemeBalance, compare, convert, detectFormat, electronArrows, labelPlaces, link, name, orientLike, placeLabels, readStructure, render, scheme, validate } from '../src/index.ts';
 
 const ASPIRIN = 'CC(=O)Oc1ccccc1C(=O)O';
@@ -400,14 +400,13 @@ test('retrosynthesis: disconnections are marked across their bonds, and steps ar
   assert.deepEqual(await schemeBalance({ stages: ['CC(=O)O.OC', 'CC(=O)OC'] }), [{ step: 1, unbalanced: 'H2O on the left is not on the right' }]);
   assert.deepEqual(await schemeBalance({ stages: ['CC(=O)O', 'CCO'], arrows: [{ type: 'retrosynthetic' }] }), []);
   const x = imbalance((await readStructure('[OH-].CBr')).mol, (await readStructure('CO')).mol);
-  assert.deepEqual(x, { lost: 'Br', gained: '', charge: 1 });
+  assert.deepEqual(x, { lost: 'Br', gained: '', added: '', charge: 1 });
 });
 
 /** How far (degrees) `mol`'s structure `ids` is turned against `ref`, by the atoms they share; null if mirrored. */
 function turnAgainst(ref: Molecule, mol: Molecule, ids: number[]): number | null {
   const part = mol.clone(); for (const a of mol.atoms()) if (!ids.includes(a.id)) part.removeAtom(a.id);
-  const map = commonCore(ref, part)[0];
-  if (!map) return null;
+  const map = commonCore(ref, part)[0]!;
   const pairs = [...map].map(([r, t]) => [ref.atom(r), part.atom(t)] as const);
   const c = (k: 0 | 1) => ({ x: pairs.reduce((s, p) => s + p[k].x, 0) / pairs.length, y: pairs.reduce((s, p) => s + p[k].y, 0) / pairs.length });
   const ca = c(0), cb = c(1);
@@ -424,3 +423,11 @@ async function drawnTurned(smiles: string, deg: number): Promise<Molecule> {
   for (const a of m.atoms()) { const { x, y } = a; a.x = x * Math.cos(t) - y * Math.sin(t); a.y = x * Math.sin(t) + y * Math.cos(t); }
   return m;
 }
+
+test('a single protected amino acid is turned like the drawing it replaces (not kept as a peptide)', async () => {
+  const like = await drawnTurned('OC(=O)[C@@H]1CCCN1C(=O)OC(C)(C)C', 120);
+  const s = await scheme({ stages: ['OC(=O)[C@@H]1CCCN1C(=O)OC(C)(C)C.NCc1ccccc1', 'O=C(NCc1ccccc1)[C@@H]1CCCN1C(=O)OC(C)(C)C'] }, { like });
+  const start = s.mol.fragments().find((ids) => ids.length === 15)!;
+  const turn = turnAgainst(like, s.mol, start);
+  assert.ok(turn !== null && Math.abs(turn) < 5, `turned ${turn}`);
+});

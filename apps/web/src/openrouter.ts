@@ -114,6 +114,16 @@ function cached(model: string, messages: Message[]): unknown[] {
 }
 
 /**
+ * The most a turn may write. Claude's thinking budget is a share of it (at
+ * low effort about a fifth), so it stays small for Claude: about 1,000 tokens
+ * of thinking, the least Claude takes. Other models set their own thinking by
+ * the effort, and a thinking model needs room for it and then the answer: at
+ * 4,096, a free Nemotron was cut off mid-thought on 21 of 24 benchmark
+ * questions.
+ */
+export const maxTokensFor = (model: string): number => (model.startsWith('anthropic/') ? 4096 : 16384);
+
+/**
  * One turn of the model: its reply, which may ask for tools. Streamed, so
  * `onText` sees the reply as it is written rather than all at once at the end.
  */
@@ -130,8 +140,7 @@ export async function complete(
     body: JSON.stringify({
       model, messages: cached(model, messages), tools: tools.map((t) => ({ type: 'function', function: t })), stream: true,
       // Drawing a structure needs little thought: unchecked, Opus thought 6,000 tokens a step, a minute or two and most of the cost.
-      // Low effort with this cap leaves it about 1,000 (the least Claude takes); the drawing's name and formula catch mistakes.
-      reasoning: { effort: 'low' }, max_tokens: 4096,
+      reasoning: { effort: 'low' }, max_tokens: maxTokensFor(model),
       // What each turn cost, sent with the last chunk, for the chat to show.
       usage: { include: true },
     }),
@@ -145,7 +154,7 @@ export async function complete(
     throw new OpenRouterError(`OpenRouter: ${why || r.statusText || r.status}`);
   }
   // Server-sent events: "data: {chunk}" lines, ": comment" lines while OpenRouter waits, "data: [DONE]" at the end.
-  let text = '';
+  let text = '', finish = '';
   const calls: ToolCall[] = [];
   const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
   let pending = '';
@@ -159,10 +168,11 @@ export async function complete(
       if (!line.startsWith('data: ')) continue;
       const data = line.slice(6).trim();
       if (data === '[DONE]') continue;
-      let chunk: { choices?: { delta?: { content?: string | null; tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[] } }[]; error?: { message?: string }; usage?: { cost?: number; prompt_tokens?: number; completion_tokens?: number } };
+      let chunk: { choices?: { finish_reason?: string | null; delta?: { content?: string | null; tool_calls?: { index: number; id?: string; function?: { name?: string; arguments?: string } }[] } }[]; error?: { message?: string }; usage?: { cost?: number; prompt_tokens?: number; completion_tokens?: number } };
       try { chunk = JSON.parse(data); } catch { continue; }
       if (chunk.error) throw new OpenRouterError(`OpenRouter: ${chunk.error.message ?? 'the model stopped'}`);
       if (typeof chunk.usage?.cost === 'number') opts.onCost?.(chunk.usage.cost);
+      finish = chunk.choices?.[0]?.finish_reason ?? finish;
       const delta = chunk.choices?.[0]?.delta;
       if (delta?.content) { text += delta.content; opts.onText?.(text); }
       // A tool call arrives in pieces: its id and name first, then its arguments a few characters at a time.
@@ -175,6 +185,7 @@ export async function complete(
     }
   }
   const toolCalls = calls.filter(Boolean);
+  if (!text && !toolCalls.length && finish === 'length') throw new OpenRouterError('The model thought for as long as it may and wrote no answer: ask again, or choose another model');
   if (!text && !toolCalls.length) throw new OpenRouterError('OpenRouter: the model sent an empty reply');
   return { role: 'assistant', content: text || null, ...(toolCalls.length ? { tool_calls: toolCalls } : {}) };
 }
