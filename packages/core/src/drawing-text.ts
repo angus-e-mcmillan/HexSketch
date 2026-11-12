@@ -28,9 +28,10 @@ const isEquilibrium = (a: Arrow) => a.shaftSpacing > 0 && a.headStyle !== 'hollo
  * cut in two. Only a break that starts something new becomes a comma, so what
  * a chemist writes above an arrow is what a reader gets back.
  */
+const STEP = /^(?:[ivx]+|\d+)\s*[.)]/i;
 const oneLine = (t: string) =>
   t.trim().split(/\s*\n\s*/).filter(Boolean)
-    .reduce((a, b) => (a ? `${a}${/[,;:]$/.test(a) || /^[a-z(]/.test(b) ? ' ' : ', '}${b}` : b), '');
+    .reduce((a, b) => (a ? `${a}${STEP.test(b) ? '; ' : /[,;:]$/.test(a) || /^[a-z(]/.test(b) ? ' ' : ', '}${b}` : b), '');
 
 /** Where a caption's text sits, roughly: its lines at the caption size, from its first baseline. */
 function captionBox(c: Caption, size: number): Box {

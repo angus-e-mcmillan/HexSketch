@@ -35,7 +35,7 @@ test('reagents over several lines, a retrosynthetic arrow, a product drawn at th
   const retro = makeArrow({ x: 170, y: 100 }, { x: 250, y: 100 }, 'retro');
   assert.deepEqual(drawingText(mol, [retro], L), ['Structure 1 ⇒ Structure 2']);
   const forward = [makeArrow({ x: 170, y: 100 }, { x: 250, y: 100 }), makeCaption(210, 70, '1. NaOH, H2O\n2. HCl', undefined, 'center')];
-  assert.deepEqual(drawingText(mol, forward, L), ['Structure 1 → Structure 2  (above the arrow: 1. NaOH, H2O, 2. HCl)']);
+  assert.deepEqual(drawingText(mol, forward, L), ['Structure 1 → Structure 2  (above the arrow: 1. NaOH, H2O; 2. HCl)']);
 });
 
 test('other text: a label beside an atom, and text on its own; curly arrows are left out', () => {
@@ -68,6 +68,10 @@ test('conditions that wrap to fit the arrow read back as the chemist wrote them'
   const wrapped = makeCaption(210, 72, 'ammonium\ncarbamate,\nPhI(OAc)2, MeOH,\nrt', undefined, 'center');
   assert.deepEqual(drawingText(mol, [arrow, wrapped], L),
     ['the structure → nothing  (above the arrow: ammonium carbamate, PhI(OAc)2, MeOH, rt)']);
+  // A step of a sequence starts something new even though "ii." is lower case.
+  const steps = makeCaption(210, 72, 'i. DPPA, Et3N,\ntoluene, 90 °C\nii. t-BuOH,\nreflux', undefined, 'center');
+  assert.deepEqual(drawingText(mol, [arrow, steps], L),
+    ['the structure → nothing  (above the arrow: i. DPPA, Et3N, toluene, 90 °C; ii. t-BuOH, reflux)']);
   // A break that starts something new is still a boundary between reagents.
   const items = makeCaption(210, 86, 'NaBH4\nMeOH', undefined, 'center');
   assert.deepEqual(drawingText(mol, [arrow, items], L),
