@@ -1,5 +1,6 @@
 import { elementBySymbol } from './elements.ts';
 import { Molecule, type AtomId, type BondDisplay, type BondOrder } from './model.ts';
+import { kekulize } from './kekulize.ts';
 
 /**
  * MDL molfile V2000 reading and writing. Molfiles use angstroms with y up;
@@ -96,5 +97,7 @@ export function readMolfile(text: string, bondLength = 18.43): Molecule {
     : ANGSTROM_BOND;
   const k = avg > 1e-6 ? bondLength / avg : bondLength / ANGSTROM_BOND;
   ids.forEach((id, i) => { const a = mol.atom(id); a.x = raw[i]!.x * k; a.y = -raw[i]!.y * k; });
+  // Aromatic bonds (type 4) become alternating double bonds, as a chemist draws them.
+  kekulize(mol);
   return mol;
 }
