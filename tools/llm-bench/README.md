@@ -55,22 +55,40 @@ proofread them.
   answered nothing. Any claim about a score needs the default three repeats
   and the range the report prints. Token, time and orientation figures are
   means over every question and move far less.
-- **At equal settings HexSketch scores higher for a third fewer tokens.**
-  On the drug-scale paper, the free model: 95 / 100 against 91, 10.1k output
-  tokens a question against 15.9k, 78 s against 135 s, every structure valid
-  against 96%, 88% drawn the same way round against 40%. Both figures inside
-  the noise band above, so the direction is the result, not the margin.
+- **At equal settings HexSketch does not change the score. It changes
+  everything about how the score is reached.** Three repeats of the drug-scale
+  paper on the free model, 78 answers a condition: 88.7 / 100 (86–90) with
+  HexSketch against 90.3 (86–94) without. The ranges overlap, so there is no
+  score difference to report, in either direction. What does separate, as means
+  over every answer: 8.9k output tokens a question against 15.7k, 74 s against
+  135 s, no answer cut off against four, every structure valid against 95%,
+  98% of names matching their structure against 91%, and 84% of structures
+  drawn the same way round as the question against 40%. A chemist gets the same
+  marks in half the time and half the tokens, and gets drawings they can read.
+  (An earlier single run read 95 against 91, and was quoted here as a win. One
+  repeat cannot measure that, as the bullet above says: three can, and it is a
+  tie.)
 - **Difficulty comes from the size of the molecule, not the cleverness of the
   question.** Sixteen questions on migration selectivity, kinetic enolates and
   the rest scored 56 / 63 on a free model, and every mark dropped was a token
   cut-off. What models come apart on is carrying twenty-five heavy atoms
   through a transformation.
-- **HexSketch trades thinking for drawing.** That is what rescues the
-  bookkeeping questions — a drug-scale coupling the model could not finish in
-  32000 tokens it answered in 9582 with HexSketch — and what can cut a trap
-  short: asked for a diazoketone from a mixed anhydride it drew an answer
-  after 5.7k tokens and committed to the methyl ester, where without
-  HexSketch it thought for 26k and got it right.
+- **HexSketch trades thinking for drawing.** Over three repeats it wins and
+  loses the same questions every time, and that is the trade. It rescues the
+  bookkeeping: a drug-scale coupling the model never once finished inside
+  32000 tokens it answered right all three times with HexSketch, in 18k. It
+  cuts a trap short: asked which two buyable materials make a biaryl amide it
+  drew the amide disconnection three times out of three and lost the marks,
+  because the benzoic acid it asks you to buy has no supplier, where without
+  HexSketch it reasoned its way to the Suzuki coupling twice. Same with the
+  diazoketone trap: drawn after 5.7k tokens and committed to the methyl ester,
+  against 26k of thinking and the right answer. The questions it loses are the
+  ones whose answer looks right on the page and fails on a fact the drawing
+  does not hold. **That is a product gap, not just a benchmark result:**
+  HexSketch can tell the model a structure is valid, named and balanced, but
+  not that nobody sells it. The vendor check this benchmark already uses
+  (route.ts, 30 suppliers) would answer exactly the question the model got
+  wrong.
 - **"Draw before you think" was tried and rejected.** An extra prompt line
   telling the model to draw as soon as it could write a structure moved the
   score by a noise-sized amount and dropped structures drawn the same way
