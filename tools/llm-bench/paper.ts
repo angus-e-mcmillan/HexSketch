@@ -269,3 +269,37 @@ export const PAPER: Spec[] = [
     hazard: ['explosive', 'explosion', 'explode', 'blast shield', 'toxic', 'carcinogen', 'TMS-diazomethane', 'trimethylsilyldiazomethane'],
   },
 ];
+
+/**
+ * Candidate questions, in questions/candidates/: tried on free models to see
+ * whether a question is worth asking before it joins the paper. Only the ones
+ * written here are drawn by author.ts (`-- --set candidates`); the rest of
+ * that folder was drawn by hand and is left alone.
+ */
+export const CANDIDATES: Spec[] = [
+  {
+    // Abrocitinib, from Chemistry By Design, redrawn from the chemistry alone.
+    // The accepted couplings are the published one and the four a chemist has
+    // since marked viable: the pyrrolopyrimidine may be aminated before or
+    // after the sulfonamide is made, and the amine may be carried in
+    // protected or as the sulfonamide itself.
+    id: 'route-c3',
+    ask: 'Plan a synthesis of this compound from starting materials you can buy, in at most 4 steps.',
+    marks: 5,
+    shown: { stages: ['CCCS(=O)(=O)NC1CC(C1)N(C)C2=NC=NC=3NC=CC23'] },
+    answer: { structures: ['O=C2CC(NC(=O)OCC1=CC=CC=C1)C2', 'CN'] },
+    also: [
+      { structures: ['CNC1CC(N)C1', 'ClC1=NC=NC=2NC=CC12'] },
+      { structures: ['CNC1CC(N)C1', 'ClC1=NC=NC2=C1C=CN2S(=O)(=O)C3=CC=C(C)C=C3'] },
+      // The amine already carrying its sulfonamide: three graded routes end this way.
+      { structures: ['CCCS(=O)(=O)NC1CC(C1)NC', 'ClC1=NC=NC=2NC=CC12'] },
+      { structures: ['CCCS(=O)(=O)NC1CC(C1)NC', 'ClC1=NC=NC2=C1C=CN2S(=O)(=O)C3=CC=C(C)C=C3'] },
+      // Aminated first, the second nitrogen protected: Boc or Cbz.
+      { structures: ['CC(C)(C)OC(=O)NC1CC(C1)N', 'ClC1=NC=NC=2NC=CC12'] },
+      { structures: ['O=C(OCc1ccccc1)NC1CC(C1)N', 'ClC1=NC=NC=2NC=CC12'] },
+    ],
+  },
+];
+
+/** The papers author.ts can draw, by --set. */
+export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES };

@@ -21,7 +21,7 @@ import { readStructure, scheme, type SchemeArrow, type Structure } from '../../p
 import { depict } from '../../packages/render/src/index.ts';
 import { cloneObjects, DEFAULT_STYLE, makeCaption, Molecule, objectPoints, smilesAtomMaps, writeCdxml, writeSmiles, type AtomId, type DocObject } from '../../packages/core/src/index.ts';
 import { readQuestionDrawing } from './drawing.ts';
-import { PAPER, type Answer, type Spec } from './paper.ts';
+import { PAPERS, type Answer, type Spec } from './paper.ts';
 import { questionsDir } from './questions.ts';
 
 const style = { ...DEFAULT_STYLE };
@@ -151,6 +151,9 @@ async function draw(spec: Spec): Promise<string> {
   return writeCdxml(page.mol, style, page.objects);
 }
 
+/** The one structure a route question shows: its target. */
+const read0 = (spec: Spec) => readStructure(spec.shown.stages[0]!.split('.')[0]!);
+
 /** What the reader makes of the drawing, against what the spec meant. */
 async function check(spec: Spec, xml: string): Promise<string[]> {
   const bad: string[] = [];
@@ -165,6 +168,15 @@ async function check(spec: Spec, xml: string): Promise<string[]> {
   for (const s of got) bad.push(`the question shows ${s}, which the spec does not`);
   const want = await answerSmiles(spec.answer);
   const key = question.key;
+  // A route question's answer is the couplings the chemist accepts, the first drawn under "Answer" and the rest under "Also accept".
+  if (key.kind === 'route') {
+    const canon = async (list: string[]) => (await Promise.all(list.map(async (x) => writeSmiles((await readStructure(x)).mol)))).sort().join(' + ');
+    const meant = await Promise.all([spec.answer, ...(spec.also ?? [])].map((a) => canon('structures' in a ? a.structures : [])));
+    const read = await Promise.all(key.accepted.map(canon));
+    if (meant.join(' | ') !== read.join(' | ')) bad.push(`the accepted couplings read as ${read.join(' | ')}, not ${meant.join(' | ')}`);
+    if (writeSmiles((await readStructure(key.target)).mol) !== writeSmiles((await read0(spec)).mol)) bad.push('the target is not the structure shown');
+    return bad;
+  }
   const have = key.kind === 'structure' ? [key.smiles] : key.kind === 'structures' ? key.smiles
     : key.kind === 'sequence' ? key.stages.flat() : key.kind === 'atoms' || key.kind === 'ranking' ? [key.smiles.replace(/:\d+\]/g, ']')] : [];
   const plain = await Promise.all(have.map(async (s) => writeSmiles((await readStructure(s)).mol)));
@@ -196,7 +208,9 @@ const { values: opt } = parseArgs({ options: { only: { type: 'string' }, set: { 
 const dir = questionsDir(opt.set);
 mkdirSync(dir, { recursive: true });
 const pick = opt.only?.split(',').map((x) => x.trim());
-const specs = PAPER.filter((s) => !pick || pick.includes(s.id));
+const paper = PAPERS[opt.set ?? ''];
+if (!paper) throw new Error(`paper.ts has no questions for --set ${opt.set}: it writes ${Object.keys(PAPERS).filter(Boolean).join(', ')}`);
+const specs = paper.filter((s) => !pick || pick.includes(s.id));
 if (!specs.length) throw new Error(pick ? `No question called ${pick.join(', ')}` : 'paper.ts holds no questions');
 const seen = new Map<string, string>();
 let wrote = 0, failed = 0;
