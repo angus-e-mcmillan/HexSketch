@@ -9,6 +9,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { payloadFromPng } from '@hexsketch/core';
+import { link, scheme } from '@hexsketch/agent';
 import { createServer, SKETCHER_URI, type ServerOptions } from '../src/mcp.ts';
 import { findStructure, pageTools, PAGE_INSTRUCTIONS, PAGE_ONLY_TOOLS } from '../src/toolkit.ts';
 import { rasterize } from '../src/png.ts';
@@ -145,6 +146,18 @@ test('name, analyze, convert, compare and link', async () => {
   assert.match(textOf(await call('convert_structure', { structure: 'CCO', to: 'mol' })), /V2000/);
   assert.equal(JSON.parse(textOf(await call('compare_structures', { a: 'C[C@H](N)C(=O)O', b: 'C[C@@H](N)C(=O)O' }))).same, false);
   assert.equal(textOf(await call('structure_link', { structure: 'CC#N' })), 'https://hexsketch.com/#smiles=CC%23N');
+});
+
+test('a drawn reaction pasted as a link keeps its reagents, for a chat with no editor to read', async () => {
+  // As a chemist hands a drawing to Claude Code or Codex: a link to what they drew, reagents on the arrow.
+  const drawn = await link(await scheme({ stages: ['O=C1CCCCC1Cl', 'COC(=O)C1CCCC1'], arrows: [{ reagents: 'NaOMe, MeOH', conditions: '0 °C' }] }));
+  const { call } = await connect({}, 'claude-code');
+  for (const tool of ['analyze_structure', 'name_structure']) {
+    const r = JSON.parse(textOf(await call(tool, { structure: drawn })));
+    assert.ok(r.text?.some((l: string) => /above the arrow: NaOMe, MeOH/.test(l) && /below it: 0 °C/.test(l)), `${tool} should carry the arrow's reagents and conditions, got ${JSON.stringify(r.text)}`);
+  }
+  // A structure with nothing drawn around it is answered exactly as before.
+  assert.equal(JSON.parse(textOf(await call('analyze_structure', { structure: 'O=C1CCCCC1Cl' }))).text, undefined);
 });
 
 test('bad structures come back as tool errors the model can read', async () => {

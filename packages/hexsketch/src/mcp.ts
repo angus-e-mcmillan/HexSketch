@@ -172,14 +172,15 @@ export function createServer(opts: ServerOptions): McpServer {
     description: DESCRIPTIONS.name_structure,
     inputSchema: { structure: structure() },
     annotations: { title: 'Name a structure', ...READ_ONLY },
-  }, ({ structure: s }) => tool(async () => text({ ...(await name(s)), link: await link(s) })));
+  }, ({ structure: s }) => tool(async () => text({ ...(await name(s)), ...(await textOf(s)), link: await link(s) })));
 
   server.registerTool('analyze_structure', {
     title: 'Analyze a structure',
     description: DESCRIPTIONS.analyze_structure,
     inputSchema: { structure: structure() },
     annotations: { title: 'Analyze a structure', ...READ_ONLY },
-  }, ({ structure: s }) => tool(async () => text({ ...(await analyze(s)), link: await link(s) })));
+  // A drawing pasted as a link or CDXML keeps its arrows and text: the reagents on a reaction arrow are half the question.
+  }, ({ structure: s }) => tool(async () => text({ ...(await analyze(s)), ...(await textOf(s)), link: await link(s) })));
 
   server.registerTool('validate_structure', {
     title: 'Check a structure',
