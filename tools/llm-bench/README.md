@@ -125,6 +125,19 @@ proofread them.
   six times as much and takes twice as long: the model reads the drawing,
   draws its answer, and 8% of its calls fail, most of them render_structure
   given a malformed mechanism, which it then corrects.
+- **A chemist's own reactions are hard, and separate what HexSketch fixes from
+  what it cannot.** Ten reactions from published total and process syntheses,
+  drawn by a chemist in ChemDraw, with the products they drew as the answers:
+  Haiku 5.5 in Claude Code, three repeats, gets 47% typed and 57% drawn in
+  HexSketch, against 91% on the paper. Where the drawing wins it wins on
+  bookkeeping: typed, the model read 1,4-dichlorobutane as 1,5-dichloropentane
+  (counting the carbons of ClCCCCCl) and moved a chlorine of a
+  2,3-dichlorophenyl to 2,6; drawn, HexSketch hands it the names and it gets
+  both right every time. Where it cannot help is the chemistry: a DIBAL
+  reduction answered as the aldehyde instead of the hemiaminal it closes to,
+  an intramolecular Diels-Alder never right, and a new stereocentre set the
+  wrong way round in five answers of six -- with the keys' stereochemistry
+  checked against ChemDraw's own R/S at every centre.
 - **"Draw before you think" was tried and rejected.** An extra prompt line
   telling the model to draw as soon as it could write a structure moved the
   score by a noise-sized amount and dropped structures drawn the same way
