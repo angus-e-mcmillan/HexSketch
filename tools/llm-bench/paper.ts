@@ -630,6 +630,97 @@ export const HARD: Spec[] = [
     shown: { stages: ['CS(=O)c1ccccc1', '?'], arrows: [{ reagents: 'ammonium carbamate, PhI(OAc)2, MeOH, rt' }] },
     answer: { structures: ['CS(=N)(=O)c1ccccc1'] },
   },
+  {
+    // From a chemist's own drawing, as were the nine after it: the answer is the product they drew.
+    // Amphidinolide P (Lee, 2013). Sodium hydride closes the bromohydrin to the epoxide, inverting the carbon
+    // that carried the bromide, and the other alcohol is silylated.
+    id: 'reaction-r1',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['OC[C@H](CCO)Br', '?'], arrows: [{ reagents: 'NaH, TBSCl, THF' }] },
+    answer: { structures: ['CC([Si](OCC[C@@H]1CO1)(C)C)(C)C'] },
+  },
+  {
+    // Crizotinib (Pfizer). The Mitsunobu inverts the benzylic carbinol as the pyridinol takes its place.
+    id: 'reaction-r2',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['ClC1=C(C(=C(C=C1)F)Cl)[C@H](C)O.[O-][N+](C=1C(=CC=CN1)O)=O', '?'], arrows: [{ reagents: 'DIAD, PPh3, toluene, 0 °C' }] },
+    answer: { structures: ['ClC1=C(C(=C(C=C1)F)Cl)[C@@H](C)OC2=C(N=CC=C2)[N+](=O)[O-]'] },
+  },
+  {
+    // Netarsudil. The Evans enolate is aminomethylated by the benzotriazolylmethyl carbamate, which
+    // gives up benzotriazole: the new stereocentre is set by the auxiliary.
+    id: 'reaction-r3',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['O=C(OCC1=CC=C(C=C1)CC(=O)N2C(O[C@@H](C2)CC3=CC=CC=C3)=O)C4=C(C=C(C=C4)C)C.CC(OC(NCN2N=NC1=CC=CC=C12)=O)(C)C', '?'], arrows: [{ reagents: 'LiHMDS, THF, -70 °C to -30 °C' }] },
+    answer: { structures: ['O=C(OCC1=CC=C(C=C1)[C@H](C(=O)N2C(O[C@@H](C2)CC3=CC=CC=C3)=O)CNC(=O)OC(C)(C)C)C4=C(C=C(C=C4)C)C'] },
+  },
+  {
+    // A macrocyclic peptide closed by HATU: the free amine and the acid at the ends of a chain
+    // of some 100 heavy atoms meet. Bookkeeping at the size where models give out.
+    id: 'reaction-r4',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['O=C(N1[C@@H](CCC1)C(NC5(C(N([C@H](C(N([C@@H](CC(N([C@H](C(N[C@H](C(N([C@H](C(N3[C@H](C(N([C@H](C(N(CC(=O)O)C)=O)CC2=CC=C(C=C2)C)CC)=O)CC3)=O)C)C)=O)[C@@H](C)CC)=O)CC(C)C)C)=O)C(N(C)C)=O)C)=O)C4CCCC4)C)=O)CCCC5)=O)[C@@H](N)CCC6=CC(=C(C(=C6)F)C(F)(F)F)F', '?'], arrows: [{ reagents: 'HATU, DIPEA, MeCN' }] },
+    answer: { structures: ['O=C2N1[C@@H](CCC1)C(NC7(C(N([C@H](C(N([C@@H](CC(N([C@H](C(N[C@H](C(N([C@H](C(N5[C@H](C(N([C@H](C(N(CC(N[C@H]2CCC3=CC(=C(C(=C3)F)C(F)(F)F)F)=O)C)=O)CC4=CC=C(C=C4)C)CC)=O)CC5)=O)C)C)=O)[C@@H](C)CC)=O)CC(C)C)C)=O)C(N(C)C)=O)C)=O)C6CCCC6)C)=O)CCCC7)=O'] },
+  },
+  {
+    // A nuphar thioalkaloid. DIBAL at -89 °C takes the ester only as far as the aldehyde, which
+    // closes onto the ring's NH to the hemiaminal.
+    id: 'reaction-r5',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['COC([C@]3(CC[C@H]1[C@@H](CC[C@H](N1)C=2C=COC2)C)C[C@@]4(CS3)CC[C@@]5(N(C4)C(CCC5C)C6=COC=C6)[H])=O', '?'], arrows: [{ reagents: 'i-Bu2AlH, CH2Cl2, -89 °C' }] },
+    answer: { structures: ['O[C@@H]2[C@]4(CC[C@]1([C@@H](CC[C@H](N12)C=3C=COC3)C)[H])C[C@@]5(CS4)CC[C@@]6(N(C5)[C@@H](CC[C@H]6C)C7=COC=C7)[H]'] },
+  },
+  {
+    // Glecaprevir. Ring-closing metathesis makes the macrocycle and gives off ethylene; the
+    // catalyst, drawn over the arrow in the original, is named here as a chemist writes it.
+    id: 'reaction-r6',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['FC(C=2C(=NC1=CC(=CC=C1N2)OC)O[C@H]4CN(C([C@@H](NC(O[C@H]3[C@H](CC=C)C3)=O)C(C)(C)C)=O)[C@@H]([C@@H]4CC)C(=O)OC)(CC=C)F', '?'], arrows: [{ reagents: 'Zhan catalyst-1B, toluene, 100 °C' }] },
+    answer: { structures: ['FC3(C=2C(=NC1=CC(=CC=C1N2)OC)O[C@H]5CN(C([C@@H](NC(O[C@H]4[C@H](C/C=C/C3)C4)=O)C(C)(C)C)=O)[C@@H]([C@@H]5CC)C(=O)OC)F'] },
+  },
+  {
+    // Cerium chloride makes the Grignard add 1,2 to the ketone, leaving the lactone and the
+    // enone's double bond alone.
+    id: 'reaction-r7',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['CC[Si](O[C@@]12[C@@H](CC=C(C(C1)=O)C#C[Si](C)(C)C)C(OC2=O)(C)C)(CC)CC.Br[Mg]CCC(=C)C', '?'], arrows: [{ reagents: 'CeCl3, THF, 0 °C' }] },
+    answer: { structures: ['CC[Si](O[C@@]12[C@@H](CC=C([C@](C1)(O)CCC(=C)C)C#C[Si](C)(C)C)C(OC2=O)(C)C)(CC)CC'] },
+  },
+  {
+    // An intramolecular Diels-Alder: the silyloxy diene and the tethered alkene close two rings
+    // in one step, the product an isomer of the starting material.
+    id: 'reaction-r8',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['C=C(C1=CC(CC1)(CC(C)(C=C)C)C)O[Si](C)(C)C(C)(C)C', '?'], arrows: [{ reagents: 'PhMe, 150 °C' }] },
+    answer: { structures: ['CC([Si](OC3=C1[C@]2([C@@](CC1)(CC([C@@]2(CC3)[H])(C)C)C)[H])(C)C)(C)C'] },
+  },
+  {
+    // Trospium chloride. The secondary amine is alkylated twice by 1,4-dichlorobutane, closing the
+    // spiro pyrrolidinium: the product is a quaternary ammonium salt.
+    id: 'reaction-r9',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['OC(C(OC1CC2NC(C1)CC2)=O)(C3=CC=CC=C3)C4=CC=CC=C4.ClCCCCCl', '?'], arrows: [{ reagents: 'Et3N, MeCN, 50 °C' }] },
+    answer: { structures: ['OC(C(OC1CC2[N+]3(C(C1)CC2)CCCC3)=O)(C4=CC=CC=C4)C5=CC=CC=C5', '[Cl-]'] },
+    also: [{ structures: ['OC(C(OC1CC2[N+]3(C(C1)CC2)CCCC3)=O)(C4=CC=CC=C4)C5=CC=CC=C5'] }],
+  },
+  {
+    // A Hantzsch dihydropyridine, as made for clevidipine: the benzylidene ketoester and the
+    // enamino ester close the ring, losing water.
+    id: 'reaction-r10',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['ClC1=C(C(=CC=C1)\C=C(\C(C)=O)C(OC)=O)Cl.C\C(=C\C(OCCC#N)=O)N', '?'], arrows: [{ reagents: 'n-propanol, reflux' }] },
+    answer: { structures: ['O=C(C1=C(NC(=C(C1C2=C(C(=CC=C2)Cl)Cl)C(OCCC#N)=O)C)C)OC'] },
+  },
 ];
 
 /**

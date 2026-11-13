@@ -88,6 +88,8 @@ export function readQuestionDrawing(xml: string, id: string): ReadQuestion {
   for (let r = 2; r < cuts.length; r++) {
     const alt = readKey(r, fragments, arrows, regionOf, warnings, atomMarks);
     if (!alt) continue;
+    // Several structures in any order can be one: a salt's cation alone, as well as the cation and its counterion.
+    if (key.kind === 'structures' && alt.kind === 'structure') { (key.also ??= []).push([alt.smiles]); continue; }
     if (alt.kind !== key.kind) { warnings.push(`"Also accept" ${r - 1} is a ${alt.kind}, the answer a ${key.kind}: ignored`); continue; }
     if (key.kind === 'structure' && alt.kind === 'structure') (key.also ??= []).push(alt.smiles);
     else if (key.kind === 'structures' && alt.kind === 'structures') (key.also ??= []).push(alt.smiles);

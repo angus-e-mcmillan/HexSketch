@@ -18,9 +18,11 @@ this checkout. Either way the benchmark measures HexSketch as it is.
 ## What is measured
 
 The paper is 100 marks over seven types of question (`questions/`); `--set hard`
-is 19 harder questions on less common chemistry, six of them ending at a drug
-whose structure PubChem confirms, and `--set all` is the two together, 45
-questions and 174 marks. Each run
+is 29 harder questions: ten reactions from a chemist's own ChemDraw drawings,
+taken from published total and process syntheses, with the products they drew
+as the answers; six more ending at a drug whose structure PubChem confirms; and
+the rest on less common chemistry. `--set all` is the two together, 55
+questions and 214 marks. Each run
 reports the **score** in each condition (marks for right answers, overall and
 per type), and for every answer, automatically:
 
