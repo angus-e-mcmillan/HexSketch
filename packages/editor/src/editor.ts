@@ -1594,7 +1594,7 @@ const ELEMENT_COLORS: Record<string, string> = {
 const NICKNAMES: Record<string, string> = {
   Me: 'C', Et: 'CC', Pr: 'CCC', nPr: 'CCC', iPr: 'C(C)C', Bu: 'CCCC', nBu: 'CCCC', tBu: 'C(C)(C)C', sBu: 'C(C)CC', iBu: 'CC(C)C',
   Ph: 'c1ccccc1', Bn: 'Cc1ccccc1', Bz: 'C(=O)c1ccccc1', Ac: 'C(C)=O', Cy: 'C1CCCCC1', Vin: 'C=C', All: 'CC=C',
-  OH: 'O', SH: 'S', NH2: 'N', NHMe: 'NC', NMe2: 'N(C)C', NHAc: 'NC(C)=O', NHBoc: 'NC(=O)OC(C)(C)C', NHCbz: 'NC(=O)OCc1ccccc1', NHFmoc: 'NC(=O)OCC1c2ccccc2-c2ccccc12',
+  OH: 'O', SH: 'S', NH2: 'N', NHMe: 'NC', NMe: 'NC', NMe2: 'N(C)C', NHAc: 'NC(C)=O', NHBoc: 'NC(=O)OC(C)(C)C', NHCbz: 'NC(=O)OCc1ccccc1', NHFmoc: 'NC(=O)OCC1c2ccccc2-c2ccccc12',
   OMe: 'OC', OEt: 'OCC', OtBu: 'OC(C)(C)C', OPh: 'Oc1ccccc1', OBn: 'OCc1ccccc1', OAc: 'OC(C)=O', OBz: 'OC(=O)c1ccccc1',
   OTf: 'OS(=O)(=O)C(F)(F)F', OTs: 'OS(=O)(=O)c1ccc(C)cc1', OMs: 'OS(=O)(=O)C', OTBS: 'O[Si](C)(C)C(C)(C)C', OTBDMS: 'O[Si](C)(C)C(C)(C)C',
   OTIPS: 'O[Si](C(C)C)(C(C)C)C(C)C', OTMS: 'O[Si](C)(C)C', OTES: 'O[Si](CC)(CC)CC', OPMB: 'OCc1ccc(OC)cc1', OTHP: 'OC1CCCCO1', OMOM: 'OCOC',
@@ -1612,7 +1612,17 @@ function expandable(mol: Molecule, id: AtomId): boolean {
   const a = mol.atom(id);
   if (!a.label) return false;
   if (mol.neighbours(id).length === 0 && parsePeptide(a.label)) return true;
-  return !!NICKNAMES[a.label] && mol.neighbours(id).length <= 1;
+  if (!NICKNAMES[a.label]) return false;
+  const bonds = mol.neighbours(id).length;
+  // A label in a chain (an N-methyl amide's "NMe" in a peptide backbone) has a bond on each side:
+  // it can be drawn out only when its first atom has room for both.
+  return bonds <= 1 || (bonds === 2 && roomAtHead(a.label) >= 2);
+}
+
+/** How many bonds the first atom of an abbreviation can still make: "NMe" (NC) two, "OMe" one. */
+function roomAtHead(label: string): number {
+  const frag = parseSmiles(NICKNAMES[label]!);
+  return frag.implicitHydrogens([...frag.atoms()][0]!.id);
 }
 
 /**
@@ -1646,7 +1656,11 @@ function expandAtomLabel(m: Molecule, id: AtomId, L: number) {
   const head = fAtoms[0]!;
   // Point the group away from the atom it hangs on (or rightwards for a lone label).
   let dir = 0;
-  if (nbrs.length === 1) { const n = m.atom(nbrs[0]!); dir = Math.atan2(a.y - n.y, a.x - n.x); }
+  if (nbrs.length) {
+    // Away from the atoms it hangs on: from the one, or from between the two of a label in a chain.
+    const nx = nbrs.reduce((t, n) => t + m.atom(n).x, 0) / nbrs.length, ny = nbrs.reduce((t, n) => t + m.atom(n).y, 0) / nbrs.length;
+    dir = Math.atan2(a.y - ny, a.x - nx);
+  }
   const rest = fAtoms.slice(1);
   const cx = rest.length ? rest.reduce((s, p) => s + p.x, 0) / rest.length : head.x + 1;
   const cy = rest.length ? rest.reduce((s, p) => s + p.y, 0) / rest.length : head.y;

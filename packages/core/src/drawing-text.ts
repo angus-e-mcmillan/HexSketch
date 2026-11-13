@@ -31,7 +31,13 @@ const isEquilibrium = (a: Arrow) => a.shaftSpacing > 0 && a.headStyle !== 'hollo
 const STEP = /^(?:[ivx]+|\d+)\s*[.)]/i;
 const oneLine = (t: string) =>
   t.trim().split(/\s*\n\s*/).filter(Boolean)
-    .reduce((a, b) => (a ? `${a}${STEP.test(b) ? '; ' : /[,;:]$/.test(a) || /^[a-z(]/.test(b) ? ' ' : ', '}${b}` : b), '');
+    .reduce((a, b) => (a ? `${a}${STEP.test(b) ? '; ' : /[,;:]$/.test(a) || continues(a, b) ? ' ' : ', '}${b}` : b), '');
+/**
+ * A name cut in two by the wrapping: the line before ends in a plain lower-case word ("ammonium",
+ * "sodium") and this one carries on in lower case. A line ending in a formula or an abbreviation
+ * ("PPh3", "TBSCl") is a whole reagent, so a solvent after it ("toluene") is the next item.
+ */
+const continues = (before: string, after: string) => /(^|[\s(])[a-z][a-z-]*$/.test(before) && /^[a-z(]/.test(after);
 
 /** Where a caption's text sits, roughly: its lines at the caption size, from its first baseline. */
 function captionBox(c: Caption, size: number): Box {
@@ -58,19 +64,35 @@ export function drawingText(mol: Molecule, objects: readonly DocObject[], bondLe
   const lines: string[] = [];
 
   const arrows = objects.filter(isSchemeArrow).sort((p, q) => mid(p).y - mid(q).y || mid(p).x - mid(q).x);
+  // A structure drawn over or under an arrow -- a second reactant, a catalyst, as chemists put them
+  // in ChemDraw -- belongs to that arrow, not to either end of it: between its ends, clear of its
+  // line, within reach, and given to the nearest such arrow when it lies between two.
+  const overArrow = new Map<(typeof fragments)[number], Arrow>();
+  for (const f of fragments) {
+    let best: { a: Arrow; gap: number } | null = null;
+    for (const a of arrows) {
+      const lo = Math.min(a.tail.x, a.head.x), hi = Math.max(a.tail.x, a.head.x), y = mid(a).y;
+      if (f.box.cx <= lo || f.box.cx >= hi || (f.box.y0 <= y && f.box.y1 >= y)) continue;
+      const gap = f.box.y1 < y ? y - f.box.y1 : f.box.y0 - y;
+      if (gap < L * 5 && (!best || gap < best.gap)) best = { a, gap };
+    }
+    if (best) overArrow.set(f, best.a);
+  }
+  const ends = fragments.filter((f) => !overArrow.has(f));
   for (const a of arrows) {
     const x0 = Math.min(a.tail.x, a.head.x) - L * 0.5, x1 = Math.max(a.tail.x, a.head.x) + L * 0.5, y = mid(a).y;
     const near = captions.filter((c) => { const b = captionBox(c, captionSize); return b.cx >= x0 && b.cx <= x1 && Math.abs(b.cy - y) < L * 1.8 && !/^[?+]+$/.test(c.text.trim()); })
       .sort((p, q) => p.y - q.y);
     for (const c of near) used.add(c);
-    const above = near.filter((c) => captionBox(c, captionSize).cy < y).map((c) => oneLine(c.text));
-    const below = near.filter((c) => captionBox(c, captionSize).cy >= y).map((c) => oneLine(c.text));
+    const mine = fragments.filter((f) => overArrow.get(f) === a);
+    const above = [...mine.filter((f) => f.box.cy < y).map(name), ...near.filter((c) => captionBox(c, captionSize).cy < y).map((c) => oneLine(c.text))];
+    const below = [...mine.filter((f) => f.box.cy >= y).map(name), ...near.filter((c) => captionBox(c, captionSize).cy >= y).map((c) => oneLine(c.text))];
     /** The structures at an arrow's end: the nearest within reach, and those beside it on the same side ("A + B →"). */
     const at = (end: Pt) => {
       const other = end === a.tail ? a.head : a.tail;
       const dir = Math.sign(end.x - other.x) || 1;
       let nearest: (typeof fragments)[number] | null = null, d = L * 4;
-      for (const f of fragments) {
+      for (const f of ends) {
         const dist = Math.hypot(Math.max(f.box.x0 - end.x, 0, end.x - f.box.x1), Math.max(f.box.y0 - end.y, 0, end.y - f.box.y1));
         if (dist < d) { d = dist; nearest = f; }
       }
@@ -80,7 +102,7 @@ export function drawingText(mol: Molecule, objects: readonly DocObject[], bondLe
         return q ? '?' : 'nothing';
       }
       const n = nearest;
-      return fragments.filter((f) => f === n || ((f.box.cx - end.x) * dir > 0 && f.box.y0 < n.box.y1 && f.box.y1 > n.box.y0 && Math.abs(f.box.cx - n.box.cx) < L * 10))
+      return ends.filter((f) => f === n || ((f.box.cx - end.x) * dir > 0 && f.box.y0 < n.box.y1 && f.box.y1 > n.box.y0 && Math.abs(f.box.cx - n.box.cx) < L * 10))
         .sort((p, q) => p.box.cx - q.box.cx).map(name).join(' + ');
     };
     const sign = isRetro(a) ? '⇒' : isEquilibrium(a) ? '⇌' : '→';

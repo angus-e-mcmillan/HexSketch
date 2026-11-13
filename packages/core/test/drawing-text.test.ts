@@ -72,8 +72,22 @@ test('conditions that wrap to fit the arrow read back as the chemist wrote them'
   const steps = makeCaption(210, 72, 'i. DPPA, Et3N,\ntoluene, 90 °C\nii. t-BuOH,\nreflux', undefined, 'center');
   assert.deepEqual(drawingText(mol, [arrow, steps], L),
     ['the structure → nothing  (above the arrow: i. DPPA, Et3N, toluene, 90 °C; ii. t-BuOH, reflux)']);
+  // A reagent ending a line, then a solvent in lower case, as a chemist writes them in ChemDraw.
+  const solvent = makeCaption(210, 72, 'DIAD, PPh3\ntoluene, 0 °C', undefined, 'center');
+  assert.deepEqual(drawingText(mol, [arrow, solvent], L),
+    ['the structure → nothing  (above the arrow: DIAD, PPh3, toluene, 0 °C)']);
   // A break that starts something new is still a boundary between reagents.
   const items = makeCaption(210, 86, 'NaBH4\nMeOH', undefined, 'center');
   assert.deepEqual(drawingText(mol, [arrow, items], L),
     ['the structure → nothing  (above the arrow: NaBH4, MeOH)']);
+});
+
+test('a structure drawn over an arrow belongs to it, and is never taken for the product', () => {
+  // As chemists draw it in ChemDraw: the second reactant over the arrow, right by its head, and
+  // the product further on. Read by nearness alone, the reactant over the head became the product.
+  const mol = drawing([['O=Cc1ccccc1', 100, 100], ['NCc1ccccc1', 235, 55], ['c1ccc(cc1)CNCc1ccccc1', 360, 100]]);
+  const arrow = makeArrow({ x: 170, y: 100 }, { x: 270, y: 100 });
+  const reagents = makeCaption(220, 125, 'NaBH(OAc)3', undefined, 'center');
+  assert.deepEqual(drawingText(mol, [arrow, reagents], L),
+    ['Structure 1 → Structure 3  (above the arrow: Structure 2; below it: NaBH(OAc)3)']);
 });
