@@ -1,0 +1,66 @@
+{
+ "routes": {
+  "7f4a98ad5be9cc86": {
+   "viable": true
+  },
+  "c4a8d4445e1b57fc": {
+   "viable": true
+  },
+  "fe31afabae7a606a": {
+   "viable": true
+  },
+  "c13144455b9c3eda": {
+   "viable": true,
+   "note": "Yes but Boc protection not required as amine is symetric"
+  },
+  "f59f6c326556237d": {
+   "viable": false,
+   "note": "Step 4 not likely to work"
+  },
+  "f20cfe7469ed5dfc": {
+   "viable": false,
+   "note": "Step 5 not likely to work"
+  }
+ },
+ "drawings": {
+  "2026-11-11-nemotron-3.5-super-free/hazard-1.hexsketch.1": {
+   "pick": "hexsketch"
+  },
+  "2026-11-11-nemotron-3.5-super-free/multistep-1.hexsketch.1": {
+   "pick": "same",
+   "note": "Both wrong"
+  },
+  "2026-11-11-nemotron-3.5-super-free/multistep-3.hexsketch.1": {
+   "pick": "hexsketch"
+  },
+  "2026-11-11-nemotron-3.5-super-free/reaction-1.hexsketch.1": {
+   "pick": "hexsketch",
+   "note": "Both have problems but A is more consistent to the starting material"
+  },
+  "2026-11-11-nemotron-3.5-super-free/reaction-2.hexsketch.1": {
+   "pick": "hexsketch"
+  },
+  "2026-11-11-nemotron-3.5-super-free/reaction-3.hexsketch.1": {
+   "pick": "other"
+  },
+  "2026-11-11-nemotron-3.5-super-free/reaction-4.hexsketch.1": {
+   "pick": "same",
+   "note": "Both are bad"
+  },
+  "2026-11-11-nemotron-3.5-super-free/reaction-5.hexsketch.1": {
+   "pick": "hexsketch"
+  },
+  "2026-11-11-nemotron-3.5-super-free/structure-1.hexsketch.1": {
+   "pick": "hexsketch"
+  },
+  "2026-11-11-nemotron-3.5-super-free/structure-2.hexsketch.1": {
+   "pick": "hexsketch"
+  },
+  "2026-11-11-nemotron-3.5-super-free/structure-3.hexsketch.1": {
+   "pick": "hexsketch"
+  },
+  "2026-11-11-nemotron-3.5-super-free/structure-5.hexsketch.1": {
+   "pick": "hexsketch"
+  }
+ }
+}

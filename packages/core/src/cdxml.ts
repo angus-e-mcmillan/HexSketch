@@ -452,8 +452,11 @@ export function readCdxmlObjects(xml: string, mol?: Molecule, ids?: Map<string, 
       });
     }
   }
-  // Free captions: <t> elements outside fragments (atom labels live inside <n>).
-  const body = xml.replace(/<fragment\b[\s\S]*?<\/fragment>/g, '');
+  // Free captions: <t> elements outside fragments (atom labels live inside <n>). The nested
+  // fragments go first: ChemDraw writes an abbreviation's atoms inside its node, and a lazy match
+  // from the outer fragment would stop at the inner one's end, leaving the abbreviation's label
+  // (MgBr, F3C, OTBS) and every atom label after it to be read as text drawn on the page.
+  const body = stripNestedFragments(xml).replace(/<fragment\b[\s\S]*?<\/fragment>/g, '');
   const unescape = (t: string) => t.replace(/&#10;|&#xA;|&#13;/gi, '\n').replace(/\r\n?/g, '\n').replace(/&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
   // Font names by id; runs in a sans font (Helvetica, Arial: the default look) carry no font of their own.
   const fonts = new Map([...xml.matchAll(/<font\b([^>]*)\/?>/g)].map((f) => [attr(f[1]!, 'id'), attr(f[1]!, 'name')] as const));

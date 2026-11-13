@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import {
   arcParams, arcPoint, captionRuns, cloneObjects, formulaPieces, makeArcArrow, makeCaption, makeCurlyArrow, Molecule,
-  readCdxmlObjects, writeCdxml, DEFAULT_STYLE, type Arrow, type Caption,
+  readCdxml, readCdxmlObjects, writeCdxml, DEFAULT_STYLE, type Arrow, type Caption,
 } from '@hexsketch/core';
 import { depict, layoutCaption, toSvg } from '@hexsketch/render';
 import { dragHandle, Editor, restyle } from '../src/index.ts';
@@ -28,7 +28,12 @@ test('Formula style: digits after elements are subscripts, charges are raised, c
 test('captions written in ChemDraw read back with their styles, lines and alignment', () => {
   const objs = readCdxmlObjects(readFileSync(new URL('chemdraw-text.cdxml', FIX), 'utf8')).filter((o): o is Caption => o.kind === 'text');
   const by = (t: string) => objs.find((o) => o.text.startsWith(t))!;
-  assert.deepEqual(captionRuns(by('CH2Cl2')), [{ text: 'CH2Cl2', script: 'formula' }]);
+  // "CH2Cl2" there is no caption: ChemDraw read the typed text as chemistry and made it an
+  // abbreviation, its atoms nested in the node. It is read once, as that structure, and not a
+  // second time as loose text on the page (the bug that drew MgBr and F3C twice).
+  assert.equal(objs.filter((o) => o.text.includes('CH2Cl2')).length, 0);
+  const xml = readFileSync(new URL('chemdraw-text.cdxml', FIX), 'utf8');
+  assert.deepEqual([...readCdxml(xml).atoms()].filter((a) => a.label).map((a) => a.label), ['CH2Cl2']);
   const two = by('rt');
   assert.equal(two.text, 'rt, 2 h\nthen H2O');
   assert.equal(two.align, 'center');

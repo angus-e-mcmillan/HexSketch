@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="51.06 73.43 238.78 269.25" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="130.84 73.43" Element="7"/>
+<n id="1003" p="114.88 82.64"/>
+<n id="1004" p="98.93 91.85"/>
+<n id="1005" p="98.93 110.28"/>
+<n id="1006" p="82.97 119.49"/>
+<n id="1007" p="67.01 110.28"/>
+<n id="1008" p="51.06 119.49" Element="8"/>
+<n id="1009" p="67.01 91.85"/>
+<n id="1010" p="82.97 82.64"/>
+<b id="1011" B="1002" E="1003" Order="3"/>
+<b id="1012" B="1003" E="1004"/>
+<b id="1013" B="1004" E="1010" Order="2"/>
+<b id="1014" B="1010" E="1009"/>
+<b id="1015" B="1009" E="1007" Order="2"/>
+<b id="1016" B="1007" E="1008"/>
+<b id="1017" B="1007" E="1006"/>
+<b id="1018" B="1006" E="1005" Order="2"/>
+<b id="1019" B="1004" E="1005"/>
+</fragment>
+<fragment id="1020">
+<n id="1021" p="238.78 87.24" Element="35"/>
+<n id="1022" p="222.82 78.03"/>
+<n id="1023" p="206.86 87.24"/>
+<n id="1024" p="206.86 105.67"/>
+<n id="1025" p="190.91 114.88"/>
+<n id="1026" p="174.95 105.67"/>
+<n id="1027" p="174.95 87.24"/>
+<n id="1028" p="190.91 78.03"/>
+<b id="1029" B="1021" E="1022"/>
+<b id="1030" B="1022" E="1023"/>
+<b id="1031" B="1023" E="1028" Order="2"/>
+<b id="1032" B="1028" E="1027"/>
+<b id="1033" B="1027" E="1026" Order="2"/>
+<b id="1034" B="1026" E="1025"/>
+<b id="1035" B="1025" E="1024" Order="2"/>
+<b id="1036" B="1023" E="1024"/>
+</fragment>
+<fragment id="1037">
+<n id="1038" p="194.67 195.55" Element="7"/>
+<n id="1039" p="178.71 204.76"/>
+<n id="1040" p="162.75 213.98"/>
+<n id="1041" p="162.75 232.40"/>
+<n id="1042" p="146.80 241.61"/>
+<n id="1043" p="130.84 232.40"/>
+<n id="1044" p="114.88 241.61" Element="8"/>
+<n id="1045" p="98.93 232.40"/>
+<n id="1046" p="82.97 241.61"/>
+<n id="1047" p="82.97 260.04"/>
+<n id="1048" p="67.01 269.25"/>
+<n id="1049" p="51.06 260.04"/>
+<n id="1050" p="51.06 241.61"/>
+<n id="1051" p="67.01 232.40"/>
+<n id="1052" p="130.84 213.98"/>
+<n id="1053" p="146.80 204.76"/>
+<b id="1054" B="1038" E="1039" Order="3"/>
+<b id="1055" B="1039" E="1040"/>
+<b id="1056" B="1040" E="1053" Order="2"/>
+<b id="1057" B="1053" E="1052"/>
+<b id="1058" B="1052" E="1043" Order="2"/>
+<b id="1059" B="1043" E="1044"/>
+<b id="1060" B="1044" E="1045"/>
+<b id="1061" B="1045" E="1046"/>
+<b id="1062" B="1046" E="1051" Order="2"/>
+<b id="1063" B="1051" E="1050"/>
+<b id="1064" B="1050" E="1049" Order="2"/>
+<b id="1065" B="1049" E="1048"/>
+<b id="1066" B="1048" E="1047" Order="2"/>
+<b id="1067" B="1046" E="1047"/>
+<b id="1068" B="1043" E="1042"/>
+<b id="1069" B="1042" E="1041" Order="2"/>
+<b id="1070" B="1040" E="1041"/>
+</fragment>
+<t id="1071" p="40.00 40.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [5]</s></t>
+<t id="1072" p="149.89 101.46" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">+</s></t>
+<arrow id="1078" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="347.96 96.46 0" Tail3D="255.83 96.46 0"/>
+<t id="1073" p="301.89 89.46" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">NaH</s></t>
+<t id="1074" p="301.89 112.46" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">DMF, 80 °C</s></t>
+<t id="1075" p="361.96 101.46" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">?</s></t>
+<t id="1076" p="40.00 167.13" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1077" p="40.00 326.89" LineHeight="auto"><s font="3" size="10.00" face="0">Hazard: runaway, run away, decompos, self-heat, uncontrolled exotherm, thermal hazard</s></t>
+</page></CDXML>

@@ -1,0 +1,205 @@
+{
+  "run": "smoke-qwen",
+  "date": "2026-11-12T18:04:15.776Z",
+  "model": "qwen/qwen3.7-flash",
+  "served": [
+    "qwen/qwen3.7-flash"
+  ],
+  "providers": [
+    "Alibaba"
+  ],
+  "settings": {
+    "provider": null,
+    "effort": "medium",
+    "maxTokens": 32000,
+    "likeWebsite": null,
+    "maxRounds": 12,
+    "repeats": 1,
+    "timeoutSeconds": 600,
+    "temperature": "default"
+  },
+  "questions": {
+    "hash": "0be98c9c5dc9",
+    "count": 2,
+    "marks": 6,
+    "types": {
+      "reaction": 1,
+      "structure": 1
+    }
+  },
+  "commit": "b5f819b",
+  "failedRuns": 0,
+  "totalCost": 0.00714238,
+  "conditions": {
+    "smiles": {
+      "score": 0,
+      "scoreRange": [
+        0,
+        0
+      ],
+      "outOf": 6,
+      "byType": {
+        "reaction": {
+          "score": 0,
+          "outOf": 4
+        },
+        "structure": {
+          "score": 0,
+          "outOf": 2
+        }
+      },
+      "correct": {
+        "rate": 0,
+        "n": 2
+      },
+      "stereo": {
+        "rate": 0.5,
+        "n": 2
+      },
+      "valid": {
+        "rate": 0.5,
+        "n": 2
+      },
+      "consistent": {
+        "rate": 0,
+        "n": 2
+      },
+      "preserved": {
+        "rate": 1,
+        "n": 1
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": 0,
+        "n": 1
+      },
+      "refused": 0,
+      "cutOff": 1,
+      "cost": 0.002866355,
+      "tokens": 22014.5,
+      "reasoning": 21893.5,
+      "prompt": 149,
+      "cachedPrompt": 0,
+      "seconds": 220.333,
+      "toolCalls": 0
+    },
+    "hexsketch": {
+      "score": 2,
+      "scoreRange": [
+        2,
+        2
+      ],
+      "outOf": 6,
+      "byType": {
+        "reaction": {
+          "score": 0,
+          "outOf": 4
+        },
+        "structure": {
+          "score": 2,
+          "outOf": 2
+        }
+      },
+      "correct": {
+        "rate": 0.5,
+        "n": 2
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 2
+      },
+      "valid": {
+        "rate": 0.5,
+        "n": 2
+      },
+      "consistent": {
+        "rate": 0.5,
+        "n": 2
+      },
+      "preserved": {
+        "rate": 0.5,
+        "n": 2
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": 1,
+        "n": 2
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.000704835,
+      "tokens": 3471,
+      "reasoning": 3052.5,
+      "prompt": 16133.5,
+      "cachedPrompt": 9600,
+      "seconds": 41.5985,
+      "toolCalls": 1.5
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "reaction-1",
+      "type": "reaction",
+      "marks": 4,
+      "smiles": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 174,
+        "outputTokens": 12029,
+        "thinkingTokens": 11787,
+        "cost": 0.00156899,
+        "seconds": 123.754,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 17044,
+        "outputTokens": 4835,
+        "thinkingTokens": 4258,
+        "cost": 0.00083267,
+        "seconds": 57.257,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "structure-1",
+      "type": "structure",
+      "marks": 2,
+      "smiles": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 124,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
+        "cost": 0.00416372,
+        "seconds": 316.912,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 15223,
+        "outputTokens": 2107,
+        "thinkingTokens": 1847,
+        "cost": 0.000577,
+        "seconds": 25.94,
+        "toolCalls": 1
+      }
+    }
+  ]
+}

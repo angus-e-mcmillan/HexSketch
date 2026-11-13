@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="13.81 5.55 78.30 42.40" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="59.87 42.40" Element="9"/>
+<n id="1003" p="59.87 23.97"/>
+<n id="1004" p="41.45 23.97"/>
+<n id="1005" p="32.23 8.02" Element="7"/>
+<n id="1006" p="13.81 8.02"/>
+<n id="1007" p="78.30 23.97" Element="9"/>
+<n id="1008" p="59.87 5.55" Element="9"/>
+<b id="1009" B="1002" E="1003"/>
+<b id="1010" B="1003" E="1008"/>
+<b id="1011" B="1003" E="1007"/>
+<b id="1012" B="1003" E="1004"/>
+<b id="1013" B="1004" E="1005"/>
+<b id="1014" B="1005" E="1006"/>
+</fragment>
+<t id="1015" p="0.00 80.06" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Estimate the pKa of the conjugate acid of this amine. [3]</s></t>
+<t id="1016" p="0.00 99.06" LineHeight="auto"><s font="3" size="10.00" face="0">Answer: 6.1 ± 1.2</s></t>
+</page></CDXML>

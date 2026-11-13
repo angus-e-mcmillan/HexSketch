@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="13.81 16.38 241.26 190.68" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="13.81 69.19"/>
+<n id="1003" p="29.77 59.98" Element="8"/>
+<n id="1004" p="45.72 69.19"/>
+<n id="1005" p="61.68 59.98"/>
+<n id="1006" p="77.64 69.19"/>
+<n id="1007" p="93.59 59.98"/>
+<n id="1008" p="109.55 69.19" Element="7"/>
+<n id="1009" p="125.51 59.98"/>
+<n id="1010" p="125.51 41.55" Element="8"/>
+<n id="1011" p="141.46 32.34"/>
+<n id="1012" p="150.67 48.30"/>
+<n id="1013" p="157.42 23.13"/>
+<n id="1014" p="132.25 16.38"/>
+<n id="1015" p="141.46 69.19" Element="8"/>
+<n id="1016" p="45.72 87.62" Element="8"/>
+<b id="1017" B="1002" E="1003"/>
+<b id="1018" B="1003" E="1004"/>
+<b id="1019" B="1004" E="1016" Order="2"/>
+<b id="1020" B="1004" E="1005"/>
+<b id="1021" B="1005" E="1006"/>
+<b id="1022" B="1006" E="1007"/>
+<b id="1023" B="1007" E="1008"/>
+<b id="1024" B="1008" E="1009"/>
+<b id="1025" B="1009" E="1015" Order="2"/>
+<b id="1026" B="1009" E="1010"/>
+<b id="1027" B="1010" E="1011"/>
+<b id="1028" B="1011" E="1014"/>
+<b id="1029" B="1011" E="1013"/>
+<b id="1030" B="1011" E="1012"/>
+</fragment>
+<fragment id="1031">
+<n id="1032" p="13.81 170.39"/>
+<n id="1033" p="29.77 161.18" Element="8"/>
+<n id="1034" p="45.72 170.39"/>
+<n id="1035" p="61.68 161.18"/>
+<n id="1036" p="77.64 170.39"/>
+<n id="1037" p="93.59 161.18"/>
+<n id="1038" p="109.55 170.39" Element="7"/>
+<n id="1039" p="45.72 188.82" Element="8"/>
+<b id="1040" B="1032" E="1033"/>
+<b id="1041" B="1033" E="1034"/>
+<b id="1042" B="1034" E="1039" Order="2"/>
+<b id="1043" B="1034" E="1035"/>
+<b id="1044" B="1035" E="1036"/>
+<b id="1045" B="1036" E="1037"/>
+<b id="1046" B="1037" E="1038"/>
+</fragment>
+<fragment id="1047">
+<n id="1048" p="241.26 159.32" Element="8"/>
+<n id="1049" p="225.31 168.53"/>
+<n id="1050" p="223.38 186.85" Element="7"/>
+<n id="1051" p="205.36 190.68"/>
+<n id="1052" p="196.15 174.73"/>
+<n id="1053" p="208.48 161.03"/>
+<b id="1054" B="1048" E="1049" Order="2"/>
+<b id="1055" B="1049" E="1053"/>
+<b id="1056" B="1053" E="1052"/>
+<b id="1057" B="1052" E="1051"/>
+<b id="1058" B="1051" E="1050"/>
+<b id="1059" B="1049" E="1050"/>
+</fragment>
+<arrow id="1064" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="282.30 52.00 0" Tail3D="177.69 52.00 0"/>
+<t id="1060" p="222.34 7.50" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">i. TFA, CH2Cl2,&#10;rt&#10;ii. Et3N, MeOH,&#10;60 °C</s></t>
+<t id="1061" p="302.56 56.00" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1062" p="0.00 125.58" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Give the product of each step, in order. [5]</s></t>
+<t id="1063" p="0.00 144.58" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<arrow id="1065" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="175.88 175.00 0" Tail3D="129.82 175.00 0"/>
+</page></CDXML>

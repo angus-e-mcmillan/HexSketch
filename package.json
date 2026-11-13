@@ -12,7 +12,7 @@
   "scripts": {
     "build": "npm run build --workspaces --if-present",
     "typecheck": "tsc --noEmit",
-    "test": "node --test --experimental-strip-types packages/*/test/*.test.ts",
+    "test": "node --test --experimental-strip-types packages/*/test/*.test.ts tools/llm-bench/test/*.test.ts",
     "dev": "npm run dev -w @hexsketch/web",
     "build:web": "npm run build -w @hexsketch/web",
     "build:pkg": "npm run build -w hexsketch",
@@ -25,7 +25,17 @@
     "smoke:mcp": "node --experimental-strip-types --no-warnings apps/mcp-worker/test/smoke.ts",
     "feedback": "node --experimental-strip-types --no-warnings tools/feedback.ts",
     "usage": "node --experimental-strip-types --no-warnings tools/usage.ts",
-    "bench": "sh tools/bench/run.sh"
+    "bench": "sh tools/bench/run.sh",
+    "llm-bench": "node --experimental-strip-types --no-warnings tools/llm-bench/run.ts",
+    "llm-bench:author": "node --experimental-strip-types --no-warnings tools/llm-bench/author.ts",
+    "llm-bench:prep": "node --experimental-strip-types --no-warnings tools/llm-bench/prep.ts",
+    "llm-bench:plot": "node --experimental-strip-types --no-warnings tools/llm-bench/plot.ts",
+    "llm-bench:compare": "node --experimental-strip-types --no-warnings tools/llm-bench/compare.ts",
+    "llm-bench:items": "node --experimental-strip-types --no-warnings tools/llm-bench/items.ts",
+    "llm-bench:layout": "node --experimental-strip-types --no-warnings tools/llm-bench/layout.ts",
+    "llm-bench:grading": "node --experimental-strip-types --no-warnings tools/llm-bench/grading.ts",
+    "llm-bench:sheet": "node --experimental-strip-types --no-warnings tools/llm-bench/sheet.ts",
+    "llm-bench:sat": "node --experimental-strip-types --no-warnings tools/llm-bench/sat.ts"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

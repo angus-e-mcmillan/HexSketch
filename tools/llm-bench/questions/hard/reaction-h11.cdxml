@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="0.77 5.73 111.52 177.72" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="96.51 5.73" Element="8"/>
+<n id="1003" p="80.55 14.95"/>
+<n id="1004" p="80.55 33.37"/>
+<n id="1005" p="64.59 42.58"/>
+<n id="1006" p="48.64 33.37"/>
+<n id="1007" p="32.68 42.58"/>
+<n id="1008" p="32.68 61.01"/>
+<n id="1009" p="16.72 70.22"/>
+<n id="1010" p="0.77 61.01"/>
+<n id="1011" p="0.77 42.58"/>
+<n id="1012" p="16.72 33.37"/>
+<n id="1013" p="48.64 14.95"/>
+<n id="1014" p="64.59 5.73"/>
+<b id="1015" B="1002" E="1003" Order="2"/>
+<b id="1016" B="1003" E="1014"/>
+<b id="1017" B="1014" E="1013"/>
+<b id="1018" B="1013" E="1006"/>
+<b id="1019" B="1006" E="1005"/>
+<b id="1020" B="1005" E="1004"/>
+<b id="1021" B="1003" E="1004"/>
+<b id="1022" B="1006" E="1007"/>
+<b id="1023" B="1007" E="1012" Order="2"/>
+<b id="1024" B="1012" E="1011"/>
+<b id="1025" B="1011" E="1010" Order="2"/>
+<b id="1026" B="1010" E="1009"/>
+<b id="1027" B="1009" E="1008" Order="2"/>
+<b id="1028" B="1007" E="1008"/>
+</fragment>
+<fragment id="1029">
+<n id="1030" p="111.52 136.95" Element="8"/>
+<n id="1031" p="95.56 146.16"/>
+<n id="1032" p="96.94 164.54" Element="7"/>
+<n id="1033" p="83.43 177.07"/>
+<n id="1034" p="65.21 174.32"/>
+<n id="1035" p="56.00 158.37"/>
+<n id="1036" p="37.63 159.74"/>
+<n id="1037" p="29.63 176.34"/>
+<n id="1038" p="11.26 177.72"/>
+<n id="1039" p="0.88 162.50"/>
+<n id="1040" p="8.88 145.90"/>
+<n id="1041" p="27.25 144.52"/>
+<n id="1042" p="62.73 141.22"/>
+<n id="1043" p="80.34 135.78"/>
+<b id="1044" B="1030" E="1031" Order="2"/>
+<b id="1045" B="1031" E="1043"/>
+<b id="1046" B="1043" E="1042"/>
+<b id="1047" B="1042" E="1035"/>
+<b id="1048" B="1035" E="1036"/>
+<b id="1049" B="1036" E="1041" Order="2"/>
+<b id="1050" B="1041" E="1040"/>
+<b id="1051" B="1040" E="1039" Order="2"/>
+<b id="1052" B="1039" E="1038"/>
+<b id="1053" B="1038" E="1037" Order="2"/>
+<b id="1054" B="1036" E="1037"/>
+<b id="1055" B="1035" E="1034"/>
+<b id="1056" B="1034" E="1033"/>
+<b id="1057" B="1033" E="1032"/>
+<b id="1058" B="1031" E="1032"/>
+</fragment>
+<arrow id="1064" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="204.88 37.98 0" Tail3D="116.77 37.98 0"/>
+<t id="1059" p="153.17 18.48" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">NaN3, H2SO4,&#10;CHCl3, 50 °C</s></t>
+<t id="1060" p="225.15 41.98" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1061" p="0.00 103.22" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [4]</s></t>
+<t id="1062" p="0.00 122.22" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1063" p="0.00 210.63" LineHeight="auto"><s font="3" size="10.00" face="0">Hazard: azide, hydrazoic, HN3, explosive, toxic</s></t>
+</page></CDXML>

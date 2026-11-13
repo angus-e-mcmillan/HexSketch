@@ -1,0 +1,225 @@
+{
+  "run": "drugroutes",
+  "date": "2026-11-11T19:36:47.516Z",
+  "model": "nvidia/nemotron-3.5-super-vl:free",
+  "served": [
+    "nvidia/nemotron-3.5-super-vl:free"
+  ],
+  "providers": [
+    "Nvidia"
+  ],
+  "settings": {
+    "provider": null,
+    "effort": "medium",
+    "maxTokens": 32000,
+    "likeWebsite": null,
+    "maxRounds": 12,
+    "repeats": 2,
+    "timeoutSeconds": 600,
+    "temperature": "default"
+  },
+  "questions": {
+    "hash": "d3f26a60c54c",
+    "count": 3,
+    "marks": 15,
+    "types": {
+      "route": 3
+    }
+  },
+  "commit": "0a4e79b",
+  "failedRuns": 0,
+  "totalCost": 0,
+  "conditions": {
+    "smiles": {
+      "score": 5,
+      "scoreRange": [
+        5,
+        5
+      ],
+      "outOf": 15,
+      "byType": {
+        "route": {
+          "score": 5,
+          "outOf": 15
+        }
+      },
+      "correct": {
+        "rate": 0.3333333333333333,
+        "n": 6
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 6
+      },
+      "valid": {
+        "rate": 0.3333333333333333,
+        "n": 6
+      },
+      "consistent": {
+        "rate": null,
+        "n": 0
+      },
+      "preserved": {
+        "rate": null,
+        "n": 0
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": null,
+        "n": 0
+      },
+      "refused": 0,
+      "cutOff": 3,
+      "cost": 0,
+      "tokens": 23789.833333333332,
+      "reasoning": 23692,
+      "prompt": 178.66666666666666,
+      "cachedPrompt": 0,
+      "seconds": 355.80949999999996,
+      "toolCalls": 0
+    },
+    "hexsketch": {
+      "score": 11.5,
+      "scoreRange": [
+        11,
+        12
+      ],
+      "outOf": 15,
+      "byType": {
+        "route": {
+          "score": 11.5,
+          "outOf": 15
+        }
+      },
+      "correct": {
+        "rate": 0.5,
+        "n": 6
+      },
+      "stereo": {
+        "rate": 0,
+        "n": 6
+      },
+      "valid": {
+        "rate": 1,
+        "n": 6
+      },
+      "consistent": {
+        "rate": null,
+        "n": 0
+      },
+      "preserved": {
+        "rate": null,
+        "n": 0
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": null,
+        "n": 0
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0,
+      "tokens": 26719.833333333332,
+      "reasoning": 25858.666666666668,
+      "prompt": 39231.333333333336,
+      "cachedPrompt": 25293.333333333332,
+      "seconds": 412.0965,
+      "toolCalls": 1.6666666666666667
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "route-c3",
+      "type": "route",
+      "marks": 5,
+      "smiles": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 184,
+        "outputTokens": 22592,
+        "thinkingTokens": 22298.5,
+        "cost": 0,
+        "seconds": 295.7355,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 1,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 31238,
+        "outputTokens": 18267.5,
+        "thinkingTokens": 17509,
+        "cost": 0,
+        "seconds": 365.6595,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "route-c4",
+      "type": "route",
+      "marks": 5,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 1,
+        "promptTokens": 158,
+        "outputTokens": 16777.5,
+        "thinkingTokens": 16777.5,
+        "cost": 0,
+        "seconds": 250.398,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 2,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 43465.5,
+        "outputTokens": 30972.5,
+        "thinkingTokens": 30146,
+        "cost": 0,
+        "seconds": 401.565,
+        "toolCalls": 1.5
+      }
+    },
+    {
+      "id": "route-c5",
+      "type": "route",
+      "marks": 5,
+      "smiles": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 2,
+        "promptTokens": 194,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
+        "cost": 0,
+        "seconds": 497.451,
+        "toolCalls": 0
+      },
+      "hexsketch": {
+        "right": 0,
+        "of": 2,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 42990.5,
+        "outputTokens": 30919.5,
+        "thinkingTokens": 29921,
+        "cost": 0,
+        "seconds": 470.7845,
+        "toolCalls": 2.5
+      }
+    }
+  ]
+}

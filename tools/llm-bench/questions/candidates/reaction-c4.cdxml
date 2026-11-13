@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="51.06 73.43 112.37 254.12" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="98.93 73.43" Element="8"/>
+<n id="1003" p="98.93 91.85" Element="7"/>
+<n id="1004" p="82.97 101.06"/>
+<n id="1005" p="82.97 119.49"/>
+<n id="1006" p="98.93 128.70"/>
+<n id="1007" p="67.01 128.70"/>
+<n id="1008" p="51.06 119.49"/>
+<n id="1009" p="51.06 101.06"/>
+<n id="1010" p="67.01 91.85"/>
+<b id="1011" B="1002" E="1003"/>
+<b id="1012" B="1003" E="1004" Order="2"/>
+<b id="1013" B="1004" E="1010"/>
+<b id="1014" B="1010" E="1009"/>
+<b id="1015" B="1009" E="1008"/>
+<b id="1016" B="1008" E="1007"/>
+<b id="1017" B="1007" E="1005"/>
+<b id="1018" B="1004" E="1005"/>
+<b id="1019" B="1005" E="1006"/>
+</fragment>
+<fragment id="1020">
+<n id="1021" p="51.06 214.01"/>
+<n id="1022" p="67.01 223.22"/>
+<n id="1023" p="82.24 212.84" Element="7"/>
+<n id="1024" p="99.84 218.27"/>
+<n id="1025" p="112.37 204.76" Element="8"/>
+<n id="1026" p="106.57 235.42"/>
+<n id="1027" p="97.36 251.38"/>
+<n id="1028" p="79.14 254.12"/>
+<n id="1029" p="65.63 241.59"/>
+<b id="1030" B="1021" E="1022"/>
+<b id="1031" B="1022" E="1029"/>
+<b id="1032" B="1029" E="1028"/>
+<b id="1033" B="1028" E="1027"/>
+<b id="1034" B="1027" E="1026"/>
+<b id="1035" B="1026" E="1024"/>
+<b id="1036" B="1024" E="1025" Order="2"/>
+<b id="1037" B="1024" E="1023"/>
+<b id="1038" B="1022" E="1023"/>
+</fragment>
+<t id="1039" p="40.00 40.00" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product of this Beckmann rearrangement? [4]</s></t>
+<arrow id="1044" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="218.38 101.06 0" Tail3D="115.98 101.06 0"/>
+<t id="1040" p="167.18 94.06" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">TsCl, pyridine</s></t>
+<t id="1041" p="167.18 117.06" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">then H2O</s></t>
+<t id="1042" p="232.38 106.06" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="0">?</s></t>
+<t id="1043" p="40.00 176.34" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+</page></CDXML>
