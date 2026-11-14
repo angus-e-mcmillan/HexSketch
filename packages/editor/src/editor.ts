@@ -1435,7 +1435,8 @@ export class Editor {
   /** More bonds than the element's highest normal valence allows (charge-adjusted). */
   overvalent(id: AtomId): boolean {
     const a = this.doc.mol.atom(id);
-    if (a.label !== null) return false;
+    // A label with more bonds than it can make: OMe between two atoms, Boc with three.
+    if (a.label !== null) { const n = this.doc.mol.neighbours(id).length; return n > 1 && labelStructure(a.label, 1) !== null && labelStructure(a.label, n) === null; }
     const el = elementBySymbol(a.element);
     if (!el || !el.valences.length) return false;
     const used = this.doc.mol.bondOrderSum(id) + a.radical + (a.explicitHydrogens ?? 0);

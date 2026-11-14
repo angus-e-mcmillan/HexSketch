@@ -1,4 +1,4 @@
-import { isElementSymbol, perceiveRings, type AtomId, type Bond, type BondDisplay, type BondId, type BondOrder, type Molecule } from '@hexsketch/core';
+import { GROUPS, isElementSymbol, perceiveRings, type AtomId, type Bond, type BondDisplay, type BondId, type BondOrder, type Molecule } from '@hexsketch/core';
 import type { AtomAction, BondAction } from './hotkeys.ts';
 import { SPROUTS } from './hotkeys.ts';
 import { cyclicDirection, kekulize, largestGapBisector, linearDirection, ringVertices, DEFAULT_BOND_ANGLE } from './placement.ts';
@@ -164,12 +164,31 @@ export function ringOnBond(mol: Molecule, bond: BondId, size: number, aromatic: 
 
 const normAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 
-/** Interpret a label typed or hot-keyed onto an atom. */
+/**
+ * Interpret a label typed or hot-keyed onto an atom: an element (N, Cl), one
+ * atom written with its hydrogens, isotope or charge (OH, H2N, NH3+, O-, 13C),
+ * or an abbreviation (Me, OMe, CO2Et, Boc) or generic group (R, X), which stays
+ * a label.
+ */
 export function applyLabel(mol: Molecule, atom: AtomId, text: string): void {
   const a = mol.atom(atom);
   a.explicitHydrogens = null;
-  if (text === 'D') { a.element = 'H'; a.isotope = 2; a.label = null; return; }
-  if (isElementSymbol(text)) { a.element = text; a.label = null; a.isotope = null; return; }
+  if (text === 'D' || text === 'T') { a.element = 'H'; a.isotope = text === 'D' ? 2 : 3; a.label = null; return; }
+  // An abbreviation chemists use wins over a rare element of the same letters: Ac is acetyl
+  // (not actinium), Pr propyl, Ts tosyl, Np neopentyl.
+  if (GROUPS[text] === undefined && isElementSymbol(text)) { a.element = text; a.label = null; a.isotope = null; return; }
+  // One atom with its hydrogens before or after it, an isotope in front, a charge behind. The
+  // hydrogens are not pinned: the atom shows as many as its bonds leave, as any atom does.
+  const m = GROUPS[text] === undefined
+    ? /^(?<iso>\d{1,3})?(?<el>[A-Z][a-z]?)(?:H\d?)?(?<q>\d?[+-]|[+-]{1,3}\d?)?$/.exec(text) ?? /^(?<iso>\d{1,3})?H\d?(?<el>[A-Z][a-z]?)(?<q>\d?[+-]|[+-]{1,3}\d?)?$/.exec(text)
+    : null;
+  const g = m?.groups;
+  if (g && isElementSymbol(g.el!) && (g.el !== 'H' || g.iso)) {
+    a.element = g.el!; a.label = null;
+    a.isotope = g.iso ? Number(g.iso) : null;
+    if (g.q) a.charge = (g.q.includes('+') ? 1 : -1) * (Number(g.q.replace(/[+-]/g, '')) || g.q.replace(/\d/g, '').length);
+    return;
+  }
   // Abbreviations (Me, Ph, OMe, CO2Me ...) and generics (R, X, ?) become nicknames.
   a.element = 'C';
   a.label = text;
