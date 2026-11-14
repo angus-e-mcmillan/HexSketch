@@ -244,3 +244,8 @@ test('a direction mark on a ring-closure bond is read, and written when it is th
     assert.ok(sameStereoisomer(mol, parseSmiles(out)), `${s} -> ${out}`);
   }
 });
+
+test('every element to oganesson is read', () => {
+  for (const s of ['[240Np]', '[239Am]', '[Pu+4]', '[Og]', 'F[Pu](F)(F)F']) assert.ok(parseSmiles(s).atomCount >= 1, s);
+  assert.equal(computeMass(parseSmiles('O=[Pu]=O')).formula, 'O2Pu');
+});

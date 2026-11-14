@@ -110,3 +110,13 @@ test('a sulfoxide keeps its configuration through a drawing', () => {
     assert.equal([...back.atoms()].map((a) => rsLabel(back, a.id)).filter(Boolean).join(), want, smiles);
   }
 });
+
+test('a damaged file is refused with a reason, not opened as nonsense', async () => {
+  const { readCdxml, writeCdxml } = await import('../src/cdxml.ts');
+  const good = writeMolfile(parseSmiles('CCO'));
+  assert.throws(() => readMolfile(good.replace(/^(\s+-?\d+\.\d+)/m, '    abc   ')), /damaged|not a molfile/);
+  assert.throws(() => readMolfile('\n\n\n  0  0  0  0  0  0  0  0  0  0999 V2000\nM  END\n'), /no atoms/);
+  assert.throws(() => readMolfile('hello'), /not a molfile/);
+  const cdxml = writeCdxml(parseSmiles('CCO'));
+  assert.throws(() => readCdxml(cdxml.replace(/ p="[^"]*"/, ' p="x y"')), /no position/);
+});

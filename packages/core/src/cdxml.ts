@@ -611,6 +611,7 @@ export function readCdxml(xml: string): Molecule {
     const p = attr(tag, 'p');
     if (!id || !p) continue;
     const [x, y] = p.split(/\s+/).map(Number) as [number, number];
+    if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Error('not a readable CDXML document: an atom has no position');
     const z = Number(attr(tag, 'Element') ?? 6);
     const nodeType = attr(tag, 'NodeType');
     const text = [...inner.matchAll(/<s\b[^>]*>([^<]*)<\/s>/g)].map((s) => s[1]).join('');

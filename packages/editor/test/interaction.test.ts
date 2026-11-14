@@ -384,3 +384,19 @@ test('the selection has a rotation handle: dragging it turns the selection in 15
   ed.setTool({ kind: 'bond', bond: 'single' });
   assert.equal(ed.rotationHandle(), null);
 });
+
+test('a selection whose atoms and bonds are gone (New, or undoing a paste) is forgotten, not an error', async () => {
+  const { Molecule, parseSmiles } = await import('@hexsketch/core');
+  for (const lose of ['new', 'undo'] as const) {
+    const ed = new Editor();
+    ed.insertLaidOut(parseSmiles('CCCCO'));
+    ed.setTool({ kind: 'select', mode: 'marquee' });
+    ed.selectAll();
+    for (const b of ed.doc.mol.bonds()) ed.selection.bonds.add(b.id);
+    assert.ok(ed.rotationHandle());
+    if (lose === 'new') ed.doc.replace(new Molecule()); else ed.doc.undo();
+    assert.equal(ed.doc.mol.atomCount, 0);
+    assert.equal(ed.rotationHandle(), null);
+    assert.equal(ed.selection.atoms.size + ed.selection.bonds.size, 0);
+  }
+});

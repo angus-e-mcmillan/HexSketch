@@ -558,13 +558,18 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       (e.target as HTMLInputElement).value = '';
       return;
     }
-    const style = readCdxmlStyle(text, editor.doc.style);
-    editor.doc.page = readCdxmlPage(text) ?? editor.doc.page;
-    const opened = readCdxmlDocument(text);
-    // Files without coordinates (from other programs) get laid out.
-    if ([...opened.mol.atoms()].every((a) => a.x === 0 && a.y === 0)) layout2D(opened.mol, style.bondLength);
-    editor.doc.replace(opened.mol, opened.objects, opened.groups, style);
     (e.target as HTMLInputElement).value = '';
+    // A file that is not CDXML, or is damaged, says so and leaves the drawing as it was.
+    if (!/<(CDXML|page|fragment)\b/.test(text)) { flash(`Could not open ${file.name}: not a CDXML or MOL file`); return; }
+    try {
+      const style = readCdxmlStyle(text, editor.doc.style);
+      const opened = readCdxmlDocument(text);
+      // Files without coordinates (from other programs) get laid out.
+      if ([...opened.mol.atoms()].every((a) => a.x === 0 && a.y === 0)) layout2D(opened.mol, style.bondLength);
+      editor.doc.page = readCdxmlPage(text) ?? editor.doc.page;
+      editor.doc.replace(opened.mol, opened.objects, opened.groups, style);
+      if (!opened.mol.atomCount && !opened.objects.length) flash(`${file.name} has nothing in it that HexSketch can show`);
+    } catch (err) { flash(`Could not open ${file.name}: ${(err as Error).message}`); }
   });
 
   // ----------------------------------------------------------------- viewport

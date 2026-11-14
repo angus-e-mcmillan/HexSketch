@@ -104,6 +104,7 @@ export function readMolfile(text: string, bondLength = 18.43): Molecule {
   const lines = text.replace(/\r/g, '').split('\n');
   const counts = lines[3] ?? '';
   const raw = /V3000/.test(counts) || lines.some((l) => l.startsWith('M  V30 BEGIN CTAB')) ? readV3000(lines) : readV2000(lines, counts);
+  if (!raw.atoms.length) throw new Error('no atoms in it');
   const mol = new Molecule();
   const ids: AtomId[] = [];
   for (const a of raw.atoms) {
@@ -150,7 +151,15 @@ function readV2000(lines: string[], counts: string): { atoms: RawAtom[]; bonds: 
     const l = lines[4 + i] ?? '';
     const code = Number(l.slice(36, 39)) || 0;
     // Charge code 4 is a doublet radical, in files older than the M  RAD line.
-    atoms.push({ x: Number(l.slice(0, 10)) || 0, y: Number(l.slice(10, 20)) || 0, symbol: l.slice(31, 34).trim() || 'C', charge: CHARGE[code] ?? 0, isotope: null, radical: code === 4 ? 2 : 0, valence: Number(l.slice(48, 51)) || 0 });
+    // Fixed columns, or for a file written loosely, the same fields separated by spaces. A line that
+    // gives neither (a truncated or damaged file) is not read as a carbon at the origin.
+    let x = Number(l.slice(0, 10) || NaN), y = Number(l.slice(10, 20) || NaN), symbol = l.slice(31, 34).trim();
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !/^[A-Za-z*#]+$/.test(symbol)) {
+      const f = l.trim().split(/\s+/);
+      x = Number(f[0] ?? NaN); y = Number(f[1] ?? NaN); symbol = f[3] ?? '';
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !/^[A-Za-z*#]+$/.test(symbol)) throw new Error(`not a readable molfile: atom line ${i + 1} is damaged or missing`);
+    }
+    atoms.push({ x, y, symbol, charge: CHARGE[code] ?? 0, isotope: null, radical: code === 4 ? 2 : 0, valence: Number(l.slice(48, 51)) || 0 });
   }
   for (let i = 0; i < nBonds; i++) {
     const l = lines[4 + nAtoms + i] ?? '';

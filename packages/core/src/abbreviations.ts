@@ -58,6 +58,8 @@ const ALONE: Readonly<Record<string, string>> = {
 export const GENERIC_LABEL = /^(R\d*'*|R[a-z]|X|Y|Ar|A|Q|M|L|E|G|Nu|EWG|EDG|PG|LG|Hal|\*|\?)$/;
 
 /** Elements that take whatever bonds they are given (no hydrogens added, any count allowed). */
+/** Elements a label is read from: up to uranium. Beyond it the symbols are abbreviations first (Np neopentyl, Am amyl, Ts tosyl). */
+const labelElement = (sym: string) => { const e = elementBySymbol(sym); return e && e.z <= 92 ? e : undefined; };
 const anyValence = (el: string) => { const e = elementBySymbol(el); return !e || e.valences.length === 0 || METAL.has(el); };
 const METAL = new Set(['Li', 'Na', 'K', 'Rb', 'Cs', 'Mg', 'Ca', 'Sr', 'Ba', 'Al', 'Zn', 'Cu', 'Ag', 'Au', 'Hg', 'Sn', 'Pb', 'Ti', 'Zr', 'Sm', 'Ce', 'Fe', 'Pd', 'Pt', 'Ni', 'Co', 'Rh', 'Ru', 'Ir', 'Mn', 'Cr', 'Tl', 'In', 'Ga', 'Bi', 'Sb', 'Ge']);
 const VALENCES: Readonly<Record<string, number[]>> = {
@@ -110,9 +112,9 @@ function tokenize(label: string): { items: Item[]; charge: number } | null {
           item = { kind: 'group', text: name, count: 1 };
         } else if (/[A-Z]/.test(ch)) {
           let sym = ch;
-          if (/[a-z]/.test(s[i + 1] ?? '') && elementBySymbol(ch + s[i + 1]!)) sym = ch + s[i + 1]!;
+          if (/[a-z]/.test(s[i + 1] ?? '') && labelElement(ch + s[i + 1]!)) sym = ch + s[i + 1]!;
           if (sym === 'D' || sym === 'T') { item = { kind: 'H', text: 'H', isotope: sym === 'D' ? 2 : 3, count: 1 }; }
-          else if (!elementBySymbol(sym)) return null;
+          else if (!labelElement(sym)) return null;
           else item = { kind: sym === 'H' ? 'H' : 'atom', text: sym, count: 1 };
           i += sym.length;
         } else return null;

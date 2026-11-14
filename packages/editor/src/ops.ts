@@ -170,13 +170,16 @@ const normAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
  * or an abbreviation (Me, OMe, CO2Et, Boc) or generic group (R, X), which stays
  * a label.
  */
+/** A symbol beyond uranium that a chemist types meaning a group (Am, amyl) stays a label, as it was before those elements were known here. */
+const WRITTEN_AS_GROUPS = new Set(['Am']);
+
 export function applyLabel(mol: Molecule, atom: AtomId, text: string): void {
   const a = mol.atom(atom);
   a.explicitHydrogens = null;
   if (text === 'D' || text === 'T') { a.element = 'H'; a.isotope = text === 'D' ? 2 : 3; a.label = null; return; }
   // An abbreviation chemists use wins over a rare element of the same letters: Ac is acetyl
   // (not actinium), Pr propyl, Ts tosyl, Np neopentyl.
-  if (GROUPS[text] === undefined && isElementSymbol(text)) { a.element = text; a.label = null; a.isotope = null; return; }
+  if (GROUPS[text] === undefined && !WRITTEN_AS_GROUPS.has(text) && isElementSymbol(text)) { a.element = text; a.label = null; a.isotope = null; return; }
   // One atom with its hydrogens before or after it, an isotope in front, a charge behind. The
   // hydrogens are not pinned: the atom shows as many as its bonds leave, as any atom does.
   const m = GROUPS[text] === undefined

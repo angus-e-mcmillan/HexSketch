@@ -89,7 +89,7 @@ export class Editor {
 
   constructor(doc = new EditorDocument()) {
     this.doc = doc;
-    doc.onChange(() => { this.#dep = null; this.#refreshAnalysis(); this.#refreshGroups(); this.#emit(); });
+    doc.onChange(() => { this.#dep = null; this.#pruneSelection(); this.#refreshAnalysis(); this.#refreshGroups(); this.#emit(); });
   }
 
   get L(): number { return this.doc.style.bondLength; }
@@ -910,6 +910,16 @@ export class Editor {
   }
 
   clearSelection() { this.selection.atoms.clear(); this.selection.bonds.clear(); this.selection.objects.clear(); }
+
+  /** After an undo, a new document or an opened file, what was selected may be gone: forget those. */
+  #pruneSelection() {
+    const mol = this.doc.mol, sel = this.selection;
+    for (const a of [...sel.atoms]) if (!mol.hasAtom(a)) sel.atoms.delete(a);
+    for (const b of [...sel.bonds]) if (!mol.hasBond(b)) sel.bonds.delete(b);
+    if (sel.objects.size) { const ids = new Set(this.doc.objects.map((o) => o.id)); for (const o of [...sel.objects]) if (!ids.has(o)) sel.objects.delete(o); }
+    if (this.hover.kind === 'atom' && !mol.hasAtom(this.hover.id)) this.hover = { kind: 'none' };
+    else if (this.hover.kind === 'bond' && !mol.hasBond(this.hover.id)) this.hover = { kind: 'none' };
+  }
 
   selectAll() {
     this.clearSelection();
