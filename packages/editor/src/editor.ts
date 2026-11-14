@@ -1,4 +1,4 @@
-import { cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, layoutAsPeptide, makeCaption, Molecule, objectPoints, objectPolylines, parsePeptide, parseSmiles, peptideMolecule, peptideSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
+import { drawOutLabel, labelStructure, cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, layoutAsPeptide, makeCaption, Molecule, objectPoints, objectPolylines, parsePeptide, parseSmiles, peptideMolecule, peptideSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
 import { captionBounds, depict, toSvg, type Depiction } from '@hexsketch/render';
 import { EditorDocument } from './document.ts';
 import { hitObject, hitTest, inLasso, inRect, objectsInRect, type Hit } from './hittest.ts';
@@ -1587,42 +1587,14 @@ const ELEMENT_COLORS: Record<string, string> = {
   Ru: '#248f8f', Ir: '#175487', Au: '#d0a000', Ag: '#909090', Ti: '#909090', D: '#808080',
 };
 
-/**
- * Abbreviations Expand Label draws out, as SMILES whose first atom takes the
- * labelled atom's place. Written for HexSketch from standard chemistry.
- */
-const NICKNAMES: Record<string, string> = {
-  Me: 'C', Et: 'CC', Pr: 'CCC', nPr: 'CCC', iPr: 'C(C)C', Bu: 'CCCC', nBu: 'CCCC', tBu: 'C(C)(C)C', sBu: 'C(C)CC', iBu: 'CC(C)C',
-  Ph: 'c1ccccc1', Bn: 'Cc1ccccc1', Bz: 'C(=O)c1ccccc1', Ac: 'C(C)=O', Cy: 'C1CCCCC1', Vin: 'C=C', All: 'CC=C',
-  OH: 'O', SH: 'S', NH2: 'N', NHMe: 'NC', NMe: 'NC', NMe2: 'N(C)C', NHAc: 'NC(C)=O', NHBoc: 'NC(=O)OC(C)(C)C', NHCbz: 'NC(=O)OCc1ccccc1', NHFmoc: 'NC(=O)OCC1c2ccccc2-c2ccccc12',
-  OMe: 'OC', OEt: 'OCC', OtBu: 'OC(C)(C)C', OPh: 'Oc1ccccc1', OBn: 'OCc1ccccc1', OAc: 'OC(C)=O', OBz: 'OC(=O)c1ccccc1',
-  OTf: 'OS(=O)(=O)C(F)(F)F', OTs: 'OS(=O)(=O)c1ccc(C)cc1', OMs: 'OS(=O)(=O)C', OTBS: 'O[Si](C)(C)C(C)(C)C', OTBDMS: 'O[Si](C)(C)C(C)(C)C',
-  OTIPS: 'O[Si](C(C)C)(C(C)C)C(C)C', OTMS: 'O[Si](C)(C)C', OTES: 'O[Si](CC)(CC)CC', OPMB: 'OCc1ccc(OC)cc1', OTHP: 'OC1CCCCO1', OMOM: 'OCOC',
-  CO2H: 'C(=O)O', COOH: 'C(=O)O', CO2Me: 'C(=O)OC', CO2Et: 'C(=O)OCC', CO2tBu: 'C(=O)OC(C)(C)C', CO2Bn: 'C(=O)OCc1ccccc1', CHO: 'C=O',
-  CONH2: 'C(N)=O', CN: 'C#N', NO2: '[N+](=O)[O-]', N3: 'N=[N+]=[N-]', CF3: 'C(F)(F)F', CCl3: 'C(Cl)(Cl)Cl',
-  Tf: 'S(=O)(=O)C(F)(F)F', Ts: 'S(=O)(=O)c1ccc(C)cc1', Ms: 'S(=O)(=O)C', SO2Ph: 'S(=O)(=O)c1ccccc1',
-  Boc: 'C(=O)OC(C)(C)C', Cbz: 'C(=O)OCc1ccccc1', Z: 'C(=O)OCc1ccccc1', Fmoc: 'C(=O)OCC1c2ccccc2-c2ccccc12', Alloc: 'C(=O)OCC=C', Troc: 'C(=O)OCC(Cl)(Cl)Cl',
-  TMS: '[Si](C)(C)C', TBS: '[Si](C)(C)C(C)(C)C', TBDMS: '[Si](C)(C)C(C)(C)C', TIPS: '[Si](C(C)C)(C(C)C)C(C)C', TES: '[Si](CC)(CC)CC', TBDPS: '[Si](c1ccccc1)(c1ccccc1)C(C)(C)C',
-  PMB: 'Cc1ccc(OC)cc1', Trt: 'C(c1ccccc1)(c1ccccc1)c1ccccc1', Pbf: 'S(=O)(=O)c1c(C)c(C)c2OC(C)(C)Cc2c1C', THP: 'C1CCCCO1', MOM: 'COC', SEM: 'COCC[Si](C)(C)C', MEM: 'COCCOC', OSEM: 'OCOCC[Si](C)(C)C', OMEM: 'OCOCCOC',
-  Bpin: 'B1OC(C)(C)C(C)(C)O1', MgBr: '[Mg]Br', MgCl: '[Mg]Cl', SnBu3: '[Sn](CCCC)(CCCC)CCCC',
-};
-
-/** Can this labelled atom be expanded (a peptide on its own, or a known abbreviation)? */
+/** Can this labelled atom be expanded (a peptide on its own, or a label HexSketch can read: OMe, CO2Et, NHBoc, CH2OTBS)? */
 function expandable(mol: Molecule, id: AtomId): boolean {
   const a = mol.atom(id);
   if (!a.label) return false;
-  if (mol.neighbours(id).length === 0 && parsePeptide(a.label)) return true;
-  if (!NICKNAMES[a.label]) return false;
   const bonds = mol.neighbours(id).length;
-  // A label in a chain (an N-methyl amide's "NMe" in a peptide backbone) has a bond on each side:
-  // it can be drawn out only when its first atom has room for both.
-  return bonds <= 1 || (bonds === 2 && roomAtHead(a.label) >= 2);
-}
-
-/** How many bonds the first atom of an abbreviation can still make: "NMe" (NC) two, "OMe" one. */
-function roomAtHead(label: string): number {
-  const frag = parseSmiles(NICKNAMES[label]!);
-  return frag.implicitHydrogens([...frag.atoms()][0]!.id);
+  if (bonds === 0 && parsePeptide(a.label)) return true;
+  // A label in a chain (an N-methyl amide's "NMe" in a peptide backbone) has a bond on each side.
+  return labelStructure(a.label, bonds) !== null;
 }
 
 /**
@@ -1650,28 +1622,7 @@ function expandAtomLabel(m: Molecule, id: AtomId, L: number) {
     m.removeAtom(id);
     return;
   }
-  const frag = parseSmiles(NICKNAMES[a.label!]!);
-  layout2D(frag, L);
-  const fAtoms = [...frag.atoms()];
-  const head = fAtoms[0]!;
-  // Point the group away from the atom it hangs on (or rightwards for a lone label).
-  let dir = 0;
-  if (nbrs.length) {
-    // Away from the atoms it hangs on: from the one, or from between the two of a label in a chain.
-    const nx = nbrs.reduce((t, n) => t + m.atom(n).x, 0) / nbrs.length, ny = nbrs.reduce((t, n) => t + m.atom(n).y, 0) / nbrs.length;
-    dir = Math.atan2(a.y - ny, a.x - nx);
-  }
-  const rest = fAtoms.slice(1);
-  const cx = rest.length ? rest.reduce((s, p) => s + p.x, 0) / rest.length : head.x + 1;
-  const cy = rest.length ? rest.reduce((s, p) => s + p.y, 0) / rest.length : head.y;
-  const rot = dir - Math.atan2(cy - head.y, cx - head.x);
-  const cos = Math.cos(rot), sin = Math.sin(rot);
-  const place = (p: { x: number; y: number }) => ({ x: a.x + (p.x - head.x) * cos - (p.y - head.y) * sin, y: a.y + (p.x - head.x) * sin + (p.y - head.y) * cos });
-  // The labelled atom becomes the group's first atom; the rest are added.
-  a.element = head.element; a.label = null; a.charge = head.charge; a.explicitHydrogens = head.explicitHydrogens; a.isotope = null;
-  const map = new Map<AtomId, AtomId>([[head.id, id]]);
-  for (const p of rest) map.set(p.id, m.addAtom({ ...p, ...place(p), chirality: null }).id);
-  for (const b of frag.bonds()) m.addBond({ ...b, begin: map.get(b.begin)!, end: map.get(b.end)!, ez: null });
+  drawOutLabel(m, id, labelStructure(a.label!, nbrs.length)!, L);
 }
 
 /**

@@ -30,6 +30,8 @@ interface ParsedAtom {
   chiral?: '@' | '@@';
   /** Atom-map number, [CH3:1]. */
   map?: number;
+  /** "*": any atom or group, shown as R. */
+  any?: boolean;
 }
 
 /** Neighbour order as written, for @/@@: atom indices, 'H' for the bracket hydrogen. */
@@ -134,7 +136,7 @@ export function parseSmiles(smiles: string): Molecule {
       addAtom({ element: ch.toUpperCase(), aromatic: true, bracket: false, hCount: -1, charge: 0, isotope: null });
       i++; continue;
     }
-    if (ch === '*') { addAtom({ element: 'C', aromatic: false, bracket: true, hCount: 0, charge: 0, isotope: null }); i++; continue; }
+    if (ch === '*') { addAtom({ element: 'C', aromatic: false, bracket: true, hCount: 0, charge: 0, isotope: null, any: true }); i++; continue; }
     throw new Error(`unexpected "${ch}" at ${i} in "${s}"`);
   }
   if (ringOpen.size) throw new Error(`unclosed ring bond in "${s}"`);
@@ -198,6 +200,8 @@ export function parseSmiles(smiles: string): Molecule {
     mol.addAtom({
       element: a.element, x: 0, y: 0, charge: a.charge, isotope: a.isotope,
       explicitHydrogens: a.bracket ? a.hCount : null,
+      // "*" is some group: R, or R1 for [*:1].
+      ...(a.any ? { label: a.map === undefined ? 'R' : `R${a.map}` } : {}),
     }).id);
   const mapped = new Map<number, AtomId>();
   atoms.forEach((a, idx) => {
@@ -268,6 +272,7 @@ function parseBracket(body: string): ParsedAtom {
   }
   return {
     ...(map ? { map: Number(map) } : {}),
+    ...(sym === '*' ? { any: true } : {}),
     element, aromatic, bracket: true,
     hCount: h ? (h.length > 1 ? Number(h.slice(1)) : 1) : 0,
     charge, isotope: iso ? Number(iso) : null,
@@ -409,6 +414,8 @@ function writeFragment(mol: Molecule, fragment: AtomId[]): string {
 
 function atomToken(mol: Molecule, id: AtomId, chiral: '@' | '@@' | '' = ''): string {
   const a = mol.atom(id);
+  // A label that was not drawn out is some group: "*", or [*:1] for R1.
+  if (a.label !== null) { const n = /^R(\d+)$/.exec(a.label); return n ? `[*:${n[1]}]` : '*'; }
   const h = mol.implicitHydrogens(id);
   let organicH = -1;
   if (ORGANIC.has(a.element) && a.charge === 0 && a.isotope === null && a.radical === 0) {

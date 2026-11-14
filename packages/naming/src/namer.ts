@@ -1,4 +1,4 @@
-import { ezLabel, Molecule, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recognisePeptide, rsLabel, type AtomId, type Peptide } from '@hexsketch/core';
+import { ezLabel, labelStructure, Molecule, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recognisePeptide, rsLabel, type AtomId, type Peptide } from '@hexsketch/core';
 import { analyze, SENIORITY, isAcylCarbon, isIminium, isRingAnion, isRingCation, type Analysis, type Group, type GroupKind } from './analyze.ts';
 import type { RingRow } from './rings.ts';
 import { TEMPLATES, type RingTemplate } from './templates.ts';
@@ -973,31 +973,25 @@ function isNitroAtom(mol: Molecule, id: AtomId): boolean {
   return false;
 }
 
-/** Common nicknames expanded to atoms before naming. */
-const NICKNAMES: Record<string, string> = {
-  Me: 'C', Et: 'CC', Pr: 'CCC', iPr: 'C(C)C', Bu: 'CCCC', tBu: 'C(C)(C)C', Ph: 'c1ccccc1', Bn: 'Cc1ccccc1',
-  OMe: 'OC', OEt: 'OCC', OH: 'O', NH2: 'N', CO2Me: 'C(=O)OC', CO2Et: 'C(=O)OCC', CO2H: 'C(=O)O', CF3: 'C(F)(F)F',
-  NO2: 'N(=O)=O', CN: 'C#N', Ac: 'C(C)=O', OAc: 'OC(C)=O', CHO: 'C=O', NMe2: 'N(C)C', SMe: 'SC', Cbz: 'C(=O)OCc1ccccc1',
-  Boc: 'C(=O)OC(C)(C)C',
-};
-
+/** Labels (OMe, CO2Et, NHBoc...) drawn out as atoms before naming. */
 function expandNicknames(input: Molecule): Molecule {
   const mol = input.clone();
   for (const a of [...mol.atoms()]) {
     if (a.label === null) continue;
-    const smi = NICKNAMES[a.label];
-    if (!smi) throw new OutOfScope(`label "${a.label}"`);
-    const frag = parseSmiles(smi);
+    const nbrs = mol.neighbours(a.id);
+    const read = labelStructure(a.label, nbrs.length);
+    if (!read) throw new OutOfScope(`label "${a.label}"`);
     const idMap = new Map<AtomId, AtomId>();
-    for (const f of frag.atoms()) idMap.set(f.id, mol.addAtom({ ...f, x: a.x, y: a.y }).id);
-    for (const b of frag.bonds()) mol.addBond({ ...b, begin: idMap.get(b.begin)!, end: idMap.get(b.end)! });
-    const head = idMap.get([...frag.atoms()][0]!.id)!;
-    for (const b of mol.incidentBonds(a.id)) {
-      const bd = mol.bond(b);
-      const other = mol.otherAtom(bd, a.id);
-      if (other === head) continue;
-      mol.addBond({ begin: other, end: head, order: bd.order });
-    }
+    for (const f of read.mol.atoms()) idMap.set(f.id, mol.addAtom({ ...f, x: a.x, y: a.y }).id);
+    for (const b of read.mol.bonds()) mol.addBond({ ...b, begin: idMap.get(b.begin)!, end: idMap.get(b.end)! });
+    // A label between two atoms: its first atom to the left-hand one, its last to the other.
+    const ordered = [...nbrs].sort((p, q) => (Math.abs(mol.atom(p).x - mol.atom(q).x) > 1e-6 ? mol.atom(p).x - mol.atom(q).x : mol.atom(p).y - mol.atom(q).y));
+    ordered.forEach((other, i) => {
+      const bd = mol.bondBetween(a.id, other)!;
+      const at = idMap.get(i === 1 ? read.tail : read.head)!;
+      // Keep the bond's direction, so a wedge still says the same thing.
+      mol.addBond({ begin: bd.begin === a.id ? at : other, end: bd.begin === a.id ? other : at, order: bd.order, display: bd.display });
+    });
     mol.removeAtom(a.id);
   }
   return mol;
