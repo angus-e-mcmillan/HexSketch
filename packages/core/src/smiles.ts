@@ -103,7 +103,9 @@ export function parseSmiles(smiles: string): Molecule {
       if (ch === '%') { n = Number(s.slice(i + 1, i + 3)); i += 3; } else { n = Number(ch); i++; }
       const open = ringOpen.get(n);
       if (open) {
-        addBond(open.atom, prev, pendingOrder ?? open.order, null);
+        // A direction mark at a ring-closure digit reads from that atom towards its partner.
+        const flipped = pendingDir === '/' ? '\\' : pendingDir === '\\' ? '/' : null;
+        addBond(open.atom, prev, pendingOrder ?? open.order, open.dir ?? flipped);
         written[open.atom]![open.slot] = prev;
         written[prev]!.push(open.atom);
         ringOpen.delete(n);
@@ -361,11 +363,15 @@ function writeFragment(mol: Molecule, fragment: AtomId[]): string {
     return ch.anticlockwise !== (parity(ch.order, written) === 1) ? '@' : '@@';
   };
 
-  // Double-bond geometry as / and \ on tree single bonds (never ring closures).
+  // Double-bond geometry as / and \ on single bonds: tree bonds where there is one, and a
+  // ring closure (marked at its opening digit) where that is the only substituent.
   // A mark read from the double-bond atom outward is "/" for a substituent
   // above it; equal readings at both ends mean cis, as the parser takes them.
   const dirs = new Map<BondId, '/' | '\\'>();
-  const readsFrom = (b: BondId, x: AtomId) => parentOf(x) !== null && parentBond.get(x) === b ? false : true; // x written first?
+  const position = new Map(order.map((a, i) => [a, i]));
+  const readsFrom = (b: BondId, x: AtomId) => ringBonds.has(b) // x written first?
+    ? position.get(x)! < position.get(mol.otherAtom(mol.bond(b), x))!
+    : !(parentOf(x) !== null && parentBond.get(x) === b);
   const upOf = (b: BondId, x: AtomId): boolean | null => {
     const d = dirs.get(b);
     if (!d) return null;
@@ -375,9 +381,9 @@ function writeFragment(mol: Molecule, fragment: AtomId[]): string {
   for (const b of mol.bonds()) {
     if (b.order !== 2 || !b.ez || !fragment.includes(b.begin) || ezLabel(mol, b.id) === null) continue;
     const subs = (x: AtomId, other: AtomId) => mol.incidentBonds(x)
-      .filter((s) => !ringBonds.has(s) && mol.bond(s).order === 1 && mol.otherAtom(mol.bond(s), x) !== other)
+      .filter((s) => mol.bond(s).order === 1 && mol.otherAtom(mol.bond(s), x) !== other)
       // A bond already marked (for a neighbouring double bond) first, so conjugated marks agree.
-      .sort((p, q) => Number(dirs.has(q)) - Number(dirs.has(p)));
+      .sort((p, q) => Number(dirs.has(q)) - Number(dirs.has(p)) || Number(ringBonds.has(p)) - Number(ringBonds.has(q)));
     const sa = subs(b.begin, b.end), sb = subs(b.end, b.begin);
     if (!sa.length || !sb.length) continue;
     // ez.cis relates the ref atoms; flip for each end where the chosen substituent is the other one.
@@ -401,7 +407,7 @@ function writeFragment(mol: Molecule, fragment: AtomId[]): string {
       const lab = c.label < 10 ? String(c.label) : `%${c.label}`;
       // Bond symbol goes on the opening occurrence only.
       const otherWritten = written.has(mol.otherAtom(mol.bond(c.bond), a));
-      out += (otherWritten ? '' : bondSym(mol.bond(c.bond).order)) + lab;
+      out += (otherWritten ? '' : dirs.get(c.bond) ?? bondSym(mol.bond(c.bond).order)) + lab;
     }
     const children = childBonds(a);
     children.forEach((b, idx) => {

@@ -47,3 +47,25 @@ test('layout keeps stereochemistry: wedges and alkene geometry mean what the SMI
     assert.equal(labels(mol), before, smi);
   }
 });
+
+test('a trans double bond in a large ring is drawn trans', () => {
+  // Round a polygon every ring bond is cis, so a macrocycle's E double bond was drawn Z: another compound.
+  // Read back from the drawing, each must be what the SMILES said.
+  const cases = [
+    'C1CCCCC/C=C/CCCCC1', 'C1CCCCC/C=C\\CCCCC1', 'C1CCC/C=C/CC1', 'C1CCCC/C=C/C=C/CCCC1', 'C1CCCC/C=C/C=C\\CCCC1',
+    'C[C@H]1C/C=C/CCCCCCC(=O)O1', 'C1CCCC/C=C/C=C/C=C/CCCCCC1', 'CC1=C/CCCCCCCC\\C=C(C)\\CCC/1',
+  ];
+  for (const smiles of cases) {
+    const mol = parseSmiles(smiles);
+    const want = [...mol.bonds()].map((b) => ezLabel(mol, b.id)).filter(Boolean).join('');
+    assert.ok(want.length > 0, smiles);
+    layout2D(mol);
+    perceiveStereoFromGeometry(mol);
+    assert.equal([...mol.bonds()].map((b) => ezLabel(mol, b.id)).filter(Boolean).join(''), want, smiles);
+    // Every bond still the standard length.
+    for (const b of mol.bonds()) {
+      const p = mol.atom(b.begin), q = mol.atom(b.end);
+      assert.ok(Math.abs(Math.hypot(p.x - q.x, p.y - q.y) - 18.43) < 0.05, `${smiles}: bond length`);
+    }
+  }
+});

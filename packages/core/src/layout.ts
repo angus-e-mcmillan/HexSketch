@@ -263,8 +263,54 @@ function layoutRingSystem(mol: Molecule, sys: RingSystem, L: number): Map<AtomId
   // Anything still unplaced (unusual bridged systems): park near the centroid.
   const c = centroid([...p.values()]);
   sys.atoms.forEach((a, i) => { if (!p.has(a)) p.set(a, { x: c.x + (i % 3) * L * 0.5, y: c.y + L * 0.5 }); });
-  void mol;
+  transInLargeRings(mol, sys, p);
   return p;
+}
+
+/**
+ * A trans double bond in a large ring. Round a polygon every bond is cis, so a
+ * macrocycle's E double bond (tacrolimus, rapamycin, a trans-cyclooctene) came
+ * out drawn as Z: a different compound. One end of the bond is folded inward,
+ * mirrored across the line through its two ring neighbours, which keeps every
+ * bond length and puts the ring's two arms on opposite sides of the bond.
+ */
+function transInLargeRings(mol: Molecule, sys: RingSystem, p: Map<AtomId, P>): void {
+  const inSys = new Set(sys.atoms);
+  const ringDegree = (a: AtomId) => mol.neighbours(a).filter((n) => inSys.has(n)).length;
+  const moved = new Set<AtomId>();
+  for (const ring of sys.rings) {
+    const n = ring.atoms.length;
+    if (n < 8) continue;
+    // Folding one bond's end can undo its neighbour's (a conjugated triene), so go round until all agree.
+    for (let pass = 0; pass < 2 * n; pass++) {
+      let folded = false;
+      for (let i = 0; i < n && !folded; i++) {
+        const a = ring.atoms[i]!, b = ring.atoms[(i + 1) % n]!;
+        const bond = mol.bondBetween(a, b);
+        if (!bond || bond.order !== 2 || !bond.ez) continue;
+        const prev = ring.atoms[(i + n - 1) % n]!, next = ring.atoms[(i + 2) % n]!;
+        // The recorded geometry is between the two reference atoms: turn it into one between the ring's arms.
+        const [refA, refB] = bond.begin === a ? bond.ez.ref : [bond.ez.ref[1], bond.ez.ref[0]];
+        let cis = bond.ez.cis;
+        if (refA !== prev) cis = !cis;
+        if (refB !== next) cis = !cis;
+        const side = (x: AtomId) => { const A = p.get(a)!, B = p.get(b)!, X = p.get(x)!; return Math.sign((B.x - A.x) * (X.y - A.y) - (B.y - A.y) * (X.x - A.x)); };
+        if ((side(prev) === side(next)) === cis) continue;
+        // Fold an end that is only in this ring: one not folded yet first, then the one that carries less.
+        const weight = (x: AtomId) => mol.neighbours(x).filter((m) => !inSys.has(m)).length;
+        const pick = [{ atom: b, pivot: [a, next] as const }, { atom: a, pivot: [prev, b] as const }]
+          .filter((e) => ringDegree(e.atom) === 2)
+          .sort((x, y) => Number(moved.has(x.atom)) - Number(moved.has(y.atom)) || weight(x.atom) - weight(y.atom))[0];
+        if (!pick) continue;
+        const one = new Map([[pick.atom, p.get(pick.atom)!]]);
+        mirror(new Set([pick.atom]), p.get(pick.pivot[0])!, p.get(pick.pivot[1])!, one);
+        p.set(pick.atom, one.get(pick.atom)!);
+        moved.add(pick.atom);
+        folded = true;
+      }
+      if (!folded) break;
+    }
+  }
 }
 
 const rotateTo = <T>(arr: T[], k: number) => [...arr.slice(k), ...arr.slice(0, k)];

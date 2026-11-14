@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseSmiles, smilesAtomMaps, writeSmiles } from '../src/smiles.ts';
-import { parsePattern, sameStructure, substructureMatches } from '../src/isomorphism.ts';
+import { parsePattern, sameStereoisomer, sameStructure, substructureMatches } from '../src/isomorphism.ts';
+import { ezLabel } from '../src/stereo.ts';
 import { computeMass } from '../src/formula.ts';
 import { layout2D } from '../src/layout.ts';
 
@@ -229,4 +230,17 @@ test('a laid-out SMILES can be written with what it said, not what its layout sh
   const drawn = parseSmiles('CC=CCC');
   layout2D(drawn);
   assert.match(writeSmiles(drawn), /[\\/]/);
+});
+
+test('a direction mark on a ring-closure bond is read, and written when it is the only substituent', () => {
+  const ez = (s: string) => { const mol = parseSmiles(s); return [...mol.bonds()].filter((b) => b.order === 2).map((b) => ezLabel(mol, b.id)); };
+  assert.deepEqual(ez('F/C=C/1.F1'), ['E']);
+  assert.deepEqual(ez('F/1.C1=C/F'), ['E']);
+  assert.deepEqual(ez('C1=C/CCCCCCCC/1'), ['E']);
+  assert.deepEqual(ez('C1=C\\CCCCCCCC/1'), ['Z']);
+  for (const s of ['C1=C/CCCCCCCC/1', 'C1=C\\CCCCCCCC/1', 'C\\1CCCCCCCC/C=C/1', 'CC1=C/CCCCCCCC\\C=C(C)\\CCC/1']) {
+    const mol = parseSmiles(s);
+    const out = writeSmiles(mol);
+    assert.ok(sameStereoisomer(mol, parseSmiles(out)), `${s} -> ${out}`);
+  }
 });
