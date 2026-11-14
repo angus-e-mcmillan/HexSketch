@@ -11,11 +11,16 @@ import { parseSmiles, sameStructure, writeSmiles, type AtomId, type Molecule } f
 import { addRingParents, ionize, nameMolecule } from '../src/index.ts';
 import '../src/all-rings.ts';
 import { RING_ROWS } from '../src/rings.ts';
+import { TEMPLATES } from '../src/templates.ts';
 import { opsinAvailable, opsinToSmiles } from '../src/opsin.ts';
 
 const EXPECTED: [string, string][] = [
   // From the ChemDraw Struct=Name spot check.
   ['CC(O)CC(=O)O', '3-hydroxybutanoic acid'],
+  // Decalin is numbered like naphthalene: the fusion carbons are 4a and 8a (geosmin).
+  ['CC1CCCC2CCCCC12', '1-methyldecahydronaphthalene'],
+  ['OC1CCC2CCCCC2C1', 'decahydronaphthalen-2-ol'],
+  ['CC1CCCC2(C1(CCCC2)O)C', '4,8a-dimethyldecahydronaphthalen-4a-ol'],
   ['CCOC(C)=O', 'ethyl acetate'],
   ['NCC(=O)N(C)C', '2-amino-N,N-dimethylacetamide'],
   ['CC(=O)C', 'propan-2-one'],
@@ -377,4 +382,24 @@ test('heterobicycles with substituents, ring ketones and as substituents read ba
   const unread = BICYCLES.filter((_, i) => !parents[i]);
   const smiles = [...new Set(parents.flatMap((s) => (s ? [s, ...derivatives(s)] : [])))];
   assert.deepEqual({ unread, misread: misread(smiles.map(named)) }, { unread: [], misread: [] });
+});
+
+test('every hand-written ring template is numbered as OPSIN numbers it', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, () => {
+  // A fluorine on each carbon in turn: "<locant>-fluoro<ring>" must be that structure, and so must the name given to it.
+  const cases: { smi: string; name: string | null; why?: string }[] = [];
+  for (const t of TEMPLATES) {
+    if (!t.smiles) continue;
+    const base = parseSmiles(t.smiles);
+    [...base.atoms()].forEach((atom, i) => {
+      if (atom.element !== 'C' || base.implicitHydrogens(atom.id) < 1) return;
+      const mol = parseSmiles(t.smiles);
+      const at = [...mol.atoms()][i]!;
+      mol.addBond({ begin: at.id, end: mol.addAtom({ element: 'F', x: 0, y: 0 }).id, order: 1 });
+      const smi = writeSmiles(mol);
+      // Where the ring has indicated hydrogen in its name the template's own name is not enough; the namer's is checked.
+      if (!/^\d+H-/.test(t.name) && !t.indicatedH) cases.push({ smi, name: `${t.locants[i]}-fluoro${t.name}` });
+      cases.push(named(smi));
+    });
+  }
+  assert.deepEqual(misread(cases), []);
 });

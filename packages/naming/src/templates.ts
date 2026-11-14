@@ -91,7 +91,7 @@ export const TEMPLATES: RingTemplate[] = [
   { name: 'chromane', yl: 'chroman', smiles: 'O1CCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
   { name: '2,3-dihydrobenzofuran', yl: '2,3-dihydrobenzofuran', smiles: 'O1CCc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
   { name: '1,3,2-dioxaborolane', yl: '1,3,2-dioxaborolan', smiles: 'O1BOCC1', locants: seq(5), aromatic: false },
-  { name: 'decahydronaphthalene', yl: 'decahydronaphthalen', smiles: 'C1CCC2CCCCC2C1', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: false },
+  { name: 'decahydronaphthalene', yl: 'decahydronaphthalen', smiles: 'C1CCCC2CCCCC12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: false },
 ];
 
 /** Parents named by hydro prefixes when partly saturated (benzene's are cycloalkenes). */
