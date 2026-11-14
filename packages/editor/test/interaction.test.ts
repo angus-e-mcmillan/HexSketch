@@ -297,3 +297,51 @@ test('Convert Structure to Name (Option+Cmd+N) puts the name under the structure
   const maxY = Math.max(...[...ed.doc.mol.atoms()].map((a) => a.y));
   assert.ok(cap.y > maxY, 'caption sits below the structure');
 });
+
+/** Directions of the bonds at an atom, in degrees anticlockwise from east, rounded. */
+function bondAngles(ed: Editor, atom: number): number[] {
+  const m = ed.doc.mol, a = m.atom(atom);
+  return m.neighbours(atom).map((n) => Math.round((Math.atan2(-(m.atom(n).y - a.y), m.atom(n).x - a.x) * 180 / Math.PI + 360) % 360)).sort((x, y) => x - y);
+}
+
+test('a bond added to a triple bond, or a second double bond (an allene), goes straight on', () => {
+  // Both left at 120 degrees before, drawing but-2-yne and allene bent.
+  for (const [first, second] of [['triple', 'single'], ['double', 'double'], ['single', 'triple']] as const) {
+    const ed = new Editor();
+    ed.setTool({ kind: 'bond', bond: first });
+    click(ed, 300, 300);
+    const end = [...ed.doc.mol.atoms()][1]!;
+    ed.setTool({ kind: 'bond', bond: second });
+    click(ed, end.x, end.y);
+    const [p, q] = bondAngles(ed, end.id);
+    assert.equal((q! - p! + 360) % 360, 180, `${second} after ${first}`);
+  }
+  // A single bond after a double bond still makes the 120 degree corner.
+  const ed = new Editor();
+  ed.setTool({ kind: 'bond', bond: 'double' });
+  click(ed, 300, 300);
+  const end = [...ed.doc.mol.atoms()][1]!;
+  ed.setTool({ kind: 'bond', bond: 'single' });
+  click(ed, end.x, end.y);
+  const [p, q] = bondAngles(ed, end.id);
+  assert.equal((q! - p! + 360) % 360, 120);
+});
+
+test('a second substituent on a ring atom never points into the ring', () => {
+  // On a seven- or eight-ring the inside is the widest gap at an atom, and the bond went there.
+  for (const size of [5, 6, 7, 8]) {
+    const ed = new Editor();
+    ed.setTool({ kind: 'ring', size, aromatic: false });
+    click(ed, 300, 300);
+    const ring = [...ed.doc.mol.atoms()];
+    const cx = ring.reduce((t, a) => t + a.x, 0) / size, cy = ring.reduce((t, a) => t + a.y, 0) / size;
+    const at = ring[0]!;
+    ed.setTool({ kind: 'bond', bond: 'single' });
+    click(ed, at.x, at.y);
+    click(ed, at.x, at.y);
+    const subs = ed.doc.mol.neighbours(at.id).filter((n) => !ring.some((r) => r.id === n));
+    assert.equal(subs.length, 2);
+    const R = Math.hypot(at.x - cx, at.y - cy);
+    for (const n of subs) assert.ok(Math.hypot(ed.doc.mol.atom(n).x - cx, ed.doc.mol.atom(n).y - cy) > R, `${size}-ring: substituent outside the ring`);
+  }
+});

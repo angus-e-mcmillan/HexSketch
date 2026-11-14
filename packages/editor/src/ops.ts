@@ -51,7 +51,7 @@ export function bondFromPoint(mol: Molecule, x: number, y: number, L: number, ki
 
 /** Click on an atom with a bond tool. */
 export function bondFromAtom(mol: Molecule, atom: AtomId, L: number, kind: BondKind, chainAngle = 120) {
-  return sproutBond(mol, atom, cyclicDirection(mol, atom, chainAngle), L, kind);
+  return sproutBond(mol, atom, cyclicDirection(mol, atom, chainAngle, bondProps(kind).order), L, kind);
 }
 
 /**
@@ -257,7 +257,7 @@ function sprout(mol: Molecule, h: AtomId, value: number, L: number, chainAngle: 
   switch (kind) {
     case 'methylCyclic': return add(h, cyclicDirection(mol, h, chainAngle)).atom;
     case 'methylLinear': return add(h, linearDirection(mol, h, chainAngle)).atom;
-    case 'methylidene': return add(h, cyclicDirection(mol, h, chainAngle), 'double').atom;
+    case 'methylidene': return add(h, cyclicDirection(mol, h, chainAngle, 2), 'double').atom;
     case 'alkyne': {
       const nbrs = mol.neighbours(h);
       const dir = nbrs.length === 1 ? angleTo(h, nbrs[0]!) + Math.PI : cyclicDirection(mol, h, chainAngle);
