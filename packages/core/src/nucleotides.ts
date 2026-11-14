@@ -11,7 +11,8 @@
  * f 2'-fluoro); "*" after a base makes the link to the next a phosphorothioate;
  * "p" at either end is a terminal phosphate. Plain letters are DNA, or RNA when
  * the sequence has U and no T. The text must carry its ends (5'-…-3') or be
- * wrapped as d(…) or r(…), so ordinary words are never read as sequences.
+ * wrapped as d(…) or r(…), so ordinary words are never read as sequences. The
+ * classic d(pApTpG) and an all-lowercase sequence are read too.
  */
 import { assignWedges, layout2D } from './layout.ts';
 import { Molecule, type AtomId } from './model.ts';
@@ -49,14 +50,21 @@ export function parseOligo(text: string): Oligo | null {
   if (!!five !== !!three) return null;
   if (five) t = t.slice(five[0].length, t.length - three![0].length);
   let p5 = false, p3 = false;
-  if (/^p(?=[a-z]?[ACGTU(]|[dr]\()/.test(t)) { p5 = true; t = t.slice(1).replace(/^-/, ''); }
-  if (/[ACGTU)*]-?p$/.test(t)) { p3 = true; t = t.replace(/-?p$/, ''); }
+  // A terminal phosphate may stand outside the wrapper or inside it: pd(AT), d(pApT).
+  const ends = () => {
+    if (/^p-?(?=[drmf]?[ACGTU]|[dr]\()/.test(t)) { p5 = true; t = t.replace(/^p-?/, ''); }
+    if (/[ACGTU)*]-?p$/.test(t)) { p3 = true; t = t.replace(/-?p$/, ''); }
+  };
+  ends();
   let wrapper: Sugar | null = null;
   const w = /^([dr])\((.*)\)$/.exec(t);
-  if (w) { wrapper = w[1] as Sugar; t = w[2]!; }
+  if (w) { wrapper = w[1] as Sugar; t = w[2]!; ends(); }
   if (!five && !w) return null;
+  // All lowercase is the same sequence, as it is often typed.
+  if (/^[acgtu*-]+$/.test(t)) t = t.toUpperCase();
   const units: Nucleotide[] = [];
-  const re = /([drmf])?([ACGTU])(\*)?-?/y;
+  // A "p" between two bases is the phosphate that is there anyway: d(ApTpG).
+  const re = /([drmf])?([ACGTU])(\*)?(?:p(?=[drmf]?[ACGTU]))?-?/y;
   let explicit = false;
   const sugars: (Sugar | null)[] = [];
   while (re.lastIndex < t.length) {

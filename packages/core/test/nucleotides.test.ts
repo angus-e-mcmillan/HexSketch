@@ -19,6 +19,9 @@ test('oligonucleotide sequences: what is read, and what is left as plain text', 
   assert.equal(text("5'-TTp-3'"), "5'-d(TT)p-3'");
   assert.equal(text("5'-mA*mC*dG*dT-3'"), "5'-mA*mC*dG*dT-3'");
   assert.equal(text("5'-A-C-G-T-3'"), "5'-d(ACGT)-3'");
+  assert.equal(text('d(pApTpG)'), "5'-pd(ATG)-3'", 'the classic notation');
+  assert.equal(text("5'-acgt-3'"), "5'-d(ACGT)-3'");
+  assert.equal(text("5'-pd(AT)p-3'"), "5'-pd(AT)p-3'");
   // No ends and no d( ) or r( ): a word, not a sequence. An unknown letter or a dangling link: not one either.
   for (const s of ['ACGT', 'CAT', 'd(AXG)', "5'-ACGT", "5'-AC*-3'", 'TAG-3\'', 'H-Ala-Gly-OH']) assert.equal(parseOligo(s), null, s);
   assert.ok(isSequence('H-Ala-Gly-OH') && isSequence('d(AT)') && !isSequence('ACGT'));
