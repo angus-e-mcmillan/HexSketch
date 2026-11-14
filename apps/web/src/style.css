@@ -30,8 +30,16 @@ body { display: grid; grid-template-rows: 40px 1fr 24px; height: 100vh; overflow
 
 .workspace { display: grid; grid-template-columns: 76px 1fr; min-height: 0; }
 
-.palette { background: var(--chrome); border-right: 1px solid var(--line); padding: 8px 6px; display: grid; grid-template-columns: 30px 30px; grid-auto-rows: 30px; gap: 4px; align-content: start; justify-content: center; overflow-y: auto; }
+/* Rows are as tall as what is in them: a tool is 30px, a divider a few. (With every row 30px the two
+   dividers took a tool's height each, and in a 560px frame the bottom row of rings was cut in half.) */
+.palette { background: var(--chrome); border-right: 1px solid var(--line); padding: 8px 6px; display: grid; grid-template-columns: 30px 30px; grid-auto-rows: auto; gap: 4px; align-content: start; justify-content: center; overflow-y: auto; }
 .palette .group-gap { grid-column: 1 / -1; height: 4px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+/* A short window: the tools close up so that all of them still show without scrolling. */
+@media (max-height: 560px) and (min-width: 521px) {
+  .palette { padding: 4px 6px; gap: 1px 4px; }
+  .palette .tool { height: 25px; }
+  .palette .group-gap { height: 2px; margin-bottom: 2px; }
+}
 .tool { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 5px; background: none; padding: 0; cursor: pointer; color: var(--ink); }
 .tool:hover { background: rgba(0,0,0,0.06); }
 .tool[aria-pressed="true"] { background: var(--accent-soft); border-color: #9dbcf0; }

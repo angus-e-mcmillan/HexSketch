@@ -345,3 +345,42 @@ test('a second substituent on a ring atom never points into the ring', () => {
     for (const n of subs) assert.ok(Math.hypot(ed.doc.mol.atom(n).x - cx, ed.doc.mol.atom(n).y - cy) > R, `${size}-ring: substituent outside the ring`);
   }
 });
+
+test('the selection has a rotation handle: dragging it turns the selection in 15 degree steps', () => {
+  const ed = new Editor();
+  ed.setTool({ kind: 'bond', bond: 'single' });
+  click(ed, 300, 300);
+  const [a, b] = [...ed.doc.mol.atoms()];
+  const before = { ax: a!.x, ay: a!.y, bx: b!.x, by: b!.y };
+  ed.setTool({ kind: 'select', mode: 'marquee' });
+  assert.equal(ed.rotationHandle(), null, 'nothing selected, no handle');
+  ed.selectAll();
+  const h = ed.rotationHandle()!;
+  assert.ok(h, 'a handle with a bond selected');
+  assert.ok(h.x > Math.max(a!.x, b!.x) && h.y < Math.min(a!.y, b!.y), 'above the top right corner');
+  // Drag the handle a quarter turn clockwise round the centre (and a little more: it snaps to 15 degrees).
+  const r = Math.hypot(h.x - h.cx, h.y - h.cy), t0 = Math.atan2(h.y - h.cy, h.x - h.cx), t1 = t0 + (92 * Math.PI) / 180;
+  ed.pointerDown({ x: h.x, y: h.y });
+  ed.pointerMove({ x: h.cx + r * Math.cos(t0 + 0.5), y: h.cy + r * Math.sin(t0 + 0.5) });
+  ed.pointerMove({ x: h.cx + r * Math.cos(t1), y: h.cy + r * Math.sin(t1) });
+  assert.match(ed.render().svg, /rotate\(90 /, 'a preview of the turned selection while dragging');
+  ed.pointerUp({ x: h.cx + r * Math.cos(t1), y: h.cy + r * Math.sin(t1) });
+  const [a2, b2] = [...ed.doc.mol.atoms()];
+  // A quarter turn clockwise about the centre: (dx, dy) -> (-dy, dx).
+  const cx = (before.ax + before.bx) / 2, cy = (before.ay + before.by) / 2;
+  assert.ok(near(a2!.x, cx - (before.ay - cy)) && near(a2!.y, cy + (before.ax - cx)), 'first atom turned 90 degrees');
+  assert.ok(near(Math.hypot(a2!.x - b2!.x, a2!.y - b2!.y), Math.hypot(before.ax - before.bx, before.ay - before.by)), 'bond length kept');
+  assert.equal(ed.selection.atoms.size, 2, 'still selected');
+  ed.doc.undo();
+  assert.ok(near([...ed.doc.mol.atoms()][0]!.x, before.ax), 'one undo puts it back');
+  // Option (Alt) turns freely.
+  const h2 = ed.rotationHandle()!;
+  const r2 = Math.hypot(h2.x - h2.cx, h2.y - h2.cy), s0 = Math.atan2(h2.y - h2.cy, h2.x - h2.cx), s1 = s0 + (7 * Math.PI) / 180;
+  ed.pointerDown({ x: h2.x, y: h2.y });
+  ed.pointerMove({ x: h2.cx + r2 * Math.cos(s1), y: h2.cy + r2 * Math.sin(s1), alt: true });
+  assert.match(ed.render().svg, /rotate\(7 /);
+  ed.pointerUp({ x: h2.cx + r2 * Math.cos(s1), y: h2.cy + r2 * Math.sin(s1), alt: true });
+  // With a drawing tool there is no handle in the way.
+  ed.setTool({ kind: 'bond', bond: 'single' });
+  assert.equal(ed.rotationHandle(), null);
+});
