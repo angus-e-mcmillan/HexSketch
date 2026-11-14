@@ -400,3 +400,21 @@ test('a selection whose atoms and bonds are gone (New, or undoing a paste) is fo
     assert.equal(ed.selection.atoms.size + ed.selection.bonds.size, 0);
   }
 });
+
+test('structures pasted one after another land clear of each other and stay on the page', async () => {
+  const { parseSmiles, documentSize } = await import('@hexsketch/core');
+  const ed = new Editor();
+  for (let i = 0; i < 8; i++) ed.insertLaidOut(parseSmiles('CC(=O)Oc1ccccc1C(=O)O'), { x: 300, y: 300 });
+  const boxes = ed.doc.mol.fragments().map((ids) => {
+    const xs = ids.map((id) => ed.doc.mol.atom(id).x), ys = ids.map((id) => ed.doc.mol.atom(id).y);
+    return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+  });
+  assert.equal(boxes.length, 8);
+  const width = documentSize(ed.doc.page).w;
+  for (const b of boxes) assert.ok(b.x0 >= 0 && b.x1 <= width, `on the page: ${b.x0.toFixed(0)}..${b.x1.toFixed(0)} of ${width}`);
+  const clear = 1.9 * ed.L;
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i]!, b = boxes[j]!;
+    assert.ok(a.x1 + clear <= b.x0 || b.x1 + clear <= a.x0 || a.y1 + clear <= b.y0 || b.y1 + clear <= a.y0, `structures ${i} and ${j} are apart`);
+  }
+});

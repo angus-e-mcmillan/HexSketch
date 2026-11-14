@@ -1,4 +1,4 @@
-import { drawOutLabel, labelStructure, cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, layoutAsPeptide, layoutAsOligo, makeCaption, Molecule, objectPoints, objectPolylines, isSequence, sequenceMolecule, sequenceSmiles, parseSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
+import { drawOutLabel, labelStructure, cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, documentSize, layout2D, layoutAsPeptide, layoutAsOligo, makeCaption, Molecule, objectPoints, objectPolylines, isSequence, sequenceMolecule, sequenceSmiles, parseSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
 import { captionBounds, depict, toSvg, type Depiction } from '@hexsketch/render';
 import { EditorDocument } from './document.ts';
 import { hitObject, hitTest, inLasso, inRect, objectsInRect, type Hit } from './hittest.ts';
@@ -1092,11 +1092,24 @@ export class Editor {
       // a long structure on the page: the canvas cannot scroll above or left of it.
       const target = at ?? { x: 300, y: 300 };
       let dx = Math.max(target.x - cx, 2 * this.L - Math.min(...xs));
-      const dy = Math.max(target.y - cy, 2 * this.L - Math.min(...ys));
-      // Don't land on top of an existing drawing: slide right until clear.
-      const width = Math.max(...xs) - Math.min(...xs);
-      const clashes = () => [...fresh.atoms()].some((a) => [...m.atoms()].some((b) => Math.hypot(a.x + dx - b.x, a.y + dy - b.y) < this.L));
-      for (let i = 0; i < 20 && clashes(); i++) dx += width + 2 * this.L;
+      let dy = Math.max(target.y - cy, 2 * this.L - Math.min(...ys));
+      // Don't land on or against an existing drawing: slide right past whatever is in the way, and
+      // at the right edge of the page start a new row under everything, as text wraps.
+      const gap = 2 * this.L;
+      const box = { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+      const taken = [
+        ...m.fragments().map((ids) => ids.map((id) => m.atom(id) as { x: number; y: number })),
+        ...this.doc.objects.map((o) => objectPoints(o)),
+      ].filter((pts) => pts.length).map((pts) => ({ x0: Math.min(...pts.map((q) => q.x)), y0: Math.min(...pts.map((q) => q.y)), x1: Math.max(...pts.map((q) => q.x)), y1: Math.max(...pts.map((q) => q.y)) }));
+      const inWay = () => taken.filter((b) => box.x0 + dx < b.x1 + gap && box.x1 + dx > b.x0 - gap && box.y0 + dy < b.y1 + gap && box.y1 + dy > b.y0 - gap);
+      const pageWidth = documentSize(this.doc.page).w;
+      for (let i = 0, hit = inWay(); i < 60 && hit.length; i++, hit = inWay()) {
+        dx = Math.max(...hit.map((b) => b.x1)) + gap - box.x0;
+        if (box.x1 + dx > pageWidth - gap && box.x1 - box.x0 < pageWidth - 2 * gap) {
+          dx = gap - box.x0;
+          dy = Math.max(...taken.map((b) => b.y1)) + gap - box.y0;
+        }
+      }
       const idMap = new Map<AtomId, AtomId>();
       for (const a of fresh.atoms()) idMap.set(a.id, m.addAtom({ ...a, x: a.x + dx, y: a.y + dy, chirality: null }).id);
       for (const b of fresh.bonds()) m.addBond({ ...b, begin: idMap.get(b.begin)!, end: idMap.get(b.end)!, ez: null });
