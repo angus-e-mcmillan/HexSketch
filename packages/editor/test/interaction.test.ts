@@ -293,7 +293,7 @@ test('Convert Structure to Name (Option+Cmd+N) puts the name under the structure
   ed.key('n', { meta: true, alt: true });
   const cap = ed.doc.objects.find((o) => o.kind === 'text');
   assert.ok(cap && cap.kind === 'text');
-  assert.equal(cap.text, '(S)-2-aminopropanoic acid');
+  assert.equal(cap.text, 'L-alanine');
   const maxY = Math.max(...[...ed.doc.mol.atoms()].map((a) => a.y));
   assert.ok(cap.y > maxY, 'caption sits below the structure');
 });

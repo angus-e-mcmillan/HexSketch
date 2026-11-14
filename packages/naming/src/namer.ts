@@ -890,7 +890,7 @@ function peptideOf(mol: Molecule): Peptide | null {
     const a = [...mol.atoms()][0]!;
     return a.label ? parsePeptide(a.label) : null;
   }
-  if (mol.atomCount < 7) return null;
+  if (mol.atomCount < 5) return null;
   try { return recognisePeptide(mol); } catch { return null; }
 }
 

@@ -138,7 +138,7 @@ test('save_to writes the file by its extension and never replaces one unasked', 
 
 test('name, analyze, convert, compare and link', async () => {
   const { call } = await connect();
-  assert.equal(JSON.parse(textOf(await call('name_structure', { structure: 'C[C@H](N)C(=O)O' }))).name, '(S)-2-aminopropanoic acid');
+  assert.equal(JSON.parse(textOf(await call('name_structure', { structure: 'C[C@H](N)C(=O)O' }))).name, 'L-alanine');
   const a = JSON.parse(textOf(await call('analyze_structure', { structure: 'CC(=O)[O-].[Na+]' })));
   assert.equal(a.name, 'sodium acetate');
   assert.equal(a.structures.length, 2);

@@ -50,7 +50,7 @@ test('PNG goes through the given rasterizer and carries the structure', async ()
 
 test('names and analyses, per structure for mixtures', async () => {
   assert.deepEqual(await name(ASPIRIN), { name: '2-acetoxybenzoic acid' });
-  assert.deepEqual(await name('C[C@H](N)C(=O)O'), { name: '(S)-2-aminopropanoic acid' });
+  assert.deepEqual(await name('C[C@H](N)C(=O)O'), { name: 'L-alanine' });
   const a = await analyze(ASPIRIN);
   assert.equal(a.formula, 'C9H8O4');
   assert.equal(a.exactMass.toFixed(4), '180.0423');
@@ -118,7 +118,7 @@ test('validate flags impossible and unusual atoms', async () => {
   assert.match((await validate('CC(=O)[O-].[Na+]')).issues[0]!.message, /2 separate structures/);
 
   const fine = await validate('C[C@H](N)C(=O)O');
-  assert.deepEqual(fine, { ok: true, issues: [], smiles: 'C[C@H](N)C(=O)O', name: '(S)-2-aminopropanoic acid', formula: 'C3H7NO2' });
+  assert.deepEqual(fine, { ok: true, issues: [], smiles: 'C[C@H](N)C(=O)O', name: 'L-alanine', formula: 'C3H7NO2' });
 });
 
 test('compare tells stereoisomers apart across formats', async () => {
@@ -294,7 +294,7 @@ test('related structures are drawn the same way round', async () => {
   assert.deepEqual((await analyze(r)).structures.map((x) => x.name), ['(S)-2-(4-isobutylphenyl)propanoic acid', 'methyl (S)-2-(4-isobutylphenyl)propanoate']);
   // Enantiomers drawn alike keep their own configurations.
   const e = await scheme({ stages: ['C[C@H](N)C(=O)O', 'OC(=O)[C@@H](C)N'] });
-  assert.deepEqual((await analyze(e)).structures.map((x) => x.name), ['(S)-2-aminopropanoic acid', '(R)-2-aminopropanoic acid']);
+  assert.deepEqual((await analyze(e)).structures.map((x) => x.name), ['L-alanine', 'D-alanine']);
   // A SMILES shown in place of a drawing turns to match it.
   const before = await readStructure('CC(C)Cc1ccc(cc1)C(C)C(=O)O');
   const after = await readStructure('O=C(OC)C(C)c1ccc(CC(C)C)cc1');
