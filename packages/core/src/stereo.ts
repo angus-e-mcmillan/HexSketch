@@ -144,24 +144,37 @@ export function ezLabel(mol: Molecule, bond: BondId): 'E' | 'Z' | null {
  */
 export function perceiveStereoFromGeometry(mol: Molecule): void {
   for (const a of mol.atoms()) a.chirality = null;
-  const L = averageBondLength(mol);
   for (const a of mol.atoms()) {
     const nbrs = mol.neighbours(a.id);
-    if (nbrs.length < 3 || nbrs.length + mol.implicitHydrogens(a.id) !== 4) continue;
+    if (nbrs.length < 3 || (nbrs.length + mol.implicitHydrogens(a.id) !== 4 && !lonePairCentre(mol, a.id))) continue;
     const zOf = new Map<AtomId, number>();
     let any = false;
+    // A wavy bond says the configuration is not known, whatever else is drawn.
+    if (mol.incidentBonds(a.id).some((b) => mol.bond(b).display === 'wavy')) continue;
     for (const b of mol.incidentBonds(a.id)) {
       const bd = mol.bond(b);
       const other = mol.otherAtom(bd, a.id);
       const narrowHere = (bd.display === 'wedgeBegin' || bd.display === 'hashBegin') ? bd.begin === a.id
         : (bd.display === 'wedgeEnd' || bd.display === 'hashEnd') ? bd.end === a.id : false;
       if (!narrowHere) continue;
-      zOf.set(other, (bd.display.startsWith('wedge') ? 1 : -1) * 0.8 * L);
+      zOf.set(other, (bd.display.startsWith('wedge') ? 1 : -1) * 0.8);
       any = true;
+    }
+    if (!any) {
+      // A perspective drawing (a sugar's chair, a cage): with no wedge at the atom, a bold bond is
+      // towards the viewer and a hashed one away, at both of its ends. ChemDraw reads them so.
+      for (const b of mol.incidentBonds(a.id)) {
+        const bd = mol.bond(b);
+        if (bd.display !== 'bold' && bd.display !== 'hash') continue;
+        zOf.set(mol.otherAtom(bd, a.id), (bd.display === 'bold' ? 1 : -1) * 0.8);
+        any = true;
+      }
     }
     if (!any) continue;
     // Right-handed coordinates: x right, y up (screen y flipped), z toward the viewer.
-    const vec = (id: AtomId) => { const b = mol.atom(id); return [b.x - a.x, -(b.y - a.y), zOf.get(id) ?? 0] as [number, number, number]; };
+    // Each bond as a direction of unit length on the page, lifted or dropped by its wedge: a long
+    // bond (a bridge drawn across a cage) counts no more than a short one.
+    const vec = (id: AtomId) => { const b = mol.atom(id); const dx = b.x - a.x, dy = -(b.y - a.y), len = Math.hypot(dx, dy) || 1; return [dx / len, dy / len, zOf.get(id) ?? 0] as [number, number, number]; };
     const order: AtomId[] = [...nbrs];
     const vs = order.map(vec);
     if (order.length === 3) {
@@ -184,10 +197,16 @@ export function perceiveStereoFromGeometry(mol: Molecule): void {
 
   for (const b of mol.bonds()) {
     b.ez = null;
-    if (b.order !== 2 || b.display === 'either') continue;
+    // Crossed or wavy: drawn to say the geometry is not known.
+    if (b.order !== 2 || b.display === 'either' || b.display === 'wavy') continue;
     if (inSmallRing(mol, b.begin, b.end)) continue;
-    const ra = mol.neighbours(b.begin).find((n) => n !== b.end);
-    const rb = mol.neighbours(b.end).find((n) => n !== b.begin);
+    // What is on each end: not the next double bond of an allene (which has no E/Z), and not a
+    // dashed bond to a metal, which is no substituent. A wavy bond to one leaves the geometry open.
+    const subs = (x: AtomId, other: AtomId) => mol.incidentBonds(x).map((i) => mol.bond(i)).filter((s) => mol.otherAtom(s, x) !== other && s.display !== 'dashed');
+    const sa = subs(b.begin, b.end), sb2 = subs(b.end, b.begin);
+    if ([...sa, ...sb2].some((s) => s.order !== 1 || s.display === 'wavy')) continue;
+    const ra = sa.length ? mol.otherAtom(sa[0]!, b.begin) : undefined;
+    const rb = sb2.length ? mol.otherAtom(sb2[0]!, b.end) : undefined;
     if (ra === undefined || rb === undefined) continue;
     const A = mol.atom(b.begin), B = mol.atom(b.end);
     const len2 = (B.x - A.x) ** 2 + (B.y - A.y) ** 2;
@@ -197,16 +216,23 @@ export function perceiveStereoFromGeometry(mol: Molecule): void {
       const c = ((B.x - A.x) * (P.y - A.y) - (B.y - A.y) * (P.x - A.x)) / len2;
       return Math.abs(c) < 0.02 ? 0 : Math.sign(c);
     };
-    const sa = side(ra), sb = side(rb);
-    if (!sa || !sb) continue;
-    b.ez = { ref: [ra, rb], cis: sa === sb };
+    const sideA = side(ra), sideB = side(rb);
+    if (!sideA || !sideB) continue;
+    b.ez = { ref: [ra, rb], cis: sideA === sideB };
   }
 }
 
-function averageBondLength(mol: Molecule): number {
-  let t = 0, n = 0;
-  for (const b of mol.bonds()) { const p = mol.atom(b.begin), q = mol.atom(b.end); t += Math.hypot(p.x - q.x, p.y - q.y); n++; }
-  return n ? t / n : 1;
+/**
+ * A centre whose fourth place is a lone pair that does not invert: the sulfur of a sulfoxide,
+ * sulfinate or sulfonium, the phosphorus of a phosphine. (An amine's nitrogen inverts.)
+ */
+function lonePairCentre(mol: Molecule, id: AtomId): boolean {
+  const a = mol.atom(id);
+  if (mol.neighbours(id).length !== 3 || mol.implicitHydrogens(id) !== 0) return false;
+  const sum = mol.bondOrderSum(id);
+  if (a.element === 'S' || a.element === 'Se') return (a.charge === 0 && sum === 4) || (a.charge === 1 && sum === 3);
+  if (a.element === 'P' || a.element === 'As') return a.charge === 0 && sum === 3;
+  return false;
 }
 
 /** Is a-b in a ring of fewer than 8 atoms (where E/Z is not cited)? */

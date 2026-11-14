@@ -1,4 +1,4 @@
-import { cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, layoutAsPeptide, makeCaption, Molecule, objectPoints, objectPolylines, parsePeptide, parseSmiles, peptideMolecule, peptideSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
+import { drawOutLabel, labelStructure, cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, layoutAsPeptide, makeCaption, Molecule, objectPoints, objectPolylines, parsePeptide, parseSmiles, peptideMolecule, peptideSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
 import { captionBounds, depict, toSvg, type Depiction } from '@hexsketch/render';
 import { EditorDocument } from './document.ts';
 import { hitObject, hitTest, inLasso, inRect, objectsInRect, type Hit } from './hittest.ts';
@@ -49,6 +49,8 @@ type Gesture =
   | { kind: 'createDrag'; x0: number; y0: number; x: number; y: number }
   | { kind: 'handle'; id: number; handle: HandleName; orig: DocObject }
   | { kind: 'move'; x0: number; y0: number; x: number; y: number; copy?: boolean; ghost?: string }
+  /** Dragging the selection's rotation handle: `angle` is the turn so far, in degrees clockwise. */
+  | { kind: 'rotate'; cx: number; cy: number; start: number; angle: number; handle: { x: number; y: number }; ghost?: string }
   | { kind: 'marquee'; x0: number; y0: number; x: number; y: number }
   | { kind: 'lasso'; points: { x: number; y: number }[] };
 
@@ -214,6 +216,13 @@ export class Editor {
       this.#emit();
       return;
     }
+    // The selection's rotation handle.
+    const turn = this.rotationHandle();
+    if (turn && Math.hypot(p.x - turn.x, p.y - turn.y) <= (p.touch ? 12 : 5)) {
+      this.#gesture = { kind: 'rotate', cx: turn.cx, cy: turn.cy, start: Math.atan2(p.y - turn.cy, p.x - turn.cx), angle: 0, handle: { x: turn.x, y: turn.y } };
+      this.#emit();
+      return;
+    }
     // Adjustment handles of the hovered or selected arrow / drawing element come first.
     const t0 = this.tool.kind;
     if (t0 === 'select' || t0 === 'arrow' || t0 === 'shape') {
@@ -262,6 +271,14 @@ export class Editor {
       if (o) { dragHandle(o, g.orig, g.handle, { x: p.x, y: p.y }, { fixedAngles: this.fixedAngles && !p.alt, oval: !!p.shift }); this.doc.touch(); }
       return;
     }
+    if (g.kind === 'rotate') {
+      // Steps of 15 degrees, as bonds are drawn; Option (Alt) turns freely, to the degree.
+      const raw = (Math.atan2(p.y - g.cy, p.x - g.cx) - g.start) * 180 / Math.PI;
+      const step = this.fixedAngles && !p.alt ? 15 : 1;
+      g.angle = ((Math.round(raw / step) * step + 540) % 360) - 180;
+      this.#emit();
+      return;
+    }
     if (g.kind === 'move') g.copy = !!(p.alt || p.meta);
     if (g.kind === 'lasso') g.points.push({ x: p.x, y: p.y });
     else if (g.kind === 'move' && p.shift) {
@@ -298,6 +315,7 @@ export class Editor {
     else if (g.kind === 'chainDrag') this.#commitChain(g);
     else if (g.kind === 'createDrag') this.#commitObject(g.x0, g.y0, g.x, g.y);
     else if (g.kind === 'handle') this.doc.endLive();
+    else if (g.kind === 'rotate') { if (g.angle) this.rotateSelection(g.angle); }
     // Option or Command (Ctrl on Windows) leaves the selection where it was and drops a copy.
     else if (g.kind === 'move' && (p.alt || p.meta)) this.#duplicateSelection(g.x - g.x0, g.y - g.y0);
     else if (g.kind === 'move') this.#commitMove(g.x - g.x0, g.y - g.y0);
@@ -1113,6 +1131,27 @@ export class Editor {
     });
   }
 
+  /**
+   * The handle that turns the selection: a little above its top right corner,
+   * shown with the selection tools when two or more atoms (or an arrow, a
+   * drawing element) are selected. Dragging it round the selection's centre
+   * turns the selection. Null when there is nothing to turn.
+   */
+  rotationHandle(): { x: number; y: number; cx: number; cy: number; box: { x0: number; y0: number; x1: number; y1: number } } | null {
+    if (this.tool.kind !== 'select' || !(this.#hasSelection() || this.selection.bonds.size > 0)) return null;
+    const { atoms, objects } = this.#targets();
+    const pts: { x: number; y: number }[] = [];
+    for (const a of atoms) if (this.doc.mol.hasAtom(a)) pts.push(this.doc.mol.atom(a));
+    for (const o of this.doc.objects) if (objects.has(o.id)) pts.push(...objectPoints(o));
+    if (pts.length < 2) return null;
+    const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
+    const pad = this.L * 0.45;
+    const box = { x0: Math.min(...xs) - pad, y0: Math.min(...ys) - pad, x1: Math.max(...xs) + pad, y1: Math.max(...ys) + pad };
+    if (box.x1 - box.x0 < 2 * pad + 1e-6 && box.y1 - box.y0 < 2 * pad + 1e-6) return null;
+    // The centre #transform turns about: the middle of the points' own box.
+    return { x: box.x1 + this.L * 0.35, y: box.y0 - this.L * 0.35, cx: (box.x0 + box.x1) / 2, cy: (box.y0 + box.y1) / 2, box };
+  }
+
   /** Rotate the selection (or everything); positive degrees turn clockwise on screen. */
   rotateSelection(degrees: number) {
     const t = (degrees * Math.PI) / 180, c = Math.cos(t), s = Math.sin(t);
@@ -1435,7 +1474,8 @@ export class Editor {
   /** More bonds than the element's highest normal valence allows (charge-adjusted). */
   overvalent(id: AtomId): boolean {
     const a = this.doc.mol.atom(id);
-    if (a.label !== null) return false;
+    // A label with more bonds than it can make: OMe between two atoms, Boc with three.
+    if (a.label !== null) { const n = this.doc.mol.neighbours(id).length; return n > 1 && labelStructure(a.label, 1) !== null && labelStructure(a.label, n) === null; }
     const el = elementBySymbol(a.element);
     if (!el || !el.valences.length) return false;
     const used = this.doc.mol.bondOrderSum(id) + a.radical + (a.explicitHydrogens ?? 0);
@@ -1540,6 +1580,11 @@ export class Editor {
     } else if (g.kind === 'chainDrag') {
       const pts = this.#chainPoints(g).map((p) => `${p.x},${p.y}`).join(' ');
       overlays.push(`<polyline points="${pts}" fill="none" stroke="${HOVER}" stroke-width="${this.doc.style.lineWidth}"/>`);
+    } else if (g.kind === 'rotate') {
+      // The selection as it will lie, turning with the pointer, and the angle so far.
+      g.ghost ??= this.#ghost(this.selectedDrawing());
+      overlays.push(`<g transform="rotate(${g.angle} ${+g.cx.toFixed(2)} ${+g.cy.toFixed(2)})" opacity="0.45">${g.ghost}</g>`);
+      overlays.push(`<text x="${g.handle.x + 7}" y="${g.handle.y + 3}" font-family="Helvetica, Arial, sans-serif" font-size="9" fill="${HOVER}">${g.angle}°</text>`);
     } else if (g.kind === 'move' && g.copy) {
       // Option+drag: a faint copy follows the pointer and the original stays put.
       g.ghost ??= this.#ghost(this.selectedDrawing());
@@ -1550,6 +1595,19 @@ export class Editor {
       overlays.push(`<rect x="${Math.min(g.x0, g.x)}" y="${Math.min(g.y0, g.y)}" width="${Math.abs(g.x - g.x0)}" height="${Math.abs(g.y - g.y0)}" fill="rgba(59,130,246,0.08)" stroke="${HOVER}" stroke-width="0.6" stroke-dasharray="3 2"/>`);
     } else if (g.kind === 'lasso') {
       overlays.push(`<polygon points="${g.points.map((p) => `${p.x},${p.y}`).join(' ')}" fill="rgba(59,130,246,0.08)" stroke="${HOVER}" stroke-width="0.6" stroke-dasharray="3 2"/>`);
+    }
+
+    // The selection's frame and its rotation handle (still, while it is being dragged).
+    const turn = g.kind === 'rotate' ? null : (g.kind === 'idle' || g.kind === 'press') ? this.rotationHandle() : null;
+    const knob = g.kind === 'rotate' ? g.handle : turn;
+    if (turn) overlays.push(`<rect class="selection-frame" x="${turn.box.x0}" y="${turn.box.y0}" width="${turn.box.x1 - turn.box.x0}" height="${turn.box.y1 - turn.box.y0}" fill="none" stroke="${HOVER}" stroke-opacity="0.55" stroke-width="0.5" stroke-dasharray="2.5 2"/>`
+      + `<line x1="${turn.box.x1}" y1="${turn.box.y0}" x2="${turn.x}" y2="${turn.y}" stroke="${HOVER}" stroke-opacity="0.55" stroke-width="0.5"/>`);
+    if (knob) {
+      // A ring with an arrowhead: turn.
+      const r = 3.4, k = knob;
+      overlays.push(`<g class="rotate-handle"><title>Drag to rotate (hold Option for any angle)</title><circle cx="${k.x}" cy="${k.y}" r="${r + 1.6}" fill="#fff" stroke="${HOVER}" stroke-width="0.8"/>`
+        + `<path d="M ${k.x - r * 0.62} ${k.y + r * 0.35} A ${r * 0.7} ${r * 0.7} 0 1 1 ${k.x + r * 0.45} ${k.y + r * 0.55}" fill="none" stroke="${HOVER}" stroke-width="0.8"/>`
+        + `<path d="M ${k.x + r * 0.45} ${k.y + r * 0.55} l ${-r * 0.1} ${-r * 0.75} l ${r * 0.72} ${r * 0.42} z" fill="${HOVER}"/></g>`);
     }
 
     if (this.#stamp) {
@@ -1587,42 +1645,14 @@ const ELEMENT_COLORS: Record<string, string> = {
   Ru: '#248f8f', Ir: '#175487', Au: '#d0a000', Ag: '#909090', Ti: '#909090', D: '#808080',
 };
 
-/**
- * Abbreviations Expand Label draws out, as SMILES whose first atom takes the
- * labelled atom's place. Written for HexSketch from standard chemistry.
- */
-const NICKNAMES: Record<string, string> = {
-  Me: 'C', Et: 'CC', Pr: 'CCC', nPr: 'CCC', iPr: 'C(C)C', Bu: 'CCCC', nBu: 'CCCC', tBu: 'C(C)(C)C', sBu: 'C(C)CC', iBu: 'CC(C)C',
-  Ph: 'c1ccccc1', Bn: 'Cc1ccccc1', Bz: 'C(=O)c1ccccc1', Ac: 'C(C)=O', Cy: 'C1CCCCC1', Vin: 'C=C', All: 'CC=C',
-  OH: 'O', SH: 'S', NH2: 'N', NHMe: 'NC', NMe: 'NC', NMe2: 'N(C)C', NHAc: 'NC(C)=O', NHBoc: 'NC(=O)OC(C)(C)C', NHCbz: 'NC(=O)OCc1ccccc1', NHFmoc: 'NC(=O)OCC1c2ccccc2-c2ccccc12',
-  OMe: 'OC', OEt: 'OCC', OtBu: 'OC(C)(C)C', OPh: 'Oc1ccccc1', OBn: 'OCc1ccccc1', OAc: 'OC(C)=O', OBz: 'OC(=O)c1ccccc1',
-  OTf: 'OS(=O)(=O)C(F)(F)F', OTs: 'OS(=O)(=O)c1ccc(C)cc1', OMs: 'OS(=O)(=O)C', OTBS: 'O[Si](C)(C)C(C)(C)C', OTBDMS: 'O[Si](C)(C)C(C)(C)C',
-  OTIPS: 'O[Si](C(C)C)(C(C)C)C(C)C', OTMS: 'O[Si](C)(C)C', OTES: 'O[Si](CC)(CC)CC', OPMB: 'OCc1ccc(OC)cc1', OTHP: 'OC1CCCCO1', OMOM: 'OCOC',
-  CO2H: 'C(=O)O', COOH: 'C(=O)O', CO2Me: 'C(=O)OC', CO2Et: 'C(=O)OCC', CO2tBu: 'C(=O)OC(C)(C)C', CO2Bn: 'C(=O)OCc1ccccc1', CHO: 'C=O',
-  CONH2: 'C(N)=O', CN: 'C#N', NO2: '[N+](=O)[O-]', N3: 'N=[N+]=[N-]', CF3: 'C(F)(F)F', CCl3: 'C(Cl)(Cl)Cl',
-  Tf: 'S(=O)(=O)C(F)(F)F', Ts: 'S(=O)(=O)c1ccc(C)cc1', Ms: 'S(=O)(=O)C', SO2Ph: 'S(=O)(=O)c1ccccc1',
-  Boc: 'C(=O)OC(C)(C)C', Cbz: 'C(=O)OCc1ccccc1', Z: 'C(=O)OCc1ccccc1', Fmoc: 'C(=O)OCC1c2ccccc2-c2ccccc12', Alloc: 'C(=O)OCC=C', Troc: 'C(=O)OCC(Cl)(Cl)Cl',
-  TMS: '[Si](C)(C)C', TBS: '[Si](C)(C)C(C)(C)C', TBDMS: '[Si](C)(C)C(C)(C)C', TIPS: '[Si](C(C)C)(C(C)C)C(C)C', TES: '[Si](CC)(CC)CC', TBDPS: '[Si](c1ccccc1)(c1ccccc1)C(C)(C)C',
-  PMB: 'Cc1ccc(OC)cc1', Trt: 'C(c1ccccc1)(c1ccccc1)c1ccccc1', Pbf: 'S(=O)(=O)c1c(C)c(C)c2OC(C)(C)Cc2c1C', THP: 'C1CCCCO1', MOM: 'COC', SEM: 'COCC[Si](C)(C)C', MEM: 'COCCOC', OSEM: 'OCOCC[Si](C)(C)C', OMEM: 'OCOCCOC',
-  Bpin: 'B1OC(C)(C)C(C)(C)O1', MgBr: '[Mg]Br', MgCl: '[Mg]Cl', SnBu3: '[Sn](CCCC)(CCCC)CCCC',
-};
-
-/** Can this labelled atom be expanded (a peptide on its own, or a known abbreviation)? */
+/** Can this labelled atom be expanded (a peptide on its own, or a label HexSketch can read: OMe, CO2Et, NHBoc, CH2OTBS)? */
 function expandable(mol: Molecule, id: AtomId): boolean {
   const a = mol.atom(id);
   if (!a.label) return false;
-  if (mol.neighbours(id).length === 0 && parsePeptide(a.label)) return true;
-  if (!NICKNAMES[a.label]) return false;
   const bonds = mol.neighbours(id).length;
-  // A label in a chain (an N-methyl amide's "NMe" in a peptide backbone) has a bond on each side:
-  // it can be drawn out only when its first atom has room for both.
-  return bonds <= 1 || (bonds === 2 && roomAtHead(a.label) >= 2);
-}
-
-/** How many bonds the first atom of an abbreviation can still make: "NMe" (NC) two, "OMe" one. */
-function roomAtHead(label: string): number {
-  const frag = parseSmiles(NICKNAMES[label]!);
-  return frag.implicitHydrogens([...frag.atoms()][0]!.id);
+  if (bonds === 0 && parsePeptide(a.label)) return true;
+  // A label in a chain (an N-methyl amide's "NMe" in a peptide backbone) has a bond on each side.
+  return labelStructure(a.label, bonds) !== null;
 }
 
 /**
@@ -1650,28 +1680,7 @@ function expandAtomLabel(m: Molecule, id: AtomId, L: number) {
     m.removeAtom(id);
     return;
   }
-  const frag = parseSmiles(NICKNAMES[a.label!]!);
-  layout2D(frag, L);
-  const fAtoms = [...frag.atoms()];
-  const head = fAtoms[0]!;
-  // Point the group away from the atom it hangs on (or rightwards for a lone label).
-  let dir = 0;
-  if (nbrs.length) {
-    // Away from the atoms it hangs on: from the one, or from between the two of a label in a chain.
-    const nx = nbrs.reduce((t, n) => t + m.atom(n).x, 0) / nbrs.length, ny = nbrs.reduce((t, n) => t + m.atom(n).y, 0) / nbrs.length;
-    dir = Math.atan2(a.y - ny, a.x - nx);
-  }
-  const rest = fAtoms.slice(1);
-  const cx = rest.length ? rest.reduce((s, p) => s + p.x, 0) / rest.length : head.x + 1;
-  const cy = rest.length ? rest.reduce((s, p) => s + p.y, 0) / rest.length : head.y;
-  const rot = dir - Math.atan2(cy - head.y, cx - head.x);
-  const cos = Math.cos(rot), sin = Math.sin(rot);
-  const place = (p: { x: number; y: number }) => ({ x: a.x + (p.x - head.x) * cos - (p.y - head.y) * sin, y: a.y + (p.x - head.x) * sin + (p.y - head.y) * cos });
-  // The labelled atom becomes the group's first atom; the rest are added.
-  a.element = head.element; a.label = null; a.charge = head.charge; a.explicitHydrogens = head.explicitHydrogens; a.isotope = null;
-  const map = new Map<AtomId, AtomId>([[head.id, id]]);
-  for (const p of rest) map.set(p.id, m.addAtom({ ...p, ...place(p), chirality: null }).id);
-  for (const b of frag.bonds()) m.addBond({ ...b, begin: map.get(b.begin)!, end: map.get(b.end)!, ez: null });
+  drawOutLabel(m, id, labelStructure(a.label!, nbrs.length)!, L);
 }
 
 /**

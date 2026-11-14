@@ -1,9 +1,13 @@
 import { elementBySymbol, elementByNumber } from './elements.ts';
 import { Molecule, type BondDisplay, type BondOrder, type DoubleBondPosition } from './model.ts';
 import { kekulize } from './kekulize.ts';
+import { perceiveStereoFromGeometry } from './stereo.ts';
+import { assignWedges } from './layout.ts';
 import { DEFAULT_STYLE, type DrawingStyle } from './style.ts';
 import { analysisCode, analysisItemOf, type AnalysisItem } from './analysis.ts';
 import { pageCdxmlAttrs, type PageSettings } from './page.ts';
+import { parsePeptide } from './peptides.ts';
+import { drawOutLabel, labelStructure, GENERIC_LABEL, type LabelStructure } from './abbreviations.ts';
 import { captionRuns, newObjectId, setCaptionRuns, type ArcGeometry, type Arrow, type ArrowEnd, type Caption, type DocObject, type ObjectGroup, type Shape, type TextRun } from './objects.ts';
 
 /**
@@ -167,7 +171,8 @@ export function writeCdxml(mol: Molecule, style: DrawingStyle = DEFAULT_STYLE, o
       if (!fragment.includes(b.begin)) continue;
       const attrs = [`id="${nextId++}"`, `B="${nodeIds.get(b.begin)}"`, `E="${nodeIds.get(b.end)}"`];
       if (b.order !== 1) attrs.push(`Order="${b.order}"`);
-      const display = DISPLAY_TO_CDXML[b.display];
+      // A crossed double bond (geometry not known) is ChemDraw's wavy double bond.
+      const display = b.display === 'either' && b.order === 2 ? 'Wavy' : DISPLAY_TO_CDXML[b.display];
       if (display) attrs.push(`Display="${display}"`);
       const position = POSITION_TO_CDXML[b.doubleBondPosition];
       if (position && b.order === 2) attrs.push(`DoublePosition="${position}"`);
@@ -597,6 +602,7 @@ export function readCdxml(xml: string): Molecule {
   const colorOf = (tag: string, name = 'color') => { const c = attr(tag, name); return c === undefined ? null : colorAt(Number(c)); };
 
   const body = stripNestedFragments(xml);
+  const nodeTags = new Map<string, string>();
   const nodeRe = NODE_RE();
   for (let m; (m = nodeRe.exec(body)); ) {
     const tag = m[1]!;
@@ -608,19 +614,24 @@ export function readCdxml(xml: string): Molecule {
     const z = Number(attr(tag, 'Element') ?? 6);
     const nodeType = attr(tag, 'NodeType');
     const text = [...inner.matchAll(/<s\b[^>]*>([^<]*)<\/s>/g)].map((s) => s[1]).join('');
-    const isNickname = nodeType === 'Nickname' || nodeType === 'Fragment' || nodeType === 'GenericNickname';
+    // Anything that is not a plain element is shown by its text: an abbreviation (Nickname,
+    // Fragment), a generic group (R, X), a formula, or text ChemDraw could not read (Unspecified).
+    const isNickname = nodeType !== undefined && nodeType !== 'Element' && nodeType !== 'ExternalConnectionPoint';
+    const radical = attr(tag, 'Radical');
     const numH = attr(tag, 'NumHydrogens');
     const atom = mol.addAtom({
       element: elementByNumber(z)?.symbol ?? 'C',
       x, y,
       charge: Number(attr(tag, 'Charge') ?? 0),
       isotope: attr(tag, 'Isotope') ? Number(attr(tag, 'Isotope')) : null,
-      label: isNickname && text ? text.replace(/&apos;/g, "'").replace(/&amp;/g, '&') : null,
+      label: isNickname && text ? unesc(text) : null,
+      radical: radical === 'Doublet' ? 1 : radical === 'Triplet' ? 2 : 0,
       explicitHydrogens: numH !== undefined && !isNickname ? Number(numH) : null,
       color: colorOf(tag) ?? colorOf(/<s\b([^>]*)>/.exec(inner)?.[1] ?? ''),
       highlight: colorOf(tag, 'highlightColor') ?? colorOf(tag, 'HexSketchHighlight') ?? colorOf(tag, 'DrawChemHighlight'),
     });
     idMap.set(id, atom.id);
+    nodeTags.set(id, tag);
   }
 
   const bondIdMap = new Map<string, number>();
@@ -632,7 +643,8 @@ export function readCdxml(xml: string): Molecule {
     if (b === undefined || e === undefined || b === e || mol.bondBetween(b, e)) continue;
     const orderAttr = attr(tag, 'Order') ?? '1';
     const order = (orderAttr === '1.5' ? 1.5 : Math.min(4, Math.max(1, Number(orderAttr.split(/\s+/)[0]) || 1))) as BondOrder;
-    const display = CDXML_TO_DISPLAY[attr(tag, 'Display') ?? ''] ?? 'plain';
+    const shown = CDXML_TO_DISPLAY[attr(tag, 'Display') ?? ''] ?? 'plain';
+    const display = shown === 'wavy' && order === 2 ? 'either' : shown;
     const pos = attr(tag, 'DoublePosition');
     mol.addBond({
       begin: b, end: e, order, display,
@@ -662,7 +674,114 @@ export function readCdxml(xml: string): Molecule {
   }
   // A ring ChemDraw drew as a circle (Order="1.5") becomes alternating double bonds.
   kekulize(mol);
+  // ChemDraw writes each stereocentre's configuration with it (BondOrdering: seen from the first
+  // bond, the others run clockwise), worked out from more than wedges: from a perspective
+  // drawing's crossing bonds too. Where the drawing as HexSketch reads it does not show a
+  // centre the file records, an unmarked bond there is given the wedge or hash that does.
+  const recorded = new Map<number, { order: number[]; anticlockwise: boolean }>();
+  for (const [nodeId, tag] of nodeTags) {
+    const ordering = attr(tag, 'BondOrdering'), id = idMap.get(nodeId);
+    if (!ordering || id === undefined || !/^[RSrs]$/.test(attr(tag, 'AS') ?? '')) continue;
+    const order = ordering.trim().split(/\s+/).map((b) => {
+      if (b === '0') return -1;
+      const bond = bondIdMap.get(b);
+      return bond === undefined || !mol.hasBond(bond) ? -2 : mol.otherAtom(mol.bond(bond), id);
+    });
+    const nbrs = mol.neighbours(id);
+    if (order.length !== 4 || order.includes(-2) || new Set(order).size !== 4 || !nbrs.every((n) => order.includes(n)) || order.filter((x) => x !== -1).length !== nbrs.length) continue;
+    recorded.set(id, { order, anticlockwise: false });
+  }
+  if (recorded.size) {
+    perceiveStereoFromGeometry(mol);
+    const unseen = new Map([...recorded].filter(([id]) => !mol.atom(id).chirality));
+    for (const a of mol.atoms()) a.chirality = null;
+    if (unseen.size) assignWedges(mol, unseen, new Set(), { plainOnly: true });
+    for (const a of mol.atoms()) a.chirality = null;
+  }
+  // An abbreviation carries its own expansion in the file. Where HexSketch reads the label as
+  // the same atoms, it stays a label; where it cannot read it, or reads it differently, the
+  // file's own atoms are drawn out in its place, so the chemistry is the file's.
+  const nested = nestedFragments(xml);
+  if (nested.size) {
+    const bonds = [...mol.bonds()];
+    const L = bonds.length ? bonds.reduce((t, b) => t + Math.hypot(mol.atom(b.begin).x - mol.atom(b.end).x, mol.atom(b.begin).y - mol.atom(b.end).y), 0) / bonds.length : 14.4;
+    for (const [nodeId, inner] of nested) {
+      const id = idMap.get(nodeId);
+      if (id === undefined || mol.atom(id).label === null) continue;
+      const n = mol.neighbours(id).length;
+      const file = readNestedFragment(inner, n);
+      if (!file) continue;
+      const own = labelStructure(mol.atom(id).label!, n);
+      if (own && sameAtoms(own.mol, file.mol)) continue;
+      drawOutLabel(mol, id, file, L || 14.4);
+    }
+  }
   return mol;
+}
+
+const unesc = (t: string) => t.replace(/&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+
+/** The fragment nested in each abbreviation node (its expansion), by the node's id. */
+function nestedFragments(xml: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const m of xml.matchAll(/<n\b([^>]*[^/>])>\s*<fragment\b[^>]*>([\s\S]*?)<\/fragment>/g)) {
+    const id = /\bid="([^"]*)"/.exec(m[1]!)?.[1];
+    // A fragment that itself holds abbreviations is cut short by the match: leave it to the label.
+    if (id && !/<fragment\b/.test(m[2]!)) out.set(id, m[2]!);
+  }
+  return out;
+}
+
+/** An abbreviation's expansion as the file gives it: its atoms, and the ones its bonds go to. */
+function readNestedFragment(inner: string, bonds: number): LabelStructure | null {
+  const attr = (tag: string, name: string) => new RegExp(`\\b${name}="([^"]*)"`).exec(tag)?.[1];
+  const mol = new Molecule();
+  const ids = new Map<string, number>();
+  const points = new Map<string, number>();
+  for (const m of inner.matchAll(NODE_RE())) {
+    const tag = m[1]!, id = attr(tag, 'id');
+    if (!id) continue;
+    const type = attr(tag, 'NodeType');
+    if (type === 'ExternalConnectionPoint') { points.set(id, Number(attr(tag, 'ExternalConnectionNum') ?? points.size + 1)); continue; }
+    if (type !== undefined && type !== 'Element') return null;
+    const numH = attr(tag, 'NumHydrogens');
+    const el = elementByNumber(Number(attr(tag, 'Element') ?? 6))?.symbol;
+    if (!el) return null;
+    ids.set(id, mol.addAtom({ element: el, x: 0, y: 0, charge: Number(attr(tag, 'Charge') ?? 0), isotope: attr(tag, 'Isotope') ? Number(attr(tag, 'Isotope')) : null, explicitHydrogens: numH !== undefined && el !== 'C' ? Number(numH) : null }).id);
+  }
+  const ends: { num: number; atom: number }[] = [];
+  for (const m of inner.matchAll(/<b\b([^>]*?)\/?>/g)) {
+    const [b, e] = [attr(m[1]!, 'B') ?? '', attr(m[1]!, 'E') ?? ''];
+    if (points.has(b) || points.has(e)) {
+      const atom = ids.get(points.has(b) ? e : b);
+      if (atom === undefined) return null;
+      ends.push({ num: points.get(points.has(b) ? b : e)!, atom });
+      continue;
+    }
+    const [x, y] = [ids.get(b), ids.get(e)];
+    if (x === undefined || y === undefined || x === y || mol.bondBetween(x, y)) continue;
+    const order = attr(m[1]!, 'Order') ?? '1';
+    mol.addBond({ begin: x, end: y, order: (order === '1.5' ? 1.5 : Math.min(4, Math.max(1, Number(order) || 1))) as BondOrder });
+  }
+  if (!mol.atomCount || mol.fragments().length !== 1 || ends.length !== bonds || bonds < 1 || bonds > 2) return null;
+  try { kekulize(mol); } catch { return null; }
+  ends.sort((p, q) => p.num - q.num);
+  // A hydrogen count given for an atom that makes one of the label's bonds is as ChemDraw counts it, with the bond made.
+  for (const a of mol.atoms()) if (a.explicitHydrogens !== null && mol.implicitHydrogens(a.id) === a.explicitHydrogens + ends.filter((x) => x.atom === a.id).length) a.explicitHydrogens = null;
+  // drawOutLabel takes the head to be the first atom.
+  const head = ends[0]!.atom, tail = ends[ends.length - 1]!.atom;
+  if ([...mol.atoms()][0]!.id === head) return { mol, head, tail };
+  const out = new Molecule();
+  const map = new Map<number, number>();
+  for (const a of [mol.atom(head), ...[...mol.atoms()].filter((x) => x.id !== head)]) map.set(a.id, out.addAtom({ ...a }).id);
+  for (const b of mol.bonds()) out.addBond({ ...b, begin: map.get(b.begin)!, end: map.get(b.end)! });
+  return { mol: out, head: map.get(head)!, tail: map.get(tail)! };
+}
+
+/** Do two structures have the same atoms (elements and hydrogens)? Enough to tell two readings of a label apart. */
+function sameAtoms(a: Molecule, b: Molecule): boolean {
+  const key = (m: Molecule) => [...m.atoms()].map((x) => `${x.element}${x.charge}H${m.implicitHydrogens(x.id)}`).sort().join(' ');
+  return key(a) === key(b);
 }
 
 /**
@@ -702,9 +821,25 @@ export function readCdxmlDocument(xml: string): { mol: Molecule; objects: DocObj
   const mol = readCdxml(xml);
   const ids = new Map<string, number>();
   const objects = readCdxmlObjects(xml, mol, ids);
-  if (!/<group\b/.test(xml)) return { mol, objects, groups: [] };
   const atoms = [...mol.atoms()];
   const atomOfNode = new Map<string, number>();
-  nodeIdOrder(xml).forEach((id, i) => { if (atoms[i]) atomOfNode.set(id, atoms[i]!.id); });
-  return { mol, objects, groups: readCdxmlGroups(xml, atomOfNode, ids) };
+  if (/<group\b/.test(xml)) nodeIdOrder(xml).forEach((id, i) => { if (atoms[i]) atomOfNode.set(id, atoms[i]!.id); });
+  // Text typed as an atom label on nothing ("THF, -78 °C", "hv", "DBU" by an arrow) is a caption,
+  // not an atom: as an atom it would count as a carbon in every formula.
+  const moved = new Map<number, number>();
+  for (const a of atoms) {
+    if (a.label === null || mol.neighbours(a.id).length || GENERIC_LABEL.test(a.label) || labelStructure(a.label, 0) || parsePeptide(a.label)) continue;
+    const cap: Caption = { kind: 'text', id: newObjectId(), x: a.x, y: a.y + DEFAULT_STYLE.labelSize * 0.36, text: a.label, align: 'center', color: a.color ?? null };
+    objects.push(cap);
+    moved.set(a.id, cap.id);
+    mol.removeAtom(a.id);
+  }
+  if (!/<group\b/.test(xml)) return { mol, objects, groups: [] };
+  const groups = readCdxmlGroups(xml, atomOfNode, ids);
+  for (const g of groups) {
+    for (const a of g.atoms) if (moved.has(a)) g.objects.push(moved.get(a)!);
+    g.atoms = g.atoms.filter((a) => !moved.has(a));
+  }
+  return { mol, objects, groups };
 }
+

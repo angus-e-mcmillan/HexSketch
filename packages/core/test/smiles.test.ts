@@ -1,8 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseSmiles, smilesAtomMaps, writeSmiles } from '../src/smiles.ts';
-import { parsePattern, sameStructure, substructureMatches } from '../src/isomorphism.ts';
+import { parsePattern, sameStereoisomer, sameStructure, substructureMatches } from '../src/isomorphism.ts';
+import { ezLabel } from '../src/stereo.ts';
 import { computeMass } from '../src/formula.ts';
+import { layout2D } from '../src/layout.ts';
 
 const CASES: [string, string, string][] = [
   ['aspirin', 'CC(=O)Oc1ccccc1C(=O)O', 'C9H8O4'],
@@ -205,4 +207,40 @@ test('a highlight fragment forgives a ring label left open and an aromatic piece
   assert.equal(substructureMatches(parsePattern('O=C1CC2OCC'), parseSmiles('O=C1C[C@@H]2OCC(c3ccccc3)N[C@H]2C1')).length, 1);
   assert.equal(substructureMatches(parsePattern('c1ccncc1-c'), parseSmiles('c1ccc(-c2ccncc2)cc1')).length, 0, 'read, though it is not there');
   assert.throws(() => parsePattern('C(=O'), /./, 'still an error when nothing can be made of it');
+});
+
+test('"*" is some group: read as R, written back as *', () => {
+  const mol = parseSmiles('*c1ccccc1');
+  assert.deepEqual([...mol.atoms()].map((a) => a.label).filter(Boolean), ['R']);
+  assert.equal(writeSmiles(mol), '*C1=CC=CC=C1');
+  const mapped = parseSmiles('[*:1]CC[*:2]');
+  assert.deepEqual([...mapped.atoms()].map((a) => a.label).filter(Boolean), ['R1', 'R2']);
+  assert.equal(writeSmiles(mapped), '[*:1]CC[*:2]');
+});
+
+test('a laid-out SMILES can be written with what it said, not what its layout shows', () => {
+  for (const smiles of ['CC=CCC', 'CC(=O)N=NC(C)=O', 'C/C=C\\C', 'C/C=C/C', 'C[S@](=O)CC']) {
+    const mol = parseSmiles(smiles);
+    layout2D(mol);
+    const out = writeSmiles(mol, { geometry: false });
+    assert.equal(/[\\/]/.test(out), /[\\/]/.test(smiles), `${smiles} -> ${out}: E/Z only where it was given`);
+    assert.equal(/@/.test(out), /@/.test(smiles), `${smiles} -> ${out}`);
+  }
+  // Read as a drawing, the same layout does say trans.
+  const drawn = parseSmiles('CC=CCC');
+  layout2D(drawn);
+  assert.match(writeSmiles(drawn), /[\\/]/);
+});
+
+test('a direction mark on a ring-closure bond is read, and written when it is the only substituent', () => {
+  const ez = (s: string) => { const mol = parseSmiles(s); return [...mol.bonds()].filter((b) => b.order === 2).map((b) => ezLabel(mol, b.id)); };
+  assert.deepEqual(ez('F/C=C/1.F1'), ['E']);
+  assert.deepEqual(ez('F/1.C1=C/F'), ['E']);
+  assert.deepEqual(ez('C1=C/CCCCCCCC/1'), ['E']);
+  assert.deepEqual(ez('C1=C\\CCCCCCCC/1'), ['Z']);
+  for (const s of ['C1=C/CCCCCCCC/1', 'C1=C\\CCCCCCCC/1', 'C\\1CCCCCCCC/C=C/1', 'CC1=C/CCCCCCCC\\C=C(C)\\CCC/1']) {
+    const mol = parseSmiles(s);
+    const out = writeSmiles(mol);
+    assert.ok(sameStereoisomer(mol, parseSmiles(out)), `${s} -> ${out}`);
+  }
 });

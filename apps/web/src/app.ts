@@ -302,6 +302,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       { label: 'Align', submenu: alignItems },
       { label: 'Distribute', submenu: distributeItems },
       'sep',
+      { label: 'Rotate', submenu: rotateItems },
       { label: 'Flip Horizontal', shortcut: '⇧⌘H', run: () => editor.rotate180('horizontal'), enabled: hasSelection() },
       { label: 'Flip Vertical', shortcut: '⇧⌘V', run: () => editor.rotate180('vertical'), enabled: hasSelection() },
     ] },
@@ -477,6 +478,25 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   }
 
   /** Colors > Palette: the colour table the Color menu offers (colours already used stay as they are). */
+  /** Object > Rotate: the selection, or the whole drawing with nothing selected. */
+  function rotateItems(): MenuItem[] {
+    const on = hasDrawing();
+    const other = () => {
+      const text = window.prompt('Rotate clockwise by how many degrees? (A negative number turns anticlockwise.)', '30');
+      const degrees = Number(text);
+      if (text !== null && text.trim() !== '' && Number.isFinite(degrees) && degrees % 360 !== 0) editor.rotateSelection(degrees);
+    };
+    return [
+      { label: '15° Clockwise', shortcut: '⌥↓', run: () => editor.rotateSelection(15), enabled: on },
+      { label: '15° Anticlockwise', shortcut: '⌥↑', run: () => editor.rotateSelection(-15), enabled: on },
+      { label: '90° Clockwise', run: () => editor.rotateSelection(90), enabled: on },
+      { label: '90° Anticlockwise', run: () => editor.rotateSelection(-90), enabled: on },
+      { label: '180°', run: () => editor.rotateSelection(180), enabled: on },
+      'sep',
+      { label: 'Other Angle…', run: other, enabled: on },
+    ];
+  }
+
   function paletteItems(): MenuItem[] {
     const current = paletteId(editor.doc.style);
     return PALETTES.map((p) => ({ label: p.label, checked: current === p.id, run: () => editor.setStyle({ ...editor.doc.style, palette: p.colors }, { rescale: false }) }));
@@ -847,7 +867,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     items.push(...groupItems());
     if (structures || sel.objects.size > 1) {
       items.push({ label: 'Align', submenu: alignItems }, { label: 'Distribute', submenu: distributeItems });
-      if (structures) items.push({ label: 'Flip Horizontal', shortcut: '⇧⌘H', run: () => editor.rotate180('horizontal') }, { label: 'Flip Vertical', shortcut: '⇧⌘V', run: () => editor.rotate180('vertical') });
+      if (structures) items.push({ label: 'Rotate', submenu: rotateItems }, { label: 'Flip Horizontal', shortcut: '⇧⌘H', run: () => editor.rotate180('horizontal') }, { label: 'Flip Vertical', shortcut: '⇧⌘V', run: () => editor.rotate180('vertical') });
       items.push('sep');
     }
     items.push({ label: 'Export', submenu: exportItems }, 'sep', { label: 'Delete', shortcut: '⌫', run: () => editor.key('Delete', {}) });

@@ -22,6 +22,9 @@ export interface ElementData {
   readonly covalentRadius: number;
 }
 
+/** Elements whose free valences fill with hydrogen when drawn (the non-metals and metalloids); metals do not. */
+const HYDRIDE_FORMING = new Set(['B', 'C', 'N', 'O', 'F', 'Si', 'P', 'S', 'Cl', 'Ge', 'As', 'Se', 'Br', 'Sn', 'Sb', 'Te', 'I', 'At']);
+
 // prettier-ignore
 const TABLE: readonly (readonly [number, string, string, number | null, number, readonly number[], number])[] = [
   [1,  'H',  'Hydrogen',     1.008,     1.0078250319, [1],        31],
@@ -120,7 +123,8 @@ const TABLE: readonly (readonly [number, string, string, number | null, number, 
 
 export const ELEMENTS: readonly ElementData[] = TABLE.map(
   ([z, symbol, name, weight, monoisotopic, valences, covalentRadius]) => ({
-    z, symbol, name, weight, monoisotopic, valences, covalentRadius,
+    // A metal takes the bonds it is drawn with and no hydrogens of its own: Pd is Pd, not PdH2.
+    z, symbol, name, weight, monoisotopic, valences: z <= 2 || HYDRIDE_FORMING.has(symbol) || valences[0] === 0 ? valences : [], covalentRadius,
   }),
 );
 
