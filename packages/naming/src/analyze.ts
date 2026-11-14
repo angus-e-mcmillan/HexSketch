@@ -1,7 +1,7 @@
 import { perceiveRings, type AtomId, type Molecule } from '@hexsketch/core';
 
 /** Characteristic groups in decreasing seniority (IUPAC 2013, P-41). */
-export const SENIORITY = ['carboxylate', 'olate', 'thiolate', 'ide', 'ium', 'iminium', 'aminium', 'acid', 'ester', 'acylHalide', 'amide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
+export const SENIORITY = ['carboxylate', 'sulfonate', 'olate', 'thiolate', 'ide', 'ium', 'iminium', 'aminium', 'acid', 'peracid', 'sulfonic', 'ester', 'sulfonateEster', 'acylHalide', 'sulfonylHalide', 'amide', 'sulfonamide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
 export type GroupKind = (typeof SENIORITY)[number];
 
 export interface Group {
@@ -89,10 +89,19 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
         claimed.add(dblO.atom); claimed.add(oMinus.atom);
         continue;
       }
+      // Peroxy acid C(=O)OOH: benzenecarboperoxoic acid.
+      const oo = singles.find((n) => el(mol, n.atom) === 'O' && mol.neighbours(n.atom).length === 2 && mol.neighbours(n.atom).some((m) => m !== c.id && el(mol, m) === 'O' && mol.neighbours(m).length === 1 && h.get(m) === 1));
+      if (oo && carbons.length + singles.length <= 2) {
+        const end = mol.neighbours(oo.atom).find((m) => m !== c.id)!;
+        groups.push({ kind: 'peracid', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, oo.atom, end] });
+        claimed.add(dblO.atom); claimed.add(oo.atom); claimed.add(end);
+        continue;
+      }
       const or = singles.find((n) => el(mol, n.atom) === 'O' && mol.neighbours(n.atom).length === 2 && !ringAtoms.has(n.atom));
       const x = singles.find((n) => ['F', 'Cl', 'Br', 'I'].includes(el(mol, n.atom)));
+      // The nitrogen of an amide carries carbon, or an oxygen (N-hydroxy, a Weinreb amide's N-methoxy).
       const nAmide = singles.find((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
-        && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C') && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
+        && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C' || (el(mol, m) === 'O' && !ringAtoms.has(m) && mol.atom(m).charge === 0)) && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
       const others = carbons.length + singles.length;
       // Urea: C(=O) between two open-chain nitrogens, named as the parent "urea".
       const ureaN = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
@@ -129,6 +138,30 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [dblO.atom] });
       claimed.add(dblO.atom);
     }
+  }
+
+  // Sulfonic acids and what is made from them, on a carbon: R-SO2-OH, -O-, -OR, -X, -NR2.
+  for (const sAtom of mol.atoms()) {
+    if (sAtom.element !== 'S' || sAtom.charge !== 0 || ringAtoms.has(sAtom.id) || mol.neighbours(sAtom.id).length !== 4) continue;
+    const nb = mol.incidentBonds(sAtom.id).map((b) => ({ atom: mol.otherAtom(mol.bond(b), sAtom.id), order: mol.bond(b).order }));
+    const oxo = nb.filter((n) => n.order === 2 && el(mol, n.atom) === 'O' && mol.neighbours(n.atom).length === 1);
+    const carbon = nb.filter((n) => n.order === 1 && el(mol, n.atom) === 'C');
+    const rest = nb.filter((n) => n.order === 1 && el(mol, n.atom) !== 'C');
+    if (oxo.length !== 2 || carbon.length !== 1 || rest.length !== 1) continue;
+    const x = rest[0]!.atom, xe = el(mol, x), xn = mol.neighbours(x);
+    const base = { anchor: carbon[0]!.atom, ownCarbon: false, consumed: [sAtom.id, x, oxo[0]!.atom, oxo[1]!.atom] };
+    let made: Group | null = null;
+    if (xe === 'O' && xn.length === 1 && mol.atom(x).charge === -1) made = { kind: 'sulfonate', ...base };
+    else if (xe === 'O' && xn.length === 1 && h.get(x) === 1) made = { kind: 'sulfonic', ...base };
+    else if (xe === 'O' && xn.length === 2 && !ringAtoms.has(x)) {
+      const r = xn.find((m) => m !== sAtom.id)!;
+      if ((el(mol, r) === 'C' && !isAcylCarbon(mol, r)) || el(mol, r) === 'Si') made = { kind: 'sulfonateEster', ...base, esterCarbon: r };
+    } else if (['F', 'Cl', 'Br', 'I'].includes(xe)) made = { kind: 'sulfonylHalide', ...base, halogen: xe };
+    else if (xe === 'N' && !ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1)
+      && xn.every((m) => m === sAtom.id || el(mol, m) === 'C')) made = { kind: 'sulfonamide', ...base, nitrogen: x };
+    if (!made) continue;
+    groups.push(made);
+    for (const a of made.consumed) claimed.add(a);
   }
 
   // Groups on a carbon: OH, SH, NH2/NHR/NR2.

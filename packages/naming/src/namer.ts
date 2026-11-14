@@ -454,7 +454,9 @@ function hantzschWidman(an: Analysis, system: AtomId[]): CompiledTemplate | null
     const satStem = n === 3 ? (last === 'N' ? 'iridine' : 'irane') : n === 4 ? (last === 'N' ? 'etidine' : 'etane') : n === 5 ? (last === 'N' ? 'olidine' : 'olane')
       : n === 6 ? (['O', 'S', 'Se'].includes(last) ? 'ane' : 'inane') : n === 7 ? 'epane' : n === 8 ? 'ocane' : n === 9 ? 'onane' : 'ecane';
     const join = (st: string) => (/[aeiou]$/.test(prefix) && /^[aeiou]/.test(st) ? prefix.slice(0, -1) + st : prefix + st);
-    return [`${locs.join(',')}-${join(stem)}`, `${locs.join(',')}-${join(satStem)}`];
+    // One heteroatom is at 1 and needs no locant: thiocane, azocine.
+    const lead = locs.length > 1 ? `${locs.join(',')}-` : '';
+    return [`${lead}${join(stem)}`, `${lead}${join(satStem)}`];
   })();
   const [name, saturated] = names;
   const hit = hwCache.get(name!);
@@ -493,10 +495,12 @@ function recognizeRing(an: Analysis, system: AtomId[], addedH = false): { info: 
   }
   const hydro = hydroParent(an, system);
   if (hydro) return hydro;
-  // Monocyclic carbocycle (cycloalkane / cycloalkene).
+  // A single ring: a cycloalkane or cycloalkene, or (too large for a Hantzsch-Widman name, as a
+  // macrolide or a crown ether is) the same with its heteroatoms as replacement prefixes:
+  // 1-oxacyclotetradecane, 1,4,7,10-tetraoxacyclododecane.
   const inSys = new Set(system);
   const ringNbrs = (a: AtomId) => mol.neighbours(a).filter((n) => inSys.has(n));
-  if (system.every((a) => el(mol, a) === 'C' && ringNbrs(a).length === 2)) {
+  if (system.every((a) => (el(mol, a) === 'C' || HW_PREFIX[el(mol, a)] !== undefined) && ringNbrs(a).length === 2)) {
     const cycle: AtomId[] = [system[0]!];
     while (cycle.length < system.length) {
       const last = cycle[cycle.length - 1]!;
@@ -526,7 +530,7 @@ function vonBaeyer(an: Analysis, system: AtomId[], base: { heteroN: boolean; het
   const edges = system.reduce((s2, a) => s2 + nb(a).length, 0) / 2;
   if (edges - system.length + 1 > 2) return polycyclic(an, system, base);
   if (edges - system.length + 1 !== 2) return null;
-  if (system.some((a) => !['C', 'N', 'O', 'S'].includes(el(mol, a)))) return null;
+  if (system.some((a) => el(mol, a) !== 'C' && HW_PREFIX[el(mol, a)] === undefined)) return null;
   const deg = new Map(system.map((a) => [a, nb(a).length]));
   const numberings: Numbering[] = [];
   const add = (order: AtomId[]) => numberings.push(new Map(order.map((a, i) => [a, String(i + 1)])));
@@ -1135,7 +1139,7 @@ class Namer {
   }
 
   name(): string {
-    if (this.principal === 'ester') return this.nameEster();
+    if (this.principal === 'ester' || this.principal === 'sulfonateEster') return this.nameEster();
     if (this.principal === 'urea' && this.principalGroups.length === 1) return this.nameUrea(this.principalGroups[0]!);
     const biphenyl = this.biphenyl();
     if (biphenyl) return biphenyl;
@@ -1279,7 +1283,7 @@ class Namer {
       if (!g.nitrogen) continue;
       const anchorC = g.kind === 'amine' || g.kind === 'aminium' ? sites.get(g)! : g.anchor;
       for (const n of mol.neighbours(g.nitrogen)) {
-        if (n === anchorC) continue;
+        if (n === anchorC || g.consumed.includes(n)) continue;
         out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: anchorC });
       }
     }
@@ -1323,7 +1327,7 @@ class Namer {
         ? [-Number(p.ring.heteroN), -Number(p.ring.heteroO), -Number(p.ring.heteroS), -p.ring.ringCount, -p.ring.size]
         : [0, 0, 0, 0, 0];
       const { mult, dbl } = this.unsaturationAtoms(p);
-      const heteroAtoms = p.ring?.kind === 'vonbaeyer' ? p.atoms.filter((a) => el(this.mol, a) !== 'C') : [];
+      const heteroAtoms = p.ring?.kind === 'vonbaeyer' || p.ring?.kind === 'cyclo' ? p.atoms.filter((a) => el(this.mol, a) !== 'C') : [];
       for (const numbering of p.numberings) {
         const key: (number | number[])[] = [
           -count,
@@ -1402,7 +1406,7 @@ class Namer {
     const features = sites.size + cPrefixes + mult.length;
 
     // Locant omission: methane/ethane-like parents and monosubstituted symmetric rings.
-    const symmetricRing = p.kind === 'ring' && (p.ring!.kind === 'cyclo' || p.ring!.template?.name === 'benzene');
+    const symmetricRing = p.kind === 'ring' && ((p.ring!.kind === 'cyclo' && p.atoms.every((a) => el(this.mol, a) === 'C')) || p.ring!.template?.name === 'benzene');
     const omitAll = (p.kind === 'chain' && (p.atoms.length === 1 || (p.atoms.length === 2 && features <= 1)))
       || (symmetricRing && features <= 1 && (p.ring!.kind !== 'cyclo' || mult.length <= 1));
 
@@ -1435,6 +1439,7 @@ class Namer {
         case 'alcohol': return 'phenol';
         case 'amine': return 'aniline';
         case 'acid': return 'benzoic acid';
+        case 'peracid': return 'benzoperoxoic acid';
         case 'aldehyde': return 'benzaldehyde';
         case 'nitrile': return 'benzonitrile';
         case 'amide': return 'benzamide';
@@ -1475,8 +1480,8 @@ class Namer {
     }
     const n = p.kind === 'ring' ? p.ring!.size : p.atoms.length;
     const vb = p.kind === 'ring' && p.ring!.kind === 'vonbaeyer';
-    const hetero = vb ? heteroPrefix(this.mol, p.atoms, numbering) : '';
-    const stem = vb ? `${hetero}${hetero ? '' : ''}${p.ring!.bracket}${alkaneStem(n)}` : (p.kind === 'ring' ? 'cyclo' : '') + alkaneStem(n);
+    const hetero = p.kind === 'ring' ? heteroPrefix(this.mol, p.atoms, numbering) : '';
+    const stem = vb ? `${hetero}${p.ring!.bracket}${alkaneStem(n)}` : (p.kind === 'ring' ? `${hetero}cyclo` : '') + alkaneStem(n);
     if (!dbl.length && !trip.length) return `${stem}ane`;
     const locs = (bonds: [AtomId, AtomId][]) => bonds.map((b) => this.bondLocantText(p, numbering, b)).sort(compareLocant).join(',');
     let name = stem;
@@ -1498,10 +1503,18 @@ class Namer {
     const m = multiplier(count);
     const ownCarbonOnRing = p.kind === 'ring' && this.principalGroups[0]!.ownCarbon;
     const terminal = p.kind === 'chain' && this.principalGroups[0]!.ownCarbon;
-    const showLocs = !(omitAll || terminal) ? locs.join(',') : '';
+    // One group on benzene needs no locant: 4-methylbenzenesulfonyl chloride, 4-chlorobenzenethiol.
+    const onBenzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene' && count === 1;
+    const showLocs = !(omitAll || terminal || onBenzene) ? locs.join(',') : '';
     const g = this.principalGroups[0]!;
     const SUFFIX: Record<GroupKind, [string, string]> = {
       carboxylate: ['oate', 'carboxylate'],
+      sulfonate: ['sulfonate', 'sulfonate'],
+      sulfonic: ['sulfonic acid', 'sulfonic acid'],
+      sulfonateEster: ['sulfonate', 'sulfonate'],
+      sulfonylHalide: [`sulfonyl ${HALIDE[g.halogen ?? 'Cl']}`, `sulfonyl ${HALIDE[g.halogen ?? 'Cl']}`],
+      sulfonamide: ['sulfonamide', 'sulfonamide'],
+      peracid: ['peroxoic acid', 'carboperoxoic acid'],
       olate: ['olate', 'olate'],
       aminium: ['aminium', 'aminium'],
       acid: ['oic acid', 'carboxylic acid'],
@@ -1639,6 +1652,7 @@ class Namer {
 
   /** R-O-C(=O)-N (carbamate) and R-O-C(=O)-O-R (carbonate) esters. */
   carbonicEster(): string | null {
+    if (this.principal !== 'ester') return null;
     const mol = this.mol;
     const g = this.principalGroups[0]!;
     const c = g.anchor;
@@ -1673,20 +1687,34 @@ class Namer {
     const esters = [...sites.keys()];
     if (!esters.length) throw new OutOfScope('ester not on the parent');
     const alkyls = esters.map((g) => this.substituent(g.esterCarbon!, g.consumed[1]!));
-    if (new Set(alkyls.map((a) => a.text)).size > 1) throw new OutOfScope('esters with different alkyl groups');
     // Retained acid names give retained anion names.
     const pre = this.prefixes(p, sites);
+    const carboxylic = this.principal === 'ester';
     const benzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene';
     let acid: string;
-    if (benzene && sites.size === 1) acid = this.prefixString(pre, best.numbering, false) + 'benzoate';
-    else if (p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && this.unsaturationAtoms(p).mult.length === 0) {
+    if (carboxylic && benzene && sites.size === 1) acid = this.prefixString(pre, best.numbering, false) + 'benzoate';
+    else if (carboxylic && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && this.unsaturationAtoms(p).mult.length === 0) {
       const ps = this.prefixString(pre, best.numbering, false);
       acid = ps + (p.atoms.length === 2 ? 'acetate' : 'formate');
     } else acid = this.render(p, best.numbering);
     acid = this.withStereo(p.atoms, best.numbering, acid);
     const alkyl = alkyls[0]!;
     if (esters.length === 1) return `${alkyl.text} ${acid}`;
-    return alkyl.complex ? `${complexMultiplier(esters.length)}(${alkyl.text}) ${acid}` : `${multiplier(esters.length)}${alkyl.text} ${acid}`;
+    if (new Set(alkyls.map((a) => a.text)).size === 1) return alkyl.complex ? `${complexMultiplier(esters.length)}(${alkyl.text}) ${acid}` : `${multiplier(esters.length)}${alkyl.text} ${acid}`;
+    // Different alkyl groups, each with the locant of its ester: 3-ethyl 5-methyl pyridine-3,5-dicarboxylate.
+    const kinds = new Map<string, { sub: SubName; locs: string[] }>();
+    esters.forEach((g, i) => {
+      const loc = best.numbering.get(sites.get(g)!)!;
+      const k = kinds.get(alkyls[i]!.text);
+      if (k) k.locs.push(loc); else kinds.set(alkyls[i]!.text, { sub: alkyls[i]!, locs: [loc] });
+    });
+    const bare = (t: string) => /^(tert|sec)-[a-z]+$/.test(t);
+    const words = [...kinds.values()].sort((x, y) => x.sub.sortKey.localeCompare(y.sub.sortKey)).map(({ sub, locs }) => {
+      const n = locs.length;
+      const body = sub.complex && !bare(sub.text) ? `${complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
+      return `${locs.sort(compareLocant).join(',')}-${body}`;
+    });
+    return `${words.join(' ')} ${acid}`;
   }
 
   // -------------------------------------------------------- substituents
@@ -1748,6 +1776,8 @@ class Namer {
       const rest = others.filter((n) => !(el(mol, n) === 'O' && mol.bondBetween(a, n)!.order === 2));
       if (rest.length === 0 && oxo === 0) return simple(mol.atom(a).charge === -1 ? 'sulfanidyl' : 'mercapto');
       if (oxo === 2 && rest.length === 1 && el(mol, rest[0]!) === 'O' && mol.atom(rest[0]!).charge === -1) return simple('sulfonato');
+      if (oxo === 2 && rest.length === 1 && el(mol, rest[0]!) === 'O' && mol.neighbours(rest[0]!).length === 1 && this.an.h.get(rest[0]!) === 1) return simple('sulfo');
+      if (oxo === 2 && rest.length === 1 && el(mol, rest[0]!) === 'N' && mol.neighbours(rest[0]!).length === 1 && mol.atom(rest[0]!).charge === 0) return simple('sulfamoyl');
       if (rest.length === 1) {
         const R = this.substituent(rest[0]!, a);
         const tail = oxo === 2 ? 'sulfonyl' : oxo === 1 ? 'sulfinyl' : 'thio';
@@ -1863,6 +1893,11 @@ class Namer {
         const S = nsubs.map((n) => this.substituent(n, r.n));
         const text = S.length === 2 && S[0]!.text === S[1]!.text ? `di${S[0]!.text}carbamoyl` : `${S.map((s) => s.text).join('')}carbamoyl`;
         return { text, complex: true, sortKey: text };
+      }
+      if (re === 'S' && rest.length === 1 && r.o === 1 && mol.neighbours(r.n).length === 2 && !this.an.ringAtoms.has(r.n)) {
+        // C(=O)S-R hanging off something: ((methylthio)carbonyl).
+        const R = this.substituent(r.n, a);
+        return { text: `(${R.text})carbonyl`, complex: true, sortKey: `${R.sortKey}carbonyl` };
       }
       if (HALO[re]) return { text: `${HALO[re]!.replace('o', 'o')}carbonyl`.replace(/^(\w+)o(carbonyl)$/, '$1ocarbonyl'), complex: true, sortKey: 'carbonyl' };
       if (re === 'C') {
@@ -2056,8 +2091,9 @@ class Namer {
         : `${base2}an${ium}-${fv}-yl`;
       if (ylidene) core += 'idene';
     } else {
-      const stem = `cyclo${alkaneStem(r.info.size)}`;
-      if (!unsat.length) core = `${stem}yl`;
+      const hetero = heteroPrefix(this.mol, system, numbering);
+      const stem = `${hetero}cyclo${alkaneStem(r.info.size)}`;
+      if (!unsat.length) core = hetero ? `${stem}an${ium}-${fv}-yl` : `${stem}yl`;
       else {
         const locs = unsat.map((u) => this.bondLocant(ringP, numbering, u)).sort((x, y) => x - y).join(',');
         const m = multiplier(unsat.length);
