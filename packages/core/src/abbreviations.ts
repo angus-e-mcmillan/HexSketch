@@ -544,3 +544,19 @@ export function drawOutLabel(m: Molecule, id: AtomId, read: LabelStructure, L: n
   const map = new Map<AtomId, AtomId>([[head.id, id]]);
   added(map, place);
 }
+
+/**
+ * A copy with every label HexSketch can read drawn out as atoms (a label it
+ * cannot read, or a generic one, stays): for formats that have no labels, and
+ * for reading the chemistry.
+ */
+export function withLabelsDrawnOut(mol: Molecule, L = 18.43): Molecule {
+  if (![...mol.atoms()].some((a) => a.label !== null)) return mol;
+  const out = mol.clone();
+  for (const a of [...out.atoms()]) {
+    if (a.label === null) continue;
+    const read = labelStructure(a.label, out.neighbours(a.id).length);
+    if (read) drawOutLabel(out, a.id, read, L);
+  }
+  return out;
+}
