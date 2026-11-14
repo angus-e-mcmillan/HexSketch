@@ -129,6 +129,37 @@ const EXPECTED: [string, string][] = [
   ['CC(C)=[NH+]C', 'N-methylpropan-2-iminium'],
   ['c1cc[n-]n1', '1H-pyrazol-1-ide'],
   ['C[S@@](=O)c1ccccc1', '((R)-methylsulfinyl)benzene'],
+  // Long chains: the unit keeps its "a", icosa loses its "i" after one (were tetrdecane, octdecanoic acid, tetraicosane).
+  ['CCCCCCCCCCCCCC', 'tetradecane'], ['CCCCCCCCCCCCCCCCCC(=O)O', 'octadecanoic acid'], ['CCCCCCCCCCCCCCCCCCCCCCCC', 'tetracosane'], ['C1CCCCCCCCCCCCCCCCC1', 'cyclooctadecane'],
+  // A substituted methyl: no locant, and brackets.
+  ['BrCc1ccccc1', '(bromomethyl)benzene'], ['FC(F)(F)c1ccccc1', '(trifluoromethyl)benzene'], ['COCCl', 'chloro(methoxy)methane'], ['ClC(Br)I', 'bromochloroiodomethane'],
+  // Small molecules, inorganic ions, salts.
+  ['O', 'water'], ['N', 'ammonia'], ['OO', 'hydrogen peroxide'], ['OS(=O)(=O)O', 'sulfuric acid'], ['O=S(Cl)Cl', 'thionyl chloride'],
+  ['O=C([O-])[O-].[K+].[K+]', 'potassium carbonate'], ['OC(=O)[O-].[Na+]', 'sodium hydrogen carbonate'], ['[BH4-].[Na+]', 'sodium borohydride'], ['[AlH4-].[Li+]', 'lithium aluminium hydride'],
+  ['[K+].[O-][Mn](=O)(=O)=O', 'potassium permanganate'], ['[N-]=[N+]=[N-].[Na+]', 'sodium azide'], ['NN.O', 'hydrazine hydrate'], ['NO.Cl', 'hydroxylamine hydrochloride'],
+  // Metal compounds, as drawn with bonds or as ions.
+  ['Cl[Ti](Cl)(Cl)Cl', 'titanium(IV) chloride'], ['[Cu]I', 'copper(I) iodide'], ['Cl[Al](Cl)Cl', 'aluminium chloride'], ['CC(=O)[O-].CC(=O)[O-].[Pd+2]', 'palladium(II) acetate'],
+  ['[Li]CCCC', 'butyllithium'], ['C[Mg]Br', 'methylmagnesium bromide'], ['CC(C)C[AlH]CC(C)C', 'diisobutylaluminium hydride'], ['CC[Zn]CC', 'diethylzinc'],
+  // Onium ions and amide bases.
+  ['C[P+](c1ccccc1)(c1ccccc1)c1ccccc1.[Br-]', 'methyltriphenylphosphonium bromide'], ['C[O+](C)C.F[B-](F)(F)F', 'trimethyloxonium tetrafluoroborate'],
+  ['CC(C)[N-]C(C)C.[Li+]', 'lithium diisopropylamide'], ['C[Si](C)(C)[N-][Si](C)(C)C.[Li+]', 'lithium bis(trimethylsilyl)amide'],
+  // Sulfonic acids and their derivatives, peroxy acids.
+  ['Cc1ccc(S(=O)(=O)Cl)cc1', '4-methylbenzenesulfonyl chloride'], ['OS(=O)(=O)C(F)(F)F', 'trifluoromethanesulfonic acid'], ['CS(N)(=O)=O', 'methanesulfonamide'],
+  ['COS(C)(=O)=O', 'methyl methanesulfonate'], ['Cc1ccc(S(=O)(=O)[O-])cc1.[Na+]', 'sodium 4-methylbenzenesulfonate'], ['Cc1onc(NS(=O)(=O)c2ccc(N)cc2)c1', '4-amino-N-(5-methylisoxazol-3-yl)benzenesulfonamide'],
+  ['OC(=O)c1ccc(S(=O)(=O)O)cc1', '4-sulfobenzoic acid'], ['NS(=O)(=O)c1ccc(C(=O)O)cc1', '4-sulfamoylbenzoic acid'], ['O=C(OO)c1cccc(Cl)c1', '3-chlorobenzoperoxoic acid'],
+  // Esters with different alkyl groups; amides with O on the nitrogen.
+  ['CCOC(=O)CC(=O)OC', '1-ethyl 3-methyl propanedioate'], ['CON(C)C(C)=O', 'N-methoxy-N-methylacetamide'], ['CC(=O)NO', 'N-hydroxyacetamide'],
+  // Large rings by replacement; ring oxides.
+  ['C1COCCOCCOCCOCCOCCO1', '1,4,7,10,13,16-hexaoxacyclooctadecane'], ['O=C1CCCCCCCCCCCCCO1', '1-oxacyclopentadecan-2-one'], ['C1CC2CCCC(C1)B2', '9-borabicyclo[3.3.1]nonane'],
+  ['O=S1(=O)CCNCC1', 'thiomorpholine 1,1-dioxide'], ['OC(=O)c1ccc(N2CCS(=O)(=O)CC2)cc1', '4-(1,1-dioxidothiomorpholin-4-yl)benzoic acid'], ['C1CCCSCCC1', 'thiocane'],
+  // Diazo, diazonium, isocyanide, ylides, phosphine oxides.
+  ['CCOC(=O)C=[N+]=[N-]', 'ethyl 2-diazoacetate'], ['N#[N+]c1ccccc1.F[B-](F)(F)F', 'benzenediazonium tetrafluoroborate'], ['[C-]#[N+]C(C)(C)C', '2-isocyano-2-methylpropane'],
+  ['C=P(c1ccccc1)(c1ccccc1)c1ccccc1', 'methylenetriphenyl-λ5-phosphane'], ['O=P(c1ccccc1)(c1ccccc1)c1ccccc1', 'triphenylphosphine oxide'],
+  // Anhydrides.
+  ['CC(=O)OC(C)=O', 'acetic anhydride'], ['CC(=O)OC(=O)c1ccccc1', 'acetic benzoic anhydride'], ['O=S(=O)(OS(=O)(=O)C(F)(F)F)C(F)(F)F', 'trifluoromethanesulfonic anhydride'],
+  ['CC(C)(C)OC(=O)OC(=O)OC(C)(C)C', 'di-tert-butyl dicarbonate'],
+  // An oxime carbamate (was named as an N-methylformamide); E/Z on a benzylidene.
+  ['CNC(=O)ON=C(C)C', '2-(((methylcarbamoyl)oxy)imino)propane'], ['O=c1occn1/N=C/c1ccccc1', '3-(((E)-benzylidene)amino)oxazol-2(3H)-one'],
 ];
 
 const ROUND_TRIP: string[] = [
@@ -225,4 +256,11 @@ test('stereodescriptors survive the OPSIN round trip', { skip: !opsinAvailable()
     if (!ok) failures.push(`${x.smi} -> "${x.r.name}" -> ${smi}: configuration differs`);
   });
   assert.deepEqual(failures, []);
+});
+
+test('what cannot be named rightly is declined, not misnamed', () => {
+  // Each of these once got the name of a different compound: methane, the hydroxylamine, an amine, a neutral ether.
+  for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C']) {
+    assert.equal(nameMolecule(parseSmiles(smi)).name, null, smi);
+  }
 });

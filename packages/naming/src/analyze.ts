@@ -1,7 +1,7 @@
 import { perceiveRings, type AtomId, type Molecule } from '@hexsketch/core';
 
 /** Characteristic groups in decreasing seniority (IUPAC 2013, P-41). */
-export const SENIORITY = ['carboxylate', 'sulfonate', 'olate', 'thiolate', 'ide', 'ium', 'iminium', 'aminium', 'acid', 'peracid', 'sulfonic', 'ester', 'sulfonateEster', 'acylHalide', 'sulfonylHalide', 'amide', 'sulfonamide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
+export const SENIORITY = ['carboxylate', 'sulfonate', 'olate', 'thiolate', 'ide', 'ium', 'iminium', 'aminium', 'diazonium', 'acid', 'peracid', 'sulfonic', 'ester', 'sulfonateEster', 'acylHalide', 'sulfonylHalide', 'amide', 'sulfonamide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
 export type GroupKind = (typeof SENIORITY)[number];
 
 export interface Group {
@@ -188,6 +188,12 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     if (x.charge === -1 && x.element === 'N' && ringAtoms.has(x.id) && isRingAnion(mol, x.id)) {
       groups.push({ kind: 'ide', anchor: x.id, ownCarbon: false, consumed: [] });
       continue;
+    }
+    // Diazonium on a carbon: benzenediazonium.
+    if (x.charge === 1 && x.element === 'N' && mol.neighbours(x.id).length === 2) {
+      const nn = mol.neighbours(x.id).find((n) => el(mol, n) === 'N' && mol.bondBetween(x.id, n)!.order === 3 && mol.neighbours(n).length === 1 && mol.atom(n).charge === 0);
+      const c = mol.neighbours(x.id).find((n) => el(mol, n) === 'C' && mol.bondBetween(x.id, n)!.order === 1);
+      if (nn !== undefined && c !== undefined) { groups.push({ kind: 'diazonium', anchor: c, ownCarbon: false, consumed: [x.id, nn] }); claimed.add(nn); continue; }
     }
     // Iminium C=N+: propan-2-iminium, N-methylpyrrolidin-2-iminium.
     if (x.charge === 1 && x.element === 'N' && !ringAtoms.has(x.id) && isIminium(mol, x.id)) {
