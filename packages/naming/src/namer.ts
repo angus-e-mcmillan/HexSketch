@@ -3,6 +3,7 @@ import { analyze, SENIORITY, isAcylCarbon, isIminium, isRingAnion, isRingCation,
 import type { RingRow } from './rings.ts';
 import { TEMPLATES, type RingTemplate } from './templates.ts';
 import { HALIDE, HALO, alkaneStem, attachSuffix, compareLocant, complexMultiplier, multiplier } from './vocab.ts';
+import { isMetal, metalCation, metalName, speciesName } from './simple.ts';
 
 /** Thrown for structures outside the supported nomenclature. Never guess a name. */
 export class OutOfScope extends Error {}
@@ -767,90 +768,107 @@ export function nameMolecule(input: Molecule, opts: NameOptions = {}): NameResul
     const frags = mol.fragments();
     if (frags.length === 0) return { name: null, reason: 'empty' };
     if (frags.length > 1) return { name: nameMixture(mol, frags) };
-    const only = simpleIon(mol, frags[0]!);
-    if (only) return { name: only.name };
-    return { name: nameOne(mol) };
+    return { name: nameFragment(mol, frags[0]!).name };
   } catch (e) {
     if (e instanceof OutOfScope) return { name: null, reason: e.message };
     throw e;
   }
 }
 
-const METALS: Record<string, string> = {
-  Li: 'lithium', Na: 'sodium', K: 'potassium', Rb: 'rubidium', Cs: 'caesium', Mg: 'magnesium', Ca: 'calcium',
-  Ba: 'barium', Zn: 'zinc', Ag: 'silver', Cu: 'copper', Al: 'aluminium',
-};
 const ANIONS: Record<string, string> = { F: 'fluoride', Cl: 'chloride', Br: 'bromide', I: 'iodide' };
 const ACID_SALT: Record<string, string> = { F: 'hydrofluoride', Cl: 'hydrochloride', Br: 'hydrobromide', I: 'hydroiodide' };
 
-/** Treat bonds from alkali and alkaline-earth metals to O, N or S as ionic (KOtBu drawn as O-K). */
+/**
+ * A metal's bonds to a halogen, O, N or S read as ionic, and its hydrogens as
+ * hydride: KOtBu drawn O-K, TiCl4, MeMgBr and DIBAL-H are named as the salts
+ * chemists call them (titanium(IV) chloride, methylmagnesium bromide). Bonds
+ * to carbon stay: they are what an organometallic is named by.
+ */
 export function ionize(input: Molecule): Molecule {
+  if (![...input.atoms()].some((a) => a.label === null && isMetal(a.element))) return input.clone();
   const mol = input.clone();
+  // An ion with a name of its own is left whole: permanganate, chlorochromate, aluminium hydride.
+  const whole = new Set(input.fragments().filter((f) => f.every((a) => input.atom(a).label === null) && speciesName(input, f)).flat());
   for (const b of [...mol.bonds()]) {
     const [p, q] = [mol.atom(b.begin), mol.atom(b.end)];
-    const metal = METALS[p.element] && !METALS[q.element] ? p : METALS[q.element] && !METALS[p.element] ? q : null;
+    if (p.label !== null || q.label !== null || whole.has(p.id)) continue;
+    const metal = isMetal(p.element) && !isMetal(q.element) ? p : isMetal(q.element) && !isMetal(p.element) ? q : null;
     if (!metal || b.order !== 1) continue;
     const other = metal === p ? q : p;
-    if (!['O', 'N', 'S'].includes(other.element)) continue;
+    if (!['O', 'N', 'S', 'F', 'Cl', 'Br', 'I'].includes(other.element)) continue;
     mol.removeBond(b.id);
     metal.charge += 1;
     other.charge -= 1;
   }
+  for (const m of [...mol.atoms()]) {
+    if (m.label !== null || !isMetal(m.element) || !m.explicitHydrogens || whole.has(m.id)) continue;
+    for (let i = 0; i < m.explicitHydrogens; i++) mol.addAtom({ element: 'H', x: m.x, y: m.y, charge: -1, explicitHydrogens: 0 });
+    m.charge += m.explicitHydrogens;
+    m.explicitHydrogens = 0;
+  }
   return mol;
 }
 
-interface Ion { name: string; charge: number }
+interface Ion { name: string; charge: number; /** Named as a simple ion (sodium, chloride, carbonate), not built as an organic name. */ simple?: boolean }
 
-/** Single-atom ions and small inorganic species. */
+/** One structure of a drawing: a simple ion or small molecule by its own name, else named in full. */
+function nameFragment(mol: Molecule, frag: AtomId[]): Ion {
+  const charge = frag.reduce((t, a) => t + mol.atom(a).charge, 0);
+  const simple = simpleIon(mol, frag);
+  if (simple) return { ...simple, simple: true };
+  return { name: nameOne(frag.length === mol.atomCount ? mol : subMolecule(mol, frag)), charge };
+}
+
+/** Single-atom ions, small molecules and the inorganic ions of common salts. */
 function simpleIon(mol: Molecule, frag: AtomId[]): Ion | null {
   if (frag.length === 1) {
     const a = mol.atom(frag[0]!);
-    if (METALS[a.element] && a.charge > 0) return { name: METALS[a.element]!, charge: a.charge };
+    if (a.label !== null) return null;
+    if (isMetal(a.element) && a.charge >= 0 && !a.radical && a.isotope === null) return { name: a.charge ? metalCation(a.element, a.charge) : metalName(a.element), charge: a.charge };
     if (ANIONS[a.element] && a.charge === -1) return { name: ANIONS[a.element]!, charge: -1 };
     if (a.element === 'N' && a.charge === 1 && mol.implicitHydrogens(a.id) === 4) return { name: 'ammonium', charge: 1 };
     if (a.element === 'O' && a.charge === -1 && mol.implicitHydrogens(a.id) === 1) return { name: 'hydroxide', charge: -1 };
   }
-  return null;
+  if (frag.some((a) => mol.atom(a).label !== null)) return null;
+  return speciesName(mol, frag);
 }
 
 /**
- * Salts and mixtures: cations then anions with stoichiometric multipliers
- * (disodium propanedioate), acid-addition salts (amine hydrochloride);
- * anything else is listed fragment by fragment.
+ * Salts and mixtures: cations then anions (sodium carbonate, methylmagnesium
+ * bromide), acid-addition salts (amine hydrochloride) and hydrates; anything
+ * else is listed structure by structure.
  */
 function nameMixture(mol: Molecule, frags: AtomId[][]): string {
   const ions: Ion[] = [];
-  const neutral: AtomId[][] = [];
+  const neutral: string[] = [];
   const acids: string[] = [];
+  let waters = 0;
   for (const f of frags) {
-    const simple = simpleIon(mol, f);
-    if (simple) { ions.push(simple); continue; }
-    if (f.length === 1 && ACID_SALT[mol.atom(f[0]!).element] && mol.atom(f[0]!).charge === 0) { acids.push(ACID_SALT[mol.atom(f[0]!).element]!); continue; }
-    const charge = f.reduce((s, a) => s + mol.atom(a).charge, 0);
-    if (charge !== 0 && !f.every((a) => mol.atom(a).charge === 0 || isNitroAtom(mol, a))) {
-      ions.push({ name: nameOne(subMolecule(mol, f)), charge });
-      continue;
-    }
-    neutral.push(f);
+    const only = f.length === 1 ? mol.atom(f[0]!) : null;
+    if (only && only.label === null && ACID_SALT[only.element] && only.charge === 0 && only.isotope === null) { acids.push(ACID_SALT[only.element]!); continue; }
+    if (only && only.label === null && only.element === 'O' && only.charge === 0 && only.isotope === null && !only.radical && mol.implicitHydrogens(only.id) === 2) { waters++; continue; }
+    const part = nameFragment(mol, f);
+    // A zwitterion is neutral overall and named as a compound.
+    if (part.charge !== 0) ions.push(part); else neutral.push(part.name);
   }
   const parts: string[] = [];
   if (ions.length) {
-    const group = (list: Ion[]) => {
-      const counts = new Map<string, number>();
-      for (const i of list) counts.set(i.name, (counts.get(i.name) ?? 0) + 1);
-      return [...counts].map(([name, n]) => `${n > 1 ? multiplier(n) : ''}${name}`).join(' ');
-    };
     const cations = ions.filter((i) => i.charge > 0), anions = ions.filter((i) => i.charge < 0);
-    parts.push([group(cations), group(anions)].filter(Boolean).join(' '));
+    const kinds = (list: Ion[]) => { const c = new Map<string, number>(); for (const i of list) c.set(i.name, (c.get(i.name) ?? 0) + 1); return [...c]; };
+    const ck = kinds(cations), ak = kinds(anions);
+    // A simple cation with a simple anion needs no count, their charges say it: sodium carbonate,
+    // calcium chloride, titanium(IV) chloride. Counts are kept where an ion is an organic one
+    // (disodium propanedioate), and always when there are several kinds.
+    const several = ck.length > 1 || ak.length > 1;
+    const countCations = several || anions.some((i) => !i.simple), countAnions = several || cations.some((i) => !i.simple);
+    const group = (list: [string, number][], counted: boolean) => list.map(([name, n]) => `${counted && n > 1 ? (/[ (\d]/.test(name) ? `${complexMultiplier(n)}(${name})` : multiplier(n) + name) : name}`).join(' ');
+    parts.push([group(ck, countCations), group(ak, countAnions)].filter(Boolean).join(' '));
   }
-  if (neutral.length) {
-    const names = neutral.map((f) => nameOne(subMolecule(mol, f)));
-    if (acids.length === 1 && names.length === 1) parts.push(`${names[0]} ${acids[0]}`);
-    else { parts.push(...names); parts.push(...acids.map((a) => a.replace(/^hydro/, 'hydrogen '))); }
-  } else if (acids.length) {
-    parts.push(...acids.map((a) => a.replace(/^hydro/, 'hydrogen ')));
-  }
-  return parts.join(' · ');
+  if (acids.length === 1 && neutral.length === 1 && !ions.length) parts.push(`${neutral[0]} ${acids[0]}`);
+  else { parts.push(...neutral); parts.push(...acids.map((a) => a.replace(/^hydro/, 'hydrogen '))); }
+  let name = parts.join(' · ');
+  if (waters) name = name ? `${name} ${waters > 1 ? multiplier(waters) : ''}hydrate` : waters > 1 ? `${multiplier(waters)}water` : 'water';
+  return name;
 }
 
 function subMolecule(mol: Molecule, atoms: AtomId[]): Molecule {
@@ -904,12 +922,18 @@ function foldHydrogens(mol: Molecule): void {
 function nameOneSystematic(input: Molecule): string {
   const mol = expandNicknames(input);
   foldHydrogens(mol);
+  const metals = [...mol.atoms()].filter((a) => isMetal(a.element));
   for (const a of mol.atoms()) {
-    if (!SUPPORTED.has(a.element)) throw new OutOfScope(`element ${a.element}`);
+    if (!SUPPORTED.has(a.element) && !(metals.length === 1 && a === metals[0])) throw new OutOfScope(`element ${a.element}`);
     if (a.isotope !== null) throw new OutOfScope('isotopic labelling');
-    if (a.radical) throw new OutOfScope('radicals');
-    if (a.charge !== 0 && !isNitroAtom(mol, a.id) && !isNamedIon(mol, a.id)) throw new OutOfScope('charged species');
+    // An atom short of its valence is a radical or a carbene, however it was written.
+    if (a.radical || mol.missingValence(a.id) > 0) throw new OutOfScope('radicals');
   }
+  // One charged atom named on itself (an onium ion, an amide base); otherwise only the charges the namer has words for.
+  const charged = [...mol.atoms()].filter((a) => a.charge !== 0 && a !== metals[0] && !isNitroAtom(mol, a.id));
+  const onItself = charged.length === 1 && (isOnium(mol, charged[0]!.id) || isAmideAnion(mol, charged[0]!.id));
+  if (!onItself && charged.some((a) => !isNamedIon(mol, a.id))) throw new OutOfScope('charged species');
+  if (metals.length === 1) return organometallic(mol, metals[0]!.id);
   if (mol.atomCount === 1 && mol.atom([...mol.atoms()][0]!.id).element !== 'C') throw new OutOfScope('single heteroatom');
   const drawn = [...mol.atoms()].some((a) => a.x !== 0 || a.y !== 0);
   if (drawn && fromGeometry) perceiveStereoFromGeometry(mol);
@@ -918,17 +942,48 @@ function nameOneSystematic(input: Molecule): string {
   return namer.functionalClassName() ?? namer.name();
 }
 
+/**
+ * An organometallic named on its metal: butyllithium, diethylzinc, and (with
+ * the halide split off as an ion) the methylmagnesium of methylmagnesium bromide.
+ */
+function organometallic(mol: Molecule, metal: AtomId): string {
+  const nbrs = mol.neighbours(metal);
+  if (!nbrs.length || !nbrs.every((n) => mol.atom(n).element === 'C' && mol.bondBetween(metal, n)!.order === 1)) throw new OutOfScope(`element ${mol.atom(metal).element}`);
+  const drawn = [...mol.atoms()].some((a) => a.x !== 0 || a.y !== 0);
+  if (drawn && fromGeometry) perceiveStereoFromGeometry(mol);
+  const namer = new Namer(analyze(mol));
+  return `${namer.groupedSubs(nbrs, metal)}${metalName(mol.atom(metal).element)}`;
+}
+
+/** Cations named on their heteroatom, with what is on it in front: trimethylsulfonium. */
+const ONIUM: Readonly<Record<string, string>> = { P: 'phosphonium', S: 'sulfonium', O: 'oxonium', I: 'iodonium', As: 'arsonium', Se: 'selenonium' };
+
+/** An open-chain onium centre: P+, S+, O+ or I+ with single bonds to carbon only. */
+function isOnium(mol: Molecule, id: AtomId): boolean {
+  const a = mol.atom(id);
+  return a.charge === 1 && !!ONIUM[a.element] && mol.implicitHydrogens(id) === 0 && mol.neighbours(id).length >= 2
+    && mol.neighbours(id).every((n) => el(mol, n) === 'C' && mol.bondBetween(id, n)!.order === 1) && !perceiveRingMember(mol, id);
+}
+
+/** An amide base's nitrogen: N- in the open chain with carbon or silicon on it (diisopropylamide, bis(trimethylsilyl)amide). */
+function isAmideAnion(mol: Molecule, id: AtomId): boolean {
+  const a = mol.atom(id);
+  const nb = mol.neighbours(id);
+  return a.element === 'N' && a.charge === -1 && nb.length >= 1 && nb.length + mol.implicitHydrogens(id) === 2 && !perceiveRingMember(mol, id)
+    && nb.every((n) => (el(mol, n) === 'Si' || (el(mol, n) === 'C' && !isAcylCarbon(mol, n))) && mol.bondBetween(id, n)!.order === 1);
+}
+
 /** Charges we can name: carboxylate/alkoxide O-, ammonium N+. */
 function isNamedIon(mol: Molecule, id: AtomId): boolean {
   const a = mol.atom(id);
   const nb = mol.neighbours(id);
-  if ((a.element === 'O' || a.element === 'S') && a.charge === 1 && isRingCation(mol, id)) return true;
+  if ((a.element === 'O' || a.element === 'S') && a.charge === 1 && isRingCation(mol, id) && perceiveRingMember(mol, id)) return true;
   if (a.element === 'N' && a.charge === 1 && isRingCation(mol, id) && mol.atom(id).element === 'N') {
     // In a ring (-ium), or open-chain with only single bonds (azanium).
     if (perceiveRingMember(mol, id)) return true;
   }
   if (a.element === 'N' && a.charge === 1 && isIminium(mol, id)) return true;
-  if (a.element === 'N' && a.charge === -1 && isRingAnion(mol, id)) return true;
+  if (a.element === 'N' && a.charge === -1 && isRingAnion(mol, id) && perceiveRingMember(mol, id)) return true;
   if (a.element === 'S' && a.charge === -1 && nb.length === 1 && el(mol, nb[0]!) === 'C') return true;
   // Oxido on S or P: sulfonates, phosphates.
   if (a.element === 'O' && a.charge === -1 && nb.length === 1 && (el(mol, nb[0]!) === 'S' || el(mol, nb[0]!) === 'P')) return true;
@@ -1029,6 +1084,10 @@ class Namer {
    */
   functionalClassName(): string | null {
     const mol = this.mol;
+    // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
+    const charged = [...mol.atoms()].filter((a) => a.charge !== 0 && !isNitroAtom(mol, a.id));
+    if (charged.length === 1 && isOnium(mol, charged[0]!.id)) return `${this.groupedSubs(mol.neighbours(charged[0]!.id), charged[0]!.id)}${ONIUM[charged[0]!.element]}`;
+    if (charged.length === 1 && isAmideAnion(mol, charged[0]!.id)) return `${this.groupedSubs(mol.neighbours(charged[0]!.id), charged[0]!.id)}amide`;
     // A lone Si or Sn with no characteristic group to name: ethoxytrimethylsilane, tetrabutylstannane.
     const metalloids = [...mol.atoms()].filter((a) => a.element === 'Si' || a.element === 'Sn');
     if (metalloids.length === 1 && !this.principal && ![...mol.atoms()].some((a) => a.element === 'B' || a.element === 'P')) {
@@ -1494,9 +1553,14 @@ class Namer {
     }
     const sorted = [...groups.values()].sort((a, b) => a.sub.sortKey.localeCompare(b.sub.sortKey) || a.sub.text.localeCompare(b.sub.text));
     let out = '';
+    // Prefixes that cannot themselves be substituted, so nothing written before them can be read as on them.
+    const atomLike = /^(fluoro|chloro|bromo|iodo|nitro|nitroso|cyano|oxo|thioxo|hydroxy|mercapto|azido|carboxy|formyl|isocyanato|isothiocyanato|oxido)$/;
     for (const { sub, locs } of sorted) {
       const n = locs.length;
-      const body = sub.complex ? `${complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
+      // With no locant between them, a prefix after another goes in brackets where it could be read as
+      // carrying the one before: chloro(methoxy)methane, not chloromethoxymethane.
+      const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !atomLike.test(sub.text));
+      const body = bracket ? `${complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);
       const showC = !omitAll;
@@ -1891,7 +1955,8 @@ class Namer {
       if (o === 2) dbl.push([path[i]!, path[i + 1]!]);
       if (o === 3) trip.push([path[i]!, path[i + 1]!]);
     }
-    const pre = this.prefixString(prefixes, numbering, false);
+    // On one carbon there is nowhere else to be: (bromomethyl), (trifluoromethyl), not (1-bromomethyl).
+    const pre = this.prefixString(prefixes, numbering, n === 1);
 
     // Traditional names ChemDraw uses (not where a stereocentre needs a locant).
     const sat = mult.length === 0;
@@ -1925,7 +1990,8 @@ class Namer {
     const plain = pre + core;
     const stereo = this.stereoPrefix(path, numbering, from);
     const text = stereo ? `${stereo}-${plain}` : plain;
-    const complex = /[0-9]/.test(text) || text.includes('(');
+    // A substituent that has substituents goes in brackets: (bromomethyl)benzene.
+    const complex = prefixes.length > 0 || /[0-9]/.test(text) || text.includes('(');
     return { text, complex, sortKey: plain.replace(/^(tert|sec)-/, '').replace(/[^a-z]/g, '') };
   }
 

@@ -112,7 +112,7 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
         }
       }
       if (x && others <= 2) { groups.push({ kind: 'acylHalide', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, x.atom], halogen: el(mol, x.atom) }); claimed.add(dblO.atom); claimed.add(x.atom); continue; }
-      if (nAmide && others <= 2) { groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, nAmide.atom], nitrogen: nAmide.atom }); claimed.add(dblO.atom); claimed.add(nAmide.atom); continue; }
+      if (nAmide && others <= 2 && singles.length === 1) { groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, nAmide.atom], nitrogen: nAmide.atom }); claimed.add(dblO.atom); claimed.add(nAmide.atom); continue; }
       if (singles.length === 0 && carbons.length <= 1 && (h.get(c.id) ?? 0) >= 1) {
         groups.push({ kind: 'aldehyde', anchor: c.id, ownCarbon: true, consumed: [dblO.atom] });
         claimed.add(dblO.atom);
