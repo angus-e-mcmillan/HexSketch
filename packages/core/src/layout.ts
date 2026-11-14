@@ -174,20 +174,25 @@ export function assignWedges(mol: Molecule, want: Map<AtomId, { order: AtomId[];
       const ringChoice = held.length === 0 ? 0 : (held.length === 1 ? 1.2 : 0) + (held[0]!.atoms.length >= 6 ? 0.6 : 0.3);
       return (inRing(mol, centre, n) ? 0 : 4) + (want.has(n) ? 0 : 2) + (mol.neighbours(n).length === 1 ? 1 : 0) + (prefer.has(n) ? 3 : 0) + ringChoice;
     }
-    const bondId = candidates[0];
-    if (bondId === undefined) continue;
-    const b = mol.bond(bondId);
-    const narrowAtBegin = b.begin === centre;
-    for (const kind of ['wedge', 'hash'] as const) {
-      b.display = kind === 'wedge' ? (narrowAtBegin ? 'wedgeBegin' : 'wedgeEnd') : (narrowAtBegin ? 'hashBegin' : 'hashEnd');
-      perceiveStereoFromGeometry(mol);
-      const got = mol.atom(centre).chirality;
-      if (got && got.order.length === 4 && ch.order.every((x) => got.order.includes(x))) {
-        const same = (got.anticlockwise === ch.anticlockwise) === (parity(got.order, ch.order) === 0);
-        if (same) break;
+    // The best bond that can carry the configuration: at a crowded cage atom the first choice may
+    // lie where neither a wedge nor a hash reads as anything, and the next bond has to take it.
+    for (const bondId of candidates) {
+      const b = mol.bond(bondId);
+      const before = b.display;
+      const narrowAtBegin = b.begin === centre;
+      let shown = false;
+      for (const kind of ['wedge', 'hash'] as const) {
+        b.display = kind === 'wedge' ? (narrowAtBegin ? 'wedgeBegin' : 'wedgeEnd') : (narrowAtBegin ? 'hashBegin' : 'hashEnd');
+        perceiveStereoFromGeometry(mol);
+        const got = mol.atom(centre).chirality;
+        if (got && got.order.length === 4 && ch.order.every((x) => got.order.includes(x))) {
+          shown = (got.anticlockwise === ch.anticlockwise) === (parity(got.order, ch.order) === 0);
+          if (shown) break;
+        }
       }
+      if (shown) { used.add(bondId); break; }
+      b.display = before;
     }
-    used.add(bondId);
   }
   // Leave the recorded configurations in place for callers that read them.
   for (const [id, ch] of want) mol.atom(id).chirality = ch;

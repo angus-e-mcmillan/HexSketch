@@ -69,3 +69,14 @@ test('a trans double bond in a large ring is drawn trans', () => {
     }
   }
 });
+
+test('a crowded cage atom still gets a wedge that shows its configuration', () => {
+  // Vincristine and batrachotoxin each have a centre whose first-choice bond can carry neither a wedge nor a hash.
+  for (const smiles of ['CC[C@@]1(C[C@@H]2C[C@@](C3=C(CCN(C2)C1)C4=CC=CC=C4N3)(C5=C(C=C6C(=C5)[C@]78CCN9[C@H]7[C@@](C=CC9)([C@H]([C@@]([C@@H]8N6C=O)(C(=O)OC)O)OC(=O)C)CC)OC)C(=O)OC)O', 'CC1=CNC(=C1C(=O)O[C@@H](C)C2=CC[C@@]34[C@@]2(C[C@H]([C@@]56C3=CC[C@H]7[C@@]5(CC[C@](C7)(O6)O)C)O)CN(CCO4)C)C', 'C1CN2CC3=CCO[C@H]4CC(=O)N5[C@H]6[C@H]4[C@H]3C[C@H]2[C@@]61C7=CC=CC=C75']) {
+    const mol = parseSmiles(smiles);
+    const want = [...mol.atoms()].map((a) => rsLabel(mol, a.id));
+    layout2D(mol);
+    perceiveStereoFromGeometry(mol);
+    assert.deepEqual([...mol.atoms()].map((a) => rsLabel(mol, a.id)), want, smiles);
+  }
+});
