@@ -1,5 +1,5 @@
 import {
-  aiSummary, altTextFor, assignWedges, parseFormula, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
+  aiSummary, altTextFor, assignWedges, parseFormula, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, recogniseOligo, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   perceiveRings, structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
@@ -250,7 +250,7 @@ function copyDrawing(mol: Molecule, ids: readonly AtomId[], ref: Molecule, map: 
 }
 
 /** A peptide: two residues or more (Boc-Pro-OH alone is a building block, turned like any other structure). */
-const isPeptide = (mol: Molecule) => { try { return mol.atomCount >= 7 && (recognisePeptide(mol)?.residues.length ?? 0) >= 2; } catch { return false; } };
+const isPeptide = (mol: Molecule) => { try { return mol.atomCount >= 7 && ((recognisePeptide(mol)?.residues.length ?? 0) >= 2 || (recogniseOligo(mol)?.units.length ?? 0) >= 2); } catch { return false; } };
 
 /**
  * Draw related structures the same way round: each structure in `targets`

@@ -1,4 +1,4 @@
-import { alarming, screenHazards, HAZARD_DISCLAIMER, type Hazard, altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
+import { alarming, screenHazards, HAZARD_DISCLAIMER, type Hazard, altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, isSequence, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument, type Tool } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
@@ -226,7 +226,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   const analysisItems = (): MenuItem[] => {
     const shown = editor.analysisShown();
     const toggle = (item: Parameters<Editor['toggleAnalysis']>[0]) => () => {
-      if (!editor.toggleAnalysis(item)) flash('Select a structure (or a peptide such as H-Ala-Gly-OH) first');
+      if (!editor.toggleAnalysis(item)) flash("Select a structure (or a sequence such as H-Ala-Gly-OH or 5'-ACGT-3') first");
     };
     return [
       ...ANALYSIS_ITEMS.map((x) => ({ label: x.label, checked: shown.has(x.item), run: toggle(x.item) })),
@@ -325,7 +325,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   ]);
 
   function expandLabel() {
-    if (!editor.expandLabels()) flash('Nothing to expand: select a peptide (H-Ala-Gly-OH) or an abbreviated label (Ph, OMe, Boc…)');
+    if (!editor.expandLabels()) flash("Nothing to expand: select a peptide (H-Ala-Gly-OH), an oligonucleotide (5'-ACGT-3') or an abbreviated label (Ph, OMe, Boc…)");
   }
 
   function convertToName() {
@@ -847,7 +847,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     if (o && o.kind !== 'text') items.push(...objectItems(o), 'sep');
     if (o && o.kind === 'text') items.push({ label: 'Edit Text', run: () => editor.onEditCaption?.(o.id) }, 'sep');
     const structures = sel.atoms.size > 0;
-    const peptide = [...sel.objects].some((id) => { const c = editor.doc.objects.find((x) => x.id === id); return c?.kind === 'text' && !c.analysis && !!parsePeptide(c.text.trim()); });
+    const peptide = [...sel.objects].some((id) => { const c = editor.doc.objects.find((x) => x.id === id); return c?.kind === 'text' && !c.analysis && isSequence(c.text.trim()); });
     items.push(
       { label: 'Copy', shortcut: '⌘C', run: () => { const src = copySource(); copyStructure(src.mol, editor.doc.style, src.objects, src.groups).then((c) => { void rememberCopy(c.png, c.alt); flash('Copied: paste into Word, PowerPoint or Google Docs; copy it back to edit'); }).catch(() => flash('Copy failed: the browser blocked clipboard access')); } },
       { label: 'Copy As', submenu: copyAsItems },

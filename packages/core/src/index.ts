@@ -21,3 +21,5 @@ export * from './abbreviations.ts';
 export * from './link.ts';
 export * from './drawing-text.ts';
 export * from './hazards.ts';
+export * from './nucleotides.ts';
+export * from './sequences.ts';

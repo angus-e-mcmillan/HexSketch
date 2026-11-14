@@ -13,6 +13,7 @@ import { Molecule, type AtomId } from './model.ts';
 import { sameStructure, isomorphisms } from './isomorphism.ts';
 import { parseSmiles } from './smiles.ts';
 import { perceiveStereoFromGeometry, rsLabel } from './stereo.ts';
+import { layoutAsOligo } from './nucleotides.ts';
 
 type Pt = { x: number; y: number };
 
@@ -257,7 +258,7 @@ const offBackbone = (mol: Molecule, main: ReadonlySet<AtomId>) => new Set([...mo
 /**
  * Every peptide among a structure's fragments laid out as layoutAsPeptide
  * does: N-terminus on the left, the backbone a flat zigzag, side chains with
- * wedges. The fragments are then set side by side again, in their order, as
+ * wedges. Oligonucleotides are laid out as strands (layoutAsOligo). The fragments are then set side by side again, in their order, as
  * layout2D sets them. Returns whether any was a peptide.
  */
 export function layoutPeptides(mol: Molecule, L = 18.43): boolean {
@@ -273,7 +274,7 @@ export function layoutPeptides(mol: Molecule, L = 18.43): boolean {
       if (ch) sub.atom(toSub.get(id)!).chirality = { order: ch.order.map((x) => (x === -1 ? -1 : toSub.get(x)!)), anticlockwise: ch.anticlockwise };
     }
     for (const b of mol.bonds()) if (toSub.has(b.begin)) sub.addBond({ ...b, begin: toSub.get(b.begin)!, end: toSub.get(b.end)!, ez: b.ez ? { ref: [toSub.get(b.ez.ref[0])!, toSub.get(b.ez.ref[1])!], cis: b.ez.cis } : null });
-    if (!layoutAsPeptide(sub, L)) continue;
+    if (!layoutAsPeptide(sub, L) && !layoutAsOligo(sub, L)) continue;
     any = true;
     for (const id of ids) { const a = sub.atom(toSub.get(id)!); const t = mol.atom(id); t.x = a.x; t.y = a.y; }
     for (const b of mol.bonds()) {

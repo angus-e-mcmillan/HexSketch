@@ -6,7 +6,7 @@ import { assignWedges } from './layout.ts';
 import { DEFAULT_STYLE, type DrawingStyle } from './style.ts';
 import { analysisCode, analysisItemOf, type AnalysisItem } from './analysis.ts';
 import { pageCdxmlAttrs, type PageSettings } from './page.ts';
-import { parsePeptide } from './peptides.ts';
+import { isSequence } from './sequences.ts';
 import { drawOutLabel, labelStructure, GENERIC_LABEL, type LabelStructure } from './abbreviations.ts';
 import { captionRuns, newObjectId, setCaptionRuns, type ArcGeometry, type Arrow, type ArrowEnd, type Caption, type DocObject, type ObjectGroup, type Shape, type TextRun } from './objects.ts';
 
@@ -828,7 +828,7 @@ export function readCdxmlDocument(xml: string): { mol: Molecule; objects: DocObj
   // not an atom: as an atom it would count as a carbon in every formula.
   const moved = new Map<number, number>();
   for (const a of atoms) {
-    if (a.label === null || mol.neighbours(a.id).length || GENERIC_LABEL.test(a.label) || labelStructure(a.label, 0) || parsePeptide(a.label)) continue;
+    if (a.label === null || mol.neighbours(a.id).length || GENERIC_LABEL.test(a.label) || labelStructure(a.label, 0) || isSequence(a.label)) continue;
     const cap: Caption = { kind: 'text', id: newObjectId(), x: a.x, y: a.y + DEFAULT_STYLE.labelSize * 0.36, text: a.label, align: 'center', color: a.color ?? null };
     objects.push(cap);
     moved.set(a.id, cap.id);

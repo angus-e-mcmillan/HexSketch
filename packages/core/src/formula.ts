@@ -1,6 +1,6 @@
 import { elementBySymbol, hillOrder } from './elements.ts';
 import { Molecule } from './model.ts';
-import { parsePeptide, peptideCounts } from './peptides.ts';
+import { sequenceCounts } from './sequences.ts';
 import { labelCounts } from './abbreviations.ts';
 
 export interface MassResult {
@@ -30,7 +30,7 @@ export function elementCounts(mol: Molecule): Map<string, number> {
 
   for (const atom of mol.atoms()) {
     if (atom.label !== null && mol.neighbours(atom.id).length === 0) {
-      // A whole peptide written as a label: "H-Ala-Gly-OH".
+      // A whole peptide or oligonucleotide written as a label: "H-Ala-Gly-OH", "5'-ACGT-3'".
       const pep = peptideFormulaOf(atom.label);
       if (pep) { for (const [sym, n] of pep) add(sym, n); continue; }
     }
@@ -53,8 +53,7 @@ export function elementCounts(mol: Molecule): Map<string, number> {
 const peptideCache = new Map<string, Map<string, number> | null>();
 function peptideFormulaOf(label: string): Map<string, number> | null {
   if (!peptideCache.has(label)) {
-    const p = parsePeptide(label);
-    peptideCache.set(label, p ? peptideCounts(p) : null);
+    peptideCache.set(label, sequenceCounts(label));
   }
   return peptideCache.get(label)!;
 }

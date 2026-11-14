@@ -1,4 +1,4 @@
-import { drawOutLabel, labelStructure, cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, layoutAsPeptide, makeCaption, Molecule, objectPoints, objectPolylines, parsePeptide, parseSmiles, peptideMolecule, peptideSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
+import { drawOutLabel, labelStructure, cloneGroups, groupContents, parentGroup, topGroups, type ObjectGroup, newObjectId, analysisRuns, ANALYSIS_ITEMS, sortAnalysisItems, writeSmiles, type AnalysisItem, captionRuns, cleanUpStructure, cloneObjects, computeMass, setCaptionRuns, type Caption, type TextRun, type TextStyle, elementBySymbol, layout2D, layoutAsPeptide, layoutAsOligo, makeCaption, Molecule, objectPoints, objectPolylines, isSequence, sequenceMolecule, sequenceSmiles, parseSmiles, perceiveRings, type DocObject, perceiveStereoFromGeometry, type AtomId, type BondId, type MassResult, type DrawingStyle } from '@hexsketch/core';
 import { captionBounds, depict, toSvg, type Depiction } from '@hexsketch/render';
 import { EditorDocument } from './document.ts';
 import { hitObject, hitTest, inLasso, inRect, objectsInRect, type Hit } from './hittest.ts';
@@ -118,8 +118,8 @@ export class Editor {
     const peps = caps.map((c) => {
       const key = c.text.trim();
       if (!this.#peptideCache.has(key)) {
-        const p = parsePeptide(key);
-        this.#peptideCache.set(key, p ? parseSmiles(peptideSmiles(p)) : null);
+        const smiles = sequenceSmiles(key);
+        this.#peptideCache.set(key, smiles ? parseSmiles(smiles) : null);
       }
       return this.#peptideCache.get(key)!;
     }).filter((m): m is Molecule => !!m);
@@ -150,12 +150,12 @@ export class Editor {
       else { caps = this.doc.objects.map((o) => o.id); atoms = [...mol.atoms()].filter((a) => a.label !== null).map((a) => a.id); }
     }
     const capJobs = caps.map((id) => this.doc.objects.find((o) => o.id === id))
-      .filter((o): o is Extract<DocObject, { kind: 'text' }> => o?.kind === 'text' && !!parsePeptide(o.text.trim()));
+      .filter((o): o is Extract<DocObject, { kind: 'text' }> => o?.kind === 'text' && isSequence(o.text.trim()));
     const atomJobs = atoms.filter((id) => mol.hasAtom(id) && mol.atom(id).label !== null && expandable(mol, id));
     if (!capJobs.length && !atomJobs.length) return 0;
     this.doc.edit((m, objs) => {
       for (const c of capJobs) {
-        const pep = peptideMolecule(parsePeptide(c.text.trim())!, L);
+        const pep = sequenceMolecule(c.text.trim(), L)!;
         // Left edge at the caption, centred on its text.
         const xs = [...pep.atoms()].map((a) => a.x), ys = [...pep.atoms()].map((a) => a.y);
         insertMolecule(m, pep, c.x - Math.min(...xs), c.y - this.doc.style.captionSize * 0.35 - (Math.min(...ys) + Math.max(...ys)) / 2, 2 * L);
@@ -1074,7 +1074,7 @@ export class Editor {
   insertLaidOut(input: Molecule, at?: { x: number; y: number }) {
     const fresh = input.clone();
     // A peptide is drawn as Expand Label draws it: a backbone zigzag rather than a folded chain.
-    if (fresh.fragments().length !== 1 || !layoutAsPeptide(fresh, this.L)) layout2D(fresh, this.L);
+    if (fresh.fragments().length !== 1 || !(layoutAsPeptide(fresh, this.L) || layoutAsOligo(fresh, this.L))) layout2D(fresh, this.L);
     this.doc.edit((m) => {
       const xs = [...fresh.atoms()].map((a) => a.x), ys = [...fresh.atoms()].map((a) => a.y);
       const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
@@ -1287,8 +1287,8 @@ export class Editor {
     if (!c || c.kind !== 'text' || c.analysis) return null;
     const key = c.text.trim();
     if (!this.#peptideCache.has(key)) {
-      const p = parsePeptide(key);
-      this.#peptideCache.set(key, p ? parseSmiles(peptideSmiles(p)) : null);
+      const smiles = sequenceSmiles(key);
+      this.#peptideCache.set(key, smiles ? parseSmiles(smiles) : null);
     }
     return this.#peptideCache.get(key)!;
   }
@@ -1650,7 +1650,7 @@ function expandable(mol: Molecule, id: AtomId): boolean {
   const a = mol.atom(id);
   if (!a.label) return false;
   const bonds = mol.neighbours(id).length;
-  if (bonds === 0 && parsePeptide(a.label)) return true;
+  if (bonds === 0 && isSequence(a.label)) return true;
   // A label in a chain (an N-methyl amide's "NMe" in a peptide backbone) has a bond on each side.
   return labelStructure(a.label, bonds) !== null;
 }
@@ -1673,8 +1673,8 @@ function insertMolecule(m: Molecule, src: Molecule, dx: number, dy: number, marg
 function expandAtomLabel(m: Molecule, id: AtomId, L: number) {
   const a = m.atom(id);
   const nbrs = m.neighbours(id);
-  if (nbrs.length === 0 && parsePeptide(a.label!)) {
-    const pep = peptideMolecule(parsePeptide(a.label!)!, L);
+  if (nbrs.length === 0 && isSequence(a.label!)) {
+    const pep = sequenceMolecule(a.label!, L)!;
     const xs = [...pep.atoms()].map((p) => p.x), ys = [...pep.atoms()].map((p) => p.y);
     insertMolecule(m, pep, a.x - (Math.min(...xs) + Math.max(...xs)) / 2, a.y - (Math.min(...ys) + Math.max(...ys)) / 2, 2 * L);
     m.removeAtom(id);

@@ -15,6 +15,7 @@
 import { assignWedges, layout2D } from './layout.ts';
 import { Molecule, type AtomId } from './model.ts';
 import { layoutAsPeptide } from './peptides.ts';
+import { layoutAsOligo } from './nucleotides.ts';
 import { perceiveRings } from './rings.ts';
 import { ezLabel, perceiveStereoFromGeometry, rsLabel } from './stereo.ts';
 
@@ -42,6 +43,8 @@ export function cleanUpStructure(mol: Molecule, L: number, atoms?: Iterable<Atom
     if (chosen && !frag.some((a) => chosen.has(a))) continue;
     if (frag.length < 2) continue;
     const original = new Map(frag.map((id) => [id, { x: mol.atom(id).x, y: mol.atom(id).y }]));
+    // An oligonucleotide keeps its strand: relaxing it would pull the bases and phosphates out of line.
+    if (frag.length >= 30 && frag.some((id) => mol.atom(id).element === 'P') && freshLayout(mol, frag, L, original, true)) continue;
     relax(mol, frag, L);
     alignTo(mol, frag, original, false);
     if (!acceptable(mol, frag, L, ezBefore)) {
@@ -247,7 +250,7 @@ function segmentsCross(a: Pt, b: Pt, c: Pt, d: Pt): boolean {
 }
 
 /** Fall back: lay the fragment out afresh and fit it onto the original drawing. */
-function freshLayout(mol: Molecule, frag: AtomId[], L: number, original: Map<AtomId, Pt>) {
+function freshLayout(mol: Molecule, frag: AtomId[], L: number, original: Map<AtomId, Pt>, strandOnly = false): boolean {
   const sub = new Molecule();
   const toSub = new Map<AtomId, AtomId>(), toMain = new Map<AtomId, AtomId>();
   for (const id of frag) { const n = sub.addAtom({ ...mol.atom(id), chirality: null }).id; toSub.set(id, n); toMain.set(n, id); }
@@ -263,8 +266,9 @@ function freshLayout(mol: Molecule, frag: AtomId[], L: number, original: Map<Ato
   }
   perceiveStereoFromGeometry(sub);
   // A peptide gets the zigzag Expand Label draws; layout2D folds long chains onto themselves.
-  if (!layoutAsPeptide(sub, L)) layout2D(sub, L);
+  if (strandOnly) { if (!layoutAsOligo(sub, L)) return false; } else if (!layoutAsPeptide(sub, L) && !layoutAsOligo(sub, L)) layout2D(sub, L);
   for (const a of sub.atoms()) { const t = mol.atom(toMain.get(a.id)!); t.x = a.x; t.y = a.y; }
   for (const b of sub.bonds()) { const t = mol.bond(bondMap.get(b.id)!); if (t.order === 1) t.display = b.display; }
-  alignTo(mol, frag, original, true);
+  alignTo(mol, frag, original, !strandOnly);
+  return true;
 }

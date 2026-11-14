@@ -1,4 +1,4 @@
-import { ezLabel, labelStructure, Molecule, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recognisePeptide, rsLabel, type AtomId, type Peptide } from '@hexsketch/core';
+import { ezLabel, labelStructure, Molecule, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
 import { analyze, SENIORITY, isAcylCarbon, isIminium, isRingAnion, isRingCation, type Analysis, type Group, type GroupKind } from './analyze.ts';
 import type { RingRow } from './rings.ts';
 import { TEMPLATES, type RingTemplate } from './templates.ts';
@@ -894,7 +894,28 @@ function peptideOf(mol: Molecule): Peptide | null {
   try { return recognisePeptide(mol); } catch { return null; }
 }
 
+/**
+ * An oligonucleotide (two units or more, in the natural configuration) written as a label or
+ * drawn out: it goes by its sequence, as a peptide too long for a name does.
+ */
+function oligoOf(mol: Molecule): Oligo | null {
+  if (mol.atomCount === 1) {
+    const a = [...mol.atoms()][0]!;
+    return a.label ? parseOligo(a.label) : null;
+  }
+  if (mol.atomCount < 30 || ![...mol.atoms()].some((a) => a.element === 'P')) return null;
+  try {
+    const o = recogniseOligo(mol);
+    if (!o || o.units.length < 2) return null;
+    // A drawing shows its configuration by its wedges; a SMILES carries it.
+    const drawn = fromGeometry && [...mol.atoms()].some((a) => a.x !== 0 || a.y !== 0);
+    return sameStereoisomer(parseSmiles(oligoSmiles(o)), mol, { recorded: [true, !drawn] }) ? o : null;
+  } catch { return null; }
+}
+
 function nameOne(input: Molecule): string {
+  const oligo = oligoOf(input);
+  if (oligo) return oligoText(oligo);
   // Peptides get peptide names ("L-alanylglycine"), or their sequence when protected.
   const pep = peptideOf(input);
   // A residue name reads as L (or D); with no configuration given, name it systematically.
