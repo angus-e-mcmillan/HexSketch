@@ -1329,6 +1329,12 @@ export class Editor {
    * grows or changes gets new lines, one that is deleted takes its caption
    * with it. Runs on every change (undo snapshots already hold the matching text).
    */
+  /**
+   * The namer can now name more than it could (its ring parents have arrived): names worked out
+   * before then, a declined one among them, are forgotten and the name captions written afresh.
+   */
+  namesChanged(): void { this.#analysisCache.clear(); this.doc.touch(); }
+
   #refreshAnalysis() {
     const objects = this.doc.objects;
     if (!objects.some((o) => o.kind === 'text' && o.analysis)) return;

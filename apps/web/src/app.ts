@@ -74,7 +74,8 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   editor.analysisDecimals = prefs.decimals;
   editor.nameOf = (m) => { try { return nameMolecule(m).name; } catch { return null; } };
   // Ring parents for naming (fused and hydro ring systems): a separate chunk, loaded once the editor is up.
-  setTimeout(() => { void import('@hexsketch/naming/rings'); }, 0);
+  // Names shown before then (a structure opened from a link) are brought up to date once it is in.
+  setTimeout(() => { void import('@hexsketch/naming/rings').then(() => editor.namesChanged()); }, 0);
   let zoom = opts.zoom ?? 1.5;
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const pageEl = $('page');

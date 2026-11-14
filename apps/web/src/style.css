@@ -32,7 +32,7 @@ body { display: grid; grid-template-rows: 40px 1fr 24px; height: 100vh; overflow
 
 /* Rows are as tall as what is in them: a tool is 30px, a divider a few. (With every row 30px the two
    dividers took a tool's height each, and in a 560px frame the bottom row of rings was cut in half.) */
-.palette { background: var(--chrome); border-right: 1px solid var(--line); padding: 8px 6px; display: grid; grid-template-columns: 30px 30px; grid-auto-rows: auto; gap: 4px; align-content: start; justify-content: center; overflow-y: auto; }
+.palette { background: var(--chrome); border-right: 1px solid var(--line); padding: 8px 6px; display: grid; grid-template-columns: 30px 30px; grid-auto-rows: auto; gap: 4px; align-content: start; justify-content: center; overflow-y: auto; overflow-x: hidden; }
 .palette .group-gap { grid-column: 1 / -1; height: 4px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 /* A short window: the tools close up so that all of them still show without scrolling. */
 @media (max-height: 560px) and (min-width: 521px) {

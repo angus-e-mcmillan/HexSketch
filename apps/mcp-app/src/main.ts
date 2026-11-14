@@ -161,7 +161,7 @@ async function loadRingParents() {
     console.warn('HexSketch: ring parents not loaded', err);
     return;
   }
-  ui.editor.doc.touch();
+  ui.editor.namesChanged();
   void shareWithModel();
 }
 
