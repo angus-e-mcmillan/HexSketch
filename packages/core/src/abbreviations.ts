@@ -221,8 +221,9 @@ function* build(items: Item[], k: number, s: State, onto = -1): Generator<State>
       const st = cloneState(s);
       let last = -1;
       for (let n = 0; n < it.count; n++) last = addAtom(st, it.text, c, it.order ?? null);
-      // One atom carries the chain on; several (O2, F3) hang off the atom and leave the chain where it was.
-      if (it.count === 1) st.chain = last;
+      // One atom carries the chain on; several (O2, F3) hang off the atom and leave the chain where it was,
+      // as does the O of S=O or P=O (SOMe is the sulfoxide, not S-O-Me).
+      if (it.count === 1 && !(it.text === 'O' && c === s.chain && ['S', 'P', 'Se', 'As'].includes(s.atoms[c]!.el))) st.chain = last;
       yield* build(items, k + 1, st);
     }
     return;

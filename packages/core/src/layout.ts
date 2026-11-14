@@ -87,6 +87,9 @@ export function layout2D(mol: Molecule, L = 18.43): void {
   for (const [id, p] of pos) { const a = mol.atom(id); a.x = p.x; a.y = p.y; }
   enforceDoubleBondGeometry(mol, wantEz);
   assignWedges(mol, wantChiral);
+  // Placing wedges reads the drawing, which gives every double bond a geometry: put back what
+  // was recorded, and nothing where nothing was (a SMILES that left a double bond open).
+  for (const bd of mol.bonds()) bd.ez = wantEz.get(bd.id) ?? null;
 }
 
 /**

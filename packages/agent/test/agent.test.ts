@@ -431,3 +431,20 @@ test('a single protected amino acid is turned like the drawing it replaces (not 
   const turn = turnAgainst(like, s.mol, start);
   assert.ok(turn !== null && Math.abs(turn) < 5, `turned ${turn}`);
 });
+
+test('a SMILES keeps what it left open: converting it adds no E or Z, and it is not the same as the E isomer', async () => {
+  assert.equal(await convert('CC=CCC', 'smiles'), 'CC=CCC');
+  assert.equal((await analyze('O=C(O)C=Cc1ccccc1')).smiles.includes('/'), false);
+  assert.equal((await validate('CC=CCC')).smiles, 'CC=CCC');
+  const open = await compare('CC=CC', 'C/C=C/C');
+  assert.equal(open.same, false);
+  assert.equal(open.sameConnectivity, true);
+  assert.equal((await compare('C/C=C/C', 'C\\C=C\\C')).same, true);
+  assert.equal((await compare('C[S@](=O)c1ccccc1', 'O=[S@@](C)c1ccccc1')).same, true);
+  assert.equal((await compare('C[S@](=O)c1ccccc1', 'C[S@@](=O)c1ccccc1')).same, false);
+  // Through a drawing (a molfile) the sulfoxide's configuration is still there.
+  assert.equal((await compare(await convert('C[S@](=O)c1ccccc1', 'mol'), 'C[S@](=O)c1ccccc1')).same, true);
+  // In a macrocycle too: tacrolimus-like trans double bond in a ring keeps E as written.
+  const ring = 'C1CCCCC/C=C/CCCCC1';
+  assert.equal((await compare(await convert(ring, 'smiles'), ring)).same, true);
+});
