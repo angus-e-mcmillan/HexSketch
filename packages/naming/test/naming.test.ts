@@ -7,9 +7,10 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSmiles, sameStructure } from '@hexsketch/core';
-import { ionize, nameMolecule } from '../src/index.ts';
+import { parseSmiles, sameStructure, writeSmiles, type AtomId, type Molecule } from '@hexsketch/core';
+import { addRingParents, ionize, nameMolecule } from '../src/index.ts';
 import '../src/all-rings.ts';
+import { RING_ROWS } from '../src/rings.ts';
 import { opsinAvailable, opsinToSmiles } from '../src/opsin.ts';
 
 const EXPECTED: [string, string][] = [
@@ -160,6 +161,21 @@ const EXPECTED: [string, string][] = [
   ['CC(C)(C)OC(=O)OC(=O)OC(C)(C)C', 'di-tert-butyl dicarbonate'],
   // An oxime carbamate (was named as an N-methylformamide); E/Z on a benzylidene.
   ['CNC(=O)ON=C(C)C', '2-(((methylcarbamoyl)oxy)imino)propane'], ['O=c1occn1/N=C/c1ccccc1', '3-(((E)-benzylidene)amino)oxazol-2(3H)-one'],
+  // Purine, with its own numbering, as parent and as substituent.
+  ['Cn1cnc2c1ncnc2N', '9-methyl-9H-purin-6-amine'], ['Nc1ncnc2[nH]cnc12', '9H-purin-6-amine'],
+  ['OCC1OC(N2C=NC3=C2N=CN=C3N)CC1O', '5-(6-amino-9H-purin-9-yl)-2-(hydroxymethyl)tetrahydrofuran-3-ol'],
+  // A ring ketone: indicated hydrogen at the C=O where the parent has it, else added hydrogen; ketones need no hydro prefix.
+  ['Cn1c(=O)c2c(ncn2C)n(C)c1=O', '1,3,7-trimethyl-3,7-dihydro-1H-purine-2,6-dione'],
+  ['Nc1nc2c(ncn2COCCO)c(=O)[nH]1', '2-amino-9-((2-hydroxyethoxy)methyl)-1,9-dihydro-6H-purin-6-one'],
+  ['O=c1[nH]c2ccccc2[nH]1', '1,3-dihydro-2H-benzimidazol-2-one'], ['O=c1cc[nH][nH]1', '1,2-dihydro-3H-pyrazol-3-one'],
+  ['O=C1CCCc2ccccc21', '3,4-dihydronaphthalen-1(2H)-one'], ['O=C1c2ccccc2C(=O)c2ccccc21', 'anthracene-9,10-dione'],
+  ['O=c1c2ccccc2[nH]c2ccccc12', 'acridin-9(10H)-one'], ['O=C1Nc2ccccc2C1=O', 'indoline-2,3-dione'],
+  ['O=c1ccc2ncccc2[nH]1', '1,5-naphthyridin-2(1H)-one'], ['O=c1[nH]c(=O)c2nccnc2[nH]1', 'pteridine-2,4(1H,3H)-dione'],
+  ['CCC1(c2ccccc2)C(=O)NC(=O)NC1=O', '5-ethyl-5-phenylpyrimidine-2,4,6(1H,3H,5H)-trione'], ['O=c1[nH]c2ccccc2s1', 'benzothiazol-2(3H)-one'],
+  ['O=C(O)c1cn(C2CC2)c2cc(N3CCNCC3)c(F)cc2c1=O', '1-cyclopropyl-6-fluoro-4-oxo-7-(piperazin-1-yl)-1,4-dihydroquinoline-3-carboxylic acid'],
+  // Substituted alkoxy prefixes keep the contracted form.
+  ['OCCOCCO', '2-(2-hydroxyethoxy)ethan-1-ol'], ['FC(F)(F)COc1ccccc1', '(2,2,2-trifluoroethoxy)benzene'],
+  ['COc1ccc(OCC(=O)O)cc1', '2-(4-methoxyphenoxy)acetic acid'], ['O=C(OCCO)c1ccccc1C(=O)O', '2-((2-hydroxyethoxy)carbonyl)benzoic acid'],
 ];
 
 const ROUND_TRIP: string[] = [
@@ -191,6 +207,9 @@ const ROUND_TRIP: string[] = [
   'Cc1nc2n(n1)c(C)cc(C)n2', 'Cn1c(=O)c2c(ncn2C)n(C)c1=O', 'c1ccc2c(c1)Sc1ccccc1N2', 'CC12CCC3C(CCC4CC(O)CCC43C)C1CCC2O',
   'c1cc2ccc3cccc4ccc(c1)c2c34', 'ClC1=C(Cl)C2(Cl)C3CC=CC3C1(Cl)C2(Cl)Cl', 'C1CC2CCC1C2', 'C1C2CC3CC1CC(C2)C3',
   'O=C1Nc2ccccc2C12CCNCC2', 'C1CCC2(CC1)OCCO2', 'O=[S@]1OCCS1', 'C1CSCCSC1', 'CC1=C(C)OP(=O)(O)O1',
+  // Ring ketones on mancude parents (one was once "1H-indole-2,3()-dione"), saturated ones, a pyranone.
+  'O=C1Nc2ccccc2C1=O', 'O=c1[nH]c(=O)c2[nH]c(=O)[nH]c2[nH]1', 'O=c1cc[nH]c2ncccc12', 'O=c1ccn2ccnc2[nH]1', 'O=C1C=CC(=O)NN1',
+  'O=C1CSCCSC1', 'O=C1CCCO1', 'O=C1COc2ccccc21', 'O=C1CCNc2ccccc21', 'O=c1ccocc1', 'Nc1nc2n(COC(CO)CO)cnc2c(=O)[nH]1',
 ];
 
 test('names match ChemDraw and IUPAC for known cases', () => {
@@ -263,4 +282,99 @@ test('what cannot be named rightly is declined, not misnamed', () => {
   for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C']) {
     assert.equal(nameMolecule(parseSmiles(smi)).name, null, smi);
   }
+});
+
+test('before the generated ring parents are added, fused systems are named from curated parents or declined', () => {
+  addRingParents([]);
+  try {
+    assert.equal(nameMolecule(parseSmiles('Cn1cnc2c1ncnc2N')).name, '9-methyl-9H-purin-6-amine');
+    assert.equal(nameMolecule(parseSmiles('O=c1ccocc1')).name, '4H-pyran-4-one');
+    // Once a von Baeyer name: 2,4,7,10-tetraazabicyclo[4.4.0]deca-...-pentaene.
+    assert.equal(nameMolecule(parseSmiles('c1cnc2ncncc2n1')).name, null);
+    assert.equal(nameMolecule(parseSmiles('c1ccc2c(c1)CC2')).name, 'bicyclo[4.2.0]octa-1,3,5-triene');
+    assert.equal(nameMolecule(parseSmiles('C1=CC2C=CC1C2')).name, 'bicyclo[2.2.1]hepta-2,5-diene');
+  } finally {
+    addRingParents(RING_ROWS);
+  }
+  assert.equal(nameMolecule(parseSmiles('c1cnc2ncncc2n1')).name, 'pteridine');
+});
+
+/** Whether OPSIN reads each name back to its structure; the failures, as text. */
+function misread(cases: { smi: string; name: string | null; why?: string }[]): string[] {
+  const back = opsinToSmiles(cases.map((c) => c.name ?? ''));
+  const bad: string[] = [];
+  cases.forEach((c, i) => {
+    if (!c.name) { bad.push(`${c.smi}: unnamed (${c.why})`); return; }
+    let same = false;
+    try { same = !!back[i] && sameStructure(ionize(parseSmiles(c.smi)), ionize(parseSmiles(back[i]!))); } catch { /* reported below */ }
+    if (!same) bad.push(`${c.smi} -> "${c.name}" -> ${back[i] ?? 'unreadable'}`);
+  });
+  return bad;
+}
+
+const named = (smi: string) => { const r = nameMolecule(parseSmiles(smi)); return { smi, name: r.name, why: r.reason }; };
+
+test('generated ring parents are named by their own names (OPSIN)', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, () => {
+  const rows = RING_ROWS.slice(0, 400);
+  const smiles = opsinToSmiles(rows.map((r) => r[0]));
+  const cases = rows.flatMap((r, i) => (smiles[i] ? [{ ring: r[0], ...named(smiles[i]!) }] : []));
+  const unretained = cases.filter((c) => c.name && !c.name.includes(c.ring.replace(/e$/, ''))).map((c) => `${c.ring}: ${c.name}`);
+  assert.deepEqual({ unretained, misread: misread(cases) }, { unretained: [], misread: [] });
+});
+
+// Heterobicycles named with substituents on them, a ring C=O (its H moved to a ring N) and as a substituent.
+const BICYCLES = ['9H-purine', '1H-indole', 'quinoline', 'isoquinoline', '1H-benzimidazole', 'benzofuran', '1,3-benzothiazole', '1,3-benzoxazole',
+  'quinazoline', 'quinoxaline', 'pteridine', '1,5-naphthyridine', '1,6-naphthyridine', '1,7-naphthyridine', '1,8-naphthyridine', '2,6-naphthyridine',
+  '2,7-naphthyridine', 'imidazo[1,2-a]pyridine', '1H-pyrazolo[3,4-d]pyrimidine', '7H-pyrrolo[2,3-d]pyrimidine', '1H-indazole', '2H-indazole',
+  '1H-benzotriazole', '2H-chromene', '4H-chromene', 'benzo[b]thiophene', 'cinnoline', 'phthalazine', 'indolizine', 'imidazo[1,2-a]pyrimidine',
+  '[1,2,4]triazolo[1,5-a]pyrimidine', 'thieno[2,3-d]pyrimidine', 'thieno[3,2-d]pyrimidine', 'furo[2,3-b]pyridine', '1H-pyrrolo[2,3-b]pyridine',
+  '1H-pyrrolo[3,2-c]pyridine', 'imidazo[1,2-b]pyridazine', 'pyrazolo[1,5-a]pyrimidine', '3H-imidazo[4,5-b]pyridine', 'pyrido[2,3-d]pyrimidine',
+  '1H-pyrazolo[3,4-b]pyridine', '[1,2,4]triazolo[4,3-a]pyridine', '2,1,3-benzothiadiazole', '4H-quinolizine'];
+
+function derivatives(smi: string): string[] {
+  const base = parseSmiles(smi);
+  const ring = [...base.atoms()].map((a) => a.id);
+  const out: string[] = [];
+  for (const a of ring) {
+    if (base.implicitHydrogens(a) < 1) continue;
+    for (const chain of [['C'], ['N'], ['C', 'C', 'O']]) {
+      const m = base.clone();
+      chain.reduce((prev, e) => { const x = m.addAtom({ element: e, x: 0, y: 0 }).id; m.addBond({ begin: prev, end: x, order: 1 }); return x; }, a);
+      out.push(writeSmiles(m));
+    }
+  }
+  // C=O at a ring CH, its hydrogen moved to a ring N: the rest of the ring keeps a Kekulé structure.
+  const nb = (m: Molecule, a: AtomId) => m.neighbours(a).filter((x) => ring.includes(x));
+  const sp3 = ring.filter((a) => !base.incidentBonds(a).some((b) => base.bond(b).order === 2));
+  for (const c of ring) for (const n of ring) {
+    if (base.atom(c).element !== 'C' || base.implicitHydrogens(c) !== 1 || base.atom(n).element !== 'N' || nb(base, n).length !== 2 || base.implicitHydrogens(n)) continue;
+    const m = base.clone();
+    for (const b of [...m.bonds()]) b.order = 1;
+    const free = ring.filter((a) => a !== c && a !== n && !sp3.includes(a));
+    const used = new Set<AtomId>();
+    const pair = (i: number): boolean => {
+      while (i < free.length && used.has(free[i]!)) i++;
+      if (i === free.length) return true;
+      used.add(free[i]!);
+      for (const y of nb(m, free[i]!)) {
+        if (!free.includes(y) || used.has(y)) continue;
+        used.add(y); m.bondBetween(free[i]!, y)!.order = 2;
+        if (pair(i + 1)) return true;
+        used.delete(y); m.bondBetween(free[i]!, y)!.order = 1;
+      }
+      used.delete(free[i]!);
+      return false;
+    };
+    if (!pair(0)) continue;
+    m.addBond({ begin: c, end: m.addAtom({ element: 'O', x: 0, y: 0 }).id, order: 2 });
+    out.push(writeSmiles(m));
+  }
+  return out;
+}
+
+test('heterobicycles with substituents, ring ketones and as substituents read back (OPSIN)', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, () => {
+  const parents = opsinToSmiles(BICYCLES);
+  const unread = BICYCLES.filter((_, i) => !parents[i]);
+  const smiles = [...new Set(parents.flatMap((s) => (s ? [s, ...derivatives(s)] : [])))];
+  assert.deepEqual({ unread, misread: misread(smiles.map(named)) }, { unread: [], misread: [] });
 });

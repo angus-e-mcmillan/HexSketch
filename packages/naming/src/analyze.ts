@@ -128,7 +128,7 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
         continue;
       }
     }
-    if (dblO && ringAtoms.has(c.id) && singles.every((n) => ringAtoms.has(n.atom) && (el(mol, n.atom) === 'N' || el(mol, n.atom) === 'O'))
+    if (dblO && ringAtoms.has(c.id) && singles.every((n) => ringAtoms.has(n.atom) && ['N', 'O', 'S'].includes(el(mol, n.atom)))
         && carbons.length + singles.length === 2) {
       groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [dblO.atom] });
       claimed.add(dblO.atom);

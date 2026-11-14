@@ -79,6 +79,8 @@ export const TEMPLATES: RingTemplate[] = [
   { name: '1,4-dihydropyridine', yl: '1,4-dihydropyridin', smiles: 'N1C=CCC=C1', locants: seq(6), aromatic: false },
   { name: 'quinoxaline', yl: 'quinoxalin', smiles: 'n1ccnc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
   { name: 'quinazoline', yl: 'quinazolin', smiles: 'n1cncc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
+  // Purine keeps its own numbering, not the fusion one.
+  { name: 'purine', yl: 'purin', smiles: 'n1cnc2c(c1)nc[nH]2', locants: seq(9), indicatedH: '9', aromatic: true },
   { name: 'indazole', yl: 'indazol', smiles: '[nH]1ncc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], indicatedH: '1', aromatic: true },
   { name: 'benzo[d][1,3]dioxole', yl: 'benzo[d][1,3]dioxol', smiles: 'O1COc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
   { name: 'fluorene', yl: 'fluoren', smiles: 'c1cccc2-c3ccccc3Cc12', locants: ['1', '2', '3', '4', '4a', '4b', '5', '6', '7', '8', '8a', '9', '9a'], indicatedH: '9', aromatic: true },
@@ -95,5 +97,5 @@ export const TEMPLATES: RingTemplate[] = [
 /** Parents named by hydro prefixes when partly saturated (benzene's are cycloalkenes). */
 const HYDRO_PARENTS = new Set(['pyridine', 'pyrimidine', 'pyrazine', 'pyridazine', 'furan', 'thiophene', 'pyrrole', 'imidazole', 'pyrazole',
   'oxazole', 'thiazole', 'isoxazole', 'isothiazole', 'naphthalene', 'quinoline', 'isoquinoline', 'indole', 'benzofuran', 'benzo[b]thiophene',
-  'benzimidazole', 'benzoxazole', 'benzothiazole', 'quinoxaline', 'quinazoline', 'indazole', 'fluorene']);
+  'benzimidazole', 'benzoxazole', 'benzothiazole', 'quinoxaline', 'quinazoline', 'purine', 'indazole', 'fluorene']);
 for (const t of TEMPLATES) if (HYDRO_PARENTS.has(t.name)) t.mancude = true;

@@ -1,6 +1,8 @@
 import { elementBySymbol } from './elements.ts';
+import { withLabelsDrawnOut } from './abbreviations.ts';
 import { Molecule, type AtomId, type BondId, type BondOrder } from './model.ts';
 import { ezLabel, perceiveStereoFromGeometry } from './stereo.ts';
+import { perceiveRings } from './rings.ts';
 
 /**
  * SMILES reading and writing (Daylight/OpenSMILES subset): organic-subset and
@@ -250,6 +252,13 @@ export function parseSmiles(smiles: string): Molecule {
     const refEnd = bond.begin === ids[b.a] ? ids[db[0]]! : ids[da[0]]!;
     bond.ez = { ref: [refBegin, refEnd], cis: da[1] === db[1] };
   }
+  // A double bond in a ring of fewer than eight atoms has one geometry only: marks beside it
+  // (those of a neighbouring double bond, or a ring-closure mark) say nothing about it.
+  const marked = [...mol.bonds()].filter((x) => x.ez);
+  if (marked.length) {
+    const rings = perceiveRings(mol).filter((r) => r.atoms.length < 8);
+    for (const x of marked) if (rings.some((r) => r.bonds.includes(x.id))) x.ez = null;
+  }
   return mol;
 }
 
@@ -288,7 +297,9 @@ function parseBracket(body: string): ParsedAtom {
  * as recorded (a parsed SMILES not yet laid out).
  */
 export function writeSmiles(mol: Molecule, opts: { geometry?: boolean } = {}): string {
-  const m = mol.clone();
+  // SMILES has no abbreviations: a label HexSketch can read (OMe, Boc) is written as its atoms,
+  // and only one it cannot read, or a generic R, as "*".
+  const m = withLabelsDrawnOut(mol).clone();
   // `geometry: false` keeps the recorded configuration: for a structure read from SMILES and
   // only laid out, whose drawing must not add an E or Z the SMILES left open.
   if ((opts.geometry ?? true) && [...m.atoms()].some((a) => a.x !== 0 || a.y !== 0)) perceiveStereoFromGeometry(m);

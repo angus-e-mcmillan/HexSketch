@@ -320,7 +320,12 @@ function settle(s: State, bonds: number, tail: number, charge: number, carrier: 
   if (!anyValence(head.el)) {
     const ext = external(0);
     const pick = options(0).filter(({ v }) => v === b0 + ext).filter(({ v, q }) => nitrogenOk(0, v, q)).sort((x, y) => Math.abs(x.q) - Math.abs(y.q))[0];
+    // One bond more than the element takes, all of them single and no H written: an onium centre
+    // (PPh3 on a carbon is a phosphonium, NMe3 an ammonium, SMe2 a sulfonium).
+    const onium = !pick && !charge && head.h === 0 && ['N', 'P', 'As', 'S', 'Se'].includes(head.el)
+      && b0 + ext === allowed(head.el)[0]! + 1 && kids[0]!.every((c) => orderUp[c] === 1) && !s.groups.some((g) => g.at === 0 && (g.order ?? 1) !== 1);
     if (pick) chargeOf[0] = pick.q;
+    else if (onium) chargeOf[0] = 1;
     else if (lenient && !charge) {
       const v = allowed(head.el).find((x) => x >= b0 + ext);
       if (v === undefined || (head.el === 'N' && v === 5)) return null;

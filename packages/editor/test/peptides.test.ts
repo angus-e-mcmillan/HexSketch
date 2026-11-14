@@ -73,7 +73,8 @@ test('recognition finds the sequence of a drawn peptide and refuses lookalikes',
   assert.deepEqual(partly.residues.map((r) => [r.code, !!r.stereoUnknown]), [['Ala', false], ['Ile', true]]);
   // OPSIN reads "isoleucine" as L-isoleucine, so the name is the systematic one, citing only what was drawn.
   assert.equal(peptideName(partly), null);
-  assert.equal(nameMolecule(parseSmiles('N[C@@H](C)C(=O)N[C@@H](C(C)CC)C(=O)O')).name, '(S)-2-(((S)-2-aminopropanoyl)amino)-3-methylpentanoic acid');
+  // With C3 left open, the descriptor carries its locant: a bare "(S)" would not say which centre it is.
+  assert.equal(nameMolecule(parseSmiles('N[C@@H](C)C(=O)N[C@@H](C(C)CC)C(=O)O')).name, '(2S)-2-(((S)-2-aminopropanoyl)amino)-3-methylpentanoic acid');
 });
 
 test('expanded peptides have no overlapping atoms (prolines kink the chain)', () => {
