@@ -285,9 +285,11 @@ function parseBracket(body: string): ParsedAtom {
  * wedges and 2D geometry when the structure has coordinates (as drawn), else
  * as recorded (a parsed SMILES not yet laid out).
  */
-export function writeSmiles(mol: Molecule): string {
+export function writeSmiles(mol: Molecule, opts: { geometry?: boolean } = {}): string {
   const m = mol.clone();
-  if ([...m.atoms()].some((a) => a.x !== 0 || a.y !== 0)) perceiveStereoFromGeometry(m);
+  // `geometry: false` keeps the recorded configuration: for a structure read from SMILES and
+  // only laid out, whose drawing must not add an E or Z the SMILES left open.
+  if ((opts.geometry ?? true) && [...m.atoms()].some((a) => a.x !== 0 || a.y !== 0)) perceiveStereoFromGeometry(m);
   const parts: string[] = [];
   for (const fragment of m.fragments()) parts.push(writeFragment(m, fragment));
   return parts.join('.');

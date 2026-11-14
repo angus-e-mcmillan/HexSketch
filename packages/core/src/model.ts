@@ -11,8 +11,8 @@ export type BondDisplay =
   | 'hashBegin'       // hashed wedge, narrow at begin atom
   | 'hashEnd'
   | 'wavy'            // undefined stereochemistry
-  | 'bold'            // uniform bold, no stereochemistry implied
-  | 'hash'            // uniform hash
+  | 'bold'            // uniform bold: towards the viewer at both ends, in a perspective drawing (where the atom has no wedge)
+  | 'hash'            // uniform hash: away from the viewer at both ends
   | 'dashed'
   | 'either';         // crossed double bond: E/Z unspecified
 

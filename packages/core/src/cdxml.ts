@@ -1,6 +1,8 @@
 import { elementBySymbol, elementByNumber } from './elements.ts';
 import { Molecule, type BondDisplay, type BondOrder, type DoubleBondPosition } from './model.ts';
 import { kekulize } from './kekulize.ts';
+import { perceiveStereoFromGeometry } from './stereo.ts';
+import { assignWedges } from './layout.ts';
 import { DEFAULT_STYLE, type DrawingStyle } from './style.ts';
 import { analysisCode, analysisItemOf, type AnalysisItem } from './analysis.ts';
 import { pageCdxmlAttrs, type PageSettings } from './page.ts';
@@ -169,7 +171,8 @@ export function writeCdxml(mol: Molecule, style: DrawingStyle = DEFAULT_STYLE, o
       if (!fragment.includes(b.begin)) continue;
       const attrs = [`id="${nextId++}"`, `B="${nodeIds.get(b.begin)}"`, `E="${nodeIds.get(b.end)}"`];
       if (b.order !== 1) attrs.push(`Order="${b.order}"`);
-      const display = DISPLAY_TO_CDXML[b.display];
+      // A crossed double bond (geometry not known) is ChemDraw's wavy double bond.
+      const display = b.display === 'either' && b.order === 2 ? 'Wavy' : DISPLAY_TO_CDXML[b.display];
       if (display) attrs.push(`Display="${display}"`);
       const position = POSITION_TO_CDXML[b.doubleBondPosition];
       if (position && b.order === 2) attrs.push(`DoublePosition="${position}"`);
@@ -599,6 +602,7 @@ export function readCdxml(xml: string): Molecule {
   const colorOf = (tag: string, name = 'color') => { const c = attr(tag, name); return c === undefined ? null : colorAt(Number(c)); };
 
   const body = stripNestedFragments(xml);
+  const nodeTags = new Map<string, string>();
   const nodeRe = NODE_RE();
   for (let m; (m = nodeRe.exec(body)); ) {
     const tag = m[1]!;
@@ -627,6 +631,7 @@ export function readCdxml(xml: string): Molecule {
       highlight: colorOf(tag, 'highlightColor') ?? colorOf(tag, 'HexSketchHighlight') ?? colorOf(tag, 'DrawChemHighlight'),
     });
     idMap.set(id, atom.id);
+    nodeTags.set(id, tag);
   }
 
   const bondIdMap = new Map<string, number>();
@@ -638,7 +643,8 @@ export function readCdxml(xml: string): Molecule {
     if (b === undefined || e === undefined || b === e || mol.bondBetween(b, e)) continue;
     const orderAttr = attr(tag, 'Order') ?? '1';
     const order = (orderAttr === '1.5' ? 1.5 : Math.min(4, Math.max(1, Number(orderAttr.split(/\s+/)[0]) || 1))) as BondOrder;
-    const display = CDXML_TO_DISPLAY[attr(tag, 'Display') ?? ''] ?? 'plain';
+    const shown = CDXML_TO_DISPLAY[attr(tag, 'Display') ?? ''] ?? 'plain';
+    const display = shown === 'wavy' && order === 2 ? 'either' : shown;
     const pos = attr(tag, 'DoublePosition');
     mol.addBond({
       begin: b, end: e, order, display,
@@ -668,6 +674,30 @@ export function readCdxml(xml: string): Molecule {
   }
   // A ring ChemDraw drew as a circle (Order="1.5") becomes alternating double bonds.
   kekulize(mol);
+  // ChemDraw writes each stereocentre's configuration with it (BondOrdering: seen from the first
+  // bond, the others run clockwise), worked out from more than wedges: from a perspective
+  // drawing's crossing bonds too. Where the drawing as HexSketch reads it does not show a
+  // centre the file records, an unmarked bond there is given the wedge or hash that does.
+  const recorded = new Map<number, { order: number[]; anticlockwise: boolean }>();
+  for (const [nodeId, tag] of nodeTags) {
+    const ordering = attr(tag, 'BondOrdering'), id = idMap.get(nodeId);
+    if (!ordering || id === undefined || !/^[RSrs]$/.test(attr(tag, 'AS') ?? '')) continue;
+    const order = ordering.trim().split(/\s+/).map((b) => {
+      if (b === '0') return -1;
+      const bond = bondIdMap.get(b);
+      return bond === undefined || !mol.hasBond(bond) ? -2 : mol.otherAtom(mol.bond(bond), id);
+    });
+    const nbrs = mol.neighbours(id);
+    if (order.length !== 4 || order.includes(-2) || new Set(order).size !== 4 || !nbrs.every((n) => order.includes(n)) || order.filter((x) => x !== -1).length !== nbrs.length) continue;
+    recorded.set(id, { order, anticlockwise: false });
+  }
+  if (recorded.size) {
+    perceiveStereoFromGeometry(mol);
+    const unseen = new Map([...recorded].filter(([id]) => !mol.atom(id).chirality));
+    for (const a of mol.atoms()) a.chirality = null;
+    if (unseen.size) assignWedges(mol, unseen, new Set(), { plainOnly: true });
+    for (const a of mol.atoms()) a.chirality = null;
+  }
   // An abbreviation carries its own expansion in the file. Where HexSketch reads the label as
   // the same atoms, it stays a label; where it cannot read it, or reads it differently, the
   // file's own atoms are drawn out in its place, so the chemistry is the file's.
