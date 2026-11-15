@@ -181,6 +181,24 @@ const EXPECTED: [string, string][] = [
   // Substituted alkoxy prefixes keep the contracted form.
   ['OCCOCCO', '2-(2-hydroxyethoxy)ethan-1-ol'], ['FC(F)(F)COc1ccccc1', '(2,2,2-trifluoroethoxy)benzene'],
   ['COc1ccc(OCC(=O)O)cc1', '2-(4-methoxyphenoxy)acetic acid'], ['O=C(OCCO)c1ccccc1C(=O)O', '2-((2-hydroxyethoxy)carbonyl)benzoic acid'],
+  // Unlocanted prefixes: a later one is bracketed where it could be read as carrying the one before
+  // ("trichlorovinylsilane" reads as Cl3C=CH-SiH3); a multiplied one needs no brackets.
+  ['C=C[Si](Cl)(Cl)Cl', 'trichloro(vinyl)silane'], ['C[Si](c1ccccc1)(c1ccccc1)Cl', 'chloro(methyl)diphenylsilane'],
+  ['CCO[Si](C)(C)C=C', 'ethoxydimethyl(vinyl)silane'], ['C[Sn](C)(C)C=C', 'trimethyl(vinyl)stannane'], ['CC[Hg]C#N', 'cyano(ethyl)mercury'],
+  ['CC(C)(C)[Si](C)(C)c1ccccc1', 'tert-butyldimethyl(phenyl)silane'], ['CCCN(C(=O)OCC)N=O', 'ethyl nitroso(propyl)carbamate'],
+  ['CC(C)OC(=O)c1cc(N=C(OC(C)C)S)ccc1Cl', 'isopropyl 2-chloro-5-((isopropoxy(mercapto)methylidene)amino)benzoate'],
+  // A double bond on an amide nitrogen is an ylidene; S-alkyl isothioureas with locants (unlocanted, OPSIN reads S-N=C).
+  ['CCC(CC)(C(=O)N=C(N)S)C(=O)OC', 'methyl 2-((amino(mercapto)methylidene)carbamoyl)-2-ethylbutanoate'], ['NC(=N)SCc1ccccc1', '1-(benzylthio)-1-iminomethanamine'],
+  // N(OH)2 is not nitro; charged acid groups as prefixes keep their charge; P-H acids; sulfinic acids.
+  ['Oc1ccc(cc1)N(O)O', '4-(dihydroxyamino)phenol'], ['OC(CC(=O)[O-])(CC(=O)[O-])C(=O)[O-]', '3-carboxylato-3-hydroxypentanedioate'],
+  ['OP(=O)CC(=O)O', '2-(hydroxy(oxo)-λ5-phosphanyl)acetic acid'], ['OS(=O)c1ccc(cc1)C(=O)O', '4-sulfinobenzoic acid'],
+  // Polyatomic anions multiply with bis (diphosphate is P2O7 4-); heteroatom stereocentres are cited.
+  ['[O-2].[O-]P(=O)([O-])[O-].[O-]P(=O)([O-])[O-].[Ca+2].[Ca+2].[Ca+2].[Ca+2]', 'tetracalcium oxide bis(phosphate)'],
+  ['C[P@](CC)c1ccccc1', '(R)-ethyl(methyl)(phenyl)phosphane'],
+  // Secondary von Baeyer bridges: of equal ones, the one to the higher bridgeheads is numbered first (atom 22 between 13 and 16).
+  ['C1CC2=NC1=CC3=NC(=CC4=CCC(=CC5=NC(=C2)C=C5)N4)C=C3', '21,22,23,24-tetraazapentacyclo[16.2.1.1^{3,6}.1^{8,11}.1^{13,16}]tetracosa-1(20),2,4,6(24),7,11(23),12,14,16(22),17-decaene'],
+  // Two ring carboxamides: their N locants are the ring atoms' (was "Nundefined").
+  ['CN(C)C(=O)C1=C(CCCC1)C(=O)Nc1ccccc1', 'N1,N1-dimethyl-N2-phenylcyclohex-1-ene-1,2-dicarboxamide'],
 ];
 
 const ROUND_TRIP: string[] = [
@@ -254,6 +272,8 @@ const STEREO: string[] = [
   'C[C@@H](N)C(=O)N[C@H](CC(C)C)C(=O)O',
   // Oximes, hydrazones and azo compounds carry E/Z; sulfoxides are stereocentres.
   'C/C(=N/O)c1ccccc1', 'C/C(=N\\O)c1ccccc1', 'c1ccc(/N=N/c2ccccc2)cc1', 'CC[C@@H](c1ccoc1)[S@@](=O)c1ccccc1',
+  // Phosphorus, sulfonium and silicon centres.
+  'C[P@](CC)c1ccccc1', 'CC[P@@](C)(=O)c1ccccc1', 'C[S@+](CC)c1ccccc1', 'C[Si@](CC)(CCC)c1ccccc1',
 ];
 
 test('stereodescriptors survive the OPSIN round trip', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, async () => {
@@ -284,7 +304,15 @@ test('stereodescriptors survive the OPSIN round trip', { skip: !opsinAvailable()
 
 test('what cannot be named rightly is declined, not misnamed', () => {
   // Each of these once got the name of a different compound: methane, the hydroxylamine, an amine, a neutral ether.
-  for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C']) {
+  for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C',
+    // Valences no name here says: SnR2 with no H written, PH2R3, a five-bond P with H, N+(=O)OH, oxido on P(III).
+    'CCCC[Sn]CCCC', 'CC[PH2](CC)CC', 'COP(O)(O)O', 'Oc1ccc(cc1)[N+](=O)O', 'OC(=O)CN(COP(O)[O-])COP(O)[O-].[Na+].[Na+]',
+    // Salts whose charges do not balance, or several formula units beside other components (once "palladium(II)
+    // chloride", "lead(II) acetate", "cadmium barium · dodecanoic acid", "aluminium hydride · manganese").
+    'Cl[Pd-2](Cl)(Cl)Cl', 'CC(=O)[O-].CC(=O)[O-].CC(=O)[O-].CC(=O)[O-].[Pb+2]', 'CCCCCCCCCCCC(=O)O.[Cd+2].[Ba+2]', '[AlH3].[AlH3].[AlH3].[Mn]',
+    '[Cl-].[Cl-].[Cl-].[Cl-].[Cl-].[Cl-].[K+].[K+].[Ir]',
+    // An ammonium N stereocentre the name has no place for.
+    'C[N@+](CC)(CCC)c1ccccc1']) {
     assert.equal(nameMolecule(parseSmiles(smi)).name, null, smi);
   }
 });

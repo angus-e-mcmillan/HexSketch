@@ -71,9 +71,19 @@ for (const r of named) {
   } catch (e) { r.verdict = 'compare failed'; r.reason = (e as Error).message; }
 }
 
+// OPSIN reads a composition name of metal ions with inorganic anions ("bismuth(III) hydroxide chromate",
+// "dialuminium dicalcium pentaoxide") as covalent compounds or not at all: those it cannot referee.
+const composition = (mol: Molecule) => {
+  const frags = mol.fragments();
+  const bare = (f: number[]) => f.length === 1 && isMetal(mol.atom(f[0]!).element) && mol.atom(f[0]!).charge > 0;
+  const inorganicIon = (f: number[]) => !f.some((a) => mol.atom(a).element === 'C') && f.some((a) => mol.atom(a).charge < 0);
+  return frags.some(bare) && frags.some(inorganicIon);
+};
+for (const r of rows) if ((r.verdict === 'WRONG' || r.verdict === 'unread') && r.mol && composition(r.mol)) r.verdict = 'inorganic, not checked';
+
 const tally = new Map<string, number>();
 for (const r of rows) tally.set(r.verdict!, (tally.get(r.verdict!) ?? 0) + 1);
-const order = ['ok', 'sequence', 'declined', 'stereo differs', 'unread', 'WRONG', 'CRASH', 'compare failed', 'unreadable SMILES'];
+const order = ['ok', 'sequence', 'inorganic, not checked', 'declined', 'stereo differs', 'unread', 'WRONG', 'CRASH', 'compare failed', 'unreadable SMILES'];
 console.log(`${rows.length} structures`);
 for (const v of order) if (tally.has(v)) console.log(`  ${v.padEnd(18)} ${tally.get(v)}`);
 const why = new Map<string, number>();
@@ -87,6 +97,7 @@ mkdirSync(outDir, { recursive: true });
 const dump = (verdicts: string[], name: string) => writeFileSync(`${outDir}/${name}.tsv`, rows.filter((r) => verdicts.includes(r.verdict!)).map((r) => [r.label, r.smiles, r.name ?? '', r.back ?? '', r.reason ?? ''].join('\t')).join('\n') + '\n');
 dump(['WRONG', 'stereo differs', 'CRASH', 'compare failed'], 'wrong');
 dump(['unread'], 'unread');
+dump(['inorganic, not checked'], 'inorganic');
 dump(['declined'], 'declined');
 dump(['unreadable SMILES'], 'unreadable');
 dump(['ok'], 'ok');

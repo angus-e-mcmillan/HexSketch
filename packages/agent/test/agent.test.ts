@@ -106,7 +106,9 @@ test('validate reports bad input instead of throwing', async () => {
 test('validate flags impossible and unusual atoms', async () => {
   const five = await validate('C(C)(C)(C)(C)C');
   assert.equal(five.ok, false);
-  assert.deepEqual(five.issues.map((i) => [i.severity, i.atom]), [['error', 1]]);
+  // The impossible atom is the error; that such a structure gets no name (none could be right) is a note.
+  assert.deepEqual(five.issues.map((i) => [i.severity, i.atom]), [['error', 1], ['note', undefined]]);
+  assert.equal(five.name ?? null, null);
   assert.match(five.issues[0]!.message, /C \(atom 1\) has valence 5, 1 more than C allows/);
 
   const clf3 = await validate('FCl(F)F');

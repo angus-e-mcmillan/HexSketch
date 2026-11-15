@@ -76,6 +76,36 @@ function alkoxy(R: SubName): SubName {
   return { text: `${R.complex ? `(${R.text})` : R.text}oxy`, complex: true, sortKey: `${R.sortKey}oxy` };
 }
 
+/**
+ * Prefixes that cannot themselves carry a substituent, so a prefix written before them cannot be
+ * read as on them. Mercapto and formyl are not among them: "aminomercapto" reads as H2N-S-.
+ */
+const ATOM_LIKE = /^(fluoro|chloro|bromo|iodo|nitro|nitroso|cyano|oxo|thioxo|hydroxy|azido|carboxy|carboxylato|sulfo|sulfonato|sulfino|sulfinato|isocyanato|isothiocyanato|oxido|dihydroxyamino)$/;
+const TRADITIONAL = /^(tert|sec)-[a-z]+$/;
+
+/**
+ * Prefixes cited one after another with no locants between them, already in order:
+ * trichloro(vinyl)silane, chloro(methyl)diphenylsilane, ethoxydimethyl(vinyl)silane.
+ * A prefix after the first goes in brackets where running it into the one before could be
+ * read as one substituted group (chlorovinyl, methylphenyl); a multiplied prefix, or one
+ * that cannot be substituted, needs none. A substituted prefix is always bracketed.
+ */
+function citeRun(items: readonly { text: string; complex: boolean; n: number }[]): string {
+  return items.map(({ text, complex, n }, i) => {
+    if (TRADITIONAL.test(text)) return n > 1 ? `${multiplier(n)}-${text}` : i === 0 ? text : `(${text})`;
+    if (complex) return `${complexMultiplier(n)}(${text})`;
+    if (n > 1) return `${multiplier(n)}${text}`;
+    return i === 0 || ATOM_LIKE.test(text) ? text : `(${text})`;
+  }).join('');
+}
+
+/** Identical prefixes counted, then sorted alphabetically: the items of a citeRun. */
+function countSubs(subs: readonly SubName[]): { text: string; complex: boolean; n: number; sortKey: string }[] {
+  const counts = new Map<string, { text: string; complex: boolean; n: number; sortKey: string }>();
+  for (const s of subs) { const e = counts.get(s.text); if (e) e.n++; else counts.set(s.text, { text: s.text, complex: s.complex, n: 1, sortKey: s.sortKey }); }
+  return [...counts.values()].sort((x, y) => x.sortKey.localeCompare(y.sortKey) || x.text.localeCompare(y.text));
+}
+
 const locVal = (l: string) => { const m = /^(\d+)([a-z]?)/.exec(l); return m ? Number(m[1]) + (m[2] ? 0.1 * (m[2].charCodeAt(0) - 96) : 0) : 0; };
 const cmpVec = (a: number[], b: number[]) => { for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i]! - b[i]!; return a.length - b.length; };
 const cmpKey = (a: (number | number[])[], b: (number | number[])[]) => {
@@ -735,20 +765,30 @@ function polycyclic(an: Analysis, system: AtomId[], base: { heteroN: boolean; he
           const sizes = [big!.length, small!.length, inner.length];
           const numbered = new Map(order.map((a, i) => [a, i + 1]));
           let ok = true;
+          // Main ring and main bridge: a secondary bridge between two of them is independent.
+          const mainAtoms = numbered.size;
           while (used.size < allEdges.size) {
-            // Secondary bridges: paths between numbered atoms through unnumbered ones.
+            // Secondary bridges: paths between numbered atoms through unnumbered ones. Independent
+            // bridges are numbered before dependent ones, larger before smaller, and of equal ones
+            // first the bridge to the higher-numbered bridgeheads (P-23.2.5.1; as OPSIN reads them:
+            // 22 is the bridge between 13 and 16 in pentacyclo[16.2.1.1^{3,6}.1^{8,11}.1^{13,16}]tetracosane).
             let pick: { x: AtomId; y: AtomId; inner: AtomId[] } | null = null;
+            const rank = (x: AtomId, y: AtomId, inner: AtomId[]) => {
+              const lx = numbered.get(x)!, ly = numbered.get(y)!;
+              return [lx <= mainAtoms && ly <= mainAtoms ? 1 : 0, inner.length, Math.max(lx, ly), Math.min(lx, ly)];
+            };
+            const better = (x: AtomId, y: AtomId, inner: AtomId[]) => !pick || cmpVec(rank(x, y, inner), rank(pick.x, pick.y, pick.inner)) > 0;
             for (const x of numbered.keys()) for (const z0 of nb(x)) {
               if (used.has(edgeKey(x, z0))) continue;
               if (numbered.has(z0)) {
-                if (numbered.get(x)! < numbered.get(z0)! && (!pick || pick.inner.length < 0)) pick = pick ?? { x, y: z0, inner: [] };
+                if (numbered.get(x)! < numbered.get(z0)! && better(x, z0, [])) pick = { x, y: z0, inner: [] };
                 continue;
               }
               const walk = (path: AtomId[], seen: Set<AtomId>) => {
                 const cur = path[path.length - 1]!;
                 for (const y of nb(cur)) {
                   if (seen.has(y) || used.has(edgeKey(cur, y))) continue;
-                  if (numbered.has(y)) { if (y !== x && (!pick || path.length > pick.inner.length)) pick = { x, y, inner: [...path] }; continue; }
+                  if (numbered.has(y)) { if (y !== x && better(x, y, path)) pick = { x, y, inner: [...path] }; continue; }
                   seen.add(y); path.push(y); walk(path, seen); path.pop(); seen.delete(y);
                 }
               };
@@ -782,7 +822,9 @@ function polycyclic(an: Analysis, system: AtomId[], base: { heteroN: boolean; he
   const chosen = sym.filter((c) => cmpVec(supKey(c), top) === 0);
   const desc = (c: Cand) => {
     const parts = c.sizes.slice(0, 3).map(String);
-    c.sups.forEach((sp, i) => parts.push(`${c.sizes[3 + i]}^{${sp[0]},${sp[1]}}`));
+    // Secondary bridges are cited by decreasing size, then by their bridgehead locants, whatever order they were numbered in.
+    c.sups.map((sp, i) => [c.sizes[3 + i]!, sp[0], sp[1]] as const).sort((p, q) => q[0] - p[0] || p[1] - q[1] || p[2] - q[2])
+      .forEach(([size, x, y]) => parts.push(`${size}^{${x},${y}}`));
     return `${multiplier(rings)}cyclo[${parts.join('.')}]`;
   };
   const bracket = desc(chosen[0]!);
@@ -866,13 +908,13 @@ export function ionize(input: Molecule): Molecule {
   return mol;
 }
 
-interface Ion { name: string; charge: number; /** Named as a simple ion (sodium, chloride, carbonate), not built as an organic name. */ simple?: boolean }
+interface Ion { name: string; charge: number; /** Named as a simple ion (sodium, chloride, carbonate), not built as an organic name. */ simple?: boolean; atoms?: number }
 
 /** One structure of a drawing: a simple ion or small molecule by its own name, else named in full. */
 function nameFragment(mol: Molecule, frag: AtomId[]): Ion {
   const charge = frag.reduce((t, a) => t + mol.atom(a).charge, 0);
   const simple = simpleIon(mol, frag);
-  if (simple) return { ...simple, simple: true };
+  if (simple) return { ...simple, simple: true, atoms: frag.length };
   return { name: nameOne(frag.length === mol.atomCount ? mol : subMolecule(mol, frag)), charge };
 }
 
@@ -910,15 +952,34 @@ function nameMixture(mol: Molecule, frags: AtomId[][]): string {
   }
   const parts: string[] = [];
   if (ions.length) {
+    // A composition name says what is there: cations and anions whose charges do not balance
+    // (4 acetate with Pb2+, PdCl4 2- named as palladium(II) chloride) have none.
+    const cations = ions.filter((i) => i.charge > 0), anions = ions.filter((i) => i.charge < 0);
+    // Ions of one sign alone are listed as drawn, but a bare metal name ("cadmium") says nothing of its charge.
+    if (ions.reduce((t, i) => t + i.charge, 0) !== 0) {
+      if ((cations.length && anions.length) || cations.some((i) => i.simple && i.atoms === 1 && !i.name.includes('('))) throw new OutOfScope('charges do not balance');
+      // Not a salt: each ion is listed, as each neutral structure is.
+      parts.push(...ions.map((i) => i.name));
+      ions.length = 0;
+    }
+  }
+  if (ions.length) {
     const cations = ions.filter((i) => i.charge > 0), anions = ions.filter((i) => i.charge < 0);
     const kinds = (list: Ion[]) => { const c = new Map<string, number>(); for (const i of list) c.set(i.name, (c.get(i.name) ?? 0) + 1); return [...c]; };
     const ck = kinds(cations), ak = kinds(anions);
+    // Beside other components the salt's own count matters: three AlH3 and a manganese atom are
+    // not "aluminium hydride · manganese". Its name is for one formula unit.
+    const gcd = (x: number, y: number): number => (y ? gcd(y, x % y) : x);
+    if ((neutral.length || acids.length || waters) && [...ck, ...ak].reduce((g, [, n]) => gcd(g, n), 0) > 1) throw new OutOfScope('salt of several formula units beside other components');
+    // A polyatomic anion is multiplied with bis, tris: bis(phosphate), as diphosphate is P2O7 4-.
+    // So is one whose name starts with a multiplier (bis(tetrafluoroborate)); nitrate or thiocyanate takes di.
+    const polyatomic = new Set(anions.filter((i) => i.simple && (i.atoms ?? 1) > 1 && (i.charge <= -2 || /^(di|tri|tetra|hexa)/.test(i.name))).map((i) => i.name));
     // A simple cation with a simple anion needs no count, their charges say it: sodium carbonate,
     // calcium chloride, titanium(IV) chloride. Counts are kept where an ion is an organic one
     // (disodium propanedioate), and always when there are several kinds.
     const several = ck.length > 1 || ak.length > 1;
     const countCations = several || anions.some((i) => !i.simple), countAnions = several || cations.some((i) => !i.simple);
-    const group = (list: [string, number][], counted: boolean) => list.map(([name, n]) => `${counted && n > 1 ? (/[ (\d]/.test(name) ? `${complexMultiplier(n)}(${name})` : multiplier(n) + name) : name}`).join(' ');
+    const group = (list: [string, number][], counted: boolean) => list.map(([name, n]) => `${counted && n > 1 ? (/[ (\d]/.test(name) || polyatomic.has(name) ? `${complexMultiplier(n)}(${name})` : multiplier(n) + name) : name}`).join(' ');
     parts.push([group(ck, countCations), group(ak, countAnions)].filter(Boolean).join(' '));
   }
   if (acids.length === 1 && neutral.length === 1 && !ions.length) parts.push(`${neutral[0]} ${acids[0]}`);
@@ -1006,6 +1067,7 @@ function nameOneSystematic(input: Molecule): string {
     if (a.isotope !== null) throw new OutOfScope('isotopic labelling');
     // An atom short of its valence is a radical or a carbene, however it was written.
     if (a.radical || mol.missingValence(a.id) > 0) throw new OutOfScope('radicals');
+    if (!(metals.length === 1 && a === metals[0]) && !usualValence(mol, a.id)) throw new OutOfScope(`unusual valence at ${a.element}`);
   }
   // One charged atom named on itself (an onium ion, an amide base); otherwise only the charges the namer has words for.
   const charged = [...mol.atoms()].filter((a) => a.charge !== 0 && a !== metals[0] && !isNitroAtom(mol, a.id));
@@ -1021,7 +1083,35 @@ function nameOneSystematic(input: Molecule): string {
   // (thiomorpholine 1,1-dioxide), so the ring keeps its ordinary name.
   const { bare, oxides } = withoutRingOxides(mol);
   const namer = new Namer(analyze(bare), mol, oxides);
-  return namer.functionalClassName() ?? namer.name();
+  const name = namer.functionalClassName() ?? namer.name();
+  // A configuration the name has no place for (a phosphane's P, an ammonium N) is not dropped silently.
+  if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
+  return name;
+}
+
+/** Bonds plus hydrogens each element may have, by charge; what the names here are written for. */
+const VALENCE: Readonly<Record<string, Readonly<Record<number, readonly number[]>>>> = {
+  C: { 0: [4], 1: [3], [-1]: [3] }, N: { 0: [3, 5], 1: [4], [-1]: [2] }, O: { 0: [2], 1: [3], [-1]: [1] },
+  S: { 0: [2, 4, 6], 1: [3], [-1]: [1] }, P: { 0: [3, 5], 1: [4] }, Si: { 0: [4] }, Sn: { 0: [4] }, B: { 0: [3], [-1]: [4] },
+  F: { 0: [1] }, Cl: { 0: [1] }, Br: { 0: [1] }, I: { 0: [1, 3, 5], 1: [2] }, H: { 0: [1], 1: [0], [-1]: [0] },
+};
+
+/**
+ * Is the atom at a valence its name can say? Tin with two bonds and no hydrogen written
+ * ([Sn] in CCCC[Sn]CCCC) is not a stannane; an N(V) other than nitro, or an S(IV), S(VI) or
+ * P(V) carrying hydrogen and no double bond (CC[PH2](CC)CC), is no ordinary amine, sulfide or phosphane.
+ */
+function usualValence(mol: Molecule, id: AtomId): boolean {
+  const a = mol.atom(id);
+  const allowed = VALENCE[a.element]?.[a.charge];
+  if (!allowed) return VALENCE[a.element] === undefined;
+  const h = mol.implicitHydrogens(id);
+  const used = mol.bondOrderSum(id) + h;
+  if (!allowed.includes(used)) return false;
+  const double = mol.incidentBonds(id).some((b) => mol.bond(b).order === 2);
+  if (a.element === 'N' && a.charge === 0 && used === 5) return mol.neighbours(id).filter((n) => el(mol, n) === 'O' && mol.bondBetween(id, n)!.order === 2).length === 2;
+  if ((a.element === 'S' || a.element === 'P') && h > 0 && used > 3 && !double) return false;
+  return true;
 }
 
 /**
@@ -1209,6 +1299,8 @@ class Namer {
   readonly ringByAtom = new Map<AtomId, AtomId[]>();
   readonly rs = new Map<AtomId, 'R' | 'S'>();
   readonly ez = new Map<string, 'E' | 'Z'>();
+  /** Stereocentres whose descriptor some name built here cites. */
+  readonly cited = new Set<AtomId>();
 
   /** Ring S and P atoms named with "oxide": how many =O each carries (they are not in `mol`). */
   readonly oxides: ReadonlyMap<AtomId, number>;
@@ -1238,7 +1330,7 @@ class Namer {
     const mol = this.mol;
     // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
     const charged = [...mol.atoms()].filter((a) => a.charge !== 0 && !isNitroAtom(mol, a.id));
-    if (charged.length === 1 && isOnium(mol, charged[0]!.id)) return `${this.groupedSubs(mol.neighbours(charged[0]!.id), charged[0]!.id)}${ONIUM[charged[0]!.element]}`;
+    if (charged.length === 1 && isOnium(mol, charged[0]!.id)) return `${this.centreStereo(charged[0]!.id)}${this.groupedSubs(mol.neighbours(charged[0]!.id), charged[0]!.id)}${ONIUM[charged[0]!.element]}`;
     if (charged.length === 1 && isAmideAnion(mol, charged[0]!.id)) return `${this.groupedSubs(mol.neighbours(charged[0]!.id), charged[0]!.id)}amide`;
     // ROC(=O)OC(=O)OR: di-tert-butyl dicarbonate.
     const bridge = [...mol.atoms()].filter((o) => o.element === 'O' && mol.neighbours(o.id).length === 2 && !this.an.ringAtoms.has(o.id)
@@ -1260,7 +1352,7 @@ class Namer {
       const m = metalloids[0]!;
       const nb2 = mol.neighbours(m.id);
       if (nb2.length === 4 && mol.incidentBonds(m.id).every((b) => mol.bond(b).order === 1) && !this.an.ringAtoms.has(m.id)) {
-        return `${this.groupedSubs(nb2, m.id)}${m.element === 'Si' ? 'silane' : 'stannane'}`;
+        return `${this.centreStereo(m.id)}${this.groupedSubs(nb2, m.id)}${m.element === 'Si' ? 'silane' : 'stannane'}`;
       }
     }
     const centres = [...mol.atoms()].filter((a) => a.element === 'B' || a.element === 'P');
@@ -1285,39 +1377,37 @@ class Namer {
     }
     if (c.element === 'P' && this.an.ringAtoms.has(c.id)) return null;
     if (c.element === 'P' && nbrs.length === 3 && carbonNbrs.length === 3 && mol.incidentBonds(c.id).every((b) => mol.bond(b).order === 1)) {
-      return `${this.groupedSubs(carbonNbrs, c.id)}phosphane`;
+      return `${this.centreStereo(c.id)}${this.groupedSubs(carbonNbrs, c.id)}phosphane`;
     }
     if (c.element === 'P' && c.charge === 0 && nbrs.length === 4 && !this.principal) {
       const single = nbrs.filter((n) => mol.bondBetween(c.id, n)!.order === 1), dbl = nbrs.filter((n) => mol.bondBetween(c.id, n)!.order === 2);
       if (single.length === 3 && dbl.length === 1 && single.every((n) => el(mol, n) === 'C')) {
         const d = dbl[0]!;
         // R3P=O and R3P=S: triphenylphosphine oxide.
-        if ((el(mol, d) === 'O' || el(mol, d) === 'S') && mol.neighbours(d).length === 1) return `${this.groupedSubs(single, c.id)}phosphine ${el(mol, d) === 'O' ? 'oxide' : 'sulfide'}`;
+        if ((el(mol, d) === 'O' || el(mol, d) === 'S') && mol.neighbours(d).length === 1) return `${this.centreStereo(c.id)}${this.groupedSubs(single, c.id)}phosphine ${el(mol, d) === 'O' ? 'oxide' : 'sulfide'}`;
         // A Wittig ylide, R3P=CR2: methylenetriphenyl-λ5-phosphane.
         if (el(mol, d) === 'C') {
           const Y = this.ylidene(d, c.id);
           const subs = single.map((n) => this.substituent(n, c.id));
-          const all = [{ ...Y }, ...subs];
-          const counts = new Map<string, { s: SubName; n: number }>();
-          for (const x of all) { const e2 = counts.get(x.text); if (e2) e2.n++; else counts.set(x.text, { s: x, n: 1 }); }
-          const text = [...counts.values()].sort((x, y) => x.s.sortKey.localeCompare(y.s.sortKey))
-            .map(({ s: x, n }) => (x.complex ? `${complexMultiplier(n)}(${x.text})` : `${multiplier(n)}${x.text}`)).join('');
-          return `${text}-λ5-phosphane`;
+          return `${citeRun(countSubs([Y, ...subs]))}-λ5-phosphane`;
         }
       }
     }
     return null;
   }
 
+  /** "(R)-" for a heteroatom centre that is a stereocentre: (R)-ethyl(methyl)(phenyl)phosphane. */
+  centreStereo(id: AtomId): string {
+    const rs = this.rs.get(id);
+    if (!rs) return '';
+    this.cited.add(id);
+    return `(${rs})-`;
+  }
+
   /** "tert-butyldimethyl", "triphenyl": substituents on a heteroatom centre, alphabetical, multiplied. */
   groupedSubs(atoms: readonly AtomId[], centre: AtomId): string {
-    const subs = atoms.map((n) => this.substituent(n, centre));
-    const counts = new Map<string, { s: SubName; n: number }>();
-    for (const s2 of subs) { const e = counts.get(s2.text); if (e) e.n++; else counts.set(s2.text, { s: s2, n: 1 }); }
     // Traditional prefixes need no brackets here: tert-butyldimethylsilyl.
-    const bare = (t: string) => /^(tert|sec)-[a-z]+$/.test(t);
-    return [...counts.values()].sort((x, y) => x.s.sortKey.localeCompare(y.s.sortKey))
-      .map(({ s: s2, n }) => (s2.complex && !bare(s2.text) ? `${complexMultiplier(n)}(${s2.text})` : `${multiplier(n)}${s2.text}`)).join('');
+    return citeRun(countSubs(atoms.map((n) => this.substituent(n, centre))));
   }
 
   name(): string {
@@ -1342,7 +1432,7 @@ class Namer {
   stereoPrefix(atoms: AtomId[], numbering: Numbering, from?: AtomId): string {
     const items: [string, string][] = [];
     const inSet = new Set(atoms);
-    for (const a of atoms) { const l = this.rs.get(a); if (l) items.push([numbering.get(a)!, l]); }
+    for (const a of atoms) { const l = this.rs.get(a); if (l) { items.push([numbering.get(a)!, l]); this.cited.add(a); } }
     for (const b of this.mol.bonds()) {
       const l = this.ez.get(`${b.begin}-${b.end}`);
       if (!l) continue;
@@ -1505,9 +1595,11 @@ class Namer {
     for (const g of sites.keys()) {
       if (!g.nitrogen) continue;
       const anchorC = g.kind === 'amine' || g.kind === 'aminium' ? sites.get(g)! : g.anchor;
+      // Whose nitrogen it is, by the parent atom that carries the suffix: N1 of a ring's 1-carboxamide.
+      const locAt = p.kind === 'ring' && g.ownCarbon ? sites.get(g)! : anchorC;
       for (const n of mol.neighbours(g.nitrogen)) {
         if (n === anchorC || g.consumed.includes(n)) continue;
-        out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: anchorC });
+        out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: locAt });
       }
     }
     return out;
@@ -1803,13 +1895,16 @@ class Namer {
     }
     const sorted = [...groups.values()].sort((a, b) => a.sub.sortKey.localeCompare(b.sub.sortKey) || a.sub.text.localeCompare(b.sub.text));
     let out = '';
-    // Prefixes that cannot themselves be substituted, so nothing written before them can be read as on them.
-    const atomLike = /^(fluoro|chloro|bromo|iodo|nitro|nitroso|cyano|oxo|thioxo|hydroxy|mercapto|azido|carboxy|formyl|isocyanato|isothiocyanato|oxido)$/;
+    // A bare imino or methylene right after a prefix that can also be a bridge (oxy, thio, sulfonyl,
+    // carbonyl) is read as joined to it, brackets or not: "(benzylthio)(imino)methanamine" reads as
+    // BnS-N=CH-NH2. There the locants are cited: 1-(benzylthio)-1-iminomethanamine.
+    if (omitAll && sorted.some((g, i) => i > 0 && /^(imino|iminio|methylene|methylidene)$/.test(g.sub.text)
+      && /(oxy|thio|sulfonyl|sulfinyl|carbonyl|imino|methylene|methylidene)$/.test(sorted[i - 1]!.sub.text))) omitAll = false;
     for (const { sub, locs } of sorted) {
       const n = locs.length;
       // With no locant between them, a prefix after another goes in brackets where it could be read as
       // carrying the one before: chloro(methoxy)methane, not chloromethoxymethane.
-      const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !atomLike.test(sub.text));
+      const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !ATOM_LIKE.test(sub.text));
       const body = bracket ? `${complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);
@@ -1901,10 +1996,8 @@ class Namer {
     if (el(mol, x) === 'N' && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1)) {
       const subs = mol.neighbours(x).filter((n) => n !== c).map((n) => this.substituent(n, x));
       if (subs.some(() => this.an.groups.some((gg) => gg !== g && gg.kind === 'ester'))) return null;
-      const wrap = (t: SubName) => (t.complex ? `(${t.text})` : t.text);
-      const nPart = subs.length === 0 ? '' : subs.length === 2 && subs[0]!.text === subs[1]!.text ? `di${wrap(subs[0]!)}`
-        : [...subs].sort((p, q) => p.sortKey.localeCompare(q.sortKey)).map(wrap).join('');
-      return `${alkyl} ${nPart}carbamate`;
+      // ethyl nitroso(propyl)carbamate, ethyl dimethylcarbamate.
+      return `${alkyl} ${citeRun(countSubs(subs))}carbamate`;
     }
     if (el(mol, x) === 'O' && mol.neighbours(x).length === 2) {
       const r2 = mol.neighbours(x).find((n) => n !== c)!;
@@ -1981,6 +2074,9 @@ class Namer {
     const e = el(mol, a);
     const others = mol.neighbours(a).filter((n) => n !== from);
     const simple = (text: string): SubName => ({ text, complex: false, sortKey: text });
+    // A group on a double or triple bond is an ylidene or ylidyne, never "-yl": that would lose the bond.
+    const link = mol.bondBetween(a, from);
+    if (link && (link.order === 2 || link.order === 3)) throw new OutOfScope('substituent on a multiple bond');
     if (this.an.ringAtoms.has(a)) return this.ringSubstituent(a, from);
     if (HALO[e]) return simple(HALO[e]!);
     if (e === 'O') {
@@ -2005,15 +2101,25 @@ class Namer {
       const dbl = others.filter((n) => mol.bondBetween(a, n)!.order === 2);
       if (dbl.length > 1 || dbl.some((n) => !['O', 'S'].includes(el(mol, n)) || mol.neighbours(n).length !== 1)) throw new OutOfScope('phosphorus substituent');
       const rest = others.filter((n) => !dbl.includes(n));
+      const hP = this.an.h.get(a) ?? 0;
+      // P(III) with three bonds or hydrogens (phosphanyl), or P(V) with one =O or =S and three
+      // more: anything else (a five-bond P with no double bond, a charged P) is declined.
+      const lambda5 = !dbl.length && !hP && rest.length === 4;
+      if (mol.atom(a).charge !== 0 || (!lambda5 && 1 + rest.length + hP + 2 * dbl.length !== (dbl.length ? 5 : 3)) || rest.some((n) => mol.bondBetween(a, n)!.order !== 1)) throw new OutOfScope('phosphorus substituent');
+      // An oxido on P(III) is read as =O.
+      if (!dbl.length && !lambda5 && rest.some((n) => mol.atom(n).charge !== 0)) throw new OutOfScope('phosphorus substituent');
       const parts = rest.map((n) => this.substituent(n, a));
+      // P(V) with hydrogen: hydroxy(oxo)-λ5-phosphanyl, the H-phosphinic acid; "hydroxyphosphoryl" would be P(=O)(OH)=.
+      if (dbl.length && hP) parts.push({ text: el(mol, dbl[0]!) === 'S' ? 'thioxo' : 'oxo', complex: false, sortKey: el(mol, dbl[0]!) === 'S' ? 'thioxo' : 'oxo' });
       const counts = new Map<string, { s: SubName; n: number }>();
       for (const p2 of parts) { const c2 = counts.get(p2.text); if (c2) c2.n++; else counts.set(p2.text, { s: p2, n: 1 }); }
       // Every prefix after the first in brackets: hydroxy(methoxy)phosphorothioyl.
       const inner = [...counts.values()].sort((x, y) => x.s.sortKey.localeCompare(y.s.sortKey))
         .map(({ s: s2, n }, i) => (s2.complex || (i > 0 && n === 1) ? `${complexMultiplier(n)}(${s2.text})` : `${multiplier(n)}${s2.text}`)).join('');
-      const word = !dbl.length ? 'phosphanyl' : el(mol, dbl[0]!) === 'S' ? 'phosphorothioyl' : 'phosphoryl';
+      const word = lambda5 ? '-λ5-phosphanyl' : !dbl.length ? 'phosphanyl' : hP ? '-λ5-phosphanyl' : el(mol, dbl[0]!) === 'S' ? 'phosphorothioyl' : 'phosphoryl';
       const plain = `${inner}${word}`;
       const rs = this.rs.get(a);
+      if (rs) this.cited.add(a);
       return { text: rs ? `(${rs})-${plain}` : plain, complex: true, sortKey: plain.replace(/[^a-z]/g, '') };
     }
     if (e === 'S') {
@@ -2023,19 +2129,35 @@ class Namer {
       if (oxo === 2 && rest.length === 1 && el(mol, rest[0]!) === 'O' && mol.atom(rest[0]!).charge === -1) return simple('sulfonato');
       if (oxo === 2 && rest.length === 1 && el(mol, rest[0]!) === 'O' && mol.neighbours(rest[0]!).length === 1 && this.an.h.get(rest[0]!) === 1) return simple('sulfo');
       if (oxo === 2 && rest.length === 1 && el(mol, rest[0]!) === 'N' && mol.neighbours(rest[0]!).length === 1 && mol.atom(rest[0]!).charge === 0) return simple('sulfamoyl');
+      // Sulfinic acid and sulfinate as prefixes; "oxidosulfinyl" would read as a sulfonyl.
+      if (oxo === 1 && rest.length === 1 && el(mol, rest[0]!) === 'O' && mol.neighbours(rest[0]!).length === 1) {
+        if (mol.atom(rest[0]!).charge === -1) return simple('sulfinato');
+        if (mol.atom(rest[0]!).charge === 0 && this.an.h.get(rest[0]!) === 1) return simple('sulfino');
+      }
+      if (mol.atom(a).charge !== 0 || this.an.h.get(a)) throw new OutOfScope('sulfur substituent');
+      // Oxido on a sulfur reads as =O.
+      if (rest.length === 1 && el(mol, rest[0]!) === 'O' && mol.atom(rest[0]!).charge !== 0) throw new OutOfScope('sulfur substituent');
       if (rest.length === 1) {
         const R = this.substituent(rest[0]!, a);
         const tail = oxo === 2 ? 'sulfonyl' : oxo === 1 ? 'sulfinyl' : 'thio';
         const inner = R.complex ? `(${R.text})` : R.text;
         // A sulfinyl sulfur is a stereocentre: ((S)-phenylsulfinyl).
         const rs = this.rs.get(a);
+        if (rs) this.cited.add(a);
         return { text: `${rs ? `(${rs})-` : ''}${inner}${tail}`, complex: true, sortKey: `${R.sortKey}${tail}` };
       }
       throw new OutOfScope('sulfur substituent');
     }
     if (e === 'N') {
       const oxy = others.filter((n) => el(mol, n) === 'O');
-      if (oxy.length === 2) return simple('nitro');
+      // Nitro is exactly N(=O)=O or N+(=O)O-; N(OH)2 is dihydroxyamino, and N+(=O)OH is declined below.
+      if (oxy.length === 2 && others.length === 2 && oxy.every((o) => mol.neighbours(o).length === 1)) {
+        const q = mol.atom(a).charge, ords = oxy.map((o) => mol.bondBetween(a, o)!.order).sort(), qs = oxy.map((o) => mol.atom(o).charge).sort();
+        if (q === 0 && ords.join() === '2,2' && qs.join() === '0,0') return simple('nitro');
+        if (q === 1 && ords.join() === '1,2' && oxy.some((o) => mol.bondBetween(a, o)!.order === 1 && mol.atom(o).charge === -1) && oxy.some((o) => mol.bondBetween(a, o)!.order === 2 && mol.atom(o).charge === 0)) return simple('nitro');
+        if (q === 0 && ords.join() === '1,1' && oxy.every((o) => mol.atom(o).charge === 0 && this.an.h.get(o) === 1)) return { text: 'dihydroxyamino', complex: true, sortKey: 'dihydroxyamino' };
+        throw new OutOfScope('nitrogen substituent');
+      }
       if (mol.atom(a).charge === 1 && others.length === 1 && mol.bondBetween(a, others[0]!)!.order === 3 && el(mol, others[0]!) === 'C' && mol.atom(others[0]!).charge === -1) return simple('isocyano');
       if (mol.atom(a).charge === 1) {
         // -N+H=C<: (propan-2-ylidene)azaniumyl.
@@ -2116,7 +2238,8 @@ class Namer {
       const re = el(mol, r.n);
       if (re === 'O') {
         const beyond = mol.neighbours(r.n).filter((n) => n !== a);
-        if (beyond.length === 0) return simple('carboxy');
+        // CO2- as a prefix keeps its charge: 3-carboxylato-3-hydroxypentanedioate.
+        if (beyond.length === 0) return simple(mol.atom(r.n).charge === -1 ? 'carboxylato' : 'carboxy');
         const R = this.substituent(beyond[0]!, r.n);
         const ro = alkoxy(R).text;
         // A substituted alkoxy is bracketed before carbonyl: (2-hydroxyethoxy)carbonyl.
@@ -2137,10 +2260,12 @@ class Namer {
       }
       if (re === 'N') {
         const nsubs = mol.neighbours(r.n).filter((n) => n !== a);
+        if (mol.atom(r.n).charge !== 0) throw new OutOfScope('charged carbamoyl nitrogen');
         if (nsubs.length === 0) return simple('carbamoyl');
-        const S = nsubs.map((n) => this.substituent(n, r.n));
-        const text = S.length === 2 && S[0]!.text === S[1]!.text ? `di${S[0]!.text}carbamoyl` : `${S.map((s) => s.text).join('')}carbamoyl`;
-        return { text, complex: true, sortKey: text };
+        // What is on the nitrogen, double-bonded as an ylidene: ((diaminomethylidene)carbamoyl), (dimethylcarbamoyl).
+        const S = nsubs.map((n) => (mol.bondBetween(r.n, n)!.order === 2 ? this.ylidene(n, r.n) : this.substituent(n, r.n)));
+        const text = `${citeRun(countSubs(S))}carbamoyl`;
+        return { text, complex: true, sortKey: text.replace(/[^a-z]/g, '') };
       }
       if (re === 'S' && rest.length === 1 && r.o === 1 && mol.neighbours(r.n).length === 2 && !this.an.ringAtoms.has(r.n)) {
         // C(=O)S-R hanging off something: ((methylthio)carbonyl).
