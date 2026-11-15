@@ -1049,6 +1049,7 @@ function perdeuterated(input: Molecule): string | null {
   // Heavy water and the like are named whole, as water is.
   foldHydrogens(plain);
   const whole = speciesName(plain, [...plain.atoms()].map((a) => a.id));
+  if (whole?.name === 'dihydrogen') return 'dideuterium';
   const name = whole && whole.charge === 0 ? whole.name : nameOne(plain);
   // On a name with brackets or a locant in front, the "-d" would not say plainly what it belongs to.
   if (!/^[a-z][a-z0-9, -]*$/i.test(name)) throw new OutOfScope('isotopic labelling');

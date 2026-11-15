@@ -71,6 +71,8 @@ let k = 0;
 for (const r of named) {
   const n = r.name!.split(' · ').length;
   const got = read.slice(k, k + n); k += n;
+  // OPSIN has no word for D2.
+  r.name!.split(' · ').forEach((part, i) => { if (part === 'dideuterium') got[i] = '[2H][2H]'; });
   if (got.some((g) => g === null)) { r.verdict = /^(5'-|[A-Z][a-z]*-.*-(OH|NH2|OMe)$)/.test(r.name!) ? 'sequence' : 'unread'; continue; }
   r.back = got.join('.');
   let other: Molecule;
