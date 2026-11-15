@@ -1109,11 +1109,15 @@ function nameOneSystematic(input: Molecule): string {
       }
     }
   }
+  // A descriptor that could not be worked out (a centre in a very large fused system) is not left out
+  // silently, and no time is spent on the rest of the name once one has been given up.
   const gaveUp = cipLimits.gaveUp;
+  const costly = () => { if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out'); };
   const namer = new Namer(an, mol, oxides);
+  costly();
+  namer.afterRanking = costly;
   const name = namer.functionalClassName() ?? namer.name();
-  // A descriptor that could not be worked out (a centre in a very large fused system) is not left out silently.
-  if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out');
+  costly();
   // A configuration the name has no place for (a phosphane's P, an ammonium N) is not dropped silently.
   if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
   // Last check on the name itself: it must carry one descriptor for each centre and each double bond that
@@ -1340,6 +1344,8 @@ class Namer {
   readonly ez = new Map<string, 'E' | 'Z'>();
   /** Stereocentres whose descriptor some name built here cites. */
   readonly cited = new Set<AtomId>();
+  /** Called after each CIP ranking made while naming, to stop when one was given up. */
+  afterRanking: () => void = () => {};
 
   /** Ring S and P atoms named with "oxide": how many =O each carries (they are not in `mol`). */
   readonly oxides: ReadonlyMap<AtomId, number>;
@@ -1349,10 +1355,14 @@ class Namer {
     this.an = an;
     this.mol = an.mol;
     this.oxides = oxides;
-    for (const a of an.mol.atoms()) { const l = rsLabel(full, a.id); if (l) this.rs.set(a.id, l); }
+    // The first ranking given up ends the naming: each one costs as much again.
+    const gaveUp = cipLimits.gaveUp;
+    const costly = () => { if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out'); };
+    for (const a of an.mol.atoms()) { const l = rsLabel(full, a.id); costly(); if (l) this.rs.set(a.id, l); }
     for (const b of an.mol.bonds()) {
       const fb = full.bondBetween(b.begin, b.end);
       const l = fb ? ezLabel(full, fb.id) : null;
+      costly();
       if (l) { this.ez.set(`${b.begin}-${b.end}`, l); this.ez.set(`${b.end}-${b.begin}`, l); }
     }
     for (const s of an.ringSystems) for (const a of s) this.ringByAtom.set(a, s);
@@ -1505,45 +1515,73 @@ class Namer {
 
   /** Does the skeleton hold a centre or double bond that could have a configuration but was given none? */
   openStereo(atoms: AtomId[]): boolean {
-    const mol = this.mol;
     const inSet = new Set(atoms);
-    const probe = mol.clone();
-    const rings = perceiveRings(mol);
-    // (Seven counts as large here: a reader may give a seven-membered ring's double bond a configuration.)
-    const smallRing = (x: AtomId, y: AtomId) => rings.some((r) => r.atoms.length < 7 && r.atoms.includes(x) && r.atoms.includes(y));
-    for (const a of atoms) {
-      if (this.rs.get(a)) continue;
-      const nb = mol.neighbours(a), h = mol.implicitHydrogens(a), charge = mol.atom(a).charge;
-      const e = el(mol, a);
-      if (e !== 'P' && e !== 'S' && mol.incidentBonds(a).some((b) => mol.bond(b).order !== 1)) continue;
+    if (atoms.some((a) => this.openCentre(a))) return true;
+    for (const b of this.mol.bonds()) if ((inSet.has(b.begin) || inSet.has(b.end)) && this.openBond(b.id)) return true;
+    return false;
+  }
+
+  // Whether an atom or a bond could have a configuration is asked for every candidate parent and
+  // group, and each answer takes a CIP ranking: it is worked out once.
+  #probe: Molecule | null = null;
+  #smallRings: ReturnType<typeof perceiveRings> | null = null;
+  readonly #openCentres = new Map<AtomId, boolean>();
+  readonly #openBonds = new Map<number, boolean>();
+
+  /** An atom with no configuration given that could have one. */
+  openCentre(a: AtomId): boolean {
+    const known = this.#openCentres.get(a);
+    if (known !== undefined) return known;
+    const mol = this.mol;
+    let could = false;
+    const nb = mol.neighbours(a), h = mol.implicitHydrogens(a), charge = mol.atom(a).charge;
+    const e = el(mol, a);
+    if (!this.rs.get(a) && (e === 'P' || e === 'S' || mol.incidentBonds(a).every((b) => mol.bond(b).order === 1))) {
       // Carbon or silicon with four different groups, a quaternary ammonium or phosphonium centre;
       // a ring nitrogen held in a three-membered ring.
       const carbon = nb.length + h === 4 && h <= 1 && (((e === 'C' || e === 'Si') && charge === 0) || ((e === 'N' || e === 'P') && charge === 1 && h === 0));
       // Phosphorus with three groups and its lone pair, or four with P=O; a sulfoxide or sulfonium sulfur.
       const hetero = h === 0 && ((e === 'P' && charge === 0 && (nb.length === 3 || nb.length === 4)) || (e === 'S' && nb.length === 3 && charge >= 0));
       const aziridine = e === 'N' && charge === 0 && nb.length === 3 && h === 0 && nb.some((x) => nb.some((y) => x !== y && mol.bondBetween(x, y)));
-      if (!carbon && !aziridine && !hetero) continue;
-      const before = probe.atom(a).chirality;
-      probe.atom(a).chirality = { order: nb.length === 4 ? [...nb] : [nb[0]!, -1, ...nb.slice(1)], anticlockwise: true };
-      const could = rsLabel(probe, a) !== null;
-      probe.atom(a).chirality = before;
-      if (could) return true;
+      if (carbon || aziridine || hetero) {
+        const probe = (this.#probe ??= mol.clone());
+        const before = probe.atom(a).chirality;
+        probe.atom(a).chirality = { order: nb.length === 4 ? [...nb] : [nb[0]!, -1, ...nb.slice(1)], anticlockwise: true };
+        could = rsLabel(probe, a) !== null;
+        probe.atom(a).chirality = before;
+        this.afterRanking();
+      }
     }
-    for (const b of mol.bonds()) {
-      // (A double bond in a ring of fewer than eight atoms has one form only.)
-      if (b.order !== 2 || this.ez.get(`${b.begin}-${b.end}`) || !(inSet.has(b.begin) || inSet.has(b.end)) || smallRing(b.begin, b.end)) continue;
+    this.#openCentres.set(a, could);
+    return could;
+  }
+
+  /** A double bond with no configuration given that could have one. */
+  openBond(id: number): boolean {
+    const known = this.#openBonds.get(id);
+    if (known !== undefined) return known;
+    const mol = this.mol;
+    const b = mol.bond(id);
+    let could = false;
+    // A double bond in a small ring has one form only. (Seven counts as large here: a reader may give
+    // a seven-membered ring's double bond a configuration.)
+    const rings = (this.#smallRings ??= perceiveRings(mol).filter((r) => r.atoms.length < 7));
+    if (b.order === 2 && !this.ez.get(`${b.begin}-${b.end}`) && !rings.some((r) => r.atoms.includes(b.begin) && r.atoms.includes(b.end))) {
       const ra = mol.neighbours(b.begin).find((x) => x !== b.end), rb = mol.neighbours(b.end).find((x) => x !== b.begin);
       // C=N-H: the hydrogen is not drawn, but the imine has two forms all the same unless its carbon is CH2.
       const imineNH = (n: AtomId, c: AtomId) => el(mol, n) === 'N' && mol.neighbours(n).length === 1 && mol.implicitHydrogens(n) === 1 && mol.neighbours(c).length >= 2;
-      if (imineNH(b.begin, b.end) || imineNH(b.end, b.begin)) return true;
-      if (ra === undefined || rb === undefined) continue;
-      const pb = probe.bond(b.id), before = pb.ez;
-      pb.ez = { ref: [ra, rb], cis: true };
-      const could = ezLabel(probe, b.id) !== null;
-      pb.ez = before;
-      if (could) return true;
+      if (imineNH(b.begin, b.end) || imineNH(b.end, b.begin)) could = true;
+      else if (ra !== undefined && rb !== undefined) {
+        const probe = (this.#probe ??= mol.clone());
+        const pb = probe.bond(b.id), before = pb.ez;
+        pb.ez = { ref: [ra, rb], cis: true };
+        could = ezLabel(probe, b.id) !== null;
+        pb.ez = before;
+        this.afterRanking();
+      }
     }
-    return false;
+    this.#openBonds.set(id, could);
+    return could;
   }
 
   withStereo(atoms: AtomId[], numbering: Numbering, name: string): string {
