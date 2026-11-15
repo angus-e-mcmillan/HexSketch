@@ -49,7 +49,7 @@ export function layout2D(mol: Molecule, L = 18.43): void {
       const placedNbrs = mol.neighbours(x).filter((n) => local.has(n));
       // Heavier branches take the straightest directions.
       kids.sort((a, b) => subtreeSize(mol, b, x, local) - subtreeSize(mol, a, x, local));
-      const dirs = childDirections(mol, x, placedNbrs, kids, local, turn);
+      const dirs = childDirections(mol, x, placedNbrs, kids, local, turn, rings);
       kids.forEach((k, i) => {
         const t = dirs[i]!;
         const target = { x: px.x + L * Math.cos(t), y: px.y + L * Math.sin(t) };
@@ -331,7 +331,7 @@ function centroid(ps: P[]): P {
 }
 
 /** Directions for unplaced neighbours of x, ChemDraw style. */
-function childDirections(mol: Molecule, x: AtomId, placed: AtomId[], kids: AtomId[], pos: Map<AtomId, P>, turn: Map<AtomId, number>): number[] {
+function childDirections(mol: Molecule, x: AtomId, placed: AtomId[], kids: AtomId[], pos: Map<AtomId, P>, turn: Map<AtomId, number>, rings: readonly Ring[]): number[] {
   const px = pos.get(x)!;
   if (!placed.length) {
     // Chain start: first bond at -30 degrees; further kids spread round.
@@ -350,15 +350,35 @@ function childDirections(mol: Molecule, x: AtomId, placed: AtomId[], kids: AtomI
       return [norm(back + t * 120 * DEG)];
     }
     if (kids.length === 2) { turn.set(x, 1); return [norm(back + 120 * DEG), norm(back - 120 * DEG)]; }
+    if (kids.length === 3 && subtreeSize(mol, kids[0]!, x, pos) > 1 && subtreeSize(mol, kids[1]!, x, pos) === 1) {
+      // A chain carrying two single atoms here (CF2, a gem-dimethyl): the chain keeps its zigzag and
+      // the pair stands on the outside of the bend, 60 degrees apart. Turning the chain through a
+      // right angle at each such atom, as a cross would, winds a perfluoro chain onto itself.
+      // (Larger groups need the room a cross gives: the three phenyls of a trityl.)
+      const t = -(turn.get(placed[0]!) ?? 1);
+      turn.set(x, t);
+      const out = back + t * 60 * DEG + Math.PI;
+      return [norm(back + t * 120 * DEG), norm(out - 30 * DEG), norm(out + 30 * DEG)];
+    }
+    // A cross (tert-butyl, a sulfone, SF5): straight on first, for the heaviest.
+    if (kids.length === 3) return [norm(back + Math.PI), norm(back + Math.PI / 2), norm(back - Math.PI / 2)];
     return kids.map((_, i) => norm(back + (90 + 90 * i) * DEG));
   }
-  // Two or more placed neighbours (ring atoms): spread kids evenly in the widest gap.
-  const angles = placed.map((n) => ang(px, pos.get(n)!)).sort((a, b) => a - b);
+  // Two or more placed neighbours (ring atoms): spread kids evenly in the widest gap that is not
+  // the inside of a ring. (A ring atom reached from its substituent has three gaps of 120 degrees,
+  // one of them the ring itself: a second substituent put there is drawn across the ring.)
+  const around = placed.map((n) => ({ n, a: ang(px, pos.get(n)!) })).sort((p, q) => p.a - q.a);
   let gapStart = 0, gap = -1;
-  angles.forEach((a, i) => {
-    const b = i + 1 < angles.length ? angles[i + 1]! : angles[0]! + 2 * Math.PI;
-    if (b - a > gap) { gap = b - a; gapStart = a; }
-  });
+  for (const inside of [false, true]) {
+    around.forEach((p, i) => {
+      const q = around[(i + 1) % around.length]!;
+      const width = i + 1 < around.length ? q.a - p.a : q.a + 2 * Math.PI - p.a;
+      // The inside of a ring is the narrow side of its two bonds.
+      if ((width < Math.PI - 1e-6 && rings.some((r) => r.atoms.includes(x) && r.atoms.includes(p.n) && r.atoms.includes(q.n))) !== inside) return;
+      if (width > gap + 1e-9) { gap = width; gapStart = p.a; }
+    });
+    if (gap > 0) break;
+  }
   if (kids.length === 1) return [norm(gapStart + gap / 2)];
   const spread = Math.min(gap / (kids.length + 1), 60 * DEG);
   const mid = gapStart + gap / 2;
@@ -382,37 +402,74 @@ function longestPathEnd(mol: Molecule, fragment: AtomId[]): AtomId {
   return far(far(fragment[0]!));
 }
 
-/** Flip branches about rotatable bonds until no two atoms sit on top of each other. */
+/**
+ * Move branches until no two atoms sit on top of each other: mirror one about a rotatable
+ * bond where that helps, and where no mirror image does (two crowded neighbours pointing at
+ * the same spot), swing it 30 degrees aside. Each clash is taken in turn, the worst first; one
+ * that nothing helps is left, and the rest are still dealt with.
+ */
 function resolveClashes(mol: Molecule, fragment: AtomId[], pos: Map<AtomId, P>, L: number): void {
-  const minD = 0.55 * L;
-  const clashes = () => {
-    const out: [AtomId, AtomId][] = [];
+  const hard = 0.55 * L, near = 0.9 * L;
+  const dist = (a: AtomId, b: AtomId) => { const p = pos.get(a)!, q = pos.get(b)!; return Math.hypot(p.x - q.x, p.y - q.y); };
+  /** How crowded `side` is against everything else: the squared shortfall of each pair closer than `near`. */
+  const crowding = (side: ReadonlySet<AtomId>) => {
+    let sum = 0;
+    for (const a of side) for (const b of fragment) {
+      if (side.has(b)) continue;
+      const d = dist(a, b);
+      if (d < near && !mol.bondBetween(a, b)) sum += ((near - d) / L) ** 2;
+    }
+    return sum;
+  };
+  const stuck = new Set<string>();
+  const swung = new Set<string>();
+  const ringAtoms = new Set(perceiveRings(mol).flatMap((r) => r.atoms));
+  for (let iter = 0; iter < 80; iter++) {
+    let worst: [AtomId, AtomId] | null = null, least = hard;
     for (let i = 0; i < fragment.length; i++) for (let j = i + 1; j < fragment.length; j++) {
       const a = fragment[i]!, b = fragment[j]!;
-      const pa = pos.get(a)!, pb = pos.get(b)!;
-      if (Math.hypot(pa.x - pb.x, pa.y - pb.y) < minD && !mol.bondBetween(a, b)) out.push([a, b]);
+      const d = dist(a, b);
+      if (d < least && !mol.bondBetween(a, b) && !stuck.has(`${a}-${b}`)) { least = d; worst = [a, b]; }
     }
-    return out;
-  };
-  for (let iter = 0; iter < 30; iter++) {
-    const cs = clashes();
-    if (!cs.length) return;
-    const [a, b] = cs[0]!;
+    if (!worst) return;
+    const [a, b] = worst;
     const path = shortestPath(mol, a, b);
-    let fixed = false;
-    // Try each rotatable bond on the path: mirror the side containing b across that bond's axis.
-    for (let i = 0; i + 1 < path.length && !fixed; i++) {
+    let best: { gain: number; apply: () => void } | null = null;
+    for (let i = 0; i + 1 < path.length; i++) {
       const u = path[i]!, v = path[i + 1]!;
-      const bond = mol.bondBetween(u, v)!;
-      if (bond.order !== 1 || inRing(mol, u, v)) continue;
-      const side = sideOf(mol, v, u);
-      if (side.has(a)) continue;
-      const before = cs.length;
+      if (mol.bondBetween(u, v)!.order !== 1 || inRing(mol, u, v)) continue;
+      // The smaller side moves; the pivot is the atom it hangs from.
+      const sideV = sideOf(mol, v, u), sideU = sideOf(mol, u, v);
+      const [side, pivot, first] = sideV.size <= sideU.size ? [sideV, u, v] : [sideU, v, u];
+      const before = crowding(side);
       const saved = new Map([...side].map((id) => [id, pos.get(id)!]));
-      mirror(side, pos.get(u)!, pos.get(v)!, pos);
-      if (clashes().length < before) fixed = true; else for (const [id, p] of saved) pos.set(id, p);
+      const restore = () => { for (const [id, q] of saved) pos.set(id, q); };
+      const consider = (move: () => void, cost: number) => {
+        move();
+        const gain = before - crowding(side) - cost;
+        restore();
+        if (gain > 1e-6 && (!best || gain > best.gain)) best = { gain, apply: move };
+      };
+      consider(() => mirror(side, pos.get(pivot)!, pos.get(first)!, pos), 0);
+      // A swing bends the angle at the pivot, so it costs something and each bond swings once. Only
+      // a single atom or a ring swings: swinging a branch would put a kink in a chain.
+      const key = `${pivot}-${first}`;
+      if ((side.size === 1 || ringAtoms.has(first)) && !swung.has(key)) for (const turn of [Math.PI / 6, -Math.PI / 6]) {
+        consider(() => { rotate(side, pos.get(pivot)!, turn, pos); swung.add(key); }, 0.04);
+        swung.delete(key);
+      }
     }
-    if (!fixed) return;
+    if (best) (best as { apply: () => void }).apply();
+    else stuck.add(`${a}-${b}`);
+  }
+}
+
+function rotate(ids: Set<AtomId>, about: P, angle: number, pos: Map<AtomId, P>) {
+  const c = Math.cos(angle), sn = Math.sin(angle);
+  for (const id of ids) {
+    const p = pos.get(id)!;
+    const dx = p.x - about.x, dy = p.y - about.y;
+    pos.set(id, { x: about.x + dx * c - dy * sn, y: about.y + dx * sn + dy * c });
   }
 }
 

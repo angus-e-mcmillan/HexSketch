@@ -80,3 +80,29 @@ test('a crowded cage atom still gets a wedge that shows its configuration', () =
     assert.deepEqual([...mol.atoms()].map((a) => rsLabel(mol, a.id)), want, smiles);
   }
 });
+
+test('crowded atoms are drawn apart: a chain keeps its zigzag through CF2 and gem-dimethyl carbons', () => {
+  const closest = (smiles: string) => {
+    const mol = parseSmiles(smiles);
+    layout2D(mol);
+    const at = [...mol.atoms()];
+    let least = Infinity;
+    for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) least = Math.min(least, Math.hypot(at[i]!.x - at[j]!.x, at[i]!.y - at[j]!.y));
+    return least / 18.43;
+  };
+  // Perfluorooctanoic acid, pinacol, phenytoin, 1-phenylcyclohexanecarboxylic acid, a trityl ether, decachlorodiphenyl ether.
+  for (const smiles of ['OC(=O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F', 'OC(C)(C)C(C)(C)O', 'CCC(C)(C)CCC(C)(C)CC',
+    'C1=CC=C(C=C1)C2(C(=O)NC(=O)N2)C3=CC=CC=C3', 'OC(=O)C1(CCCCC1)c1ccccc1', 'COC(c1ccccc1)(c1ccccc1)c1ccccc1',
+    'C1(=C(C(=C(C(=C1Cl)Cl)Cl)Cl)Cl)OC2=C(C(=C(C(=C2Cl)Cl)Cl)Cl)Cl']) {
+    assert.ok(closest(smiles) > 0.5, `${smiles}: closest atoms ${closest(smiles).toFixed(2)} bond lengths apart`);
+  }
+  // The backbone of a perfluoro chain is still a zigzag: every C-C-C angle 120 degrees.
+  const mol = parseSmiles('FC(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F');
+  layout2D(mol);
+  const carbons = [...mol.atoms()].filter((a) => a.element === 'C');
+  for (let i = 1; i + 1 < carbons.length; i++) {
+    const [p, c, n] = [carbons[i - 1]!, carbons[i]!, carbons[i + 1]!];
+    const angle = Math.abs(Math.atan2(p.y - c.y, p.x - c.x) - Math.atan2(n.y - c.y, n.x - c.x)) * 180 / Math.PI;
+    assert.ok(Math.abs(Math.min(angle, 360 - angle) - 120) < 1, `C-C-C angle ${angle.toFixed(0)}`);
+  }
+});

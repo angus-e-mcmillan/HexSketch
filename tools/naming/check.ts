@@ -29,6 +29,12 @@ function ionic(mol: Molecule): Molecule {
     m.atom(metal).charge += b.order; m.atom(other).charge -= b.order;
     m.removeBond(b.id);
   }
+  // A hydrogen written on a metal ([KH], [AlH3]) is a hydride ion all the same.
+  for (const a of [...m.atoms()]) {
+    if (!isMetal(a.element) || !a.explicitHydrogens) continue;
+    for (let i = 0; i < a.explicitHydrogens; i++) m.addAtom({ element: 'H', x: 0, y: 0, charge: -1, explicitHydrogens: 0 });
+    a.charge += a.explicitHydrogens; a.explicitHydrogens = 0;
+  }
   return m;
 }
 

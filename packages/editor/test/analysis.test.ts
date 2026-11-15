@@ -137,12 +137,11 @@ test('a name caption is written afresh when the namer learns more (its ring pare
   assert.ok(ed.toggleAnalysis('formula'));
   selectAll(ed);
   ed.toggleAnalysis('name');
-  const caption = () => ed.doc.objects.find((o) => o.kind === 'text' && o.analysis);
-  const before = caption()?.kind === 'text' ? caption()!.text : '';
-  assert.ok(!/quinoline/.test(before));
+  const text = () => { const c = ed.doc.objects.find((o) => o.kind === 'text' && o.analysis); return c?.kind === 'text' ? c.text : ''; };
+  assert.ok(!/quinoline/.test(text()));
   known = true;
   ed.doc.touch();
-  assert.ok(!/quinoline/.test(caption()?.kind === 'text' ? (caption() as { text: string }).text : ''), 'a touch alone keeps what was worked out');
+  assert.ok(!/quinoline/.test(text()), 'a touch alone keeps what was worked out');
   ed.namesChanged();
-  assert.match((caption() as { text: string } | undefined)?.text ?? '', /quinoline/);
+  assert.match(text(), /quinoline/);
 });
