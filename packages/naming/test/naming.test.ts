@@ -44,6 +44,16 @@ const EXPECTED: [string, string][] = [
   ['C(=N/F)(\\N)/N(F)F', '(Z)-(difluoroamino)(fluoroimino)methanamine'],
   // One descriptor inside bis(...) stands for both groups.
   ['CCCCCCCC/C=C\\CCCCCCCC[N+](C)([C@H](C)O)[C@H](C)O', '(Z)-N,N-bis((S)-1-hydroxyethyl)-N-methyloctadec-9-en-1-aminium'],
+  // Isotope labels: a fully deuterated compound as ChemDraw writes it, a labelled halogen by its nuclide.
+  ['[2H]C(Cl)(Cl)Cl', 'trichloromethane-d'],
+  ['[2H]OC([2H])([2H])[2H]', 'methanol-d4'],
+  ['[2H]c1c([2H])c([2H])c([2H])c([2H])c1[2H]', 'benzene-d6'],
+  ['[2H]C([2H])([2H])C(=O)C([2H])([2H])[2H]', 'propan-2-one-d6'],
+  ['[2H]C([2H])([2H])C(=O)O[2H]', 'acetic acid-d4'],
+  ['[2H]O[2H]', 'water-d2'],
+  ['[18F]CCO', '2-(18F)fluoroethan-1-ol'],
+  ['CC1=C(C(=O)N(N1C)C2=CC=CC=C2)[125I]', '4-(125I)iodo-1,5-dimethyl-2-phenyl-1,2-dihydro-3H-pyrazol-3-one'],
+  ['OC[C@H]1O[C@H](O)[C@H]([18F])[C@@H](O)[C@@H]1O', '(2S,3R,4S,5S,6R)-3-(18F)fluoro-6-(hydroxymethyl)tetrahydro-2H-pyran-2,4,5-triol'],
   ['CCCC(C)CCCOC(=O)OCCCC(C)CCC', 'bis(4-methylheptyl) carbonate'],
   ['CC(C)(C)OC(=O)OC(C)(C)C', 'di-tert-butyl carbonate'],
   // A double bond in a ring of eight or more has two forms: beside others left open, the one given keeps its locant.
@@ -347,6 +357,8 @@ test('what cannot be named rightly is declined, not misnamed', () => {
   for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C',
     // Valences no name here says: SnR2 with no H written, PH2R3, a five-bond P with H, N+(=O)OH, oxido on P(III).
     'CCCC[Sn]CCCC', 'CC[PH2](CC)CC', 'COP(O)(O)O', 'Oc1ccc(cc1)[N+](=O)O', 'OC(=O)CN(COP(O)[O-])COP(O)[O-].[Na+].[Na+]',
+    // Labels with no word here yet: a labelled carbon, partial deuteration, an acyl (18F)fluoride, a labelled iodide ion.
+    '[13CH3]O', '[2H]C([2H])([2H])O', 'CC(=O)[18F]', '[Na+].[125I-]',
     // Two double bonds at one ring atom (once named as the pyridine).
     'CCCC[Sn](CCCC)(CCCC)C1=C=C=NC(=C1)C=NC',
     // An N-imide on a ring nitrogen (once "1-imino-...-1H-pyrrol-1-ium", the charge on the outer N lost).

@@ -928,6 +928,8 @@ function simpleIon(mol: Molecule, frag: AtomId[]): Ion | null {
   if (frag.length === 1) {
     const a = mol.atom(frag[0]!);
     if (a.label !== null) return null;
+    // A labelled or radical ion is not the plain one: it is left to the checks below, which decline it.
+    if (a.isotope !== null || a.radical) return null;
     if (isMetal(a.element) && a.charge >= 0 && !a.radical && a.isotope === null) return { name: a.charge ? metalCation(a.element, a.charge) : metalName(a.element), charge: a.charge };
     if (ANIONS[a.element] && a.charge === -1) return { name: ANIONS[a.element]!, charge: -1 };
     if (a.element === 'N' && a.charge === 1 && mol.implicitHydrogens(a.id) === 4) return { name: 'ammonium', charge: 1 };
@@ -1032,7 +1034,34 @@ function oligoOf(mol: Molecule): Oligo | null {
   } catch { return null; }
 }
 
+/**
+ * Every hydrogen deuterium and nothing else labelled (a deuterated solvent): the compound's own
+ * name with "-d" and their number, as ChemDraw writes it: benzene-d6, chloroform-d, methanol-d4.
+ * Null when the structure is not that. Other deuterium labelling has no name here yet.
+ */
+function perdeuterated(input: Molecule): string | null {
+  const atoms = [...input.atoms()];
+  const ds = new Set(atoms.filter((a) => a.element === 'H' && a.isotope === 2 && a.charge === 0 && input.neighbours(a.id).length === 1).map((a) => a.id));
+  if (!ds.size) return null;
+  if (atoms.some((a) => !ds.has(a.id) && (a.isotope !== null || a.element === 'H' || input.implicitHydrogens(a.id) > 0))) return null;
+  const plain = input.clone();
+  for (const a of plain.atoms()) if (a.element === 'H' && a.isotope === 2) a.isotope = null;
+  // Heavy water and the like are named whole, as water is.
+  foldHydrogens(plain);
+  const whole = speciesName(plain, [...plain.atoms()].map((a) => a.id));
+  const name = whole && whole.charge === 0 ? whole.name : nameOne(plain);
+  // On a name with brackets or a locant in front, the "-d" would not say plainly what it belongs to.
+  if (!/^[a-z][a-z0-9, -]*$/i.test(name)) throw new OutOfScope('isotopic labelling');
+  return `${name}-d${ds.size > 1 ? ds.size : ''}`;
+}
+
+/** A halogen substituent carrying an isotope label (a radiotracer's 18F or 125I), written (18F)fluoro. */
+const labelledHalogen = (mol: Molecule, a: { id: AtomId; element: string; isotope: number | null; charge: number }) =>
+  a.isotope !== null && HALO[a.element] !== undefined && a.charge === 0 && mol.neighbours(a.id).length === 1 && mol.atom(mol.neighbours(a.id)[0]!).element === 'C';
+
 function nameOne(input: Molecule): string {
+  const deuterated = perdeuterated(input);
+  if (deuterated) return deuterated;
   const oligo = oligoOf(input);
   if (oligo) return oligoText(oligo);
   // Peptides get peptide names ("L-alanylglycine"), or their sequence when protected.
@@ -1069,7 +1098,7 @@ function nameOneSystematic(input: Molecule): string {
   const metals = [...mol.atoms()].filter((a) => isMetal(a.element));
   for (const a of mol.atoms()) {
     if (!SUPPORTED.has(a.element) && !(metals.length === 1 && a === metals[0])) throw new OutOfScope(`element ${a.element}`);
-    if (a.isotope !== null) throw new OutOfScope('isotopic labelling');
+    if (a.isotope !== null && !labelledHalogen(mol, a)) throw new OutOfScope('isotopic labelling');
     // An atom short of its valence is a radical or a carbene, however it was written.
     if (a.radical || mol.missingValence(a.id) > 0) throw new OutOfScope('radicals');
     if (!(metals.length === 1 && a === metals[0]) && !usualValence(mol, a.id)) throw new OutOfScope(`unusual valence at ${a.element}`);
@@ -1120,6 +1149,14 @@ function nameOneSystematic(input: Molecule): string {
   costly();
   // A configuration the name has no place for (a phosphane's P, an ammonium N) is not dropped silently.
   if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
+  // Every isotope label is in the name, once for each labelled atom: a path that has no word for it
+  // (an acyl halide, a salt) must not drop it.
+  for (const a of mol.atoms()) {
+    if (a.isotope === null) continue;
+    const label = `(${a.isotope}${a.element})`;
+    const want = [...mol.atoms()].filter((x) => x.isotope === a.isotope && x.element === a.element).length;
+    if (name.split(label).length - 1 !== want) throw new OutOfScope('isotopic labelling');
+  }
   // Last check on the name itself: it must carry one descriptor for each centre and each double bond that
   // has a configuration, no fewer (one dropped on the way) and no more (one cited twice).
   // (A descriptor inside "bis(...)" or "tris(...)" stands for that many.)
@@ -2239,7 +2276,10 @@ class Namer {
     const link = mol.bondBetween(a, from);
     if (link && (link.order === 2 || link.order === 3)) throw new OutOfScope('substituent on a multiple bond');
     if (this.an.ringAtoms.has(a)) return this.ringSubstituent(a, from);
-    if (HALO[e]) return simple(HALO[e]!);
+    if (HALO[e]) {
+      const isotope = mol.atom(a).isotope;
+      return isotope === null ? simple(HALO[e]!) : { text: `(${isotope}${e})${HALO[e]!}`, complex: false, sortKey: HALO[e]! };
+    }
     if (e === 'O') {
       if (others.length === 0) return simple(mol.atom(a).charge === -1 ? 'oxido' : 'hydroxy');
       const r = others[0]!;

@@ -79,7 +79,7 @@ for (const r of named) {
     r.verdict = sameStereoisomer(r.mol!, other) ? 'ok' : sameStructure(r.mol!, other) ? 'stereo differs'
       // A salt drawn with bonds to its metal and one written as ions are the same compound; so are
       // two ways of writing a molecule of one or two atoms (carbon monoxide).
-      : sameStructure(ionic(r.mol!), ionic(other)) || (r.mol!.atomCount <= 2 && computeMass(r.mol!).formula === computeMass(other).formula) ? 'ok' : 'WRONG';
+      : sameStructure(ionic(r.mol!), ionic(other)) || (r.mol!.atomCount <= 2 && ![...r.mol!.atoms()].some((x) => x.isotope !== null) && computeMass(r.mol!).formula === computeMass(other).formula) ? 'ok' : 'WRONG';
   } catch (e) { r.verdict = 'compare failed'; r.reason = (e as Error).message; }
 }
 
