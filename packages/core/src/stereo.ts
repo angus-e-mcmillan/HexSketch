@@ -24,7 +24,19 @@ function expanded(mol: Molecule, id: AtomId): boolean {
   return ((e === 'S' || e === 'Se') && sum > 2) || ((e === 'P' || e === 'As') && sum > 3);
 }
 
+/**
+ * How far one ranking may go. In a large fused aromatic system the branches to compare multiply
+ * with every sphere (each path round the rings is its own branch), and a ranking that would take
+ * seconds is given up: the centre is then left without a descriptor, as a tie is.
+ */
+const BUDGET = 1_000_000;
+let spent = 0;
+class TooLarge extends Error {}
+/** Counts the rankings given up, so a caller that must not drop a descriptor silently can tell. */
+export const cipLimits = { gaveUp: 0, most: 0 };
+
 function children(mol: Molecule, n: Node): Node[] {
+  if (++spent > BUDGET) throw new TooLarge();
   // A duplicate atom carries phantom substituents (atomic number 0), which carry nothing:
   // expanding phantoms too grew the front threefold per sphere on symmetric rings.
   if (n.dup) return n.z === 0 ? [] : [0, 0, 0].map(() => ({ atom: H, z: 0, dup: true, from: n.atom, path: n.path }));
@@ -93,9 +105,18 @@ function compareBranches(mol: Molecule, centre: AtomId, a: AtomId, b: AtomId): n
 export function cipOrder(mol: Molecule, centre: AtomId, exclude: AtomId[] = []): AtomId[] | null {
   const nbrs: AtomId[] = mol.neighbours(centre).filter((n) => !exclude.includes(n));
   for (let i = 0; i < mol.implicitHydrogens(centre); i++) nbrs.push(H);
-  const sorted = [...nbrs].sort((p, q) => -compareBranches(mol, centre, p, q));
-  for (let i = 0; i + 1 < sorted.length; i++) if (compareBranches(mol, centre, sorted[i]!, sorted[i + 1]!) === 0) return null;
-  return sorted;
+  spent = 0;
+  try {
+    const sorted = [...nbrs].sort((p, q) => -compareBranches(mol, centre, p, q));
+    for (let i = 0; i + 1 < sorted.length; i++) if (compareBranches(mol, centre, sorted[i]!, sorted[i + 1]!) === 0) return null;
+    return sorted;
+  } catch (e) {
+    if (!(e instanceof TooLarge)) throw e;
+    cipLimits.gaveUp++;
+    return null;
+  } finally {
+    if (spent > cipLimits.most) cipLimits.most = spent;
+  }
 }
 
 function permutationParity(from: AtomId[], to: AtomId[]): number {

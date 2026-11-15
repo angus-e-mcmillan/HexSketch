@@ -1,4 +1,4 @@
-import { ezLabel, labelStructure, Molecule, perceiveRings, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
+import { cipLimits, ezLabel, labelStructure, Molecule, perceiveRings, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
 import { analyze, SENIORITY, isAcylCarbon, isIminium, isRingAnion, isRingCation, type Analysis, type Group, type GroupKind } from './analyze.ts';
 import type { RingRow } from './rings.ts';
 import { TEMPLATES, type RingTemplate } from './templates.ts';
@@ -56,7 +56,11 @@ function withHydro(stem: string, h: Hydro, numbering: Numbering): string {
   return `${hy}${join}${ihText}${stem}`;
 }
 
-interface Prefix { text: string; complex: boolean; sortKey: string; at: AtomId | 'N'; /** For 'N': the carbon whose amine or amide this nitrogen is. */ nOf?: AtomId }
+interface Prefix {
+  text: string; complex: boolean; sortKey: string; at: AtomId | 'N';
+  /** For 'N': the carbon whose amine or amide this nitrogen is. */ nOf?: AtomId;
+  /** For 'N': the nitrogen itself, and every principal nitrogen on the same carbon (two or more: N and N'). */ nAtom?: AtomId; nGem?: AtomId[];
+}
 interface SubName { text: string; complex: boolean; sortKey: string }
 
 const el = (mol: Molecule, id: AtomId) => mol.atom(id).element;
@@ -1082,8 +1086,29 @@ function nameOneSystematic(input: Molecule): string {
   // A ring sulfur or phosphorus carrying =O is named as the ring with "oxide" added
   // (thiomorpholine 1,1-dioxide), so the ring keeps its ordinary name.
   const { bare, oxides } = withoutRingOxides(mol);
-  const namer = new Namer(analyze(bare), mol, oxides);
+  const an = analyze(bare);
+  // A protonated nitrogen at a ring fusion of an unsaturated system ([NH+] in a pyrido[1,2-a]pyrimidine):
+  // "-5-ium" on that parent is read as the aromatic cation, with no hydrogen there.
+  for (const a of bare.atoms()) {
+    if (a.element !== 'N' || a.charge !== 1 || bare.implicitHydrogens(a.id) === 0) continue;
+    const ringNbrs = bare.neighbours(a.id).filter((n) => an.ringBonds.has(bare.bondBetween(a.id, n)!.id));
+    if (ringNbrs.length < 3) continue;
+    const seen = new Set<AtomId>([a.id]), stack = [a.id];
+    while (stack.length) {
+      const x = stack.pop()!;
+      for (const y of bare.neighbours(x)) {
+        const bd = bare.bondBetween(x, y)!;
+        if (!an.ringBonds.has(bd.id)) continue;
+        if (bd.order !== 1) throw new OutOfScope('protonated ring-fusion nitrogen');
+        if (!seen.has(y)) { seen.add(y); stack.push(y); }
+      }
+    }
+  }
+  const gaveUp = cipLimits.gaveUp;
+  const namer = new Namer(an, mol, oxides);
   const name = namer.functionalClassName() ?? namer.name();
+  // A descriptor that could not be worked out (a centre in a very large fused system) is not left out silently.
+  if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out');
   // A configuration the name has no place for (a phosphane's P, an ammonium N) is not dropped silently.
   if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
   return name;
@@ -1093,7 +1118,7 @@ function nameOneSystematic(input: Molecule): string {
 const VALENCE: Readonly<Record<string, Readonly<Record<number, readonly number[]>>>> = {
   C: { 0: [4], 1: [3], [-1]: [3] }, N: { 0: [3, 5], 1: [4], [-1]: [2] }, O: { 0: [2], 1: [3], [-1]: [1] },
   S: { 0: [2, 4, 6], 1: [3], [-1]: [1] }, P: { 0: [3, 5], 1: [4] }, Si: { 0: [4] }, Sn: { 0: [4] }, B: { 0: [3], [-1]: [4] },
-  F: { 0: [1] }, Cl: { 0: [1] }, Br: { 0: [1] }, I: { 0: [1, 3, 5], 1: [2] }, H: { 0: [1], 1: [0], [-1]: [0] },
+  F: { 0: [1] }, Cl: { 0: [1] }, Br: { 0: [1] }, I: { 0: [1], 1: [2] }, H: { 0: [1], 1: [0], [-1]: [0] },
 };
 
 /**
@@ -1413,6 +1438,10 @@ class Namer {
   name(): string {
     if (this.principal === 'ester' || this.principal === 'sulfonateEster') return this.nameEster();
     if (this.principal === 'urea' && this.principalGroups.length === 1) return this.nameUrea(this.principalGroups[0]!);
+    const guanidine = this.guanidine();
+    if (guanidine) return guanidine;
+    // Two ureas in one structure: there is no rule here for which is the urea and what the other is called.
+    if (this.principal === 'urea') throw new OutOfScope('more than one urea');
     const biphenyl = this.biphenyl();
     if (biphenyl) return biphenyl;
     const best = this.chooseParent();
@@ -1463,14 +1492,17 @@ class Namer {
     const mol = this.mol;
     const inSet = new Set(atoms);
     const probe = mol.clone();
+    const rings = perceiveRings(mol);
+    const smallRing = (x: AtomId, y: AtomId) => rings.some((r) => r.atoms.length < 8 && r.atoms.includes(x) && r.atoms.includes(y));
     for (const a of atoms) {
-      if (this.rs.get(a) || mol.atom(a).charge !== 0) continue;
-      const nb = mol.neighbours(a), h = mol.implicitHydrogens(a);
+      if (this.rs.get(a)) continue;
+      const nb = mol.neighbours(a), h = mol.implicitHydrogens(a), charge = mol.atom(a).charge;
       if (mol.incidentBonds(a).some((b) => mol.bond(b).order !== 1)) continue;
       const e = el(mol, a);
-      // Carbon with four different groups; a ring nitrogen held in a three-membered ring.
-      const carbon = e === 'C' && nb.length + h === 4 && h <= 1;
-      const aziridine = e === 'N' && nb.length === 3 && h === 0 && nb.some((x) => nb.some((y) => x !== y && mol.bondBetween(x, y)));
+      // Carbon or silicon with four different groups, a quaternary ammonium or phosphonium centre;
+      // a ring nitrogen held in a three-membered ring.
+      const carbon = nb.length + h === 4 && h <= 1 && (((e === 'C' || e === 'Si') && charge === 0) || ((e === 'N' || e === 'P') && charge === 1 && h === 0));
+      const aziridine = e === 'N' && charge === 0 && nb.length === 3 && h === 0 && nb.some((x) => nb.some((y) => x !== y && mol.bondBetween(x, y)));
       if (!carbon && !aziridine) continue;
       const before = probe.atom(a).chirality;
       probe.atom(a).chirality = { order: nb.length === 4 ? [...nb] : [nb[0]!, -1, ...nb.slice(1)], anticlockwise: true };
@@ -1479,8 +1511,12 @@ class Namer {
       if (could) return true;
     }
     for (const b of mol.bonds()) {
-      if (b.order !== 2 || this.ez.get(`${b.begin}-${b.end}`) || !(inSet.has(b.begin) || inSet.has(b.end)) || this.an.ringBonds.has(b.id)) continue;
+      // (A double bond in a ring of fewer than eight atoms has one form only.)
+      if (b.order !== 2 || this.ez.get(`${b.begin}-${b.end}`) || !(inSet.has(b.begin) || inSet.has(b.end)) || smallRing(b.begin, b.end)) continue;
       const ra = mol.neighbours(b.begin).find((x) => x !== b.end), rb = mol.neighbours(b.end).find((x) => x !== b.begin);
+      // C=N-H: the hydrogen is not drawn, but the imine has two forms all the same when its carbon carries two groups.
+      const imineNH = (n: AtomId, c: AtomId) => el(mol, n) === 'N' && mol.neighbours(n).length === 1 && mol.implicitHydrogens(n) === 1 && mol.neighbours(c).length === 3;
+      if (imineNH(b.begin, b.end) || imineNH(b.end, b.begin)) return true;
       if (ra === undefined || rb === undefined) continue;
       const pb = probe.bond(b.id), before = pb.ez;
       pb.ez = { ref: [ra, rb], cis: true };
@@ -1597,9 +1633,11 @@ class Namer {
       const anchorC = g.kind === 'amine' || g.kind === 'aminium' ? sites.get(g)! : g.anchor;
       // Whose nitrogen it is, by the parent atom that carries the suffix: N1 of a ring's 1-carboxamide.
       const locAt = p.kind === 'ring' && g.ownCarbon ? sites.get(g)! : anchorC;
+      const gem = [...sites.keys()].filter((o) => o.nitrogen !== undefined && (o.kind === 'amine' || o.kind === 'aminium') === (g.kind === 'amine' || g.kind === 'aminium')
+        && (o.kind === 'amine' || o.kind === 'aminium' ? sites.get(o)! : o.anchor) === anchorC).map((o) => o.nitrogen!);
       for (const n of mol.neighbours(g.nitrogen)) {
         if (n === anchorC || g.consumed.includes(n)) continue;
-        out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: locAt });
+        out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: locAt, nAtom: g.nitrogen, nGem: gem });
       }
     }
     return out;
@@ -1888,8 +1926,21 @@ class Namer {
   prefixString(pre: Prefix[], numbering: Numbering, omitAll: boolean, manyN = false): string {
     // Group identical prefixes.
     const groups = new Map<string, { sub: Prefix; locs: string[] }>();
+    // Two nitrogens on one carbon (an aminal, a guanidine written as a diamine) are N and N': the one
+    // with more groups, then the one whose group comes first in the alphabet, goes unprimed.
+    const primes = new Map<AtomId, string>();
+    const geminal = pre.filter((x) => x.at === 'N' && x.nAtom !== undefined && (x.nGem?.length ?? 0) > 1);
+    if (geminal.length) {
+      const anchors = new Set(pre.filter((x) => x.at === 'N').map((x) => x.nOf));
+      if (anchors.size > 1 || new Set(geminal.flatMap((x) => x.nGem!)).size > 3) throw new OutOfScope('nitrogens sharing a carbon beside others');
+      const of = (n: AtomId) => geminal.filter((x) => x.nAtom === n).map((x) => x.sortKey).sort();
+      const order = [...new Set(geminal.map((x) => x.nAtom!))].sort((a, b) => of(b).length - of(a).length || of(a).join(' ').localeCompare(of(b).join(' ')) || a - b);
+      order.forEach((n, i) => primes.set(n, "'".repeat(i)));
+    }
     for (const x of pre) {
-      const loc = x.at === 'N' ? (manyN && x.nOf !== undefined ? `N${numbering.get(x.nOf)}` : 'N') : numbering.get(x.at)!;
+      const loc = x.at === 'N'
+        ? (x.nAtom !== undefined && primes.has(x.nAtom) ? `N${primes.get(x.nAtom)}` : manyN && x.nOf !== undefined ? `N${numbering.get(x.nOf)}` : 'N')
+        : numbering.get(x.at)!;
       const g = groups.get(x.text);
       if (g) g.locs.push(loc); else groups.set(x.text, { sub: x, locs: [loc] });
     }
@@ -1980,6 +2031,38 @@ class Namer {
     return `${text}urea`;
   }
 
+  /**
+   * A guanidine whose nitrogens are the principal amines, named as one, as ChemDraw does:
+   * 1,1-dimethylguanidine, 2-cyano-1-methyl-3-(...)guanidine. The doubly bonded nitrogen is 2.
+   * Null for anything else (a ring through the nitrogens, two guanidines, a charge).
+   */
+  guanidine(): string | null {
+    if (this.principal !== 'amine') return null;
+    const mol = this.mol;
+    const centres = [...mol.atoms()].filter((a) => {
+      if (a.element !== 'C' || a.charge !== 0 || this.an.ringAtoms.has(a.id)) return false;
+      const nb = mol.neighbours(a.id);
+      return nb.length === 3 && nb.every((n) => el(mol, n) === 'N') && nb.map((n) => mol.bondBetween(a.id, n)!.order).sort().join() === '1,1,2';
+    });
+    if (centres.length !== 1) return null;
+    const c = centres[0]!.id;
+    const ns = mol.neighbours(c);
+    if (!this.principalGroups.every((g) => g.nitrogen !== undefined && ns.includes(g.nitrogen))) return null;
+    if (ns.some((n) => this.an.ringAtoms.has(n) || mol.atom(n).charge !== 0)) return null;
+    if (ns.some((n) => mol.neighbours(n).some((x) => x !== c && mol.bondBetween(n, x)!.order !== 1))) return null;
+    const imino = ns.find((n) => mol.bondBetween(c, n)!.order === 2)!;
+    const [a, b] = ns.filter((n) => n !== imino) as [AtomId, AtomId];
+    const subsOf = (n: AtomId) => mol.neighbours(n).filter((x) => x !== c).map((x) => this.substituent(x, n));
+    const first = (xs: SubName[]) => [...xs].sort((x, y) => x.sortKey.localeCompare(y.sortKey))[0]?.sortKey ?? '~';
+    // Position 1 for the amino nitrogen that carries more, then the one cited first.
+    let [n1, n3] = [a, b];
+    const [sa, sb] = [subsOf(a), subsOf(b)];
+    if (sb.length > sa.length || (sb.length === sa.length && first(sb) < first(sa))) [n1, n3] = [b, a];
+    const pre: Prefix[] = [n1, imino, n3].flatMap((n) => subsOf(n).map((x) => ({ ...x, at: n })));
+    if (!pre.length) return 'guanidine';
+    return `${this.prefixString(pre, new Map([[n1, '1'], [imino, '2'], [n3, '3']]), false)}guanidine`;
+  }
+
   // ------------------------------------------------------------- esters
 
   /** R-O-C(=O)-N (carbamate) and R-O-C(=O)-O-R (carbonate) esters. */
@@ -2002,8 +2085,9 @@ class Namer {
     if (el(mol, x) === 'O' && mol.neighbours(x).length === 2) {
       const r2 = mol.neighbours(x).find((n) => n !== c)!;
       if (el(mol, r2) !== 'C' || this.principalGroups.length !== 1) return null;
-      const b = this.substituent(r2, x).text;
-      return alkyl === b ? `di${alkyl} carbonate` : `${[alkyl, b].sort().join(' ')} carbonate`;
+      const b = this.substituent(r2, x);
+      // dimethyl carbonate, di-tert-butyl carbonate, bis(4-methylheptyl) carbonate.
+      return alkyl === b.text ? `${citeRun([{ text: b.text, complex: b.complex, n: 2 }])} carbonate` : `${[alkyl, b.text].sort().join(' ')} carbonate`;
     }
     return null;
   }

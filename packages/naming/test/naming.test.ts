@@ -17,6 +17,25 @@ import { opsinAvailable, opsinToSmiles } from '../src/opsin.ts';
 const EXPECTED: [string, string][] = [
   // From the ChemDraw Struct=Name spot check.
   ['CC(O)CC(=O)O', '3-hydroxybutanoic acid'],
+  // Guanidines by name, as ChemDraw writes them; the doubly bonded nitrogen is 2.
+  ['NC(=N)N', 'guanidine'],
+  ['CN(C)C(=N)N', '1,1-dimethylguanidine'],
+  ['CN=C(NC)NC', '1,2,3-trimethylguanidine'],
+  ['NC(=N)NCCc1ccccc1', '1-(2-phenylethyl)guanidine'],
+  ['CN=C(NCC1=CSC(=N1)CCC2=CC=CC=C2)N(C)CCOCC3CC3', '1-(2-(cyclopropylmethoxy)ethyl)-1,2-dimethyl-3-((2-(2-phenylethyl)thiazol-4-yl)methyl)guanidine'],
+  // Two nitrogens on one carbon are N and N' (both were "N1", so these two had one name).
+  ['CNCNC', "N,N'-dimethylmethanediamine"],
+  ['CN(C)CN', 'N,N-dimethylmethanediamine'],
+  ['CN(C)CNC', "N,N,N'-trimethylmethanediamine"],
+  ['CCNCNC', "N-ethyl-N'-methylmethanediamine"],
+  ['CCCC(C)CCCOC(=O)OCCCC(C)CCC', 'bis(4-methylheptyl) carbonate'],
+  ['CC(C)(C)OC(=O)OC(C)(C)C', 'di-tert-butyl carbonate'],
+  // A double bond in a ring of eight or more has two forms: beside others left open, the one given keeps its locant.
+  ['C/C/1=C(\\N=C(N=C(CC1)C2=CC=CC=C2)C)/C', '(7E)-2,7,8-trimethyl-4-phenyl-5,6-dihydro-1,3-diazocine'],
+  // A lone descriptor keeps its locant beside a centre or double bond left open: an ammonium nitrogen, an N-H imine.
+  ['CCOC(=O)C[N+]1(CCCC[C@@H]1C=C)CC2=CC=CC=C2', '(2R)-1-benzyl-1-(2-ethoxy-2-oxoethyl)-2-vinylpiperidin-1-ium'],
+  ['COC(=N)/C(=N/OCCF)/C(=O)OC', 'methyl (2Z)-2-((2-fluoroethoxy)imino)-3-imino-3-methoxypropanoate'],
+  ['c1ccccc1[I+]c1ccccc1.[Cl-]', 'diphenyliodonium chloride'],
   // Decalin is numbered like naphthalene: the fusion carbons are 4a and 8a (geosmin).
   ['CC1CCCC2CCCCC12', '1-methyldecahydronaphthalene'],
   ['OC1CCC2CCCCC2C1', 'decahydronaphthalen-2-ol'],
@@ -307,6 +326,12 @@ test('what cannot be named rightly is declined, not misnamed', () => {
   for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C',
     // Valences no name here says: SnR2 with no H written, PH2R3, a five-bond P with H, N+(=O)OH, oxido on P(III).
     'CCCC[Sn]CCCC', 'CC[PH2](CC)CC', 'COP(O)(O)O', 'Oc1ccc(cc1)[N+](=O)O', 'OC(=O)CN(COP(O)[O-])COP(O)[O-].[Na+].[Na+]',
+    // A protonated nitrogen at the fusion of an unsaturated ring system (once "...pyrimidin-5-ium", read as the aromatic cation).
+    'O=C1C=CN=C2C=CC=C[NH+]12', 'C1=CC2=NC=CC[NH+]2C=C1',
+    // A stereocentre in a fused system too large to rank in reasonable time (it took 20 s, then lost its descriptor).
+    'CC1=CC=C(C=C1)[C@H]2C3=CC=CC=C3C4=C2C5=C6C=CC=CC6=C(C5=C7C4=C(C8=CC=CC=C87)C9=CC=C(C=C9)C)C1=CC=C(C=C1)C',
+    // Hypervalent iodine (once "iodobenzene", its acetates, oxygen or chlorines dropped); two ureas (once "methanurea").
+    'CC(=O)OI(OC(C)=O)c1ccccc1', 'O=Ic1ccccc1', 'ClI(Cl)c1ccccc1', 'CCCCI(O)OS(=O)(=O)c1ccc(C)cc1', 'NC(=O)NCCNC(N)=O', 'CNC(=O)NNC(=O)CNC(=O)Nc1cccc(c1)C(F)(F)F',
     // Salts whose charges do not balance, or several formula units beside other components (once "palladium(II)
     // chloride", "lead(II) acetate", "cadmium barium · dodecanoic acid", "aluminium hydride · manganese").
     'Cl[Pd-2](Cl)(Cl)Cl', 'CC(=O)[O-].CC(=O)[O-].CC(=O)[O-].CC(=O)[O-].[Pb+2]', 'CCCCCCCCCCCC(=O)O.[Cd+2].[Ba+2]', '[AlH3].[AlH3].[AlH3].[Mn]',
