@@ -42,6 +42,8 @@ const EXPECTED: [string, string][] = [
   ['C1/C(=C/N=O)/NC2=C(C=C(C=C2)Cl)C(=N1)C3=CC=CC=C3F', '(2Z)-7-chloro-5-(2-fluorophenyl)-2-(nitrosomethylidene)-2,3-dihydro-1H-1,4-benzodiazepine'],
   ['CC\\1C(=N/[N+]1=C\\C2=CC=C(C=C2)OC)[O-]', '1-((Z)-(4-methoxyphenyl)methylidene)-4-methyl-1,4-dihydro-1,2-diazet-1-ium-3-olate'],
   ['C(=N/F)(\\N)/N(F)F', '(Z)-(difluoroamino)(fluoroimino)methanamine'],
+  // One descriptor inside bis(...) stands for both groups.
+  ['CCCCCCCC/C=C\\CCCCCCCC[N+](C)([C@H](C)O)[C@H](C)O', '(Z)-N,N-bis((S)-1-hydroxyethyl)-N-methyloctadec-9-en-1-aminium'],
   ['CCCC(C)CCCOC(=O)OCCCC(C)CCC', 'bis(4-methylheptyl) carbonate'],
   ['CC(C)(C)OC(=O)OC(C)(C)C', 'di-tert-butyl carbonate'],
   // A double bond in a ring of eight or more has two forms: beside others left open, the one given keeps its locant.
@@ -333,6 +335,11 @@ test('stereodescriptors survive the OPSIN round trip', { skip: !opsinAvailable()
     if (!ok) failures.push(`${x.smi} -> "${x.r.name}" -> ${smi}: configuration differs`);
   });
   assert.deepEqual(failures, []);
+});
+
+test('H2 is dihydrogen however it is written', () => {
+  for (const smi of ['[HH]', '[H][H]']) assert.equal(nameMolecule(parseSmiles(smi)).name, 'dihydrogen', smi);
+  assert.equal(nameMolecule(parseSmiles('[HH].CCO')).name, 'dihydrogen · ethanol');
 });
 
 test('what cannot be named rightly is declined, not misnamed', () => {

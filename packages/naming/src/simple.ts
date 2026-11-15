@@ -73,6 +73,11 @@ function entries(): Map<string, Entry[]> {
 
 /** A small molecule or inorganic ion by name, with its charge; null when it is not one of them. */
 export function speciesName(mol: Molecule, atoms: readonly AtomId[]): { name: string; charge: number } | null {
+  // H2 written as one atom with a hydrogen on it ([HH]).
+  if (atoms.length === 1) {
+    const a = mol.atom(atoms[0]!);
+    if (a.element === 'H' && a.charge === 0 && a.isotope === null && !a.radical && mol.implicitHydrogens(a.id) === 1 && mol.neighbours(a.id).length === 0) return { name: 'dihydrogen', charge: 0 };
+  }
   const hits = entries().get(key(mol, atoms));
   if (!hits) return null;
   const keep = new Set(atoms);

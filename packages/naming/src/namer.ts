@@ -1122,10 +1122,24 @@ function nameOneSystematic(input: Molecule): string {
   if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
   // Last check on the name itself: it must carry one descriptor for each centre and each double bond that
   // has a configuration, no fewer (one dropped on the way) and no more (one cited twice).
+  // (A descriptor inside "bis(...)" or "tris(...)" stands for that many.)
   let centres = 0, bonds = 0;
-  for (const group of name.match(/\((?:\d+[a-z]?'*)?[RSEZ](?:,(?:\d+[a-z]?'*)?[RSEZ])*\)/g) ?? []) {
-    centres += (group.match(/[RS]/g) ?? []).length;
-    bonds += (group.match(/[EZ]/g) ?? []).length;
+  const times: number[] = [];
+  const TIMES: Record<string, number> = { bis: 2, tris: 3, tetrakis: 4, pentakis: 5, hexakis: 6, heptakis: 7, octakis: 8, nonakis: 9, decakis: 10 };
+  const group = /^\((?:\d+[a-z]?'*)?[RSEZ](?:,(?:\d+[a-z]?'*)?[RSEZ])*\)/;
+  for (let i = 0; i < name.length; i++) {
+    if (name[i] === ')') { times.pop(); continue; }
+    if (name[i] !== '(') continue;
+    const found = group.exec(name.slice(i));
+    if (found) {
+      const n = times.reduce((p, q) => p * q, 1);
+      centres += n * (found[0].match(/[RS]/g) ?? []).length;
+      bonds += n * (found[0].match(/[EZ]/g) ?? []).length;
+      i += found[0].length - 1;
+      continue;
+    }
+    const word = /([a-z]+)$/.exec(name.slice(0, i))?.[1] ?? '';
+    times.push(Object.entries(TIMES).find(([w]) => word.endsWith(w))?.[1] ?? 1);
   }
   if (centres !== namer.rs.size || bonds !== namer.ez.size / 2) throw new OutOfScope('stereodescriptors do not add up');
   return name;

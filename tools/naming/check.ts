@@ -29,6 +29,12 @@ function ionic(mol: Molecule): Molecule {
     m.atom(metal).charge += b.order; m.atom(other).charge -= b.order;
     m.removeBond(b.id);
   }
+  // H2 written as one atom with a hydrogen on it ([HH]) is the same as two bonded atoms.
+  for (const a of [...m.atoms()]) {
+    if (a.element !== 'H' || m.neighbours(a.id).length || m.implicitHydrogens(a.id) !== 1) continue;
+    a.explicitHydrogens = 0;
+    m.addBond({ begin: a.id, end: m.addAtom({ element: 'H', x: 0, y: 0, explicitHydrogens: 0 }).id, order: 1 });
+  }
   // Carbon monoxide, however its charges and bond are written.
   for (const f of m.fragments()) {
     if (f.length !== 2 || f.map((x) => m.atom(x).element).sort().join('') !== 'CO') continue;
