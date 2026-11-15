@@ -28,6 +28,15 @@ const EXPECTED: [string, string][] = [
   ['CN(C)CN', 'N,N-dimethylmethanediamine'],
   ['CN(C)CNC', "N,N,N'-trimethylmethanediamine"],
   ['CCNCNC', "N-ethyl-N'-methylmethanediamine"],
+  // Two carboxamides on one ring atom are N and N' too (both were "N1").
+  ['CNC(=O)C1(CC1)C(=O)NCC', "N-ethyl-N'-methylcyclopropane-1,1-dicarboxamide"],
+  ['CN(C)C(=O)C1(CC1)C(=O)N', 'N,N-dimethylcyclopropane-1,1-dicarboxamide'],
+  ['CNC(=O)CC(=O)NCC', 'N3-ethyl-N1-methylpropanediamide'],
+  // On a one-carbon parent, a group on the carbon is cited with its locant beside one on the nitrogen.
+  ['CNC(=O)C#N', '1-cyano-N-methylformamide'],
+  ['CNCc1ccccc1', 'N-methyl-1-phenylmethanamine'],
+  // A ring with a triple bond keeps it when another ring is the parent's substituent (it was written as one more "ene").
+  ['CC1(C)c2ccccc2C2=C1C=C(c1ccccc1)CC#C2', '8,8-dimethyl-11-phenyltricyclo[7.5.0.0^{2,7}]tetradeca-1(9),2,4,6,10-pentaen-13-yne'],
   ['CCCC(C)CCCOC(=O)OCCCC(C)CCC', 'bis(4-methylheptyl) carbonate'],
   ['CC(C)(C)OC(=O)OC(C)(C)C', 'di-tert-butyl carbonate'],
   // A double bond in a ring of eight or more has two forms: beside others left open, the one given keeps its locant.
@@ -326,6 +335,8 @@ test('what cannot be named rightly is declined, not misnamed', () => {
   for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C',
     // Valences no name here says: SnR2 with no H written, PH2R3, a five-bond P with H, N+(=O)OH, oxido on P(III).
     'CCCC[Sn]CCCC', 'CC[PH2](CC)CC', 'COP(O)(O)O', 'Oc1ccc(cc1)[N+](=O)O', 'OC(=O)CN(COP(O)[O-])COP(O)[O-].[Na+].[Na+]',
+    // An N-imide on a ring nitrogen (once "1-imino-...-1H-pyrrol-1-ium", the charge on the outer N lost).
+    'CC1=CC=C(C)[N+]1=[N-]',
     // A protonated nitrogen at the fusion of an unsaturated ring system (once "...pyrimidin-5-ium", read as the aromatic cation).
     'O=C1C=CN=C2C=CC=C[NH+]12', 'C1=CC2=NC=CC[NH+]2C=C1',
     // A stereocentre in a fused system too large to rank in reasonable time (it took 20 s, then lost its descriptor).

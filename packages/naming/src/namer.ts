@@ -424,6 +424,7 @@ function spiroUnion(an: Analysis, system: AtomId[], base: { heteroN: boolean; he
     if (blocks.every((b) => ringsIn(b) === 1)) return null; // spiro[4.5]decane
     const named = blocks.map((b) => ({ atoms: b, r: recognizeRing(an, b) }));
     if (named.some((x) => !x.r || x.r.info.kind === 'spiro')) return null;
+    if ([...mol.bonds()].some((b) => b.order === 3 && an.ringBonds.has(b.id) && system.includes(b.begin))) return null;
     const nameOf = (x: (typeof named)[number], nb: Numbering): string => {
       const info = x.r!.info;
       const set = new Set(x.atoms);
@@ -1250,7 +1251,8 @@ function isNamedIon(mol: Molecule, id: AtomId): boolean {
     if (end !== undefined && ((el(mol, end) === 'N' && [0, -1].includes(mol.atom(end).charge)) || (el(mol, end) === 'C' && mol.atom(end).charge === -1 && mol.bondBetween(id, end)!.order === 3))) return true;
   }
   if (a.element === 'C' && a.charge === -1 && nb.length === 1 && el(mol, nb[0]!) === 'N' && mol.atom(nb[0]!).charge === 1 && mol.bondBetween(id, nb[0]!)!.order === 3) return true;
-  if (a.element === 'N' && a.charge === -1 && nb.length === 1 && mol.atom(nb[0]!).charge === 1 && el(mol, nb[0]!) === 'N') return true;
+  // The end of an azide or a diazo group, whose N+ has two neighbours. (On a ring N+ it is an N-imide, which has no name here.)
+  if (a.element === 'N' && a.charge === -1 && nb.length === 1 && mol.atom(nb[0]!).charge === 1 && el(mol, nb[0]!) === 'N') return mol.neighbours(nb[0]!).length === 2;
   // Oxido: O- on a cationic N (pyridine N-oxides, amine oxides).
   if (a.element === 'O' && a.charge === -1 && nb.length === 1 && el(mol, nb[0]!) === 'N' && mol.atom(nb[0]!).charge === 1) return true;
   if (a.element === 'O' && a.charge === -1) return nb.length === 1 && el(mol, nb[0]!) === 'C';
@@ -1633,8 +1635,9 @@ class Namer {
       const anchorC = g.kind === 'amine' || g.kind === 'aminium' ? sites.get(g)! : g.anchor;
       // Whose nitrogen it is, by the parent atom that carries the suffix: N1 of a ring's 1-carboxamide.
       const locAt = p.kind === 'ring' && g.ownCarbon ? sites.get(g)! : anchorC;
-      const gem = [...sites.keys()].filter((o) => o.nitrogen !== undefined && (o.kind === 'amine' || o.kind === 'aminium') === (g.kind === 'amine' || g.kind === 'aminium')
-        && (o.kind === 'amine' || o.kind === 'aminium' ? sites.get(o)! : o.anchor) === anchorC).map((o) => o.nitrogen!);
+      // Every principal nitrogen cited at the same locant: two amines on one carbon, two carboxamides on one ring atom.
+      const locOf = (o: Group) => { const c = o.kind === 'amine' || o.kind === 'aminium' ? sites.get(o)! : o.anchor; return p.kind === 'ring' && o.ownCarbon ? sites.get(o)! : c; };
+      const gem = [...sites.keys()].filter((o) => o.nitrogen !== undefined && locOf(o) === locAt).map((o) => o.nitrogen!);
       for (const n of mol.neighbours(g.nitrogen)) {
         if (n === anchorC || g.consumed.includes(n)) continue;
         out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: locAt, nAtom: g.nitrogen, nGem: gem });
@@ -1930,6 +1933,9 @@ class Namer {
     // with more groups, then the one whose group comes first in the alphabet, goes unprimed.
     const primes = new Map<AtomId, string>();
     const geminal = pre.filter((x) => x.at === 'N' && x.nAtom !== undefined && (x.nGem?.length ?? 0) > 1);
+    // On a one-carbon parent a prefix with no locant beside an N-prefix is taken for the nitrogen's
+    // too ("cyano-N-methylformamide" reads as N-cyano): there the carbon's locant is cited.
+    if (omitAll && pre.some((x) => x.at === 'N') && pre.some((x) => x.at !== 'N')) omitAll = false;
     if (geminal.length) {
       const anchors = new Set(pre.filter((x) => x.at === 'N').map((x) => x.nOf));
       if (anchors.size > 1 || new Set(geminal.flatMap((x) => x.nGem!)).size > 3) throw new OutOfScope('nitrogens sharing a carbon beside others');
@@ -2498,6 +2504,8 @@ class Namer {
     if (!r) throw new OutOfScope('ring substituent without a supported name');
     const mol = this.mol;
     const inS = new Set(system);
+    // A triple bond in the ring would be written as one more "ene" below.
+    if ([...mol.bonds()].some((b) => b.order === 3 && inS.has(b.begin) && inS.has(b.end))) throw new OutOfScope('ring substituent with a triple bond');
     let best: { numbering: Numbering; key: (number | number[])[]; pre: Prefix[] } | null = null;
     const pre: Prefix[] = [];
     for (const x of system) for (const b of mol.incidentBonds(x)) {
