@@ -226,6 +226,8 @@ function layoutRingSystem(mol: Molecule, sys: RingSystem, L: number): Map<AtomId
   const first = rings.find((r) => r.atoms.length === 6) ?? rings[0]!;
   polygon(first.atoms, { x: 0, y: 0 }, L, -Math.PI / 2).forEach((q, i) => p.set(first.atoms[i]!, q));
   const done = new Set<Ring>([first]);
+  const inSystem = new Set(sys.atoms);
+  const onLargeRing = new Set<AtomId>(first.atoms.length >= 8 ? first.atoms : []);
   for (let guard = 0; guard < rings.length * 3 && done.size < rings.length; guard++) {
     for (const r of rings) {
       if (done.has(r)) continue;
@@ -255,13 +257,24 @@ function layoutRingSystem(mol: Molecule, sys: RingSystem, L: number): Map<AtomId
         // Walk the ring from b onward, stepping round the centre away from a.
         const start = ang(c, pb), step = 2 * Math.PI / n;
         const dirSign = Math.abs(norm(start - step - ang(c, pa))) < 1e-3 ? 1 : -1;
-        for (let i = 1; i < n - 1; i++) {
-          const id = r.atoms[(k + 1 + i) % n]!;
-          if (p.has(id)) continue;
-          const t = start + dirSign * step * i;
-          p.set(id, { x: c.x + R * Math.cos(t), y: c.y + R * Math.sin(t) });
+        const spot = (i: number) => { const t = start + dirSign * step * i; return { x: c.x + R * Math.cos(t), y: c.y + R * Math.sin(t) }; };
+        // Fused, the atoms already there sit where this polygon puts them. Where they do not, the
+        // ring is a bridge across what is drawn (norbornane, quinuclidine, a morphinan): its new
+        // atoms go on an arc between the two atoms they join, instead of on a polygon that lands
+        // them on top of others or stretches a bond across the drawing.
+        // (A ring on a macrocycle, as in a porphyrin or a corrin, keeps its polygon: the macrocycle's
+        // double bonds are drawn cis round it, as they are recorded, and an arc could turn one.)
+        const fits = Array.from({ length: n - 2 }, (_, j) => j + 1).every((i) => {
+          const q = p.get(r.atoms[(k + 1 + i) % n]!);
+          return !q || Math.hypot(q.x - spot(i).x, q.y - spot(i).y) < 0.2 * L;
+        });
+        if (fits || n >= 8 || placed.some((x) => onLargeRing.has(x))) {
+          for (let i = 1; i < n - 1; i++) { const id = r.atoms[(k + 1 + i) % n]!; if (!p.has(id)) p.set(id, spot(i)); }
+        } else {
+          bridge(mol, inSystem, r.atoms, p, L);
         }
       }
+      if (n >= 8) for (const x of r.atoms) onLargeRing.add(x);
       done.add(r);
     }
   }
@@ -270,6 +283,53 @@ function layoutRingSystem(mol: Molecule, sys: RingSystem, L: number): Map<AtomId
   sys.atoms.forEach((a, i) => { if (!p.has(a)) p.set(a, { x: c.x + (i % 3) * L * 0.5, y: c.y + L * 0.5 }); });
   transInLargeRings(mol, sys, p);
   return p;
+}
+
+/**
+ * The unplaced atoms of a ring that bridges atoms already drawn: each run of them on a circular
+ * arc from the placed atom before it to the one after, bonds at the standard length, bulging to
+ * whichever side keeps it further from everything else.
+ */
+function bridge(mol: Molecule, inSystem: ReadonlySet<AtomId>, ring: readonly AtomId[], p: Map<AtomId, P>, L: number): void {
+  const n = ring.length;
+  for (let i = 0; i < n; i++) {
+    if (!p.has(ring[i]!) || p.has(ring[(i + 1) % n]!)) continue;
+    const run: AtomId[] = [];
+    let j = (i + 1) % n;
+    while (!p.has(ring[j]!)) { run.push(ring[j]!); j = (j + 1) % n; }
+    const pa = p.get(ring[i]!)!, pb = p.get(ring[j]!)!;
+    const d = Math.hypot(pb.x - pa.x, pb.y - pa.y), segs = run.length + 1;
+    const others = [...p.values()];
+    const place = (side: number, len: number): P[] => {
+      if (d >= segs * len - 1e-6 || d < 1e-6) return run.map((_, k) => ({ x: pa.x + (pb.x - pa.x) * (k + 1) / segs, y: pa.y + (pb.y - pa.y) * (k + 1) / segs + (d < 1e-6 ? side * L * (k + 1) : 0) }));
+      // The angle each bond subtends at the arc's centre: segs chords of length len spanning d.
+      let lo = 1e-6, hi = 2 * Math.PI / segs;
+      for (let it = 0; it < 60; it++) { const t = (lo + hi) / 2; if (Math.sin(segs * t / 2) / Math.sin(t / 2) > d / len) lo = t; else hi = t; }
+      const theta = (lo + hi) / 2, rho = len / (2 * Math.sin(theta / 2)), half = segs * theta / 2;
+      const nx = -(pb.y - pa.y) / d, ny = (pb.x - pa.x) / d;
+      const c = { x: (pa.x + pb.x) / 2 - side * nx * rho * Math.cos(half), y: (pa.y + pb.y) / 2 - side * ny * rho * Math.cos(half) };
+      const a0 = Math.atan2(pa.y - c.y, pa.x - c.x);
+      // Turn from a towards b through the bulge.
+      const apex = Math.atan2(side * ny, side * nx);
+      const turn = Math.abs(norm(a0 + half - apex)) < Math.abs(norm(a0 - half - apex)) ? 1 : -1;
+      return run.map((_, k) => ({ x: c.x + rho * Math.cos(a0 + turn * theta * (k + 1)), y: c.y + rho * Math.sin(a0 + turn * theta * (k + 1)) }));
+    };
+    const room = (pts: P[]) => Math.min(...pts.map((q) => Math.min(...others.map((o) => Math.hypot(o.x - q.x, o.y - q.y)))));
+    // Bonds of the standard length where that leaves room. Where it does not (the third bridge of
+    // bicyclo[2.2.2]octane would lie exactly on the ring it bridges), a wider arc with longer bonds,
+    // as such bridges are drawn by hand.
+    // A bridge atom that carries a group needs room for it too.
+    const need = (run.some((x) => mol.neighbours(x).some((y) => !inSystem.has(y))) ? 1.2 : 0.6) * L;
+    let pts: P[] = [], clear = -1;
+    for (const stretch of [1, 1.3, 1.6, 2, 2.5]) {
+      for (const side of [1, -1]) {
+        const tryPts = place(side, stretch * L), r = room(tryPts);
+        if (r > clear + 1e-6) { clear = r; pts = tryPts; }
+      }
+      if (clear >= need) break;
+    }
+    run.forEach((id, k) => p.set(id, pts[k]!));
+  }
 }
 
 /**
