@@ -1088,6 +1088,10 @@ function nameOneSystematic(input: Molecule): string {
   // (thiomorpholine 1,1-dioxide), so the ring keeps its ordinary name.
   const { bare, oxides } = withoutRingOxides(mol);
   const an = analyze(bare);
+  // Two double bonds at one ring atom (a ring written C1=C=C...): the ring names here take one at most.
+  for (const a of bare.atoms()) {
+    if (bare.incidentBonds(a.id).filter((b) => an.ringBonds.has(b) && bare.bond(b).order === 2).length > 1) throw new OutOfScope('cumulated double bonds in a ring');
+  }
   // A protonated nitrogen at a ring fusion of an unsaturated system ([NH+] in a pyrido[1,2-a]pyrimidine):
   // "-5-ium" on that parent is read as the aromatic cation, with no hydrogen there.
   for (const a of bare.atoms()) {
@@ -1112,6 +1116,14 @@ function nameOneSystematic(input: Molecule): string {
   if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out');
   // A configuration the name has no place for (a phosphane's P, an ammonium N) is not dropped silently.
   if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
+  // Last check on the name itself: it must carry one descriptor for each centre and each double bond that
+  // has a configuration, no fewer (one dropped on the way) and no more (one cited twice).
+  let centres = 0, bonds = 0;
+  for (const group of name.match(/\((?:\d+[a-z]?'*)?[RSEZ](?:,(?:\d+[a-z]?'*)?[RSEZ])*\)/g) ?? []) {
+    centres += (group.match(/[RS]/g) ?? []).length;
+    bonds += (group.match(/[EZ]/g) ?? []).length;
+  }
+  if (centres !== namer.rs.size || bonds !== namer.ez.size / 2) throw new OutOfScope('stereodescriptors do not add up');
   return name;
 }
 
@@ -1479,6 +1491,8 @@ class Namer {
       if (inside === null) continue;
       const outside = inside === b.begin ? b.end : b.begin;
       if (outside === from && el(this.mol, from) === 'C') continue;
+      // From a heteroatom of this skeleton to a carbon group (a ring N+=CH-Ar): the group cites it, as above.
+      if (outside !== from && el(this.mol, inside) !== 'C' && el(this.mol, outside) === 'C' && !inSet.has(outside) && this.mol.neighbours(outside).length > 1) continue;
       items.push([numbering.get(inside)!, l]);
     }
     if (!items.length) return '';
@@ -1495,17 +1509,20 @@ class Namer {
     const inSet = new Set(atoms);
     const probe = mol.clone();
     const rings = perceiveRings(mol);
-    const smallRing = (x: AtomId, y: AtomId) => rings.some((r) => r.atoms.length < 8 && r.atoms.includes(x) && r.atoms.includes(y));
+    // (Seven counts as large here: a reader may give a seven-membered ring's double bond a configuration.)
+    const smallRing = (x: AtomId, y: AtomId) => rings.some((r) => r.atoms.length < 7 && r.atoms.includes(x) && r.atoms.includes(y));
     for (const a of atoms) {
       if (this.rs.get(a)) continue;
       const nb = mol.neighbours(a), h = mol.implicitHydrogens(a), charge = mol.atom(a).charge;
-      if (mol.incidentBonds(a).some((b) => mol.bond(b).order !== 1)) continue;
       const e = el(mol, a);
+      if (e !== 'P' && e !== 'S' && mol.incidentBonds(a).some((b) => mol.bond(b).order !== 1)) continue;
       // Carbon or silicon with four different groups, a quaternary ammonium or phosphonium centre;
       // a ring nitrogen held in a three-membered ring.
       const carbon = nb.length + h === 4 && h <= 1 && (((e === 'C' || e === 'Si') && charge === 0) || ((e === 'N' || e === 'P') && charge === 1 && h === 0));
+      // Phosphorus with three groups and its lone pair, or four with P=O; a sulfoxide or sulfonium sulfur.
+      const hetero = h === 0 && ((e === 'P' && charge === 0 && (nb.length === 3 || nb.length === 4)) || (e === 'S' && nb.length === 3 && charge >= 0));
       const aziridine = e === 'N' && charge === 0 && nb.length === 3 && h === 0 && nb.some((x) => nb.some((y) => x !== y && mol.bondBetween(x, y)));
-      if (!carbon && !aziridine) continue;
+      if (!carbon && !aziridine && !hetero) continue;
       const before = probe.atom(a).chirality;
       probe.atom(a).chirality = { order: nb.length === 4 ? [...nb] : [nb[0]!, -1, ...nb.slice(1)], anticlockwise: true };
       const could = rsLabel(probe, a) !== null;
@@ -1516,8 +1533,8 @@ class Namer {
       // (A double bond in a ring of fewer than eight atoms has one form only.)
       if (b.order !== 2 || this.ez.get(`${b.begin}-${b.end}`) || !(inSet.has(b.begin) || inSet.has(b.end)) || smallRing(b.begin, b.end)) continue;
       const ra = mol.neighbours(b.begin).find((x) => x !== b.end), rb = mol.neighbours(b.end).find((x) => x !== b.begin);
-      // C=N-H: the hydrogen is not drawn, but the imine has two forms all the same when its carbon carries two groups.
-      const imineNH = (n: AtomId, c: AtomId) => el(mol, n) === 'N' && mol.neighbours(n).length === 1 && mol.implicitHydrogens(n) === 1 && mol.neighbours(c).length === 3;
+      // C=N-H: the hydrogen is not drawn, but the imine has two forms all the same unless its carbon is CH2.
+      const imineNH = (n: AtomId, c: AtomId) => el(mol, n) === 'N' && mol.neighbours(n).length === 1 && mol.implicitHydrogens(n) === 1 && mol.neighbours(c).length >= 2;
       if (imineNH(b.begin, b.end) || imineNH(b.end, b.begin)) return true;
       if (ra === undefined || rb === undefined) continue;
       const pb = probe.bond(b.id), before = pb.ez;
@@ -2057,6 +2074,8 @@ class Namer {
     if (ns.some((n) => this.an.ringAtoms.has(n) || mol.atom(n).charge !== 0)) return null;
     if (ns.some((n) => mol.neighbours(n).some((x) => x !== c && mol.bondBetween(n, x)!.order !== 1))) return null;
     const imino = ns.find((n) => mol.bondBetween(c, n)!.order === 2)!;
+    // With a configuration at C=N the diamine form is used, which has a place to cite it.
+    if (this.ez.has(`${c}-${imino}`)) return null;
     const [a, b] = ns.filter((n) => n !== imino) as [AtomId, AtomId];
     const subsOf = (n: AtomId) => mol.neighbours(n).filter((x) => x !== c).map((x) => this.substituent(x, n));
     const first = (xs: SubName[]) => [...xs].sort((x, y) => x.sortKey.localeCompare(y.sortKey))[0]?.sortKey ?? '~';

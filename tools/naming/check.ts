@@ -29,6 +29,12 @@ function ionic(mol: Molecule): Molecule {
     m.atom(metal).charge += b.order; m.atom(other).charge -= b.order;
     m.removeBond(b.id);
   }
+  // Carbon monoxide, however its charges and bond are written.
+  for (const f of m.fragments()) {
+    if (f.length !== 2 || f.map((x) => m.atom(x).element).sort().join('') !== 'CO') continue;
+    for (const x of f) { const at = m.atom(x); at.charge = at.element === 'C' ? -1 : 1; at.explicitHydrogens = 0; }
+    m.bondBetween(f[0]!, f[1]!)!.order = 3;
+  }
   // A hydrogen written on a metal ([KH], [AlH3]) is a hydride ion all the same.
   for (const a of [...m.atoms()]) {
     if (!isMetal(a.element) || !a.explicitHydrogens) continue;

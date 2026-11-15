@@ -37,6 +37,11 @@ const EXPECTED: [string, string][] = [
   ['CNCc1ccccc1', 'N-methyl-1-phenylmethanamine'],
   // A ring with a triple bond keeps it when another ring is the parent's substituent (it was written as one more "ene").
   ['CC1(C)c2ccccc2C2=C1C=C(c1ccccc1)CC#C2', '8,8-dimethyl-11-phenyltricyclo[7.5.0.0^{2,7}]tetradeca-1(9),2,4,6,10-pentaen-13-yne'],
+  // One descriptor for each configuration, with its locant where a reader could put it elsewhere:
+  // beside a ring double bond, an N-H imine, a ring phosphorus.
+  ['C1/C(=C/N=O)/NC2=C(C=C(C=C2)Cl)C(=N1)C3=CC=CC=C3F', '(2Z)-7-chloro-5-(2-fluorophenyl)-2-(nitrosomethylidene)-2,3-dihydro-1H-1,4-benzodiazepine'],
+  ['CC\\1C(=N/[N+]1=C\\C2=CC=C(C=C2)OC)[O-]', '1-((Z)-(4-methoxyphenyl)methylidene)-4-methyl-1,4-dihydro-1,2-diazet-1-ium-3-olate'],
+  ['C(=N/F)(\\N)/N(F)F', '(Z)-(difluoroamino)(fluoroimino)methanamine'],
   ['CCCC(C)CCCOC(=O)OCCCC(C)CCC', 'bis(4-methylheptyl) carbonate'],
   ['CC(C)(C)OC(=O)OC(C)(C)C', 'di-tert-butyl carbonate'],
   // A double bond in a ring of eight or more has two forms: beside others left open, the one given keeps its locant.
@@ -335,6 +340,8 @@ test('what cannot be named rightly is declined, not misnamed', () => {
   for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C',
     // Valences no name here says: SnR2 with no H written, PH2R3, a five-bond P with H, N+(=O)OH, oxido on P(III).
     'CCCC[Sn]CCCC', 'CC[PH2](CC)CC', 'COP(O)(O)O', 'Oc1ccc(cc1)[N+](=O)O', 'OC(=O)CN(COP(O)[O-])COP(O)[O-].[Na+].[Na+]',
+    // Two double bonds at one ring atom (once named as the pyridine).
+    'CCCC[Sn](CCCC)(CCCC)C1=C=C=NC(=C1)C=NC',
     // An N-imide on a ring nitrogen (once "1-imino-...-1H-pyrrol-1-ium", the charge on the outer N lost).
     'CC1=CC=C(C)[N+]1=[N-]',
     // A protonated nitrogen at the fusion of an unsaturated ring system (once "...pyrimidin-5-ium", read as the aromatic cation).

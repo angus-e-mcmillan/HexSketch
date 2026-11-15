@@ -573,7 +573,8 @@ export function peptideName(p: Peptide): string | null {
     // Esters: "methyl L-alanyl-L-phenylalaninate"; acids named "...ic acid" become "...ate".
     const ester = body.replace(/ic acid$/, 'ate').replace(/ine$/, 'inate').replace(/an$/, 'anate');
     if (ester === body) return null;
-    body = `${ct.name} ${ester}`;
+    // The ester word comes first, before an N-terminal group: methyl N-acetyl-L-alanyl-L-leucinate.
+    return `${ct.name} ${nt.name ?? ''}${ester}`;
   }
   return (nt.name ?? '') + body;
 }
