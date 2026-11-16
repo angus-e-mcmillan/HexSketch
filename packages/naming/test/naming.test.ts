@@ -7,14 +7,65 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSmiles, sameStructure } from '@hexsketch/core';
-import { ionize, nameMolecule } from '../src/index.ts';
+import { parseSmiles, sameStructure, writeSmiles, type AtomId, type Molecule } from '@hexsketch/core';
+import { addRingParents, ionize, nameMolecule } from '../src/index.ts';
 import '../src/all-rings.ts';
+import { RING_ROWS } from '../src/rings.ts';
+import { TEMPLATES } from '../src/templates.ts';
 import { opsinAvailable, opsinToSmiles } from '../src/opsin.ts';
 
 const EXPECTED: [string, string][] = [
   // From the ChemDraw Struct=Name spot check.
   ['CC(O)CC(=O)O', '3-hydroxybutanoic acid'],
+  // Guanidines by name, as ChemDraw writes them; the doubly bonded nitrogen is 2.
+  ['NC(=N)N', 'guanidine'],
+  ['CN(C)C(=N)N', '1,1-dimethylguanidine'],
+  ['CN=C(NC)NC', '1,2,3-trimethylguanidine'],
+  ['NC(=N)NCCc1ccccc1', '1-(2-phenylethyl)guanidine'],
+  ['CN=C(NCC1=CSC(=N1)CCC2=CC=CC=C2)N(C)CCOCC3CC3', '1-(2-(cyclopropylmethoxy)ethyl)-1,2-dimethyl-3-((2-(2-phenylethyl)thiazol-4-yl)methyl)guanidine'],
+  // Two nitrogens on one carbon are N and N' (both were "N1", so these two had one name).
+  ['CNCNC', "N,N'-dimethylmethanediamine"],
+  ['CN(C)CN', 'N,N-dimethylmethanediamine'],
+  ['CN(C)CNC', "N,N,N'-trimethylmethanediamine"],
+  ['CCNCNC', "N-ethyl-N'-methylmethanediamine"],
+  // Two carboxamides on one ring atom are N and N' too (both were "N1").
+  ['CNC(=O)C1(CC1)C(=O)NCC', "N-ethyl-N'-methylcyclopropane-1,1-dicarboxamide"],
+  ['CN(C)C(=O)C1(CC1)C(=O)N', 'N,N-dimethylcyclopropane-1,1-dicarboxamide'],
+  ['CNC(=O)CC(=O)NCC', 'N3-ethyl-N1-methylpropanediamide'],
+  // On a one-carbon parent, a group on the carbon is cited with its locant beside one on the nitrogen.
+  ['CNC(=O)C#N', '1-cyano-N-methylformamide'],
+  ['CNCc1ccccc1', 'N-methyl-1-phenylmethanamine'],
+  // A ring with a triple bond keeps it when another ring is the parent's substituent (it was written as one more "ene").
+  ['CC1(C)c2ccccc2C2=C1C=C(c1ccccc1)CC#C2', '8,8-dimethyl-11-phenyltricyclo[7.5.0.0^{2,7}]tetradeca-1(9),2,4,6,10-pentaen-13-yne'],
+  // One descriptor for each configuration, with its locant where a reader could put it elsewhere:
+  // beside a ring double bond, an N-H imine, a ring phosphorus.
+  ['C1/C(=C/N=O)/NC2=C(C=C(C=C2)Cl)C(=N1)C3=CC=CC=C3F', '(2Z)-7-chloro-5-(2-fluorophenyl)-2-(nitrosomethylidene)-2,3-dihydro-1H-1,4-benzodiazepine'],
+  ['CC\\1C(=N/[N+]1=C\\C2=CC=C(C=C2)OC)[O-]', '1-((Z)-(4-methoxyphenyl)methylidene)-4-methyl-1,4-dihydro-1,2-diazet-1-ium-3-olate'],
+  ['C(=N/F)(\\N)/N(F)F', '(Z)-(difluoroamino)(fluoroimino)methanamine'],
+  // One descriptor inside bis(...) stands for both groups.
+  ['CCCCCCCC/C=C\\CCCCCCCC[N+](C)([C@H](C)O)[C@H](C)O', '(Z)-N,N-bis((S)-1-hydroxyethyl)-N-methyloctadec-9-en-1-aminium'],
+  // Isotope labels: a fully deuterated compound as ChemDraw writes it, a labelled halogen by its nuclide.
+  ['[2H]C(Cl)(Cl)Cl', 'trichloromethane-d'],
+  ['[2H]OC([2H])([2H])[2H]', 'methanol-d4'],
+  ['[2H]c1c([2H])c([2H])c([2H])c([2H])c1[2H]', 'benzene-d6'],
+  ['[2H]C([2H])([2H])C(=O)C([2H])([2H])[2H]', 'propan-2-one-d6'],
+  ['[2H]C([2H])([2H])C(=O)O[2H]', 'acetic acid-d4'],
+  ['[2H]O[2H]', 'water-d2'],
+  ['[18F]CCO', '2-(18F)fluoroethan-1-ol'],
+  ['CC1=C(C(=O)N(N1C)C2=CC=CC=C2)[125I]', '4-(125I)iodo-1,5-dimethyl-2-phenyl-1,2-dihydro-3H-pyrazol-3-one'],
+  ['OC[C@H]1O[C@H](O)[C@H]([18F])[C@@H](O)[C@@H]1O', '(2S,3R,4S,5S,6R)-3-(18F)fluoro-6-(hydroxymethyl)tetrahydro-2H-pyran-2,4,5-triol'],
+  ['CCCC(C)CCCOC(=O)OCCCC(C)CCC', 'bis(4-methylheptyl) carbonate'],
+  ['CC(C)(C)OC(=O)OC(C)(C)C', 'di-tert-butyl carbonate'],
+  // A double bond in a ring of eight or more has two forms: beside others left open, the one given keeps its locant.
+  ['C/C/1=C(\\N=C(N=C(CC1)C2=CC=CC=C2)C)/C', '(7E)-2,7,8-trimethyl-4-phenyl-5,6-dihydro-1,3-diazocine'],
+  // A lone descriptor keeps its locant beside a centre or double bond left open: an ammonium nitrogen, an N-H imine.
+  ['CCOC(=O)C[N+]1(CCCC[C@@H]1C=C)CC2=CC=CC=C2', '(2R)-1-benzyl-1-(2-ethoxy-2-oxoethyl)-2-vinylpiperidin-1-ium'],
+  ['COC(=N)/C(=N/OCCF)/C(=O)OC', 'methyl (2Z)-2-((2-fluoroethoxy)imino)-3-imino-3-methoxypropanoate'],
+  ['c1ccccc1[I+]c1ccccc1.[Cl-]', 'diphenyliodonium chloride'],
+  // Decalin is numbered like naphthalene: the fusion carbons are 4a and 8a (geosmin).
+  ['CC1CCCC2CCCCC12', '1-methyldecahydronaphthalene'],
+  ['OC1CCC2CCCCC2C1', 'decahydronaphthalen-2-ol'],
+  ['CC1CCCC2(C1(CCCC2)O)C', '4,8a-dimethyldecahydronaphthalen-4a-ol'],
   ['CCOC(C)=O', 'ethyl acetate'],
   ['NCC(=O)N(C)C', '2-amino-N,N-dimethylacetamide'],
   ['CC(=O)C', 'propan-2-one'],
@@ -129,6 +180,70 @@ const EXPECTED: [string, string][] = [
   ['CC(C)=[NH+]C', 'N-methylpropan-2-iminium'],
   ['c1cc[n-]n1', '1H-pyrazol-1-ide'],
   ['C[S@@](=O)c1ccccc1', '((R)-methylsulfinyl)benzene'],
+  // Long chains: the unit keeps its "a", icosa loses its "i" after one (were tetrdecane, octdecanoic acid, tetraicosane).
+  ['CCCCCCCCCCCCCC', 'tetradecane'], ['CCCCCCCCCCCCCCCCCC(=O)O', 'octadecanoic acid'], ['CCCCCCCCCCCCCCCCCCCCCCCC', 'tetracosane'], ['C1CCCCCCCCCCCCCCCCC1', 'cyclooctadecane'],
+  // A substituted methyl: no locant, and brackets.
+  ['BrCc1ccccc1', '(bromomethyl)benzene'], ['FC(F)(F)c1ccccc1', '(trifluoromethyl)benzene'], ['COCCl', 'chloro(methoxy)methane'], ['ClC(Br)I', 'bromochloroiodomethane'],
+  // Small molecules, inorganic ions, salts.
+  ['O', 'water'], ['N', 'ammonia'], ['OO', 'hydrogen peroxide'], ['OS(=O)(=O)O', 'sulfuric acid'], ['O=S(Cl)Cl', 'thionyl chloride'],
+  ['O=C([O-])[O-].[K+].[K+]', 'potassium carbonate'], ['OC(=O)[O-].[Na+]', 'sodium hydrogen carbonate'], ['[BH4-].[Na+]', 'sodium borohydride'], ['[AlH4-].[Li+]', 'lithium aluminium hydride'],
+  ['[K+].[O-][Mn](=O)(=O)=O', 'potassium permanganate'], ['[N-]=[N+]=[N-].[Na+]', 'sodium azide'], ['NN.O', 'hydrazine hydrate'], ['NO.Cl', 'hydroxylamine hydrochloride'],
+  // Metal compounds, as drawn with bonds or as ions.
+  ['Cl[Ti](Cl)(Cl)Cl', 'titanium(IV) chloride'], ['[Cu]I', 'copper(I) iodide'], ['Cl[Al](Cl)Cl', 'aluminium chloride'], ['CC(=O)[O-].CC(=O)[O-].[Pd+2]', 'palladium(II) acetate'],
+  ['[Li]CCCC', 'butyllithium'], ['C[Mg]Br', 'methylmagnesium bromide'], ['CC(C)C[AlH]CC(C)C', 'diisobutylaluminium hydride'], ['CC[Zn]CC', 'diethylzinc'],
+  // Onium ions and amide bases.
+  ['C[P+](c1ccccc1)(c1ccccc1)c1ccccc1.[Br-]', 'methyltriphenylphosphonium bromide'], ['C[O+](C)C.F[B-](F)(F)F', 'trimethyloxonium tetrafluoroborate'],
+  ['CC(C)[N-]C(C)C.[Li+]', 'lithium diisopropylamide'], ['C[Si](C)(C)[N-][Si](C)(C)C.[Li+]', 'lithium bis(trimethylsilyl)amide'],
+  // Sulfonic acids and their derivatives, peroxy acids.
+  ['Cc1ccc(S(=O)(=O)Cl)cc1', '4-methylbenzenesulfonyl chloride'], ['OS(=O)(=O)C(F)(F)F', 'trifluoromethanesulfonic acid'], ['CS(N)(=O)=O', 'methanesulfonamide'],
+  ['COS(C)(=O)=O', 'methyl methanesulfonate'], ['Cc1ccc(S(=O)(=O)[O-])cc1.[Na+]', 'sodium 4-methylbenzenesulfonate'], ['Cc1onc(NS(=O)(=O)c2ccc(N)cc2)c1', '4-amino-N-(5-methylisoxazol-3-yl)benzenesulfonamide'],
+  ['OC(=O)c1ccc(S(=O)(=O)O)cc1', '4-sulfobenzoic acid'], ['NS(=O)(=O)c1ccc(C(=O)O)cc1', '4-sulfamoylbenzoic acid'], ['O=C(OO)c1cccc(Cl)c1', '3-chlorobenzoperoxoic acid'],
+  // Esters with different alkyl groups; amides with O on the nitrogen.
+  ['CCOC(=O)CC(=O)OC', '1-ethyl 3-methyl propanedioate'], ['CON(C)C(C)=O', 'N-methoxy-N-methylacetamide'], ['CC(=O)NO', 'N-hydroxyacetamide'],
+  // Large rings by replacement; ring oxides.
+  ['C1COCCOCCOCCOCCOCCO1', '1,4,7,10,13,16-hexaoxacyclooctadecane'], ['O=C1CCCCCCCCCCCCCO1', '1-oxacyclopentadecan-2-one'], ['C1CC2CCCC(C1)B2', '9-borabicyclo[3.3.1]nonane'],
+  ['O=S1(=O)CCNCC1', 'thiomorpholine 1,1-dioxide'], ['OC(=O)c1ccc(N2CCS(=O)(=O)CC2)cc1', '4-(1,1-dioxidothiomorpholin-4-yl)benzoic acid'], ['C1CCCSCCC1', 'thiocane'],
+  // Diazo, diazonium, isocyanide, ylides, phosphine oxides.
+  ['CCOC(=O)C=[N+]=[N-]', 'ethyl 2-diazoacetate'], ['N#[N+]c1ccccc1.F[B-](F)(F)F', 'benzenediazonium tetrafluoroborate'], ['[C-]#[N+]C(C)(C)C', '2-isocyano-2-methylpropane'],
+  ['C=P(c1ccccc1)(c1ccccc1)c1ccccc1', 'methylenetriphenyl-λ5-phosphane'], ['O=P(c1ccccc1)(c1ccccc1)c1ccccc1', 'triphenylphosphine oxide'],
+  // Anhydrides.
+  ['CC(=O)OC(C)=O', 'acetic anhydride'], ['CC(=O)OC(=O)c1ccccc1', 'acetic benzoic anhydride'], ['O=S(=O)(OS(=O)(=O)C(F)(F)F)C(F)(F)F', 'trifluoromethanesulfonic anhydride'],
+  ['CC(C)(C)OC(=O)OC(=O)OC(C)(C)C', 'di-tert-butyl dicarbonate'],
+  // An oxime carbamate (was named as an N-methylformamide); E/Z on a benzylidene.
+  ['CNC(=O)ON=C(C)C', '2-(((methylcarbamoyl)oxy)imino)propane'], ['O=c1occn1/N=C/c1ccccc1', '3-(((E)-benzylidene)amino)oxazol-2(3H)-one'],
+  // Purine, with its own numbering, as parent and as substituent.
+  ['Cn1cnc2c1ncnc2N', '9-methyl-9H-purin-6-amine'], ['Nc1ncnc2[nH]cnc12', '9H-purin-6-amine'],
+  ['OCC1OC(N2C=NC3=C2N=CN=C3N)CC1O', '5-(6-amino-9H-purin-9-yl)-2-(hydroxymethyl)tetrahydrofuran-3-ol'],
+  // A ring ketone: indicated hydrogen at the C=O where the parent has it, else added hydrogen; ketones need no hydro prefix.
+  ['Cn1c(=O)c2c(ncn2C)n(C)c1=O', '1,3,7-trimethyl-3,7-dihydro-1H-purine-2,6-dione'],
+  ['Nc1nc2c(ncn2COCCO)c(=O)[nH]1', '2-amino-9-((2-hydroxyethoxy)methyl)-1,9-dihydro-6H-purin-6-one'],
+  ['O=c1[nH]c2ccccc2[nH]1', '1,3-dihydro-2H-benzimidazol-2-one'], ['O=c1cc[nH][nH]1', '1,2-dihydro-3H-pyrazol-3-one'],
+  ['O=C1CCCc2ccccc21', '3,4-dihydronaphthalen-1(2H)-one'], ['O=C1c2ccccc2C(=O)c2ccccc21', 'anthracene-9,10-dione'],
+  ['O=c1c2ccccc2[nH]c2ccccc12', 'acridin-9(10H)-one'], ['O=C1Nc2ccccc2C1=O', 'indoline-2,3-dione'],
+  ['O=c1ccc2ncccc2[nH]1', '1,5-naphthyridin-2(1H)-one'], ['O=c1[nH]c(=O)c2nccnc2[nH]1', 'pteridine-2,4(1H,3H)-dione'],
+  ['CCC1(c2ccccc2)C(=O)NC(=O)NC1=O', '5-ethyl-5-phenylpyrimidine-2,4,6(1H,3H,5H)-trione'], ['O=c1[nH]c2ccccc2s1', 'benzothiazol-2(3H)-one'],
+  ['O=C(O)c1cn(C2CC2)c2cc(N3CCNCC3)c(F)cc2c1=O', '1-cyclopropyl-6-fluoro-4-oxo-7-(piperazin-1-yl)-1,4-dihydroquinoline-3-carboxylic acid'],
+  // Substituted alkoxy prefixes keep the contracted form.
+  ['OCCOCCO', '2-(2-hydroxyethoxy)ethan-1-ol'], ['FC(F)(F)COc1ccccc1', '(2,2,2-trifluoroethoxy)benzene'],
+  ['COc1ccc(OCC(=O)O)cc1', '2-(4-methoxyphenoxy)acetic acid'], ['O=C(OCCO)c1ccccc1C(=O)O', '2-((2-hydroxyethoxy)carbonyl)benzoic acid'],
+  // Unlocanted prefixes: a later one is bracketed where it could be read as carrying the one before
+  // ("trichlorovinylsilane" reads as Cl3C=CH-SiH3); a multiplied one needs no brackets.
+  ['C=C[Si](Cl)(Cl)Cl', 'trichloro(vinyl)silane'], ['C[Si](c1ccccc1)(c1ccccc1)Cl', 'chloro(methyl)diphenylsilane'],
+  ['CCO[Si](C)(C)C=C', 'ethoxydimethyl(vinyl)silane'], ['C[Sn](C)(C)C=C', 'trimethyl(vinyl)stannane'], ['CC[Hg]C#N', 'cyano(ethyl)mercury'],
+  ['CC(C)(C)[Si](C)(C)c1ccccc1', 'tert-butyldimethyl(phenyl)silane'], ['CCCN(C(=O)OCC)N=O', 'ethyl nitroso(propyl)carbamate'],
+  ['CC(C)OC(=O)c1cc(N=C(OC(C)C)S)ccc1Cl', 'isopropyl 2-chloro-5-((isopropoxy(mercapto)methylidene)amino)benzoate'],
+  // A double bond on an amide nitrogen is an ylidene; S-alkyl isothioureas with locants (unlocanted, OPSIN reads S-N=C).
+  ['CCC(CC)(C(=O)N=C(N)S)C(=O)OC', 'methyl 2-((amino(mercapto)methylidene)carbamoyl)-2-ethylbutanoate'], ['NC(=N)SCc1ccccc1', '1-(benzylthio)-1-iminomethanamine'],
+  // N(OH)2 is not nitro; charged acid groups as prefixes keep their charge; P-H acids; sulfinic acids.
+  ['Oc1ccc(cc1)N(O)O', '4-(dihydroxyamino)phenol'], ['OC(CC(=O)[O-])(CC(=O)[O-])C(=O)[O-]', '3-carboxylato-3-hydroxypentanedioate'],
+  ['OP(=O)CC(=O)O', '2-(hydroxy(oxo)-λ5-phosphanyl)acetic acid'], ['OS(=O)c1ccc(cc1)C(=O)O', '4-sulfinobenzoic acid'],
+  // Polyatomic anions multiply with bis (diphosphate is P2O7 4-); heteroatom stereocentres are cited.
+  ['[O-2].[O-]P(=O)([O-])[O-].[O-]P(=O)([O-])[O-].[Ca+2].[Ca+2].[Ca+2].[Ca+2]', 'tetracalcium oxide bis(phosphate)'],
+  ['C[P@](CC)c1ccccc1', '(R)-ethyl(methyl)(phenyl)phosphane'],
+  // Secondary von Baeyer bridges: of equal ones, the one to the higher bridgeheads is numbered first (atom 22 between 13 and 16).
+  ['C1CC2=NC1=CC3=NC(=CC4=CCC(=CC5=NC(=C2)C=C5)N4)C=C3', '21,22,23,24-tetraazapentacyclo[16.2.1.1^{3,6}.1^{8,11}.1^{13,16}]tetracosa-1(20),2,4,6(24),7,11(23),12,14,16(22),17-decaene'],
+  // Two ring carboxamides: their N locants are the ring atoms' (was "Nundefined").
+  ['CN(C)C(=O)C1=C(CCCC1)C(=O)Nc1ccccc1', 'N1,N1-dimethyl-N2-phenylcyclohex-1-ene-1,2-dicarboxamide'],
 ];
 
 const ROUND_TRIP: string[] = [
@@ -160,6 +275,9 @@ const ROUND_TRIP: string[] = [
   'Cc1nc2n(n1)c(C)cc(C)n2', 'Cn1c(=O)c2c(ncn2C)n(C)c1=O', 'c1ccc2c(c1)Sc1ccccc1N2', 'CC12CCC3C(CCC4CC(O)CCC43C)C1CCC2O',
   'c1cc2ccc3cccc4ccc(c1)c2c34', 'ClC1=C(Cl)C2(Cl)C3CC=CC3C1(Cl)C2(Cl)Cl', 'C1CC2CCC1C2', 'C1C2CC3CC1CC(C2)C3',
   'O=C1Nc2ccccc2C12CCNCC2', 'C1CCC2(CC1)OCCO2', 'O=[S@]1OCCS1', 'C1CSCCSC1', 'CC1=C(C)OP(=O)(O)O1',
+  // Ring ketones on mancude parents (one was once "1H-indole-2,3()-dione"), saturated ones, a pyranone.
+  'O=C1Nc2ccccc2C1=O', 'O=c1[nH]c(=O)c2[nH]c(=O)[nH]c2[nH]1', 'O=c1cc[nH]c2ncccc12', 'O=c1ccn2ccnc2[nH]1', 'O=C1C=CC(=O)NN1',
+  'O=C1CSCCSC1', 'O=C1CCCO1', 'O=C1COc2ccccc21', 'O=C1CCNc2ccccc21', 'O=c1ccocc1', 'Nc1nc2n(COC(CO)CO)cnc2c(=O)[nH]1',
 ];
 
 test('names match ChemDraw and IUPAC for known cases', () => {
@@ -199,6 +317,8 @@ const STEREO: string[] = [
   'C[C@@H](N)C(=O)N[C@H](CC(C)C)C(=O)O',
   // Oximes, hydrazones and azo compounds carry E/Z; sulfoxides are stereocentres.
   'C/C(=N/O)c1ccccc1', 'C/C(=N\\O)c1ccccc1', 'c1ccc(/N=N/c2ccccc2)cc1', 'CC[C@@H](c1ccoc1)[S@@](=O)c1ccccc1',
+  // Phosphorus, sulfonium and silicon centres.
+  'C[P@](CC)c1ccccc1', 'CC[P@@](C)(=O)c1ccccc1', 'C[S@+](CC)c1ccccc1', 'C[Si@](CC)(CCC)c1ccccc1',
 ];
 
 test('stereodescriptors survive the OPSIN round trip', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, async () => {
@@ -225,4 +345,151 @@ test('stereodescriptors survive the OPSIN round trip', { skip: !opsinAvailable()
     if (!ok) failures.push(`${x.smi} -> "${x.r.name}" -> ${smi}: configuration differs`);
   });
   assert.deepEqual(failures, []);
+});
+
+test('H2 is dihydrogen however it is written', () => {
+  for (const smi of ['[HH]', '[H][H]']) assert.equal(nameMolecule(parseSmiles(smi)).name, 'dihydrogen', smi);
+  assert.equal(nameMolecule(parseSmiles('[HH].CCO')).name, 'dihydrogen · ethanol');
+});
+
+test('what cannot be named rightly is declined, not misnamed', () => {
+  // Each of these once got the name of a different compound: methane, the hydroxylamine, an amine, a neutral ether.
+  for (const smi of ['[CH3]', 'CC1(C)CCCC(C)(C)N1[O]', 'Cc1ncc(C)[n+]2c([N-]c3ccccc3)nn(C)c12', 'CN(C)C(=[O+]N1C(=O)CCC1=O)N(C)C',
+    // Valences no name here says: SnR2 with no H written, PH2R3, a five-bond P with H, N+(=O)OH, oxido on P(III).
+    'CCCC[Sn]CCCC', 'CC[PH2](CC)CC', 'COP(O)(O)O', 'Oc1ccc(cc1)[N+](=O)O', 'OC(=O)CN(COP(O)[O-])COP(O)[O-].[Na+].[Na+]',
+    // Labels with no word here yet: a labelled carbon, partial deuteration, an acyl (18F)fluoride, a labelled iodide ion.
+    '[13CH3]O', '[2H]C([2H])([2H])O', 'CC(=O)[18F]', '[Na+].[125I-]',
+    // Two double bonds at one ring atom (once named as the pyridine).
+    'CCCC[Sn](CCCC)(CCCC)C1=C=C=NC(=C1)C=NC',
+    // An N-imide on a ring nitrogen (once "1-imino-...-1H-pyrrol-1-ium", the charge on the outer N lost).
+    'CC1=CC=C(C)[N+]1=[N-]',
+    // A protonated nitrogen at the fusion of an unsaturated ring system (once "...pyrimidin-5-ium", read as the aromatic cation).
+    'O=C1C=CN=C2C=CC=C[NH+]12', 'C1=CC2=NC=CC[NH+]2C=C1',
+    // A stereocentre in a fused system too large to rank in reasonable time (it took 20 s, then lost its descriptor).
+    'CC1=CC=C(C=C1)[C@H]2C3=CC=CC=C3C4=C2C5=C6C=CC=CC6=C(C5=C7C4=C(C8=CC=CC=C87)C9=CC=C(C=C9)C)C1=CC=C(C=C1)C',
+    // Hypervalent iodine (once "iodobenzene", its acetates, oxygen or chlorines dropped); two ureas (once "methanurea").
+    'CC(=O)OI(OC(C)=O)c1ccccc1', 'O=Ic1ccccc1', 'ClI(Cl)c1ccccc1', 'CCCCI(O)OS(=O)(=O)c1ccc(C)cc1', 'NC(=O)NCCNC(N)=O', 'CNC(=O)NNC(=O)CNC(=O)Nc1cccc(c1)C(F)(F)F',
+    // Salts whose charges do not balance, or several formula units beside other components (once "palladium(II)
+    // chloride", "lead(II) acetate", "cadmium barium · dodecanoic acid", "aluminium hydride · manganese").
+    'Cl[Pd-2](Cl)(Cl)Cl', 'CC(=O)[O-].CC(=O)[O-].CC(=O)[O-].CC(=O)[O-].[Pb+2]', 'CCCCCCCCCCCC(=O)O.[Cd+2].[Ba+2]', '[AlH3].[AlH3].[AlH3].[Mn]',
+    '[Cl-].[Cl-].[Cl-].[Cl-].[Cl-].[Cl-].[K+].[K+].[Ir]',
+    // An ammonium N stereocentre the name has no place for.
+    'C[N@+](CC)(CCC)c1ccccc1']) {
+    assert.equal(nameMolecule(parseSmiles(smi)).name, null, smi);
+  }
+});
+
+test('before the generated ring parents are added, fused systems are named from curated parents or declined', () => {
+  addRingParents([]);
+  try {
+    assert.equal(nameMolecule(parseSmiles('Cn1cnc2c1ncnc2N')).name, '9-methyl-9H-purin-6-amine');
+    assert.equal(nameMolecule(parseSmiles('O=c1ccocc1')).name, '4H-pyran-4-one');
+    // Once a von Baeyer name: 2,4,7,10-tetraazabicyclo[4.4.0]deca-...-pentaene.
+    assert.equal(nameMolecule(parseSmiles('c1cnc2ncncc2n1')).name, null);
+    assert.equal(nameMolecule(parseSmiles('c1ccc2c(c1)CC2')).name, 'bicyclo[4.2.0]octa-1,3,5-triene');
+    assert.equal(nameMolecule(parseSmiles('C1=CC2C=CC1C2')).name, 'bicyclo[2.2.1]hepta-2,5-diene');
+  } finally {
+    addRingParents(RING_ROWS);
+  }
+  assert.equal(nameMolecule(parseSmiles('c1cnc2ncncc2n1')).name, 'pteridine');
+});
+
+/** Whether OPSIN reads each name back to its structure; the failures, as text. */
+function misread(cases: { smi: string; name: string | null; why?: string }[]): string[] {
+  const back = opsinToSmiles(cases.map((c) => c.name ?? ''));
+  const bad: string[] = [];
+  cases.forEach((c, i) => {
+    if (!c.name) { bad.push(`${c.smi}: unnamed (${c.why})`); return; }
+    let same = false;
+    try { same = !!back[i] && sameStructure(ionize(parseSmiles(c.smi)), ionize(parseSmiles(back[i]!))); } catch { /* reported below */ }
+    if (!same) bad.push(`${c.smi} -> "${c.name}" -> ${back[i] ?? 'unreadable'}`);
+  });
+  return bad;
+}
+
+const named = (smi: string) => { const r = nameMolecule(parseSmiles(smi)); return { smi, name: r.name, why: r.reason }; };
+
+test('generated ring parents are named by their own names (OPSIN)', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, () => {
+  const rows = RING_ROWS.slice(0, 400);
+  const smiles = opsinToSmiles(rows.map((r) => r[0]));
+  const cases = rows.flatMap((r, i) => (smiles[i] ? [{ ring: r[0], ...named(smiles[i]!) }] : []));
+  const unretained = cases.filter((c) => c.name && !c.name.includes(c.ring.replace(/e$/, ''))).map((c) => `${c.ring}: ${c.name}`);
+  assert.deepEqual({ unretained, misread: misread(cases) }, { unretained: [], misread: [] });
+});
+
+// Heterobicycles named with substituents on them, a ring C=O (its H moved to a ring N) and as a substituent.
+const BICYCLES = ['9H-purine', '1H-indole', 'quinoline', 'isoquinoline', '1H-benzimidazole', 'benzofuran', '1,3-benzothiazole', '1,3-benzoxazole',
+  'quinazoline', 'quinoxaline', 'pteridine', '1,5-naphthyridine', '1,6-naphthyridine', '1,7-naphthyridine', '1,8-naphthyridine', '2,6-naphthyridine',
+  '2,7-naphthyridine', 'imidazo[1,2-a]pyridine', '1H-pyrazolo[3,4-d]pyrimidine', '7H-pyrrolo[2,3-d]pyrimidine', '1H-indazole', '2H-indazole',
+  '1H-benzotriazole', '2H-chromene', '4H-chromene', 'benzo[b]thiophene', 'cinnoline', 'phthalazine', 'indolizine', 'imidazo[1,2-a]pyrimidine',
+  '[1,2,4]triazolo[1,5-a]pyrimidine', 'thieno[2,3-d]pyrimidine', 'thieno[3,2-d]pyrimidine', 'furo[2,3-b]pyridine', '1H-pyrrolo[2,3-b]pyridine',
+  '1H-pyrrolo[3,2-c]pyridine', 'imidazo[1,2-b]pyridazine', 'pyrazolo[1,5-a]pyrimidine', '3H-imidazo[4,5-b]pyridine', 'pyrido[2,3-d]pyrimidine',
+  '1H-pyrazolo[3,4-b]pyridine', '[1,2,4]triazolo[4,3-a]pyridine', '2,1,3-benzothiadiazole', '4H-quinolizine'];
+
+function derivatives(smi: string): string[] {
+  const base = parseSmiles(smi);
+  const ring = [...base.atoms()].map((a) => a.id);
+  const out: string[] = [];
+  for (const a of ring) {
+    if (base.implicitHydrogens(a) < 1) continue;
+    for (const chain of [['C'], ['N'], ['C', 'C', 'O']]) {
+      const m = base.clone();
+      chain.reduce((prev, e) => { const x = m.addAtom({ element: e, x: 0, y: 0 }).id; m.addBond({ begin: prev, end: x, order: 1 }); return x; }, a);
+      out.push(writeSmiles(m));
+    }
+  }
+  // C=O at a ring CH, its hydrogen moved to a ring N: the rest of the ring keeps a Kekulé structure.
+  const nb = (m: Molecule, a: AtomId) => m.neighbours(a).filter((x) => ring.includes(x));
+  const sp3 = ring.filter((a) => !base.incidentBonds(a).some((b) => base.bond(b).order === 2));
+  for (const c of ring) for (const n of ring) {
+    if (base.atom(c).element !== 'C' || base.implicitHydrogens(c) !== 1 || base.atom(n).element !== 'N' || nb(base, n).length !== 2 || base.implicitHydrogens(n)) continue;
+    const m = base.clone();
+    for (const b of [...m.bonds()]) b.order = 1;
+    const free = ring.filter((a) => a !== c && a !== n && !sp3.includes(a));
+    const used = new Set<AtomId>();
+    const pair = (i: number): boolean => {
+      while (i < free.length && used.has(free[i]!)) i++;
+      if (i === free.length) return true;
+      used.add(free[i]!);
+      for (const y of nb(m, free[i]!)) {
+        if (!free.includes(y) || used.has(y)) continue;
+        used.add(y); m.bondBetween(free[i]!, y)!.order = 2;
+        if (pair(i + 1)) return true;
+        used.delete(y); m.bondBetween(free[i]!, y)!.order = 1;
+      }
+      used.delete(free[i]!);
+      return false;
+    };
+    if (!pair(0)) continue;
+    m.addBond({ begin: c, end: m.addAtom({ element: 'O', x: 0, y: 0 }).id, order: 2 });
+    out.push(writeSmiles(m));
+  }
+  return out;
+}
+
+test('heterobicycles with substituents, ring ketones and as substituents read back (OPSIN)', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, () => {
+  const parents = opsinToSmiles(BICYCLES);
+  const unread = BICYCLES.filter((_, i) => !parents[i]);
+  const smiles = [...new Set(parents.flatMap((s) => (s ? [s, ...derivatives(s)] : [])))];
+  assert.deepEqual({ unread, misread: misread(smiles.map(named)) }, { unread: [], misread: [] });
+});
+
+test('every hand-written ring template is numbered as OPSIN numbers it', { skip: !opsinAvailable() && 'OPSIN/Java not available' }, () => {
+  // A fluorine on each carbon in turn: "<locant>-fluoro<ring>" must be that structure, and so must the name given to it.
+  const cases: { smi: string; name: string | null; why?: string }[] = [];
+  for (const t of TEMPLATES) {
+    if (!t.smiles) continue;
+    const base = parseSmiles(t.smiles);
+    [...base.atoms()].forEach((atom, i) => {
+      if (atom.element !== 'C' || base.implicitHydrogens(atom.id) < 1) return;
+      const mol = parseSmiles(t.smiles);
+      const at = [...mol.atoms()][i]!;
+      mol.addBond({ begin: at.id, end: mol.addAtom({ element: 'F', x: 0, y: 0 }).id, order: 1 });
+      const smi = writeSmiles(mol);
+      // Where the ring has indicated hydrogen in its name the template's own name is not enough; the namer's is checked.
+      if (!/^\d+H-/.test(t.name) && !t.indicatedH) cases.push({ smi, name: `${t.locants[i]}-fluoro${t.name}` });
+      cases.push(named(smi));
+    });
+  }
+  assert.deepEqual(misread(cases), []);
 });

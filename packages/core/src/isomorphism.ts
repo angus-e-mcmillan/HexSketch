@@ -82,15 +82,17 @@ export function* isomorphisms(a: Molecule, b: Molecule): Generator<Map<AtomId, A
  * through the atom mapping, so ring cis/trans counts even where CIP gives no
  * R/S.
  */
-export function sameStereoisomer(a: Molecule, b: Molecule): boolean {
-  const prepare = (m: Molecule) => {
+export function sameStereoisomer(a: Molecule, b: Molecule, opts: { recorded?: [boolean, boolean] } = {}): boolean {
+  // `recorded`: for each, keep the configuration it carries (a SMILES that was only laid out, whose
+  // drawing must not count as saying E where the SMILES said nothing).
+  const prepare = (m: Molecule, recorded = false) => {
     const c = m.clone();
-    if ([...c.atoms()].some((x) => x.x !== 0 || x.y !== 0)) perceiveStereoFromGeometry(c);
+    if (!recorded && [...c.atoms()].some((x) => x.x !== 0 || x.y !== 0)) perceiveStereoFromGeometry(c);
     // Geometry gives every drawn double bond a configuration; keep the ones that matter.
     for (const bd of c.bonds()) if (bd.ez && ezLabel(c, bd.id) === null) bd.ez = null;
     return c;
   };
-  const pa = prepare(a), pb = prepare(b);
+  const pa = prepare(a, opts.recorded?.[0]), pb = prepare(b, opts.recorded?.[1]);
   const count = (m: Molecule) => `${[...m.atoms()].filter((x) => x.chirality).length}|${[...m.bonds()].filter((x) => x.ez).length}`;
   if (count(pa) !== count(pb)) return false;
   const parity = (from: AtomId[], to: AtomId[]) => {

@@ -1,4 +1,4 @@
-import type { AtomId, BondId, Molecule } from '@hexsketch/core';
+import { perceiveRings, type AtomId, type BondId, type Molecule } from '@hexsketch/core';
 
 /**
  * Where ChemDraw puts new atoms. Every rule here was measured on ChemDraw 20.1.
@@ -29,17 +29,29 @@ function neighbourAngles(mol: Molecule, id: AtomId): number[] {
   });
 }
 
-/** Bisector of the largest angular gap; ties go to the first gap in ascending angle order. */
-export function largestGapBisector(angles: number[]): number {
+/**
+ * Bisector of the largest angular gap; ties go to the first gap in ascending
+ * angle order. `inside` names gaps not to use while another is free: the
+ * inside of a ring, where a substituent is never drawn (on a seven-ring the
+ * inside is the widest gap there is).
+ */
+export function largestGapBisector(angles: number[], inside: [number, number][] = []): number {
   const sorted = angles.map(norm).sort((x, y) => x - y);
-  let best = -1, bestGap = -Infinity;
-  for (let i = 0; i < sorted.length; i++) {
-    const a = sorted[i]!;
-    const b = i + 1 < sorted.length ? sorted[i + 1]! : sorted[0]! + 2 * Math.PI;
-    const gap = b - a;
-    if (gap > bestGap + 1e-6) { bestGap = gap; best = a + gap / 2; }
-  }
-  return norm(best);
+  const same = (x: number, y: number) => Math.abs(norm(x - y)) < 1e-6;
+  const isInside = (a: number, b: number) => inside.some(([p, q]) => (same(a, p) && same(b, q)) || (same(a, q) && same(b, p)));
+  const pick = (skipInside: boolean) => {
+    let best: number | null = null, bestGap = -Infinity;
+    for (let i = 0; i < sorted.length; i++) {
+      const a = sorted[i]!;
+      const b = i + 1 < sorted.length ? sorted[i + 1]! : sorted[0]! + 2 * Math.PI;
+      const gap = b - a;
+      // A ring's inside is the gap under 180 degrees between its two bonds.
+      if (skipInside && gap < Math.PI && isInside(a, b)) continue;
+      if (gap > bestGap + 1e-6) { bestGap = gap; best = a + gap / 2; }
+    }
+    return best;
+  };
+  return norm(pick(inside.length > 0) ?? pick(false) ?? -1);
 }
 
 /**
@@ -48,11 +60,38 @@ export function largestGapBisector(angles: number[]): number {
  * bond rotated by +120 degrees, so repeated clicks curl round like a ring.
  * Higher degree: the bisector of the largest free gap.
  */
-export function cyclicDirection(mol: Molecule, id: AtomId, chainAngle = 120): number {
+export function cyclicDirection(mol: Molecule, id: AtomId, chainAngle = 120, newOrder = 1): number {
   const angles = neighbourAngles(mol, id);
   if (angles.length === 0) return DEFAULT_BOND_ANGLE;
-  if (angles.length === 1) return norm(angles[0]! + chainAngle * DEG);
-  return largestGapBisector(angles);
+  if (angles.length === 1) return straightOn(mol, id, newOrder) ?? norm(angles[0]! + chainAngle * DEG);
+  return largestGapBisector(angles, ringInteriors(mol, id));
+}
+
+/**
+ * An atom with two double bonds or a triple bond is linear: a bond added to
+ * the end of a triple bond, or a second double bond to the end of a double
+ * bond (an allene, a ketene, an isocyanate), goes straight on. Null otherwise.
+ */
+function straightOn(mol: Molecule, id: AtomId, newOrder: number): number | null {
+  const bonds = mol.incidentBonds(id);
+  if (bonds.length !== 1) return null;
+  const order = mol.bond(bonds[0]!).order;
+  if (!(order === 3 || newOrder === 3 || (order === 2 && newOrder === 2))) return null;
+  return norm(neighbourAngles(mol, id)[0]! + Math.PI);
+}
+
+/** The directions from a ring atom that point into a ring it is in: between its two bonds of that ring. */
+function ringInteriors(mol: Molecule, id: AtomId): [number, number][] {
+  const out: [number, number][] = [];
+  const a = mol.atom(id);
+  for (const ring of perceiveRings(mol)) {
+    const i = ring.atoms.indexOf(id);
+    if (i < 0) continue;
+    const n = ring.atoms.length;
+    const [p, q] = [ring.atoms[(i + n - 1) % n]!, ring.atoms[(i + 1) % n]!].map((x) => Math.atan2(mol.atom(x).y - a.y, mol.atom(x).x - a.x)) as [number, number];
+    out.push([norm(p), norm(q)]);
+  }
+  return out;
 }
 
 /**
@@ -60,9 +99,11 @@ export function cyclicDirection(mol: Molecule, id: AtomId, chainAngle = 120): nu
  * the new bond goes 120 degrees from the existing one, on the side away from
  * the grandparent so the chain stays trans; otherwise as cyclic mode.
  */
-export function linearDirection(mol: Molecule, id: AtomId, chainAngle = 120): number {
+export function linearDirection(mol: Molecule, id: AtomId, chainAngle = 120, newOrder = 1): number {
   const angles = neighbourAngles(mol, id);
-  if (angles.length !== 1) return cyclicDirection(mol, id, chainAngle);
+  if (angles.length !== 1) return cyclicDirection(mol, id, chainAngle, newOrder);
+  const straight = straightOn(mol, id, newOrder);
+  if (straight !== null) return straight;
   const parent = mol.neighbours(id)[0]!;
   const back = angles[0]!;
   const options = [norm(back + chainAngle * DEG), norm(back - chainAngle * DEG)];

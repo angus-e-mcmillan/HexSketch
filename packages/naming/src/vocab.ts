@@ -10,10 +10,12 @@ export function alkaneStem(n: number): string {
     10: 'dec', 11: 'undec', 20: 'icos', 21: 'henicos', 22: 'docos', 30: 'triacont',
   };
   if (fixed[n]) return fixed[n]!;
-  if (n < 20) return UNITS[n - 10]!.replace(/a$/, '') + 'dec';
+  // The unit keeps its "a": tetradec, octadec (not tetrdec, octdec).
+  if (n < 20) return `${UNITS[n - 10]!}dec`;
   const u = n % 10, t = Math.floor(n / 10);
   const unit = u === 1 ? 'hen' : UNITS[u]!;
-  return (unit + TENS[t]!).replace(/a$/, '');
+  // After a unit, icosa loses its "i": tricos, tetracos, nonacos.
+  return (unit + (t === 2 && u ? 'cosa' : TENS[t]!)).replace(/a$/, '');
 }
 
 /** di, tri, tetra ... for simple prefixes and suffixes. */

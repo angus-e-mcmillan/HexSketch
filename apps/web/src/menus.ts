@@ -21,6 +21,8 @@ export type MenuItem =
     };
 
 let openRoot: { close: () => void } | null = null;
+/** How long a newly opened submenu ignores clicks, in ms: longer than a tap, shorter than a deliberate second one. */
+const TAP_GUARD = 350;
 
 /** Close whatever menu is open. */
 export function closeMenus(): void { openRoot?.close(); }
@@ -54,6 +56,9 @@ export function openMenu(items: MenuItem[], at: { x: number; y: number } | HTMLE
   /** Show a list (or panel) at depth `level`, dropping deeper ones. */
   const show = (list: MenuItem[], x: number, y: number, level: number, side: { left: number } | null = null): HTMLElement => {
     for (const p of panels.splice(level)) p.remove();
+    // A touch opens a submenu on the way down and, when the submenu lands under the finger,
+    // clicks its first item on the way up. A submenu takes no click in its first moments.
+    const born = level > 0 ? performance.now() : -Infinity;
     const panel = document.createElement('div');
     panel.className = 'menu-panel';
     panel.setAttribute('role', 'menu');
@@ -81,6 +86,8 @@ export function openMenu(items: MenuItem[], at: { x: number; y: number } | HTMLE
           for (const p of panels.splice(level + 1)) p.remove();
           const sub = document.createElement('div');
           sub.className = 'menu-panel menu-custom';
+          const subBorn = performance.now();
+          sub.addEventListener('click', (e) => { if (performance.now() - subBorn < TAP_GUARD) { e.stopPropagation(); e.preventDefault(); } }, true);
           item.panel!(sub, close);
           place(sub, r.right - 2, r.top - 5, { left: r.left });
           panels.push(sub);
@@ -92,7 +99,7 @@ export function openMenu(items: MenuItem[], at: { x: number; y: number } | HTMLE
       });
       row.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (disabled) return;
+        if (disabled || performance.now() - born < TAP_GUARD) return;
         if (opensChild) { openChild(); return; }
         close();
         item.run?.();

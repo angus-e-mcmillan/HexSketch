@@ -1,5 +1,5 @@
 import {
-  aiSummary, altTextFor, assignWedges, parseFormula, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
+  aiSummary, altTextFor, assignWedges, parseFormula, cloneObjects, objectPoints, layoutPeptides, recognisePeptide, recogniseOligo, computeMass, decodePayload, elementalAnalysis, isotopePattern, layout2D, makeArcArrow, makeArrow, makeCaption, parseSmiles, pngWithPayload,
   readCdxmlDocument, readCdxmlStyle, readMolfile, readStructureLink, sameStereoisomer, sameStructure, smilesLink,
   perceiveRings, structureLink, substructureMappings, writeCdxml, writeMolfile, writeSmiles, type AtomId, ACS_1996_STYLE, DEFAULT_STYLE, HEXSKETCH_URL, Molecule,
   PAYLOAD_MARKERS, type DocObject, type DrawingStyle, type ObjectGroup,
@@ -250,7 +250,7 @@ function copyDrawing(mol: Molecule, ids: readonly AtomId[], ref: Molecule, map: 
 }
 
 /** A peptide: two residues or more (Boc-Pro-OH alone is a building block, turned like any other structure). */
-const isPeptide = (mol: Molecule) => { try { return mol.atomCount >= 7 && (recognisePeptide(mol)?.residues.length ?? 0) >= 2; } catch { return false; } };
+const isPeptide = (mol: Molecule) => { try { return mol.atomCount >= 7 && ((recognisePeptide(mol)?.residues.length ?? 0) >= 2 || (recogniseOligo(mol)?.units.length ?? 0) >= 2); } catch { return false; } };
 
 /**
  * Draw related structures the same way round: each structure in `targets`
@@ -772,7 +772,7 @@ function analyzeOne(mol: Molecule, drawn = true): Analysis {
   const m = computeMass(mol);
   return {
     name: safeName(mol, drawn).name,
-    smiles: writeSmiles(mol),
+    smiles: writeSmiles(mol, { geometry: drawn }),
     formula: m.formulaWithCharge,
     charge: m.charge,
     exactMass: m.monoisotopicMass,
@@ -799,7 +799,7 @@ export type ConvertFormat = 'smiles' | 'mol' | 'cdxml' | 'link';
 export async function convert(input: string | Structure, to: ConvertFormat, opts: ReadOptions & { base?: string } = {}): Promise<string> {
   const s = await readStructure(input, opts);
   switch (to) {
-    case 'smiles': return writeSmiles(expanded(s));
+    case 'smiles': return writeSmiles(expanded(s), { geometry: s.smiles === undefined });
     case 'mol': return writeMolfile(s.mol, s.style.bondLength, 'HexSketch structure');
     case 'cdxml': { const p = onPage(s); return writeCdxml(p.mol, p.style, p.objects, { groups: p.groups }); }
     case 'link': return link(s, opts);
@@ -899,7 +899,7 @@ export async function validate(input: string | Structure, opts: ReadOptions = {}
   return {
     ok: !issues.some((i) => i.severity === 'error'),
     issues,
-    smiles: writeSmiles(mol),
+    smiles: writeSmiles(mol, { geometry: s.smiles === undefined }),
     name: named.name,
     formula: computeMass(mol).formulaWithCharge,
     ...(risks.length ? { hazards: risks.map(hazardLine) } : {}),
@@ -931,7 +931,13 @@ export interface Comparison {
 
 /** Are two inputs the same compound (and the same stereoisomer)? Formats may differ. */
 export async function compare(a: string | Structure, b: string | Structure, opts: ReadOptions = {}): Promise<Comparison> {
-  const ma = expanded(await readStructure(a, opts)), mb = expanded(await readStructure(b, opts));
+  const sa = await readStructure(a, opts), sb = await readStructure(b, opts);
+  const ma = expanded(sa), mb = expanded(sb);
+  // A SMILES says what it says: its layout does not add a configuration it left open.
+  const recorded: [boolean, boolean] = [sa.smiles !== undefined, sb.smiles !== undefined];
   const sameConnectivity = sameStructure(ma, mb);
-  return { same: sameConnectivity && sameStereoisomer(ma, mb), sameConnectivity, smiles: [writeSmiles(ma), writeSmiles(mb)] };
+  return {
+    same: sameConnectivity && sameStereoisomer(ma, mb, { recorded }), sameConnectivity,
+    smiles: [writeSmiles(ma, { geometry: !recorded[0] }), writeSmiles(mb, { geometry: !recorded[1] })],
+  };
 }

@@ -69,7 +69,7 @@ test('convert, link and name', async () => {
   assert.match((await run('convert', ASPIRIN, '--to', 'mol')).out, /V2000/);
   assert.equal((await run('link', 'CC#N')).out, 'https://hexsketch.com/#smiles=CC%23N\n');
   assert.equal((await run('link', 'CCO', '--base', 'http://localhost:5174/')).out, 'http://localhost:5174/#smiles=CCO\n');
-  assert.equal((await run('name', 'C[C@H](N)C(=O)O')).out, '(S)-2-aminopropanoic acid\n');
+  assert.equal((await run('name', 'C[C@H](N)C(=O)O')).out, 'L-alanine\n');
   const molfile = join(dir, 'a.mol');
   writeFileSync(molfile, (await run('convert', ASPIRIN, '--to', 'mol')).out);
   assert.equal((await run('name', molfile)).out, '2-acetoxybenzoic acid\n');

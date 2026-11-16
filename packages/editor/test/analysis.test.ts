@@ -127,3 +127,21 @@ test('Document Settings: ChemDraw page counts and paper, A4 and slides', () => {
   assert.deepEqual(readCdxmlPage(writeCdxml(parseSmiles('C'), DEFAULT_STYLE, [], { page: { paper: 'A4', orientation: 'landscape', across: 1, down: 2 } })),
     { paper: 'A4', orientation: 'landscape', across: 1, down: 2 });
 });
+
+test('a name caption is written afresh when the namer learns more (its ring parents arrive)', () => {
+  const ed = new Editor();
+  let known = false;
+  ed.nameOf = () => (known ? 'quinoline' : null);
+  ed.doc.edit((m) => { const a = m.addAtom({ element: 'C', x: 100, y: 100 }), b = m.addAtom({ element: 'C', x: 120, y: 100 }); m.addBond({ begin: a.id, end: b.id, order: 1 }); });
+  selectAll(ed);
+  assert.ok(ed.toggleAnalysis('formula'));
+  selectAll(ed);
+  ed.toggleAnalysis('name');
+  const text = () => { const c = ed.doc.objects.find((o) => o.kind === 'text' && o.analysis); return c?.kind === 'text' ? c.text : ''; };
+  assert.ok(!/quinoline/.test(text()));
+  known = true;
+  ed.doc.touch();
+  assert.ok(!/quinoline/.test(text()), 'a touch alone keeps what was worked out');
+  ed.namesChanged();
+  assert.match(text(), /quinoline/);
+});

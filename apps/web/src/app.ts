@@ -1,4 +1,4 @@
-import { alarming, screenHazards, HAZARD_DISCLAIMER, type Hazard, altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, parsePeptide, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
+import { alarming, screenHazards, HAZARD_DISCLAIMER, type Hazard, altTextFor, decodePayload, payloadFromPng, pngWithPayload, documentSize, layout2D, objectPoints, isSequence, readMolfile, writeMolfile, writeSmiles, readCdxmlDocument, readCdxmlPage, readCdxmlStyle, writeCdxml, aiSummary, readStructureLink, structureLink, ANALYSIS_ITEMS, DEFAULT_STYLE, Molecule, paletteId, PALETTES, type DocObject, type DrawingStyle, type PageSettings } from '@hexsketch/core';
 import { depict, toPdf, toSvg } from '@hexsketch/render';
 import { Editor, EditorDocument, type Tool } from '@hexsketch/editor';
 import { nameMolecule } from '@hexsketch/naming';
@@ -74,7 +74,8 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   editor.analysisDecimals = prefs.decimals;
   editor.nameOf = (m) => { try { return nameMolecule(m).name; } catch { return null; } };
   // Ring parents for naming (fused and hydro ring systems): a separate chunk, loaded once the editor is up.
-  setTimeout(() => { void import('@hexsketch/naming/rings'); }, 0);
+  // Names shown before then (a structure opened from a link) are brought up to date once it is in.
+  setTimeout(() => { void import('@hexsketch/naming/rings').then(() => editor.namesChanged()); }, 0);
   let zoom = opts.zoom ?? 1.5;
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const pageEl = $('page');
@@ -226,7 +227,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   const analysisItems = (): MenuItem[] => {
     const shown = editor.analysisShown();
     const toggle = (item: Parameters<Editor['toggleAnalysis']>[0]) => () => {
-      if (!editor.toggleAnalysis(item)) flash('Select a structure (or a peptide such as H-Ala-Gly-OH) first');
+      if (!editor.toggleAnalysis(item)) flash("Select a structure (or a sequence such as H-Ala-Gly-OH or 5'-ACGT-3') first");
     };
     return [
       ...ANALYSIS_ITEMS.map((x) => ({ label: x.label, checked: shown.has(x.item), run: toggle(x.item) })),
@@ -302,6 +303,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       { label: 'Align', submenu: alignItems },
       { label: 'Distribute', submenu: distributeItems },
       'sep',
+      { label: 'Rotate', submenu: rotateItems },
       { label: 'Flip Horizontal', shortcut: '⇧⌘H', run: () => editor.rotate180('horizontal'), enabled: hasSelection() },
       { label: 'Flip Vertical', shortcut: '⇧⌘V', run: () => editor.rotate180('vertical'), enabled: hasSelection() },
     ] },
@@ -324,7 +326,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   ]);
 
   function expandLabel() {
-    if (!editor.expandLabels()) flash('Nothing to expand: select a peptide (H-Ala-Gly-OH) or an abbreviated label (Ph, OMe, Boc…)');
+    if (!editor.expandLabels()) flash("Nothing to expand: select a peptide (H-Ala-Gly-OH), an oligonucleotide (5'-ACGT-3') or an abbreviated label (Ph, OMe, Boc…)");
   }
 
   function convertToName() {
@@ -477,6 +479,25 @@ export function mountApp(opts: AppOptions = {}): AppApi {
   }
 
   /** Colors > Palette: the colour table the Color menu offers (colours already used stay as they are). */
+  /** Object > Rotate: the selection, or the whole drawing with nothing selected. */
+  function rotateItems(): MenuItem[] {
+    const on = hasDrawing();
+    const other = () => {
+      const text = window.prompt('Rotate clockwise by how many degrees? (A negative number turns anticlockwise.)', '30');
+      const degrees = Number(text);
+      if (text !== null && text.trim() !== '' && Number.isFinite(degrees) && degrees % 360 !== 0) editor.rotateSelection(degrees);
+    };
+    return [
+      { label: '15° Clockwise', shortcut: '⌥↓', run: () => editor.rotateSelection(15), enabled: on },
+      { label: '15° Anticlockwise', shortcut: '⌥↑', run: () => editor.rotateSelection(-15), enabled: on },
+      { label: '90° Clockwise', run: () => editor.rotateSelection(90), enabled: on },
+      { label: '90° Anticlockwise', run: () => editor.rotateSelection(-90), enabled: on },
+      { label: '180°', run: () => editor.rotateSelection(180), enabled: on },
+      'sep',
+      { label: 'Other Angle…', run: other, enabled: on },
+    ];
+  }
+
   function paletteItems(): MenuItem[] {
     const current = paletteId(editor.doc.style);
     return PALETTES.map((p) => ({ label: p.label, checked: current === p.id, run: () => editor.setStyle({ ...editor.doc.style, palette: p.colors }, { rescale: false }) }));
@@ -538,13 +559,18 @@ export function mountApp(opts: AppOptions = {}): AppApi {
       (e.target as HTMLInputElement).value = '';
       return;
     }
-    const style = readCdxmlStyle(text, editor.doc.style);
-    editor.doc.page = readCdxmlPage(text) ?? editor.doc.page;
-    const opened = readCdxmlDocument(text);
-    // Files without coordinates (from other programs) get laid out.
-    if ([...opened.mol.atoms()].every((a) => a.x === 0 && a.y === 0)) layout2D(opened.mol, style.bondLength);
-    editor.doc.replace(opened.mol, opened.objects, opened.groups, style);
     (e.target as HTMLInputElement).value = '';
+    // A file that is not CDXML, or is damaged, says so and leaves the drawing as it was.
+    if (!/<(CDXML|page|fragment)\b/.test(text)) { flash(`Could not open ${file.name}: not a CDXML or MOL file`); return; }
+    try {
+      const style = readCdxmlStyle(text, editor.doc.style);
+      const opened = readCdxmlDocument(text);
+      // Files without coordinates (from other programs) get laid out.
+      if ([...opened.mol.atoms()].every((a) => a.x === 0 && a.y === 0)) layout2D(opened.mol, style.bondLength);
+      editor.doc.page = readCdxmlPage(text) ?? editor.doc.page;
+      editor.doc.replace(opened.mol, opened.objects, opened.groups, style);
+      if (!opened.mol.atomCount && !opened.objects.length) flash(`${file.name} has nothing in it that HexSketch can show`);
+    } catch (err) { flash(`Could not open ${file.name}: ${(err as Error).message}`); }
   });
 
   // ----------------------------------------------------------------- viewport
@@ -827,7 +853,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     if (o && o.kind !== 'text') items.push(...objectItems(o), 'sep');
     if (o && o.kind === 'text') items.push({ label: 'Edit Text', run: () => editor.onEditCaption?.(o.id) }, 'sep');
     const structures = sel.atoms.size > 0;
-    const peptide = [...sel.objects].some((id) => { const c = editor.doc.objects.find((x) => x.id === id); return c?.kind === 'text' && !c.analysis && !!parsePeptide(c.text.trim()); });
+    const peptide = [...sel.objects].some((id) => { const c = editor.doc.objects.find((x) => x.id === id); return c?.kind === 'text' && !c.analysis && isSequence(c.text.trim()); });
     items.push(
       { label: 'Copy', shortcut: '⌘C', run: () => { const src = copySource(); copyStructure(src.mol, editor.doc.style, src.objects, src.groups).then((c) => { void rememberCopy(c.png, c.alt); flash('Copied: paste into Word, PowerPoint or Google Docs; copy it back to edit'); }).catch(() => flash('Copy failed: the browser blocked clipboard access')); } },
       { label: 'Copy As', submenu: copyAsItems },
@@ -847,7 +873,7 @@ export function mountApp(opts: AppOptions = {}): AppApi {
     items.push(...groupItems());
     if (structures || sel.objects.size > 1) {
       items.push({ label: 'Align', submenu: alignItems }, { label: 'Distribute', submenu: distributeItems });
-      if (structures) items.push({ label: 'Flip Horizontal', shortcut: '⇧⌘H', run: () => editor.rotate180('horizontal') }, { label: 'Flip Vertical', shortcut: '⇧⌘V', run: () => editor.rotate180('vertical') });
+      if (structures) items.push({ label: 'Rotate', submenu: rotateItems }, { label: 'Flip Horizontal', shortcut: '⇧⌘H', run: () => editor.rotate180('horizontal') }, { label: 'Flip Vertical', shortcut: '⇧⌘V', run: () => editor.rotate180('vertical') });
       items.push('sep');
     }
     items.push({ label: 'Export', submenu: exportItems }, 'sep', { label: 'Delete', shortcut: '⌫', run: () => editor.key('Delete', {}) });

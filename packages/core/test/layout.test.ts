@@ -47,3 +47,62 @@ test('layout keeps stereochemistry: wedges and alkene geometry mean what the SMI
     assert.equal(labels(mol), before, smi);
   }
 });
+
+test('a trans double bond in a large ring is drawn trans', () => {
+  // Round a polygon every ring bond is cis, so a macrocycle's E double bond was drawn Z: another compound.
+  // Read back from the drawing, each must be what the SMILES said.
+  const cases = [
+    'C1CCCCC/C=C/CCCCC1', 'C1CCCCC/C=C\\CCCCC1', 'C1CCC/C=C/CC1', 'C1CCCC/C=C/C=C/CCCC1', 'C1CCCC/C=C/C=C\\CCCC1',
+    'C[C@H]1C/C=C/CCCCCCC(=O)O1', 'C1CCCC/C=C/C=C/C=C/CCCCCC1', 'CC1=C/CCCCCCCC\\C=C(C)\\CCC/1',
+  ];
+  for (const smiles of cases) {
+    const mol = parseSmiles(smiles);
+    const want = [...mol.bonds()].map((b) => ezLabel(mol, b.id)).filter(Boolean).join('');
+    assert.ok(want.length > 0, smiles);
+    layout2D(mol);
+    perceiveStereoFromGeometry(mol);
+    assert.equal([...mol.bonds()].map((b) => ezLabel(mol, b.id)).filter(Boolean).join(''), want, smiles);
+    // Every bond still the standard length.
+    for (const b of mol.bonds()) {
+      const p = mol.atom(b.begin), q = mol.atom(b.end);
+      assert.ok(Math.abs(Math.hypot(p.x - q.x, p.y - q.y) - 18.43) < 0.05, `${smiles}: bond length`);
+    }
+  }
+});
+
+test('a crowded cage atom still gets a wedge that shows its configuration', () => {
+  // Vincristine and batrachotoxin each have a centre whose first-choice bond can carry neither a wedge nor a hash.
+  for (const smiles of ['CC[C@@]1(C[C@@H]2C[C@@](C3=C(CCN(C2)C1)C4=CC=CC=C4N3)(C5=C(C=C6C(=C5)[C@]78CCN9[C@H]7[C@@](C=CC9)([C@H]([C@@]([C@@H]8N6C=O)(C(=O)OC)O)OC(=O)C)CC)OC)C(=O)OC)O', 'CC1=CNC(=C1C(=O)O[C@@H](C)C2=CC[C@@]34[C@@]2(C[C@H]([C@@]56C3=CC[C@H]7[C@@]5(CC[C@](C7)(O6)O)C)O)CN(CCO4)C)C', 'C1CN2CC3=CCO[C@H]4CC(=O)N5[C@H]6[C@H]4[C@H]3C[C@H]2[C@@]61C7=CC=CC=C75']) {
+    const mol = parseSmiles(smiles);
+    const want = [...mol.atoms()].map((a) => rsLabel(mol, a.id));
+    layout2D(mol);
+    perceiveStereoFromGeometry(mol);
+    assert.deepEqual([...mol.atoms()].map((a) => rsLabel(mol, a.id)), want, smiles);
+  }
+});
+
+test('crowded atoms are drawn apart: a chain keeps its zigzag through CF2 and gem-dimethyl carbons', () => {
+  const closest = (smiles: string) => {
+    const mol = parseSmiles(smiles);
+    layout2D(mol);
+    const at = [...mol.atoms()];
+    let least = Infinity;
+    for (let i = 0; i < at.length; i++) for (let j = i + 1; j < at.length; j++) least = Math.min(least, Math.hypot(at[i]!.x - at[j]!.x, at[i]!.y - at[j]!.y));
+    return least / 18.43;
+  };
+  // Perfluorooctanoic acid, pinacol, phenytoin, 1-phenylcyclohexanecarboxylic acid, a trityl ether, decachlorodiphenyl ether.
+  for (const smiles of ['OC(=O)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F', 'OC(C)(C)C(C)(C)O', 'CCC(C)(C)CCC(C)(C)CC',
+    'C1=CC=C(C=C1)C2(C(=O)NC(=O)N2)C3=CC=CC=C3', 'OC(=O)C1(CCCCC1)c1ccccc1', 'COC(c1ccccc1)(c1ccccc1)c1ccccc1',
+    'C1(=C(C(=C(C(=C1Cl)Cl)Cl)Cl)Cl)OC2=C(C(=C(C(=C2Cl)Cl)Cl)Cl)Cl']) {
+    assert.ok(closest(smiles) > 0.5, `${smiles}: closest atoms ${closest(smiles).toFixed(2)} bond lengths apart`);
+  }
+  // The backbone of a perfluoro chain is still a zigzag: every C-C-C angle 120 degrees.
+  const mol = parseSmiles('FC(F)(F)C(F)(F)C(F)(F)C(F)(F)C(F)(F)F');
+  layout2D(mol);
+  const carbons = [...mol.atoms()].filter((a) => a.element === 'C');
+  for (let i = 1; i + 1 < carbons.length; i++) {
+    const [p, c, n] = [carbons[i - 1]!, carbons[i]!, carbons[i + 1]!];
+    const angle = Math.abs(Math.atan2(p.y - c.y, p.x - c.x) - Math.atan2(n.y - c.y, n.x - c.x)) * 180 / Math.PI;
+    assert.ok(Math.abs(Math.min(angle, 360 - angle) - 120) < 1, `C-C-C angle ${angle.toFixed(0)}`);
+  }
+});

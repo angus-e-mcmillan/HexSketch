@@ -121,13 +121,18 @@ export function openGuide(start = 0): Promise<void> {
       for (const d of Array.from(dlg.querySelectorAll<HTMLButtonElement>('[data-page]'))) d.addEventListener('click', () => { page = Number(d.dataset.page); show(); });
       dlg.querySelector<HTMLButtonElement>('.guide-next')!.focus();
     };
+    let closed = false;
     function done() {
+      if (closed) return;
+      closed = true;
       try { localStorage.setItem(SEEN_KEY, '1'); } catch { /* private window: it may show again next time */ }
       dlg.close();
       dlg.remove();
       resolve();
     }
     dlg.addEventListener('cancel', (e) => { e.preventDefault(); done(); });
+    // However it is closed, it leaves the page: a closed dialog left behind would be opened twice next time.
+    dlg.addEventListener('close', done);
     dlg.addEventListener('keydown', (e) => {
       e.stopPropagation(); // keys here are not drawing hotkeys
       if (e.key === 'ArrowRight' && page < PAGES.length - 1) { page++; show(); }
