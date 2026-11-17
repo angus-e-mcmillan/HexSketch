@@ -150,6 +150,8 @@ function chemistStyle(s: SubName): SubName {
   if (t === 'amino(imino)methyl') return mk('carbamimidoyl', false);
   if (t === '(amino(imino)methyl)amino' || t === 'carbamimidoylamino') return mk('guanidino', false);
   if (t === 'carbamoylamino') return mk('ureido', false);
+  if (t === 'cyanoamino') return mk('cyanamido', false);
+  if (t === 'aminocarbamoyl') return mk('hydrazinecarbonyl');
   // (Phenylamino)thioxomethyl: phenylcarbamothioyl.
   if (t === 'aminothioxomethyl') return mk('carbamothioyl', false);
   const ct = /^\((.+)amino\)thioxomethyl$/.exec(t) ?? /^thioxo\((.+)amino\)methyl$/.exec(t);
@@ -1922,9 +1924,11 @@ class Namer {
     const gaveUp = cipLimits.gaveUp;
     const costly = () => { if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out'); };
     for (const a of an.mol.atoms()) { const l = rsLabel(full, a.id) ?? pseudoLabel(full, a.id); costly(); if (l) this.rs.set(a.id, l); }
+    // A C=NH has no configuration to cite: (Z) of [H]/N=C/... is dropped.
+    const bareNH = (x: AtomId) => an.mol.atom(x).element === 'N' && an.mol.neighbours(x).length === 1;
     for (const b of an.mol.bonds()) {
       const fb = full.bondBetween(b.begin, b.end);
-      const l = fb ? ezLabel(full, fb.id) : null;
+      const l = fb && !bareNH(b.begin) && !bareNH(b.end) ? ezLabel(full, fb.id) : null;
       costly();
       if (l) { this.ez.set(`${b.begin}-${b.end}`, l); this.ez.set(`${b.end}-${b.begin}`, l); }
     }
@@ -2394,7 +2398,8 @@ class Namer {
     const mol = this.mol;
     if (this.principal !== 'nitrile' && this.principal !== 'amine') return null;
     const nitriles = this.an.groups.filter((g) => g.kind === 'nitrile');
-    if (nitriles.length !== 1 || this.an.groups.some((g) => g.kind !== 'nitrile' && g.kind !== 'amine')) return null;
+    // Groups junior to a nitrile are prefixes: N-(6-hydroxy-4-oxo-...-2-yl)cyanamide.
+    if (nitriles.length !== 1 || this.an.groups.some((g) => g.kind !== 'nitrile' && g.kind !== 'amine' && SENIORITY.indexOf(g.kind) < SENIORITY.indexOf('nitrile'))) return null;
     const c = nitriles[0]!.anchor;
     const n = mol.neighbours(c).find((x) => el(mol, x) === 'N' && mol.bondBetween(c, x)!.order === 1);
     if (n === undefined || this.an.ringAtoms.has(n) || mol.atom(n).charge) return null;
