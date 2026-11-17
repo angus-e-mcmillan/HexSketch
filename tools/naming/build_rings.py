@@ -37,7 +37,7 @@ furan thiophene pyrrole imidazole pyrazole oxazole isoxazole thiazole isothiazol
 1,3-dioxole 1,2-dioxole 1,3-oxathiole 1,3-dithiole 1,2-dithiole 1,2-oxathiole
 pyran thiopyran 1,4-dioxine 1,3-dioxine 1,4-oxathiine 1,4-dithiine 1,3-oxazine 1,4-oxazine 1,2-oxazine 1,3-thiazine 1,4-thiazine 1,2-thiazine
 1,3,5-oxadiazine 1,3,4-oxadiazine 1,3,4-thiadiazine 1,3,5-thiadiazine 1,2,4-oxadiazine 1,2,4-thiadiazine 1,2,3-oxathiazine 1,4,2-dioxazine 1,3,5-dioxazine 1,3,5-dithiazine
-azepine 1,2-diazepine 1,3-diazepine 1,4-diazepine oxepine thiepine 1,4-oxazepine 1,3-oxazepine 1,4-thiazepine 1,3-thiazepine 1,2,4-triazepine 1,3,5-triazepine
+pyrrolizine azepine 1,2-diazepine 1,3-diazepine 1,4-diazepine oxepine thiepine 1,4-oxazepine 1,3-oxazepine 1,4-thiazepine 1,3-thiazepine 1,2,4-triazepine 1,3,5-triazepine
 azocine 1,5-diazocine oxocine azonine azete 1,2-diazete oxete thiete azirine oxirene diazirine
 naphthalene azulene indene anthracene phenanthrene fluorene pyrene acenaphthylene biphenylene phenalene chrysene tetracene triphenylene
 cyclopenta[a]phenanthrene benzo[a]anthracene benzo[c]phenanthrene fluoranthene pentalene heptalene as-indacene s-indacene
