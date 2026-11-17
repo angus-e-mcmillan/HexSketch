@@ -2007,8 +2007,11 @@ class Namer {
    */
   phosphorusAcidName(): string | null {
     const mol = this.mol;
-    if (this.principal && ['carboxylate', 'sulfonate', 'olate', 'thiolate', 'ide', 'ium', 'iminium', 'aminium', 'diazonium', 'acid', 'peracid', 'sulfonic', 'ester', 'sulfonateEster', 'acylHalide', 'sulfonylHalide'].includes(this.principal)) return null;
     const ps = [...mol.atoms()].filter((a) => a.element === 'P');
+    // Oxido on the phosphorus makes it an anion of the acid: methyl phosphate, methyl hydrogen phosphate;
+    // with an onium elsewhere, an inner salt: 2-(trimethylammonio)ethyl ... phosphate.
+    const pAnion = ps.some((p) => mol.neighbours(p.id).some((o) => el(mol, o) === 'O' && mol.atom(o).charge === -1 && mol.neighbours(o).length === 1));
+    if (this.principal && ['carboxylate', 'sulfonate', 'olate', 'thiolate', 'ide', ...(pAnion ? [] : ['ium', 'iminium', 'aminium']), 'diazonium', 'acid', 'peracid', 'sulfonic', 'ester', 'sulfonateEster', 'acylHalide', 'sulfonylHalide'].includes(this.principal)) return null;
     if (!ps.length || ps.some((p) => this.an.ringAtoms.has(p.id) || p.charge !== 0)) return null;
     // Phosphorus atoms joined by O into one chain (a di- or triphosphate), every P with its =O.
     const pIds = ps.map((p) => p.id);
@@ -2030,8 +2033,9 @@ class Namer {
         const e = el(mol, x);
         if (e === 'C') { if (pIds.length > 1) return null; carbons.push(this.substituent(x, p)); continue; }
         if (e === 'N') { if (pIds.length > 1 || mol.neighbours(x).length !== 1 || mol.atom(x).charge) return null; amino++; continue; }
-        if ((e !== 'O' && e !== 'S') || mol.atom(x).charge) return null;
         const beyond = mol.neighbours(x).filter((y) => y !== p);
+        if (e === 'O' && mol.atom(x).charge === -1 && !beyond.length) continue;
+        if ((e !== 'O' && e !== 'S') || mol.atom(x).charge) return null;
         if (!beyond.length) { if (e === 'S') return null; hs.push(x); continue; }
         if (beyond.length !== 1 || el(mol, beyond[0]!) !== 'C' || isAcylCarbon(mol, beyond[0]!)) return null;
         if (e === 'S') { if (pIds.length > 1) return null; sEsters.add(esters.length); }
