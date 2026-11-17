@@ -1623,7 +1623,7 @@ const RETAINED_MOLECULES: [string, string][] = [
   ['O=C/C=C/c1ccccc1', 'cinnamaldehyde'], ['NC(=O)c1cccnc1', 'nicotinamide'], ['CCCCCCCC/C=C\\CCCCCCCC(=O)O', 'oleic acid'],
   ['O=C(/C=C/c1ccccc1)c1ccccc1', '(E)-chalcone'], ['Cc1ccc(C)cc1', 'p-xylene'], ['Cc1cccc(C)c1', 'm-xylene'], ['Cc1ccccc1C', 'o-xylene'],
   ['OC(=O)c1cccnc1', 'nicotinic acid'], ['C=CC(C)=C', 'isoprene'], ['Cc1ccc(cc1)C(C)C', 'p-cymene'],
-  ['Oc1cccc(O)c1', 'resorcinol'], ['Oc1ccc(O)cc1', 'hydroquinone'], ['Oc1ccccc1O', 'catechol'], ['Cc1ccccc1O', 'o-cresol'],
+  ['Oc1cccc(O)c1', 'resorcinol'], ['Oc1ccc(O)cc1', 'hydroquinone'], ['Oc1ccccc1O', 'pyrocatechol'], ['Cc1cc(C)cc(C)c1', 'mesitylene'], ['Cc1ccccc1O', 'o-cresol'],
   ['Cc1cccc(O)c1', 'm-cresol'], ['Cc1ccc(O)cc1', 'p-cresol'], ['CC(=O)c1ccccc1', 'acetophenone'], ['CCC(=O)c1ccccc1', 'propiophenone'],
   ['OC(=O)CCCC(O)=O', 'glutaric acid'], ['OC(=O)CCCCC(O)=O', 'adipic acid'], ['CC(C)C(O)=O', 'isobutyric acid'], ['CC(=C)C(O)=O', 'methacrylic acid'],
   ['OC(=O)c1ccccc1C(O)=O', 'phthalic acid'], ['OC(=O)c1cccc(c1)C(O)=O', 'isophthalic acid'], ['OC(=O)c1ccc(cc1)C(O)=O', 'terephthalic acid'],
