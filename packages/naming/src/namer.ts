@@ -237,6 +237,10 @@ function countSubs(subs: readonly SubName[]): { text: string; complex: boolean; 
 
 // Primed locants (the second ring of an assembly) count after every unprimed one.
 const locVal = (l: string) => { const m = /^(\d+)([a-z]?)('*)/.exec(l); return m ? Number(m[1]) + (m[2] ? 0.1 * (m[2].charCodeAt(0) - 96) : 0) + 1000 * m[3]!.length : 0; };
+/** Locants in order of citation (alphabetical), each prefix's own locants lowest first: the last numbering rule. */
+const alphaLocs = (pre: readonly { sortKey: string; text: string; at: AtomId | 'N' }[], numbering: Numbering) =>
+  pre.map((x) => ({ k: x.sortKey, t: x.text, l: locVal(numbering.get(x.at as AtomId)!) }))
+    .sort((x, y) => x.k.localeCompare(y.k) || x.t.localeCompare(y.t) || x.l - y.l).map((x) => x.l);
 const cmpVec = (a: number[], b: number[]) => { for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i]! - b[i]!; return a.length - b.length; };
 const cmpKey = (a: (number | number[])[], b: (number | number[])[]) => {
   for (let i = 0; i < a.length; i++) {
@@ -1047,7 +1051,7 @@ const ACID_SALT: Record<string, string> = { F: 'hydrofluoride', Cl: 'hydrochlori
 export function ionize(input: Molecule): Molecule {
   if (![...input.atoms()].some((a) => a.label === null && isMetal(a.element))) return input.clone();
   const mol = input.clone();
-  // An ion with a name of its own is left whole: permanganate, chlorochromate, aluminium hydride.
+  // An ion with a name of its own is left whole: permanganate, chlorochromate, aluminum hydride.
   const whole = new Set(input.fragments().filter((f) => f.every((a) => input.atom(a).label === null) && speciesName(input, f)).flat());
   for (const b of [...mol.bonds()]) {
     const [p, q] = [mol.atom(b.begin), mol.atom(b.end)];
@@ -1131,7 +1135,7 @@ function nameMixture(mol: Molecule, frags: AtomId[][]): string {
     const kinds = (list: Ion[]) => { const c = new Map<string, number>(); for (const i of list) c.set(i.name, (c.get(i.name) ?? 0) + 1); return [...c]; };
     const ck = kinds(cations), ak = kinds(anions);
     // Beside other components the salt's own count matters: three AlH3 and a manganese atom are
-    // not "aluminium hydride · manganese". Its name is for one formula unit.
+    // not "aluminum hydride · manganese". Its name is for one formula unit.
     const gcd = (x: number, y: number): number => (y ? gcd(y, x % y) : x);
     if ((neutral.length || acids.length || waters) && [...ck, ...ak].reduce((g, [, n]) => gcd(g, n), 0) > 1) throw new OutOfScope('salt of several formula units beside other components');
     // A polyatomic anion is multiplied with bis, tris: bis(phosphate), as diphosphate is P2O7 4-.
@@ -2681,7 +2685,7 @@ class Namer {
           dbl.map((bond) => this.bondLocant(p, numbering, bond)).sort((x, y) => x - y),
           -pre.length,
           pre.filter((x) => x.at !== 'N').map((x) => locVal(numbering.get(x.at as AtomId)!)).sort((x, y) => x - y),
-          [...pre].filter((x) => x.at !== 'N').sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((x) => locVal(numbering.get(x.at as AtomId)!)),
+          alphaLocs(pre.filter((x) => x.at !== 'N'), numbering),
           // Then a group on a principal nitrogen as low as it goes: N1-(3-aminopropyl)butane-1,4-diamine.
           pre.filter((x) => x.at === 'N' && x.nOf !== undefined).map((x) => locVal(numbering.get(x.nOf!)!)).sort((x, y) => x - y),
         ];
@@ -2728,7 +2732,7 @@ class Namer {
     let best: { numbering: Numbering; key: (number | number[])[] } | null = null;
     for (const numbering of asm.numberings) {
       const key: (number | number[])[] = [locVal(numbering.get(a)!), pre.map((x) => locVal(numbering.get(x.at as AtomId)!)).sort((x, y) => x - y),
-        [...pre].sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((x) => locVal(numbering.get(x.at as AtomId)!))];
+        alphaLocs(pre, numbering)];
       if (!best || cmpKey(key, best.key) < 0) best = { numbering, key };
     }
     const preText = this.prefixString(pre, best!.numbering, false);
@@ -3645,7 +3649,7 @@ class Namer {
         (hydroOf.get(numbering)?.hydro ?? []).map((x) => locVal(numbering.get(x)!)).sort((x, y) => x - y),
         unsat.map((u) => this.bondLocant(ringP, numbering, u)).sort((x, y) => x - y),
         pre.map((x) => locVal(numbering.get(x.at as AtomId)!)).sort((x, y) => x - y),
-        [...pre].sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((x) => locVal(numbering.get(x.at as AtomId)!)),
+        alphaLocs(pre, numbering),
       ];
       if (!best || cmpKey(key, best.key) < 0) best = { numbering, key, pre };
     }

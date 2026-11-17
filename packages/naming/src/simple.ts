@@ -28,7 +28,7 @@ const SPECIES: readonly (readonly [string, string])[] = [
   ['O=[Os](=O)(=O)=O', 'osmium tetroxide'],
   // Anions.
   ['[H-]', 'hydride'], ['[O-2]', 'oxide'], ['[S-2]', 'sulfide'], ['[SH-]', 'hydrosulfide'], ['[O-]O', 'hydroperoxide'], ['[NH2-]', 'amide'],
-  ['[BH4-]', 'borohydride'], ['[AlH4-]', 'aluminium hydride'], ['F[B-](F)(F)F', 'tetrafluoroborate'], ['F[P-](F)(F)(F)(F)F', 'hexafluorophosphate'],
+  ['[BH4-]', 'borohydride'], ['[AlH4-]', 'aluminum hydride'], ['F[B-](F)(F)F', 'tetrafluoroborate'], ['F[P-](F)(F)(F)(F)F', 'hexafluorophosphate'],
   ['F[Sb-](F)(F)(F)(F)F', 'hexafluoroantimonate'], ['[C-]#N', 'cyanide'], ['[N-]=[N+]=[N-]', 'azide'], ['[S-]C#N', 'thiocyanate'], ['[O-]C#N', 'cyanate'],
   ['[O-][N+](=O)[O-]', 'nitrate'], ['[O-]N=O', 'nitrite'], ['[O-]S(=O)(=O)[O-]', 'sulfate'], ['OS(=O)(=O)[O-]', 'hydrogen sulfate'],
   ['[O-]S([O-])=O', 'sulfite'], ['OS([O-])=O', 'hydrogen sulfite'], ['[O-]S(=O)(=S)[O-]', 'thiosulfate'],
@@ -92,9 +92,9 @@ export function speciesName(mol: Molecule, atoms: readonly AtomId[]): { name: st
 /** Metals named as cations and in organometallic compounds (tin, silicon and boron are named as hydrides instead). */
 const METAL_Z = new Set([3, 4, 11, 12, 13, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 37, 38, 39, 40, 41, 42, 44, 45, 46, 47, 48, 49,
   55, 56, 57, 58, 59, 60, 62, 63, 64, 70, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83]);
-/** Metals with one usual charge, written without it: sodium, magnesium, aluminium, zinc, silver. */
+/** Metals with one usual charge, written without it: sodium, magnesium, aluminum, zinc, silver. */
 const ONE_CHARGE = new Set(['Li', 'Na', 'K', 'Rb', 'Cs', 'Be', 'Mg', 'Ca', 'Sr', 'Ba', 'Al', 'Zn', 'Ag', 'Cd', 'Sc', 'Y', 'La']);
-const SPELLING: Readonly<Record<string, string>> = { Al: 'aluminium', Cs: 'caesium' };
+const SPELLING: Readonly<Record<string, string>> = { Al: 'aluminum', Cs: 'cesium' };
 const ROMAN = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
 
 export const isMetal = (element: string): boolean => METAL_Z.has(elementBySymbol(element)?.z ?? 0);
