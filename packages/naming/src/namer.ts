@@ -141,6 +141,7 @@ function chemistStyle(s: SubName): SubName {
   if (t === 'amino(imino)methyl') return mk('carbamimidoyl', false);
   if (t === '(amino(imino)methyl)amino' || t === 'carbamimidoylamino') return mk('guanidino', false);
   if (t === 'carbamoylamino') return mk('ureido', false);
+  if (t === 'hydroxy(oxo)-λ5-phosphanyl') return mk('hydroxyhydrophosphoryl');
   if (t === '(p-tolyl)sulfonyl' || t === 'p-tolylsulfonyl') return mk('tosyl', false);
   if (t === '3-hydroxy-3-oxopropyl') return mk('2-carboxyethyl');
   if (ACYL[t]) return mk(ACYL[t]!, false);
@@ -1155,6 +1156,7 @@ function nameMixture(mol: Molecule, frags: AtomId[][]): string {
     // One cation with one anion needs no count, their charges say it: sodium carbonate, calcium chloride,
     // sodium malonate. Counts are kept when there are several kinds.
     const several = ck.length > 1 || ak.length > 1;
+    // (With several kinds the counts are kept: without them the formula would be lost.)
     const countCations = several, countAnions = several;
     const group = (list: [string, number][], counted: boolean) => list.map(([name, n]) => `${counted && n > 1 ? (/[ (\d]/.test(name) || polyatomic.has(name) ? `${complexMultiplier(n)}(${name})` : multiplier(n) + name) : name}`).join(' ');
     parts.push([group(ck, countCations), group(ak, countAnions)].filter(Boolean).join(' '));
@@ -1310,7 +1312,7 @@ function oximeName(input: Molecule): string | null {
   if (r !== null) {
     const sub = nameOneSystematicSubstituent(mol, r, o);
     if (!sub) return null;
-    tail = ` O-${sub.complex ? `(${sub.text})` : sub.text} oxime`;
+    tail = ` O-${/[\d(),[\]]/.test(sub.text) ? `(${sub.text})` : sub.text} oxime`;
   }
   return `${ez ? `(${ez})-` : ''}${base}${tail}`;
 }
@@ -1488,7 +1490,12 @@ export function frontLoneDescriptor(name: string, open: { centre: boolean; bond:
   if (m.index === start) return name;
   // Inside bis(...) it stands for two.
   if (/(bis|tris|kis)\(/.test(name.slice(start, m.index))) return name;
-  return name.slice(0, start) + m[0] + name.slice(start, m.index) + name.slice(m.index + m[0].length);
+  let rest = name.slice(m.index + m[0].length);
+  let before = name.slice(start, m.index);
+  // A word bracketed only for its descriptor loses the brackets with it: (benzylidene)amino, benzylideneamino.
+  const w = /^([a-z]+)\)/.exec(rest);
+  if (w && before.endsWith('(') && /^[a-z]/.test(rest.slice(w[0].length))) { before = before.slice(0, -1); rest = w[1] + rest.slice(w[0].length); }
+  return name.slice(0, start) + m[0] + before + rest;
 }
 
 /** Bonds plus hydrogens each element may have, by charge; what the names here are written for. */
