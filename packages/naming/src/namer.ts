@@ -2142,6 +2142,14 @@ class Namer {
         return `${nSubs.length ? citeRun(countSubs(nSubs.sort((x, y) => x.sortKey.localeCompare(y.sortKey)))) : ''}carbamic ${HALIDE[g.halogen] ?? 'chloride'}`;
       }
     }
+    // A nitrosamine: N,N-dimethylnitrous amide, N-methyl-N-phenylnitrous amide.
+    const nitroso = [...mol.atoms()].filter((n) => n.element === 'N' && n.charge === 0 && !this.an.ringAtoms.has(n.id) && mol.neighbours(n.id).length === 2
+      && mol.neighbours(n.id).some((o) => el(mol, o) === 'O' && mol.bondBetween(n.id, o)!.order === 2) && mol.neighbours(n.id).some((x) => amineN(x, n.id)));
+    if (nitroso.length === 1 && below('urea')) {
+      const n = mol.neighbours(nitroso[0]!.id).find((x) => amineN(x, nitroso[0]!.id))!;
+      const subs = mol.neighbours(n).filter((y) => y !== nitroso[0]!.id).map((y) => ({ ...this.substituent(y, n), at: 'N' as const }));
+      return `${this.prefixString(subs, new Map(), false)}nitrous amide`;
+    }
     // A borate: trimethyl borate.
     const bs = [...mol.atoms()].filter((a) => a.element === 'B');
     if (bs.length === 1 && !this.principal && bs[0]!.charge === 0 && mol.neighbours(bs[0]!.id).length === 3 && !this.an.ringAtoms.has(bs[0]!.id)) {
@@ -3396,6 +3404,7 @@ class Namer {
 
   retainedParent(p: Parent, kind: GroupKind | null, sites: Map<Group, AtomId>, pre: Prefix[]): string | null {
     const g = [...sites.keys()][0];
+    if (g?.thiono || (g?.kind === 'ester' && g.imid)) return null;
     const benzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene';
     if (benzene && sites.size === 1) {
       const nPre = pre.length;
@@ -3538,7 +3547,7 @@ class Namer {
       olate: ['olate', 'olate'],
       aminium: ['aminium', 'aminium'],
       acid: ['oic acid', 'carboxylic acid'],
-      ester: g.thio ? ['ethioate', 'carbothioate'] : ['oate', 'carboxylate'],
+      ester: g.imid ? ['imidate', 'carboximidate'] : g.thiono && g.thio ? ['edithioate', 'carbodithioate'] : g.thio || g.thiono ? ['ethioate', 'carbothioate'] : ['oate', 'carboxylate'],
       acylHalide: [`oyl ${HALIDE[g.halogen ?? 'Cl']}`, `carbonyl ${HALIDE[g.halogen ?? 'Cl']}`],
       amide: g.thio ? ['thioamide', 'carbothioamide'] : g.imid ? ['imidamide', 'carboximidamide'] : g.hydrazide ? ['ehydrazide', 'carbohydrazide'] : ['amide', 'carboxamide'],
       urea: ['urea', 'urea'],
@@ -3763,17 +3772,23 @@ class Namer {
     // An S-ester's alkyl group says which atom it is on: S-methyl ethanethioate.
     const thio = esters.some((g) => g.thio);
     if (thio && esters.some((g) => !g.thio)) throw new OutOfScope('O- and S-esters together');
+    // A thiono ester's on its O (O-methyl ethanethioate); a dithioate needs no letter.
+    const thiono = esters.some((g) => g.thiono);
+    if (esters.some((g) => !!g.thiono !== thiono)) throw new OutOfScope('thiono and plain esters together');
+    const on = thiono ? (thio ? '' : 'O') : thio ? 'S' : '';
     const alkyls = esters.map((g) => {
       const r = this.substituent(g.esterCarbon!, g.consumed[1]!);
-      return thio ? { ...r, text: `S-${r.complex ? `(${r.text})` : r.text}`, complex: false } : r;
+      return on ? { ...r, text: `${on}-${r.complex ? `(${r.text})` : r.text}`, complex: false } : r;
     });
     // Retained acid names give retained anion names.
     const pre = this.prefixes(p, sites);
     const carboxylic = this.principal === 'ester';
     const benzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene';
     let acid: string;
-    if (carboxylic && benzene && sites.size === 1) acid = this.prefixString(pre, best.numbering, false) + (thio ? 'benzothioate' : 'benzoate');
-    else if (carboxylic && !thio && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && this.unsaturationAtoms(p).mult.length === 0) {
+    const imid = esters.some((g) => g.imid);
+    if (carboxylic && benzene && sites.size === 1) acid = this.prefixString(pre, best.numbering, false) + (imid ? 'benzimidate' : thiono && thio ? 'benzodithioate' : thio || thiono ? 'benzothioate' : 'benzoate');
+    else if (imid && carboxylic && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && !pre.length && this.unsaturationAtoms(p).mult.length === 0) acid = p.atoms.length === 2 ? 'acetimidate' : 'formimidate';
+    else if (carboxylic && !thio && !thiono && !imid && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && this.unsaturationAtoms(p).mult.length === 0) {
       const ps = this.prefixString(pre, best.numbering, p.atoms.length === 1);
       // A haloformate: ethyl carbonochloridate.
       const halo = p.atoms.length === 1 && pre.length === 1 ? Object.entries(HALO).find(([, w]) => w === pre[0]!.text)?.[0] : undefined;
@@ -3921,6 +3936,12 @@ class Namer {
         return acyl.text === 'acetyl' ? simple('acetoxy') : { text: `${acyl.complex ? `(${acyl.text})` : acyl.text}oxy`, complex: true, sortKey: `${acyl.sortKey}oxy` };
       }
       if (others.length === 1 && el(mol, r) === 'C' && mol.neighbours(r).length === 2 && mol.incidentBonds(r).some((b) => mol.bond(b).order === 3)) return simple('cyanato');
+      // -O-OH hydroperoxy, -O-OR alkylperoxy: tert-butylperoxy.
+      if (el(mol, r) === 'O' && mol.atom(r).charge === 0) {
+        const far = mol.neighbours(r).filter((y) => y !== a);
+        if (!far.length) return simple('hydroperoxy');
+        if (far.length === 1 && el(mol, far[0]!) === 'C') { const t = `${wrapInner(this.substituent(far[0]!, r))}peroxy`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; }
+      }
       return alkoxy(this.substituent(r, a));
     }
     if (e === 'Si' || e === 'Sn') {

@@ -25,6 +25,8 @@ export interface Group {
   /** An amidine (C(=NH)N) or a hydrazide (C(=O)NHNH2) rather than an amide. */
   imid?: boolean;
   hydrazide?: boolean;
+  /** C=S in place of the ester's C=O: an O-alkyl ...thioate, or with an S-alkyl a ...dithioate. */
+  thiono?: boolean;
   /** The far nitrogen of a hydrazide, whose substituents are cited as N'. */
   nPrime?: AtomId;
 }
@@ -71,6 +73,8 @@ export function analyze(mol: Molecule): Analysis {
   // Thiones only where no ketone is present: a ketone takes the suffix, a C=S is then thioxo.
   let groups = findGroups(mol, h, ringAtoms);
   if (groups.some((g) => g.kind === 'ketone' && !g.thio)) groups = groups.filter((g) => !(g.kind === 'ketone' && g.thio));
+  // Likewise an imidate only where no ester is: methyl 3-imino-3-methoxypropanoate.
+  if (groups.some((g) => g.kind === 'ester' && !g.imid)) groups = groups.filter((g) => !(g.kind === 'ester' && g.imid));
   return { mol, h, ringAtoms, ringBonds, ringSystems, groups };
 }
 
@@ -95,6 +99,14 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     if (dblNH && !ringAtoms.has(c.id) && carbons.length <= 1) {
       const nAm = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
         && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1) && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C'));
+      // An imidate ester C(=NH)-OR: ethyl acetimidate.
+      const oR = singles.length === 1 && el(mol, singles[0]!.atom) === 'O' && !ringAtoms.has(singles[0]!.atom) && mol.neighbours(singles[0]!.atom).length === 2
+        ? mol.neighbours(singles[0]!.atom).find((m) => m !== c.id && el(mol, m) === 'C' && !isAcylCarbon(mol, m)) : undefined;
+      if (oR !== undefined && mol.neighbours(dblNH.atom).length === 1) {
+        groups.push({ kind: 'ester', anchor: c.id, ownCarbon: true, consumed: [dblNH.atom, singles[0]!.atom], esterCarbon: oR, imid: true });
+        claimed.add(dblNH.atom); claimed.add(singles[0]!.atom);
+        continue;
+      }
       if (nAm.length === 1 && singles.length === 1) {
         groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblNH.atom, nAm[0]!.atom], nitrogen: nAm[0]!.atom, imid: true, ...(mol.neighbours(dblNH.atom).length === 2 ? { nPrime: dblNH.atom } : {}) });
         claimed.add(dblNH.atom); claimed.add(nAm[0]!.atom);
@@ -212,6 +224,17 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       if (singles.length === 0 && carbons.length <= 1 && (h.get(c.id) ?? 0) >= 1) {
         groups.push({ kind: 'aldehyde', anchor: c.id, ownCarbon: true, consumed: [dblO.atom] });
         claimed.add(dblO.atom);
+        continue;
+      }
+    }
+    // Thiono and dithio esters: C(=S)-OR (O-methyl ethanethioate), C(=S)-SR (methyl ethanedithioate).
+    const dblS2 = nbrs.find((n) => n.order === 2 && el(mol, n.atom) === 'S' && mol.neighbours(n.atom).length === 1 && mol.atom(n.atom).charge === 0);
+    if (dblS2 && !dblO && !ringAtoms.has(c.id) && singles.length === 1 && carbons.length <= 1 && (carbons.length === 1 || (h.get(c.id) ?? 0) === 1)) {
+      const x = singles[0]!.atom;
+      const r = mol.neighbours(x).find((m) => m !== c.id);
+      if ((el(mol, x) === 'O' || el(mol, x) === 'S') && !ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.neighbours(x).length === 2 && r !== undefined && el(mol, r) === 'C' && !isAcylCarbon(mol, r)) {
+        groups.push({ kind: 'ester', anchor: c.id, ownCarbon: true, consumed: [dblS2.atom, x], esterCarbon: r, thiono: true, ...(el(mol, x) === 'S' ? { thio: true } : {}) });
+        claimed.add(dblS2.atom); claimed.add(x);
         continue;
       }
     }
