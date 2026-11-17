@@ -472,7 +472,7 @@ function maxMatching(an: Analysis, atoms: AtomId[]): number {
  * hydro prefixes and indicated hydrogen (P-31.1.4.2.4): every way of reading
  * the ring's double bonds as the parent's, less some removed in pairs.
  */
-function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { info: RingInfo; numberings: Numbering[] } | null {
+function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'imine' = false): { info: RingInfo; numberings: Numbering[] } | null {
   const mol = an.mol;
   const inSys = new Set(system);
   const ringNb = (a: AtomId) => mol.neighbours(a).filter((n) => inSys.has(n) && an.ringBonds.has(mol.bondBetween(a, n)!.id));
@@ -524,7 +524,7 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
   })) : [];
   // Thiones are the suffix only when no ketone is: 2-thioxo-...pyrimidin-4(1H)-one.
   const oxo = doubled('O');
-  const ketones = oxo.length ? oxo : doubled('S');
+  const ketones = ketoneSuffix === 'imine' ? doubled('N') : oxo.length ? oxo : doubled('S');
   if (ketones.length) {
     // The fewest added hydrogens for each choice of indicated hydrogen (which is chosen later: a
     // carbocycle puts it on a ketone carbon, 3H-...-3,11(2H)-dione; a heterocycle takes the fewest added).
@@ -765,7 +765,7 @@ const bridgeOf = new WeakMap<Numbering, string>();
  * system with a name. Bridgeheads take locants as low as they go; bridge atoms are numbered on from
  * the fused system's highest locant, starting beside the higher-numbered bridgehead.
  */
-function bridgedFused(an: Analysis, system: AtomId[], ketoneSuffix: boolean): { info: RingInfo; numberings: Numbering[] } | null {
+function bridgedFused(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'imine'): { info: RingInfo; numberings: Numbering[] } | null {
   const mol = an.mol;
   const inSys = new Set(system);
   const ringNb = (a: AtomId, within: Set<AtomId>) => mol.neighbours(a).filter((n) => within.has(n) && an.ringBonds.has(mol.bondBetween(a, n)!.id));
@@ -852,7 +852,7 @@ function bridgedFused(an: Analysis, system: AtomId[], ketoneSuffix: boolean): { 
 }
 
 /** `ketoneSuffix`: a ring C=O is the principal ketone, so its hydrogen is described as for pyridin-2(1H)-one. */
-function recognizeRing(an: Analysis, system: AtomId[], ketoneSuffix = false): { info: RingInfo; numberings: Numbering[] } | null {
+function recognizeRing(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'imine' = false): { info: RingInfo; numberings: Numbering[] } | null {
   const mol = an.mol;
   const hetero = (e: string) => system.some((a) => el(mol, a) === e);
   const base = { heteroN: hetero('N'), heteroO: hetero('O'), heteroS: hetero('S') };
@@ -861,7 +861,7 @@ function recognizeRing(an: Analysis, system: AtomId[], ketoneSuffix = false): { 
   // prefixes, so a ketone on it is named from that parent: pyridin-4(1H)-one.
   const ringKetone = ketoneSuffix && system.some((a) => mol.incidentBonds(a).some((b) => {
     const bd = mol.bond(b), o = mol.otherAtom(bd, a);
-    return bd.order === 2 && el(mol, o) === 'O' && !system.includes(o);
+    return bd.order === 2 && el(mol, o) === (ketoneSuffix === 'imine' ? 'N' : 'O') && !system.includes(o);
   }));
   for (const ct of templates()) {
     // Fully saturated too (tetrahydrofuran): dihydrofuran-2(3H)-one, tetrahydro-2H-pyran-2-one.
@@ -2942,7 +2942,7 @@ class Namer {
   ringCandidates(): Parent[] {
     const out: Parent[] = [];
     for (const system of this.an.ringSystems) {
-      const r = recognizeRing(this.an, system, this.principal === 'ketone');
+      const r = recognizeRing(this.an, system, this.principal === 'ketone' || (this.principal === 'imine' ? 'imine' : false));
       if (!r) throw new OutOfScope('ring system without a supported parent name');
       out.push({ kind: 'ring', atoms: system, numberings: r.numberings, ring: r.info });
     }
@@ -3540,13 +3540,14 @@ class Namer {
       nitrile: ['nitrile', 'carbonitrile'],
       aldehyde: ['al', 'carbaldehyde'],
       ketone: g.thio ? ['thione', 'thione'] : ['one', 'one'],
+      imine: ['imine', 'imine'],
       alcohol: ['ol', 'ol'],
       thiol: ['thiol', 'thiol'],
       amine: ['amine', 'amine'],
     };
     const [chainForm, ringForm] = SUFFIX[kind];
     const num = this.currentNumbering;
-    const added = p.kind === 'ring' && kind === 'ketone' && num ? hydroOf.get(num)?.added : undefined;
+    const added = p.kind === 'ring' && (kind === 'ketone' || kind === 'imine') && num ? hydroOf.get(num)?.added : undefined;
     if (added?.length) {
       const hLocs = added.map((a) => num!.get(a)!).sort(compareLocant);
       return attachSuffix(hydride, `${locs.join(',')}(${hLocs.map((l) => `${l}H`).join(',')})`, `${m}${ringForm}`);
@@ -3601,7 +3602,7 @@ class Namer {
       // carrying the one before: chloro(methoxy)methane, not chloromethoxymethane.
       const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !ATOM_LIKE.test(sub.text));
       const body = n > 1 && TRADITIONAL.test(sub.text) ? `${multiplier(n)}-${sub.text}`
-        : omitAll && n === 1 && pre.length === 1 && (TRADITIONAL.test(sub.text) || ((sub as { di?: boolean }).di && !/^\d/.test(sub.text) && ((parent && !locs[0]!.startsWith('N')) || !/^[omp]-/.test(sub.text)))) ? sub.text
+        : omitAll && n === 1 && pre.length === 1 && (TRADITIONAL.test(sub.text) || ((sub as { di?: boolean }).di && !/^\d/.test(sub.text) && !locs[0]!.startsWith('N') && (parent || !/^[omp]-/.test(sub.text)))) ? sub.text
         : bracket ? `${n > 1 && (sub as { di?: boolean }).di ? multiplier(n) : complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);

@@ -1,7 +1,7 @@
 import { perceiveRings, type AtomId, type Molecule } from '@hexsketch/core';
 
 /** Characteristic groups in decreasing seniority (IUPAC 2013, P-41). */
-export const SENIORITY = ['carboxylate', 'sulfonate', 'olate', 'thiolate', 'ide', 'ium', 'iminium', 'aminium', 'diazonium', 'acid', 'peracid', 'sulfonic', 'ester', 'sulfonateEster', 'acylHalide', 'sulfonylHalide', 'amide', 'sulfonamide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'] as const;
+export const SENIORITY = ['carboxylate', 'sulfonate', 'olate', 'thiolate', 'ide', 'ium', 'iminium', 'aminium', 'diazonium', 'acid', 'peracid', 'sulfonic', 'ester', 'sulfonateEster', 'acylHalide', 'sulfonylHalide', 'amide', 'sulfonamide', 'urea', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine', 'imine'] as const;
 export type GroupKind = (typeof SENIORITY)[number];
 
 export interface Group {
@@ -346,6 +346,17 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     }
     if (x.charge !== 0) continue;
     const carbonNbrs = mol.neighbours(x.id).filter((n) => el(mol, n) === 'C');
+    // An imine C=N-R (R carbon or H), its carbon with nothing but carbon beside it, or in a ring:
+    // methanimine, N-phenylpropan-2-imine, thiophen-2(5H)-imine.
+    if (x.element === 'N' && !ringAtoms.has(x.id) && !claimed.has(x.id) && carbonNbrs.length === mol.neighbours(x.id).length && mol.neighbours(x.id).length <= 2) {
+      const c = carbonNbrs.find((n) => mol.bondBetween(x.id, n)!.order === 2);
+      const r = carbonNbrs.find((n) => n !== c);
+      if (c !== undefined && (r === undefined || (mol.bondBetween(x.id, r)!.order === 1 && !isAcylCarbon(mol, r)))
+        && mol.incidentBonds(c).every((b) => { const o = mol.otherAtom(mol.bond(b), c); return o === x.id || (mol.bond(b).order !== 3 && (el(mol, o) === 'C' || (ringAtoms.has(c) && ringAtoms.has(o)))); })) {
+        groups.push({ kind: 'imine', anchor: c, ownCarbon: false, consumed: [x.id], nitrogen: x.id });
+        continue;
+      }
+    }
     const allBondsSingle = mol.incidentBonds(x.id).every((b) => mol.bond(b).order === 1);
     if (!allBondsSingle || ringAtoms.has(x.id)) continue;
     if (x.element === 'O' && mol.neighbours(x.id).length === 1 && h.get(x.id) === 1 && carbonNbrs.length === 1) {
