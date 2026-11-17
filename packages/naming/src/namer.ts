@@ -122,7 +122,7 @@ const balanced = (t: string) => { let d = 0; for (const c of t) { if (c === '(')
 /** The acyl groups chemists keep their own names for, by systematic name. */
 const ACYL: Record<string, string> = {
   propanoyl: 'propionyl', butanoyl: 'butyryl', 'prop-2-enoyl': 'acryloyl', '2-methylprop-2-enoyl': 'methacryloyl', hexadecanoyl: 'palmitoyl', octadecanoyl: 'stearoyl',
-  '(Z)-octadec-9-enoyl': 'oleoyl', dodecanoyl: 'lauroyl', tetradecanoyl: 'myristoyl',
+  '(Z)-octadec-9-enoyl': 'oleoyl', '2-methylpropanoyl': 'isobutyryl',
 };
 
 /**
@@ -1546,7 +1546,11 @@ const RETAINED_MOLECULES: [string, string][] = [
   ['O=C1C=CC(=O)C=C1', 'benzoquinone'], ['O=CC=O', 'oxalaldehyde'], ['CC(=O)C(C)=O', 'biacetyl'], ['CCN(CC)CC', 'triethylamine'],
   ['O=C/C=C/c1ccccc1', 'cinnamaldehyde'], ['NC(=O)c1cccnc1', 'nicotinamide'], ['CCCCCCCC/C=C\\CCCCCCCC(=O)O', 'oleic acid'],
   ['O=C(/C=C/c1ccccc1)c1ccccc1', '(E)-chalcone'], ['Cc1ccc(C)cc1', 'p-xylene'], ['Cc1cccc(C)c1', 'm-xylene'], ['Cc1ccccc1C', 'o-xylene'],
-  ['OC(=O)c1cccnc1', 'nicotinic acid'], ['C=CC(C)=C', 'isoprene'], ['Cc1ccc(cc1)C(C)C', 'p-cymene'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
+  ['OC(=O)c1cccnc1', 'nicotinic acid'], ['C=CC(C)=C', 'isoprene'], ['Cc1ccc(cc1)C(C)C', 'p-cymene'],
+  ['Oc1cccc(O)c1', 'resorcinol'], ['Oc1ccc(O)cc1', 'hydroquinone'], ['Oc1ccccc1O', 'catechol'], ['Cc1ccccc1O', 'o-cresol'],
+  ['Cc1cccc(O)c1', 'm-cresol'], ['Cc1ccc(O)cc1', 'p-cresol'], ['CC(=O)c1ccccc1', 'acetophenone'], ['CCC(=O)c1ccccc1', 'propiophenone'],
+  ['OC(=O)CCCC(O)=O', 'glutaric acid'], ['OC(=O)CCCCC(O)=O', 'adipic acid'], ['CC(C)C(O)=O', 'isobutyric acid'], ['CC(=C)C(O)=O', 'methacrylic acid'],
+  ['OC(=O)c1ccccc1C(O)=O', 'phthalic acid'], ['OC(=O)c1cccc(c1)C(O)=O', 'isophthalic acid'], ['OC(=O)c1ccc(cc1)C(O)=O', 'terephthalic acid'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
 ];
 let retainedMols: { mol: Molecule; name: string; formula: string }[] | null = null;
 function retainedMolecule(mol: Molecule): string | null {
@@ -2224,16 +2228,18 @@ class Namer {
     if (!linkerName) return null;
     const P = distinct[0]!, j0 = joins.find((j) => j.unit === 0)!;
     this.excluded.add(j0.l);
-    let unitName: string, numbering: Numbering;
+    let unitName: string, numbering: Numbering, unitPrefixes = 0;
     try {
       const sites = this.principalSites(P);
       let best: { n: Numbering; key: (number | number[])[] } | null = null;
       for (const n of P.numberings) {
-        const key = [[...sites.values()].map((x) => locVal(n.get(x)!)).sort((x, y) => x - y), locVal(n.get(j0.u)!),
-          this.prefixes(P, sites).filter((x) => x.at !== 'N').map((x) => locVal(n.get(x.at as AtomId)!)).sort((x, y) => x - y)];
+        // The unit's own groups first, then its point of attachment: 4,4'-(...)bis(chlorobenzene).
+        const key = [[...sites.values()].map((x) => locVal(n.get(x)!)).sort((x, y) => x - y),
+          this.prefixes(P, sites).filter((x) => x.at !== 'N').map((x) => locVal(n.get(x.at as AtomId)!)).sort((x, y) => x - y), locVal(n.get(j0.u)!)];
         if (!best || cmpKey(key, best.key) < 0) best = { n, key };
       }
       numbering = best!.n;
+      unitPrefixes = this.prefixes(P, sites).length;
       unitName = this.render(P, numbering);
     } catch (e) { this.excluded.delete(j0.l); if (e instanceof OutOfScope) return null; throw e; }
     this.excluded.delete(j0.l);
@@ -2252,9 +2258,10 @@ class Namer {
     const n = distinct.length;
     // Propanoic acid multiplied goes by its old name: 3,3'-(...diyl)dipropionic acid.
     if (unitName === 'propanoic acid') unitName = 'propionic acid';
-    const simple = !/[\d()[\]]/.test(unitName) && !/^[a-z]+(yl|oxy)/.test(unitName) && !unitName.includes('-');
+    const simple = !unitPrefixes && !/[\d()[\]]/.test(unitName) && !unitName.includes('-');
     const body = simple ? `${multiplier(n)}${unitName}` : `${complexMultiplier(n)}(${unitName})`;
-    const oneCarbon = P.kind === 'chain' && P.atoms.length === 1;
+    // A one-carbon unit, or a benzene ring with nothing else on it, needs no locants: oxydibenzene.
+    const oneCarbon = (P.kind === 'chain' && P.atoms.length === 1) || unitName === 'benzene';
     const locs = oneCarbon ? '' : `${Array.from({ length: n }, (_, i) => `${numbering.get(j0.u)}${"'".repeat(i)}`).join(',')}-`;
     const bare = /^(oxy|thio|methylene|carbonyl|sulfonyl|sulfinyl)$/.test(linkerName);
     return `${stereo}${locs}${bare ? linkerName : `(${linkerName})`}${body}`;
@@ -2974,7 +2981,7 @@ class Namer {
     // A two-carbon chain's double or triple bond can only be in one place.
     // A unit of a multiplicative name also has its point of attachment to cite: bis(ethan-1-ol).
     const features = sites.size + cPrefixes + (p.kind === 'chain' && p.atoms.length === 2 ? 0 : mult.length)
-      + (p.atoms.some((a) => mol.neighbours(a).some((n) => this.excluded.has(n))) ? 1 : 0);
+      + (p.kind === 'chain' && p.atoms.some((a) => mol.neighbours(a).some((n) => this.excluded.has(n))) ? 1 : 0);
 
     // Locant omission: methane/ethane-like parents and monosubstituted symmetric rings.
     const symmetricRing = p.kind === 'ring' && ((p.ring!.kind === 'cyclo' && p.atoms.every((a) => el(this.mol, a) === 'C')) || p.ring!.template?.name === 'benzene');
@@ -3023,7 +3030,7 @@ class Namer {
         default: void nPre;
       }
     }
-    if (benzene && sites.size === 0 && pre.length === 1) {
+    if (benzene && sites.size === 0 && pre.length === 1 && !this.excluded.size) {
       const t = pre[0]!.text;
       if (t === 'methyl') { pre.length = 0; return 'toluene'; }
       if (t === 'isopropyl') { pre.length = 0; return 'cumene'; }
@@ -3033,6 +3040,12 @@ class Namer {
     if (p.kind === 'chain' && g?.ownCarbon) {
       const { mult, dbl } = this.unsaturationAtoms(p);
       const ends = new Set([p.atoms[0], p.atoms[p.atoms.length - 1]]);
+      // Methacrylic and isobutyric acids and what is made from them: methyl methacrylate.
+      if (!this.excluded.size && sites.size === 1 && p.atoms.length === 3 && pre.length === 1 && pre[0]!.text === 'methyl' && this.currentNumbering?.get(pre[0]!.at as AtomId) === '2' && ends.has([...sites.values()][0]!)) {
+        const stem = mult.length === 1 && dbl.length === 1 ? 'methacryl' : !mult.length ? 'isobutyr' : null;
+        const w: Partial<Record<GroupKind, string>> = stem ? { acid: `${stem}ic acid`, ester: `${stem}ate`, carboxylate: `${stem}ate`, amide: g.thio || g.imid || g.hydrazide ? undefined : `${stem}amide`, nitrile: `${stem}onitrile` } : {};
+        if (kind && w[kind]) { pre.length = 0; return w[kind]!; }
+      }
       // Prop-2-enoic acid and what is made from it, substituted or not: (E)-3-(3,4-dihydroxyphenyl)acrylic acid.
       if (sites.size === 1 && p.atoms.length === 3 && mult.length === 1 && dbl.length === 1 && !dbl[0]!.includes([...sites.values()][0]!)) {
         const w: Partial<Record<GroupKind, string>> = { acid: 'acrylic acid', amide: g.thio ? undefined : 'acrylamide', ester: 'acrylate', carboxylate: 'acrylate', nitrile: 'acrylonitrile', aldehyde: 'acrylaldehyde' };
@@ -3045,7 +3058,7 @@ class Namer {
         if (kind && w[kind]) return w[kind]!;
       }
       // The fatty acids by name, on an unbranched chain carrying nothing else: palmitamide, stearic acid.
-      const fatty: Record<number, string> = { 12: 'laur', 14: 'myrist', 16: 'palmit', 18: 'stear' };
+      const fatty: Record<number, string> = { 16: 'palmit', 18: 'stear' };
       if (sites.size === 1 && !mult.length && fatty[p.atoms.length] && !pre.some((x) => x.at !== 'N') && ends.has([...sites.values()][0]!)) {
         const stem = fatty[p.atoms.length]!;
         const w: Partial<Record<GroupKind, string>> = { acid: `${stem}ic acid`, amide: g.thio ? undefined : `${stem}amide`, ester: `${stem}ate`, carboxylate: `${stem}ate` };
@@ -3365,11 +3378,17 @@ class Namer {
       acid = halo ? `carbono${HALIDE[halo]!.replace(/ide$/, 'idate')}` : ps + (p.atoms.length === 2 ? 'acetate' : 'formate');
     } else acid = this.render(p, best.numbering);
     acid = this.withStereo(p.atoms, best.numbering, acid) + this.oxideSuffix(p.atoms, best.numbering);
+    // Benzenedicarboxylates with nothing else on the ring are phthalates: benzyl butyl phthalate.
+    if (benzene && sites.size === 2 && !pre.length && esters.length === 2) {
+      const l = [...sites.values()].map((x) => best.numbering.get(x)!).sort(compareLocant).join(',');
+      const w = ({ '1,2': 'phthalate', '1,3': 'isophthalate', '1,4': 'terephthalate' } as Record<string, string>)[l];
+      if (w) acid = w;
+    }
     const alkyl = alkyls[0]!;
     if (esters.length === 1) return `${alkyl.text} ${acid}`;
     if (new Set(alkyls.map((a) => a.text)).size === 1) return alkyl.complex ? `${complexMultiplier(esters.length)}(${alkyl.text}) ${acid}` : `${multiplier(esters.length)}${alkyl.text} ${acid}`;
     // On a symmetric acid known by name the ester groups need no locants: ethyl methyl malonate.
-    if (/^(oxal|malon|succin)ate$/.test(acid)) return `${[...alkyls].sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((a) => (a.complex ? `(${a.text})` : a.text)).join(' ')} ${acid}`;
+    if (/^(oxal|malon|succin|glutar|adip|phthal|isophthal|terephthal)ate$/.test(acid)) return `${[...alkyls].sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((a) => (a.complex ? `(${a.text})` : a.text)).join(' ')} ${acid}`;
     // Different alkyl groups, each with the locant of its ester: 3-ethyl 5-methyl pyridine-3,5-dicarboxylate.
     const kinds = new Map<string, { sub: SubName; locs: string[] }>();
     esters.forEach((g, i) => {
