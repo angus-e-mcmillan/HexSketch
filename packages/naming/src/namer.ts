@@ -121,7 +121,7 @@ const balanced = (t: string) => { let d = 0; for (const c of t) { if (c === '(')
 
 /** The acyl groups chemists keep their own names for, by systematic name. */
 const ACYL: Record<string, string> = {
-  'prop-2-enoyl': 'acryloyl', '2-methylprop-2-enoyl': 'methacryloyl', hexadecanoyl: 'palmitoyl', octadecanoyl: 'stearoyl',
+  propanoyl: 'propionyl', butanoyl: 'butyryl', 'prop-2-enoyl': 'acryloyl', '2-methylprop-2-enoyl': 'methacryloyl', hexadecanoyl: 'palmitoyl', octadecanoyl: 'stearoyl',
   '(Z)-octadec-9-enoyl': 'oleoyl', dodecanoyl: 'lauroyl', tetradecanoyl: 'myristoyl',
 };
 
@@ -144,8 +144,8 @@ function chemistStyle(s: SubName): SubName {
   if (ACYL[t]) return mk(ACYL[t]!, false);
   if (/^(\([EZ]\)-)?3-.*prop-2-enoyl$/.test(t)) return mk(t.replace(/prop-2-enoyl$/, 'acryloyl'));
   // (4-methoxyphenyl)methyl: 4-methoxybenzyl; (4-methoxyphenyl)methylidene: 4-methoxybenzylidene.
-  let m = /^\((.+)phenyl\)methyl(idene)?$/.exec(t);
-  if (m && balanced(m[1]!)) return mk(`${m[1]}benzyl${m[2] ? 'idene' : ''}`);
+  let m = /^(\([EZ]\)-)?\((.+)phenyl\)methyl(idene)?$/.exec(t);
+  if (m && balanced(m[2]!) && (!m[1] || m[3])) return mk(`${m[1] ?? ''}${m[2]}benzyl${m[3] ? 'idene' : ''}`);
   if (t === 'phenylmethylidene') return mk('benzylidene', false);
   // (E)-2-(4-hydroxyphenyl)eth-1-en-1-yl: (E)-4-hydroxystyryl.
   m = /^(\([EZ]\)-)?2-(?:\((.+)phenyl\)|phenyl)eth-1-en-1-yl$/.exec(t);
@@ -1221,7 +1221,14 @@ function perdeuterated(input: Molecule): string | null {
   const name = whole && whole.charge === 0 ? whole.name : nameOne(plain);
   // On a name with brackets or a locant in front, the "-d" would not say plainly what it belongs to.
   if (!/^[a-z][a-z0-9, -]*$/i.test(name)) throw new OutOfScope('isotopic labelling');
-  return `${name}-d${ds.size > 1 ? ds.size : ''}`;
+  const d = (n: number) => `d${n > 1 ? n : ''}`;
+  // Deuterium on carbon and on oxygen said apart where the name has a place for each: methan-d3-ol-d, acetic-d3 acid-d.
+  const onO = [...ds].filter((x) => input.atom(input.neighbours(x)[0]!).element !== 'C').length, onC = ds.size - onO;
+  if (onO && onC) {
+    if (/ic acid$/.test(name)) return name.replace(/ic acid$/, `ic-${d(onC)} acid-${d(onO)}`);
+    if (/an-?\d*-?ol$|anol$/.test(name) && !/\d/.test(name)) return name.replace(/ol$/, '').replace(/-$/, '') + `-${d(onC)}-ol-${d(onO)}`;
+  }
+  return `${name}-${d(ds.size)}`;
 }
 
 /** A halogen substituent carrying an isotope label (a radiotracer's 18F or 125I), written (18F)fluoro. */
@@ -1397,7 +1404,7 @@ function nameOneSystematic(input: Molecule): string {
   // (an acyl halide, a salt) must not drop it.
   for (const a of mol.atoms()) {
     if (a.isotope === null) continue;
-    const label = `(${a.isotope}${a.element})`;
+    const label = `-${a.isotope}${a.element}`;
     const want = [...mol.atoms()].filter((x) => x.isotope === a.isotope && x.element === a.element).length;
     if (name.split(label).length - 1 !== want) throw new OutOfScope('isotopic labelling');
   }
@@ -1448,7 +1455,8 @@ const RETAINED_MOLECULES: [string, string][] = [
   ['ClC(Cl)Cl', 'chloroform'], ['BrC(Br)Br', 'bromoform'], ['IC(I)I', 'iodoform'], ['O=C(c1ccccc1)c1ccccc1', 'benzophenone'],
   ['O=C1C=CC(=O)C=C1', 'benzoquinone'], ['O=CC=O', 'oxalaldehyde'], ['CC(=O)C(C)=O', 'biacetyl'], ['CCN(CC)CC', 'triethylamine'],
   ['O=C/C=C/c1ccccc1', 'cinnamaldehyde'], ['NC(=O)c1cccnc1', 'nicotinamide'], ['CCCCCCCC/C=C\\CCCCCCCC(=O)O', 'oleic acid'],
-  ['O=C(/C=C/c1ccccc1)c1ccccc1', '(E)-chalcone'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
+  ['O=C(/C=C/c1ccccc1)c1ccccc1', '(E)-chalcone'], ['Cc1ccc(C)cc1', 'p-xylene'], ['Cc1cccc(C)c1', 'm-xylene'], ['Cc1ccccc1C', 'o-xylene'],
+  ['OC(=O)c1cccnc1', 'nicotinic acid'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
 ];
 let retainedMols: { mol: Molecule; name: string; formula: string }[] | null = null;
 function retainedMolecule(mol: Molecule): string | null {
@@ -2443,15 +2451,12 @@ class Namer {
     const mol = this.mol;
     const b = mol.bond(id);
     let could = false;
-    // A double bond in a small ring has one form only. (Seven counts as large here: a reader may give
-    // a seven-membered ring's double bond a configuration.)
-    const rings = (this.#smallRings ??= perceiveRings(mol).filter((r) => r.atoms.length < 7));
+    // A double bond in a ring of fewer than eight atoms has one form only.
+    const rings = (this.#smallRings ??= perceiveRings(mol).filter((r) => r.atoms.length < 8));
     if (b.order === 2 && !this.ez.get(`${b.begin}-${b.end}`) && !rings.some((r) => r.atoms.includes(b.begin) && r.atoms.includes(b.end))) {
       const ra = mol.neighbours(b.begin).find((x) => x !== b.end), rb = mol.neighbours(b.end).find((x) => x !== b.begin);
-      // C=N-H: the hydrogen is not drawn, but the imine has two forms all the same unless its carbon is CH2.
-      const imineNH = (n: AtomId, c: AtomId) => el(mol, n) === 'N' && mol.neighbours(n).length === 1 && mol.implicitHydrogens(n) === 1 && mol.neighbours(c).length >= 2;
-      if (imineNH(b.begin, b.end) || imineNH(b.end, b.begin)) could = true;
-      else if (ra !== undefined && rb !== undefined) {
+      // C=N-H, its hydrogen not drawn, is left without a configuration, as chemists leave it.
+      if (ra !== undefined && rb !== undefined) {
         const probe = (this.#probe ??= mol.clone());
         const pb = probe.bond(b.id), before = pb.ez;
         pb.ez = { ref: [ra, rb], cis: true };
@@ -2883,6 +2888,12 @@ class Namer {
       // Prop-2-enoic acid and what is made from it, substituted or not: (E)-3-(3,4-dihydroxyphenyl)acrylic acid.
       if (sites.size === 1 && p.atoms.length === 3 && mult.length === 1 && dbl.length === 1 && !dbl[0]!.includes([...sites.values()][0]!)) {
         const w: Partial<Record<GroupKind, string>> = { acid: 'acrylic acid', amide: g.thio ? undefined : 'acrylamide', ester: 'acrylate', carboxylate: 'acrylate', nitrile: 'acrylonitrile', aldehyde: 'acrylaldehyde' };
+        if (kind && w[kind]) return w[kind]!;
+      }
+      // Propionic and butyric acids and what is made from them, with nothing on the chain: ethyl propionate.
+      if (sites.size === 1 && !mult.length && (p.atoms.length === 3 || p.atoms.length === 4) && !pre.some((x) => x.at !== 'N') && ends.has([...sites.values()][0]!)) {
+        const stem = p.atoms.length === 3 ? 'propion' : 'butyr';
+        const w: Partial<Record<GroupKind, string>> = { acid: `${stem}ic acid`, amide: g.thio || g.imid || g.hydrazide ? undefined : `${stem}amide`, ester: `${stem}ate`, carboxylate: `${stem}ate`, nitrile: `${stem}onitrile`, aldehyde: `${stem}aldehyde` };
         if (kind && w[kind]) return w[kind]!;
       }
       // The fatty acids by name, on an unbranched chain carrying nothing else: palmitamide, stearic acid.
@@ -3325,7 +3336,7 @@ class Namer {
     if (this.an.ringAtoms.has(a)) return this.ringSubstituent(a, from);
     if (HALO[e]) {
       const isotope = mol.atom(a).isotope;
-      return isotope === null ? simple(HALO[e]!) : { text: `(${isotope}${e})${HALO[e]!}`, complex: false, sortKey: HALO[e]! };
+      return isotope === null ? simple(HALO[e]!) : { text: `${HALO[e]!}-${isotope}${e}`, complex: true, sortKey: HALO[e]! };
     }
     if (e === 'O') {
       if (others.length === 0) return simple(mol.atom(a).charge === -1 ? 'oxido' : 'hydroxy');
