@@ -30,6 +30,13 @@ OUT = ROOT / 'packages' / 'naming' / 'src' / 'rings.ts'
 # them where IUPAC allows a choice; indicated hydrogen is left off (the namer
 # adds it for each structure).
 NAMED = """
+benzo[1,2-d:4,5-d']bis([1,3]dioxole) benzo[4,5]imidazo[1,2-a][1,3,5]triazine benzo[4,5]imidazo[1,2-a]azepine benzo[4,5]imidazo[1,2-a]pyrazine benzo[4,5]imidazo[1,2-b][1,2,4]triazine benzo[4,5]imidazo[1,2-b][1,2,4]triazole
+benzo[4,5]imidazo[1,2-c]pyrimidine benzo[4,5]imidazo[1,2-c]thiazole benzo[4,5]imidazo[2,1-c][1,2,4]triazine benzo[4,5]imidazo[2,1-c][1,2,4]triazole benzo[4,5]imidazo[2,1-c][1,4]oxazine benzo[4,5]oxazolo[3,2-a]pyridine
+benzo[4,5]thiazolo[2,3-b]quinazoline benzo[4,5]thiazolo[2,3-c][1,2,4]triazole benzo[4,5]thiazolo[3,2-a]pyrimidine benzo[4,5]thiazolo[3,2-d]tetrazole benzo[c]chromene benzo[d]imidazo[1,2-a]imidazole
+benzo[de]chromene benzo[e]acephenanthrylene benzo[f]tetraphene benzo[k]tetraphene benzo[m]tetraphene benzo[pqr]tetraphene
+benzo[rst]pentaphene benzofuro[4,5-d]imidazole dibenzo[b,g][1,8]naphthyridine dibenzo[c,pqr]tetraphene dibenzo[f,pqr]tetraphene indeno[1,2,3-hi]chrysene
+naphtho[1,2,3,4-pqr]tetraphene naphtho[2,1-b]benzofuran naphtho[2,3-b]benzofuran pyrazolo[3,4-d]thiazole quinolino[2,3-b]quinoxaline thiazolo[2,3-c][1,2,4]triazole
+thiazolo[3,2-b][1,2,4]triazole thiazolo[5,4-d]thiazole
 pyridine pyrimidine pyrazine pyridazine 1,2,3-triazine 1,2,4-triazine 1,3,5-triazine 1,2,4,5-tetrazine
 furan thiophene pyrrole imidazole pyrazole oxazole isoxazole thiazole isothiazole
 1,2,3-triazole 1,2,4-triazole tetrazole 1,2,3-oxadiazole 1,2,4-oxadiazole 1,2,5-oxadiazole 1,3,4-oxadiazole
@@ -106,6 +113,19 @@ thiochromeno[4,3-d]thiazole
 spiro[4.5]decane
 """.split()
 NAMED = [n for n in NAMED if not n.startswith('spiro')]
+
+# Conventional names OPSIN does not read, keyed by an equivalent name it does (the numbering of a
+# fused system does not depend on which of its fusion names is used).
+ALIAS = {
+    '[1,2,4]triazolo[3,4-b]benzothiazole': 'benzo[4,5]thiazolo[2,3-c][1,2,4]triazole',
+    '[1,2,4]triazolo[3,4-b][1,3]benzothiazole': 'benzo[4,5]thiazolo[2,3-c][1,2,4]triazole',
+    'tetrazolo[5,1-b]benzothiazole': 'benzo[4,5]thiazolo[3,2-d]tetrazole',
+    '[1,3]dioxolo[4,5-f][1,3]benzodioxole': "benzo[1,2-d:4,5-d']bis([1,3]dioxole)",
+    'benzothiazolo[2,3-b]quinazoline': 'benzo[4,5]thiazolo[2,3-b]quinazoline',
+    'benzothiazolo[3,2-a]pyrimidine': 'benzo[4,5]thiazolo[3,2-a]pyrimidine',
+    'benzoxazolo[3,2-a]pyridine': 'benzo[4,5]oxazolo[3,2-a]pyridine',
+}
+NAMED = list(ALIAS) + NAMED
 
 # Two-ring fusion names from components, to catch systems NAMED misses.
 ATTACHED = {  # prefix form: monocycle name, ring size
@@ -350,7 +370,7 @@ def main():
             r = parse_one(d)
             if r is None:
                 continue
-            r['name'] = n
+            r['name'] = ALIAS.get(n, n)
             cands.append((rank, r))
         cands.sort(key=lambda c: c[0])
         for _, r in cands:

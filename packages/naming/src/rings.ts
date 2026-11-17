@@ -6,6 +6,12 @@
 
 export type RingRow = [name: string, elements: string, locants: string, extra: string, gaps: string];
 export const RING_ROWS: RingRow[] = [
+  ['benzo[4,5]thiazolo[2,3-c][1,2,4]triazole', 'NNCNCCCCCCSC', '....a....a.a', '0.11 3.11 4.9', ''],
+  ['benzo[4,5]thiazolo[3,2-d]tetrazole', 'NNNCSCCCCCCN', '...a.a....a.', '0.11 3.11 5.10', ''],
+  ["benzo[1,2-d:4,5-d']bis([1,3]dioxole)", 'OCOCCCOCOCCC', '...a.a...a.a', '0.11 3.11 5.9', ''],
+  ['benzo[4,5]thiazolo[2,3-b]quinazoline', 'CCCCCNCSCCCCCCNCC', '....a.a.a....a..a', '0.16 4.16 6.14 8.13', ''],
+  ['benzo[4,5]thiazolo[3,2-a]pyrimidine', 'NCCCNCCCCCCSC', '.....a....a.a', '0.12 4.12 5.10', ''],
+  ['benzo[4,5]oxazolo[3,2-a]pyridine', 'CCCCCOCCCCCCN', '....a.a....a.', '0.12 4.12 6.11', ''],
   ['benzo[4,5]imidazo[1,2-a][1,3,5]triazine', 'NCNCNCCCCCCNC', '.....a....a.a', '0.12 4.12 5.10', ''],
   ['benzo[4,5]imidazo[1,2-a]azepine', 'CCCCCNCCCCCCNC', '....a.a......a', '0.13 4.13 6.12', ''],
   ['benzo[4,5]imidazo[1,2-a]pyrazine', 'CNCCNCCCCCCNC', '.....a....a.a', '0.12 4.12 5.10', ''],
@@ -434,7 +440,6 @@ export const RING_ROWS: RingRow[] = [
   ['[1,2,4]triazolo[1,5-b]pyridazine', 'NCNNNCCCC', '........a', '0.8 3.8', ''],
   ['[1,2,4]triazolo[3,4-b][1,3,4]thiadiazole', 'NNCNNCSC', '.......a', '0.7 3.7', ''],
   ['[1,2,4]triazolo[5,1-b][1,3,4]thiadiazole', 'SCNNNCNC', '.......a', '0.7 3.7', ''],
-  ['[1,2,4]triazolo[3,4-b][1,3]benzothiazole', 'NNCNCCCCCCSC', '....a....a.a', '0.11 3.11 4.9', ''],
   ['[1,2,4]triazolo[4,3-a]quinoxaline', 'CNNCCNCCCCCCN', '...a..a....a.', '0.12 3.12 6.11', ''],
   ['[1,2,4]triazolo[1,5-a]quinazoline', 'NCNCNCCCCCCCN', '...a..a....a.', '0.12 3.12 6.11', ''],
   ['[1,2,4]triazolo[4,3-a]quinazoline', 'CNNCNCCCCCCCN', '...a..a....a.', '0.12 3.12 6.11', ''],
@@ -464,7 +469,6 @@ export const RING_ROWS: RingRow[] = [
   ['tetrazolo[1,5-a]quinoline', 'NNNCCCCCCCCCN', '...a..a....a.', '0.12 3.12 6.11', ''],
   ['tetrazolo[1,5-a]quinoxaline', 'NNNCCNCCCCCCN', '...a..a....a.', '0.12 3.12 6.11', ''],
   ['tetrazolo[1,5-c]quinazoline', 'NNNNCNCCCCCCC', '......a....ab', '0.12 3.12 6.11', ''],
-  ['tetrazolo[5,1-b]benzothiazole', 'NNNCSCCCCCCN', '...a.a....a.', '0.11 3.11 5.10', ''],
   ['thiazolo[4,5-d]pyrimidine', 'SCNCNCNCC', '...a....a', '0.8 3.8', ''],
   ['thiazolo[5,4-d]pyrimidine', 'NCSCNCNCC', '...a....a', '0.8 3.8', ''],
   ['thiazolo[4,5-b]pyridine', 'SCNCNCCCC', '...a....a', '0.8 3.8', ''],
@@ -525,7 +529,6 @@ export const RING_ROWS: RingRow[] = [
   ['[1,3]dioxolo[4,5-g]isoquinoline', 'OCOCCCCNCCCCC', '...a.a....a.a', '0.12 3.12 5.10', ''],
   ['[1,3]dioxolo[4,5-g]quinazoline', 'OCOCCCNCNCCCC', '...a.a....a.a', '0.12 3.12 5.10', ''],
   ['[1,3]dioxolo[4,5-f]indole', 'OCOCCCNCCCCC', '...a.a...a.a', '0.11 3.11 5.9', ''],
-  ['[1,3]dioxolo[4,5-f][1,3]benzodioxole', 'OCOCCCOCOCCC', '...a.a...a.a', '0.11 3.11 5.9', ''],
   ['[1,4]dioxino[2,3-b]pyridine', 'OCCOCNCCCC', '....a....a', '0.9 4.9', ''],
   ['[1,4]dioxino[2,3-g]quinoline', 'OCCOCCCNCCCCCC', '....a.a....a.a', '0.13 4.13 6.11', ''],
   ['[1,4]dioxino[2,3-f]quinazoline', 'OCCOCCCCNCNCCC', '....a..a....ab', '0.13 4.13 7.12', ''],
