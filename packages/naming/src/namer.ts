@@ -3248,6 +3248,8 @@ class Namer {
     const alkyl = alkyls[0]!;
     if (esters.length === 1) return `${alkyl.text} ${acid}`;
     if (new Set(alkyls.map((a) => a.text)).size === 1) return alkyl.complex ? `${complexMultiplier(esters.length)}(${alkyl.text}) ${acid}` : `${multiplier(esters.length)}${alkyl.text} ${acid}`;
+    // On a symmetric acid known by name the ester groups need no locants: ethyl methyl malonate.
+    if (/^(oxal|malon|succin)ate$/.test(acid)) return `${[...alkyls].sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((a) => (a.complex ? `(${a.text})` : a.text)).join(' ')} ${acid}`;
     // Different alkyl groups, each with the locant of its ester: 3-ethyl 5-methyl pyridine-3,5-dicarboxylate.
     const kinds = new Map<string, { sub: SubName; locs: string[] }>();
     esters.forEach((g, i) => {
@@ -3779,7 +3781,7 @@ class Namer {
         core = `${withHydro(t.yl, rest, numbering)}-${fv}(${numbering.get(partner)}H)-yl`;
       } else if (h) core = `${withHydro(t.yl, h, numbering)}${ium}-${fv}-yl`;
       else if (t.name === 'benzene') core = 'phenyl';
-      else if (t.name === 'morpholine' && fv === '4' && !ium) core = 'morpholino';
+      else if ((t.name === 'morpholine' || t.name === 'thiomorpholine') && fv === '4' && !ium) core = `${t.name.replace(/e$/, '')}o`;
       else core = `${t.indicatedH ? `${t.indicatedH}H-` : ''}${t.yl}${ium}-${fv}-yl`;
       if (ylidene) core += 'idene';
     } else if (r.info.kind === 'vonbaeyer') {

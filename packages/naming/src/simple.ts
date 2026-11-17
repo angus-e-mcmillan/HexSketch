@@ -24,11 +24,11 @@ const SPECIES: readonly (readonly [string, string])[] = [
   ['NS(N)(=O)=O', 'sulfamide'], ['NS(=O)(=O)O', 'sulfamic acid'], ['NC(N)=N', 'guanidine'], ['NC(N)=S', 'thiourea'],
   ['B', 'borane'], ['FB(F)F', 'trifluoroborane'], ['ClB(Cl)Cl', 'trichloroborane'], ['BrB(Br)Br', 'tribromoborane'],
   ['ClP(Cl)Cl', 'trichlorophosphane'], ['BrP(Br)Br', 'tribromophosphane'], ['ClP(Cl)(Cl)(Cl)Cl', 'phosphorus pentachloride'],
-  ['O=P(Cl)(Cl)Cl', 'phosphoryl trichloride'], ['O=S(Cl)Cl', 'thionyl chloride'], ['O=S(=O)(Cl)Cl', 'sulfuryl dichloride'],
+  ['O=P(Cl)(Cl)Cl', 'phosphoryl trichloride'], ['O=S(Cl)Cl', 'sulfurous dichloride'], ['O=S(=O)(Cl)Cl', 'sulfuryl dichloride'],
   ['O=[Os](=O)(=O)=O', 'osmium tetroxide'],
   // Anions.
   ['[H-]', 'hydride'], ['[O-2]', 'oxide'], ['[S-2]', 'sulfide'], ['[SH-]', 'hydrosulfide'], ['[O-]O', 'hydroperoxide'], ['[NH2-]', 'amide'],
-  ['[BH4-]', 'borohydride'], ['[AlH4-]', 'aluminum hydride'], ['F[B-](F)(F)F', 'tetrafluoroborate'], ['F[P-](F)(F)(F)(F)F', 'hexafluorophosphate'],
+  ['[BH4-]', 'tetrahydroborate'], ['[AlH4-]', 'aluminum hydride'], ['F[B-](F)(F)F', 'tetrafluoroborate'], ['F[P-](F)(F)(F)(F)F', 'hexafluorophosphate'],
   ['F[Sb-](F)(F)(F)(F)F', 'hexafluoroantimonate'], ['[C-]#N', 'cyanide'], ['[N-]=[N+]=[N-]', 'azide'], ['[S-]C#N', 'thiocyanate'], ['[O-]C#N', 'cyanate'],
   ['[O-][N+](=O)[O-]', 'nitrate'], ['[O-]N=O', 'nitrite'], ['[O-]S(=O)(=O)[O-]', 'sulfate'], ['OS(=O)(=O)[O-]', 'hydrogen sulfate'],
   ['[O-]S([O-])=O', 'sulfite'], ['OS([O-])=O', 'hydrogen sulfite'], ['[O-]S(=O)(=S)[O-]', 'thiosulfate'],
