@@ -280,7 +280,10 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       }
     }
     else if (xe === 'N' && !groups.some((g) => g.kind === 'amide' && g.nitrogen === x) && !ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1)
-      && xn.every((m) => m === sAtom.id || el(mol, m) === 'C' || (el(mol, m) === 'N' && ringAtoms.has(m) && mol.atom(m).charge === 0))) made = { kind: 'sulfonamide', ...base, nitrogen: x };
+      && !groups.some((g) => g.kind === 'sulfonamide' && g.nitrogen === x)
+      // Its nitrogen may carry another sulfonyl: N-((trifluoromethyl)sulfonyl)methanesulfonamide.
+      && xn.every((m) => m === sAtom.id || el(mol, m) === 'C' || (el(mol, m) === 'N' && ringAtoms.has(m) && mol.atom(m).charge === 0)
+        || (el(mol, m) === 'S' && mol.neighbours(m).filter((o) => el(mol, o) === 'O' && mol.bondBetween(m, o)!.order === 2).length === 2))) made = { kind: 'sulfonamide', ...base, nitrogen: x };
     if (!made) continue;
     groups.push(made);
     for (const a of made.consumed) claimed.add(a);
@@ -362,8 +365,10 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     }
     const allBondsSingle = mol.incidentBonds(x.id).every((b) => mol.bond(b).order === 1);
     if (!allBondsSingle || ringAtoms.has(x.id)) continue;
-    if (x.element === 'O' && mol.neighbours(x.id).length === 1 && h.get(x.id) === 1 && carbonNbrs.length === 1) {
-      groups.push({ kind: 'alcohol', anchor: carbonNbrs[0]!, ownCarbon: false, consumed: [x.id] });
+    // An OH on a ring nitrogen is an -ol of the ring too: 1H-benzo[d][1,2,3]triazol-1-ol, piperidin-1-ol.
+    const ringN = mol.neighbours(x.id).find((n) => el(mol, n) === 'N' && ringAtoms.has(n) && mol.atom(n).charge === 0 && mol.neighbours(n).length === 3);
+    if (x.element === 'O' && mol.neighbours(x.id).length === 1 && h.get(x.id) === 1 && (carbonNbrs.length === 1 || ringN !== undefined)) {
+      groups.push({ kind: 'alcohol', anchor: carbonNbrs[0] ?? ringN!, ownCarbon: false, consumed: [x.id] });
     } else if (x.element === 'S' && mol.neighbours(x.id).length === 1 && h.get(x.id) === 1 && carbonNbrs.length === 1) {
       groups.push({ kind: 'thiol', anchor: carbonNbrs[0]!, ownCarbon: false, consumed: [x.id] });
     } else if (x.element === 'N' && carbonNbrs.length === mol.neighbours(x.id).length && carbonNbrs.length >= 1

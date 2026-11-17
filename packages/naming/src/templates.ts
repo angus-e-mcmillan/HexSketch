@@ -91,6 +91,8 @@ export const TEMPLATES: RingTemplate[] = [
   { name: '1,2,3,4-tetrahydroquinoline', yl: '1,2,3,4-tetrahydroquinolin', smiles: 'N1CCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
   { name: '1,2,3,4-tetrahydroisoquinoline', yl: '1,2,3,4-tetrahydroisoquinolin', smiles: 'C1NCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
   { name: 'chromane', yl: 'chroman', smiles: 'O1CCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
+  { name: 'isochromane', yl: 'isochroman', smiles: 'C1OCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
+  { name: 'thiochromane', yl: 'thiochroman', smiles: 'S1CCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
   { name: '2,3-dihydrobenzofuran', yl: '2,3-dihydrobenzofuran', smiles: 'O1CCc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
   { name: '1,3,2-dioxaborolane', yl: '1,3,2-dioxaborolan', smiles: 'O1BOCC1', locants: seq(5), aromatic: false },
   { name: 'decahydronaphthalene', yl: 'decahydronaphthalen', smiles: 'C1CCCC2CCCCC12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: false },

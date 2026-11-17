@@ -1957,7 +1957,9 @@ class Namer {
     // tributylstannane, triphenylarsane, dimethylselane; with OH on it, trimethylsilanol.
     const HYDRIDE: Record<string, [string, number]> = { Si: ['silane', 4], Ge: ['germane', 4], Sn: ['stannane', 4], Pb: ['plumbane', 4], As: ['arsane', 3], Sb: ['stibane', 3], Se: ['selane', 2], Te: ['tellane', 2] };
     const metalloids = [...mol.atoms()].filter((a) => HYDRIDE[a.element]);
-    if (metalloids.length === 1 && ![...mol.atoms()].some((a) => a.element === 'B' || a.element === 'P')) {
+    // A heterocycle elsewhere is the senior parent: 2-(diphenyl((trimethylsilyl)oxy)methyl)pyrrolidine.
+    const heterocycle = [...this.an.ringAtoms].some((a) => !['C', 'Si', 'Ge', 'Sn', 'Pb', 'As', 'Sb', 'Se', 'Te'].includes(el(mol, a)));
+    if (metalloids.length === 1 && !heterocycle && ![...mol.atoms()].some((a) => a.element === 'B' || a.element === 'P')) {
       const m = metalloids[0]!;
       const [hydride, v] = HYDRIDE[m.element]!;
       const nb2 = mol.neighbours(m.id);
@@ -2173,8 +2175,12 @@ class Namer {
     const ns = [nns[0]!.begin, nns[0]!.end];
     if (ns.some((x) => mol.atom(x).charge !== 0 || mol.incidentBonds(x).some((b) => mol.bond(b).order !== 1 && el(mol, mol.otherAtom(mol.bond(b), x)) !== 'C'))) return null;
     const acyls = ns.flatMap((n) => mol.neighbours(n).filter((c) => isAcylCarbon(mol, c) || (el(mol, c) === 'C' && mol.incidentBonds(c).some((b) => mol.bond(b).order === 2 && el(mol, mol.otherAtom(mol.bond(b), c)) === 'S' && mol.neighbours(mol.otherAtom(mol.bond(b), c)).length === 1))).map((c) => [n, c] as const));
-    if (acyls.length !== 1) return null;
-    const [n1, ac] = acyls[0]!;
+    // With two, the carbamoyl one is the parent's suffix and the other a prefix: 2-acetyl-1-methylhydrazine-1-carboxamide.
+    const amideLike = acyls.filter(([, c]) => mol.neighbours(c).some((y) => el(mol, y) === 'N' && !ns.includes(y)));
+    const esterLike = acyls.filter(([, c]) => mol.neighbours(c).some((y) => el(mol, y) === 'O' && mol.bondBetween(c, y)!.order === 1));
+    const pick = amideLike.length ? amideLike : esterLike;
+    if (!acyls.length || acyls.length > 2 || (acyls.length === 2 && pick.length !== 1)) return null;
+    const [n1, ac] = acyls.length === 2 ? pick[0]! : acyls[0]!;
     const n2 = ns.find((x) => x !== n1)!;
     const acN = mol.neighbours(ac).filter((x) => x !== n1);
     const dbl = acN.find((x) => mol.bondBetween(ac, x)!.order === 2)!;
@@ -2198,7 +2204,7 @@ class Namer {
     for (const n of ns) for (const bd of mol.incidentBonds(n).map((b) => mol.bond(b))) {
       const o = mol.otherAtom(bd, n);
       if (ns.includes(o) || o === ac) continue;
-      if (el(mol, o) !== 'C' || isAcylCarbon(mol, o)) return null;
+      if (el(mol, o) !== 'C' || (isAcylCarbon(mol, o) && !acyls.some(([, c]) => c === o))) return null;
       pre.push({ ...(bd.order === 2 ? this.ylidene(o, n) : this.substituent(o, n)), at: n });
     }
     const onHydrazine = pre.some((p) => p.at !== 'N');
