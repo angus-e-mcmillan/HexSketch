@@ -488,7 +488,7 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'im
     || ((el(mol, a) === 'O' || el(mol, a) === 'S') && mol.atom(a).charge === 1 && ringNb(a).length === 2)
     // Trivalent P, As and B and tetravalent Si and Ge as N and C are: 1H-phosphole, 1H-silole, 1H-borole.
     || (['P', 'As', 'B', 'Si', 'Ge'].includes(el(mol, a)) && mol.atom(a).charge === 0 && ringNb(a).length === 2 && ringNb(a).some((b) => el(mol, b) === 'C' || el(mol, b) === 'N')
-      && mol.neighbours(a).length + (an.h.get(a) ?? 0) === (['Si', 'Ge'].includes(el(mol, a)) ? 4 : 3) && mol.incidentBonds(a).every((b) => mol.bond(b).order === 1 || inSys.has(mol.otherAtom(mol.bond(b), a)))));
+      && mol.incidentBonds(a).reduce((t, b) => t + mol.bond(b).order, 0) + (an.h.get(a) ?? 0) === (['Si', 'Ge'].includes(el(mol, a)) ? 4 : 3) && mol.incidentBonds(a).every((b) => mol.bond(b).order === 1 || inSys.has(mol.otherAtom(mol.bond(b), a)))));
   const capSet = new Set(capable);
   if (double.some(([x, y]) => !capSet.has(x) || !capSet.has(y))) return null;
   const inDouble = new Set(double.flat());
