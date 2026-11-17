@@ -18,6 +18,8 @@ export interface Group {
   esterCarbon?: AtomId;
   nitrogen?: AtomId;
   halogen?: string;
+  /** C=S in place of C=O: a thiourea or thioamide. */
+  thio?: boolean;
 }
 
 export interface Analysis {
@@ -76,6 +78,22 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     const carbons = nbrs.filter((n) => el(mol, n.atom) === 'C');
     const singles = nbrs.filter((n) => n.order === 1 && el(mol, n.atom) !== 'C');
 
+    // Thioureas and thioamides: C(=S) between two open-chain nitrogens, or on one with carbon beside it.
+    const dblS = nbrs.find((n) => n.order === 2 && el(mol, n.atom) === 'S' && mol.neighbours(n.atom).length === 1 && mol.atom(n.atom).charge === 0);
+    if (dblS && !ringAtoms.has(c.id)) {
+      const ns = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
+        && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1) && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C'));
+      if (ns.length === 2 && singles.length === 2 && carbons.length === 0) {
+        groups.push({ kind: 'urea', anchor: c.id, ownCarbon: true, consumed: [dblS.atom, ns[0]!.atom, ns[1]!.atom], thio: true });
+        claimed.add(dblS.atom); claimed.add(ns[0]!.atom); claimed.add(ns[1]!.atom);
+        continue;
+      }
+      if (ns.length === 1 && singles.length === 1 && carbons.length <= 1) {
+        groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblS.atom, ns[0]!.atom], nitrogen: ns[0]!.atom, thio: true });
+        claimed.add(dblS.atom); claimed.add(ns[0]!.atom);
+        continue;
+      }
+    }
     if (tripN && !ringAtoms.has(c.id)) {
       groups.push({ kind: 'nitrile', anchor: c.id, ownCarbon: true, consumed: [tripN.atom] });
       claimed.add(tripN.atom);
