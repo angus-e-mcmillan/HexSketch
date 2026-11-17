@@ -40,6 +40,8 @@ interface Hydro {
   /** Added hydrogen for a ketone suffix: the 1 of quinolin-2(1H)-one. */ added?: AtomId[];
 }
 const hydroOf = new WeakMap<Numbering, Hydro>();
+/** 0 for a numbering whose indicated hydrogen sits where it is preferred (see hydroParent), else 1. */
+const prefOf = new WeakMap<Numbering, number>();
 
 function subsets<T>(items: T[], size: number): T[][] {
   if (size === 0) return [[]];
@@ -137,10 +139,15 @@ function chemistStyle(s: SubName): SubName {
   if (t === '2,4,6-trimethylphenyl') return mk('mesityl', false);
   if (t === '2-phenylethyl') return mk('phenethyl', false);
   if (t === 'eth-1-en-1-yl') return mk('vinyl', false);
+  // A substituted allyl keeps the name: 2-chloroallyl, 2,3,3-trichloroallyl.
+  const al = /^((?:\d+(?:,\d+)*-[a-z]+)+)prop-2-en-1-yl$/.exec(t);
+  if (al) return mk(`${al[1]}allyl`);
   if (t === '2-hydroxy-2-oxoethyl') return mk('carboxymethyl');
   if (t === 'amino(imino)methyl') return mk('carbamimidoyl', false);
   if (t === '(amino(imino)methyl)amino' || t === 'carbamimidoylamino') return mk('guanidino', false);
   if (t === 'carbamoylamino') return mk('ureido', false);
+  const sa = /^\((\(.+\)|[a-z]+)sulfonyl\)amino$/.exec(t);
+  if (sa && balanced(sa[1]!)) return mk(`${sa[1]}sulfonamido`);
   let mu = /^\((di)?([a-z]+|\(.+\))carbamoyl\)amino$/.exec(t);
   if (mu && balanced(mu[2]!) && !/carbamoyl/.test(mu[2]!)) return mk(`${mu[1] ? '3,3-di' : '3-'}${mu[2]}ureido`);
   if (t === 'hydroxy(oxo)-λ5-phosphanyl') return mk('hydroxyhydrophosphoryl');
@@ -527,12 +534,25 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
     if (!maps.length) continue;
     const numberings: Numbering[] = [];
     // A ring with a name of its own when saturated takes the ketone as is: 1,4-dithiepan-6-one.
-    for (const m of maps) for (const style of double.length === 0 && ct.t.saturated ? plain : styles) {
-      // Porphyrin is named for its 21H,23H form; another tautomer has no porphyrin name here.
-      if (ct.t.name === 'porphyrin' && !['21', '23'].every((l) => [...style.hydro, ...style.ih].some((a) => m.get(a) === l))) continue;
-      const n = new Map(m);
-      hydroOf.set(n, style);
-      numberings.push(n);
+    const carbocyclic = system.every((a) => el(mol, a) === 'C');
+    for (const m of maps) {
+      const list = double.length === 0 && ct.t.saturated ? plain : styles;
+      // Where a ketone takes the suffix, its indicated hydrogen goes on a ketone carbon (3H-...-3,17(2H)-dione,
+      // 1H-isoindole-1,3(2H)-dione, 1,9-dihydro-6H-purin-6-one) unless, in a heterocycle, a lower locant
+      // needs no added hydrogen (3,7-dihydro-1H-purine-2,6-dione, 1H-pyrrole-2,5-dione).
+      const lowIh = (st: Hydro) => Math.min(...st.ih.map((a) => locVal(m.get(a)!)), Infinity);
+      const atKetone = (st: Hydro) => st.ih.some((a) => ketones.includes(a));
+      const kMin = Math.min(...list.filter(atKetone).map(lowIh), Infinity);
+      const zMin = Math.min(...list.filter((st) => !(st.added ?? []).length).map(lowIh), Infinity);
+      const favourKetone = ketones.length > 0 && kMin < Infinity && (carbocyclic || !(zMin < kMin));
+      for (const style of list) {
+        // Porphyrin is named for its 21H,23H form; another tautomer has no porphyrin name here.
+        if (ct.t.name === 'porphyrin' && !['21', '23'].every((l) => [...style.hydro, ...style.ih].some((a) => m.get(a) === l))) continue;
+        const n = new Map(m);
+        hydroOf.set(n, style);
+        prefOf.set(n, favourKetone ? (atKetone(style) ? 0 : 1) : 0);
+        numberings.push(n);
+      }
     }
     if (!numberings.length) continue;
     const ringCount = ct.t.locants.filter((l) => /a$/.test(l)).length / 2 + 1;
@@ -1882,7 +1902,7 @@ class Namer {
    * parent: R-B(OH)2 boronic acids, R3P phosphanes, RBF3- borates.
    */
   functionalClassName(): string | null {
-    const nn = this.hydroxylamine() ?? this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
+    const nn = this.thiocarbamate() ?? this.hydroxylamine() ?? this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
     if (nn) return nn;
     const mol = this.mol;
     // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
@@ -2097,6 +2117,35 @@ class Namer {
     const first = numbering.get(subs[0]!.at)!;
     if (first !== '1') numbering.forEach((v, k) => numbering.set(k, String(chain.length + 1 - Number(v))));
     return `${this.prefixString(subs, numbering, false)}${multiplier(chain.length)}sulfane`;
+  }
+
+  /**
+   * A thiocarbamate or dithiocarbamate S-ester with nothing more senior: S-ethyl diisobutylcarbamothioate,
+   * S-propyl butyl(ethyl)carbamothioate, 2-chloroallyl diethylcarbamodithioate.
+   */
+  thiocarbamate(): string | null {
+    if (this.principal) return null;
+    const mol = this.mol;
+    const cs = [...mol.atoms()].filter((c) => {
+      if (c.element !== 'C' || this.an.ringAtoms.has(c.id) || mol.neighbours(c.id).length !== 3) return false;
+      const nb = mol.neighbours(c.id);
+      return nb.some((x) => ['O', 'S'].includes(el(mol, x)) && mol.bondBetween(c.id, x)!.order === 2 && mol.neighbours(x).length === 1)
+        && nb.some((x) => el(mol, x) === 'N' && !this.an.ringAtoms.has(x)) && nb.some((x) => el(mol, x) === 'S' && mol.bondBetween(c.id, x)!.order === 1 && mol.neighbours(x).length === 2);
+    });
+    if (cs.length !== 1) return null;
+    const c = cs[0]!.id, nb = mol.neighbours(c);
+    const dbl = nb.find((x) => mol.bondBetween(c, x)!.order === 2)!;
+    const n = nb.find((x) => el(mol, x) === 'N')!, sx = nb.find((x) => el(mol, x) === 'S' && mol.bondBetween(c, x)!.order === 1)!;
+    if (mol.atom(n).charge || !mol.incidentBonds(n).every((b) => mol.bond(b).order === 1)) return null;
+    const r = mol.neighbours(sx).find((y) => y !== c)!;
+    if (el(mol, r) !== 'C') return null;
+    const nsubs = mol.neighbours(n).filter((y) => y !== c);
+    if (nsubs.some((y) => el(mol, y) !== 'C')) return null;
+    const R = this.substituent(r, sx);
+    const dithio = el(mol, dbl) === 'S';
+    const head = nsubs.length ? citeRun(countSubs(nsubs.map((y) => this.substituent(y, n)))) : '';
+    const alkyl = dithio ? R.text : `S-${R.complex ? `(${R.text})` : R.text}`;
+    return `${alkyl} ${head}carbamo${dithio ? 'dithioate' : 'thioate'}`;
   }
 
   /** An N-substituted hydroxylamine with nothing more senior: N-phenylhydroxylamine. */
@@ -2369,6 +2418,13 @@ class Namer {
       if (e === 'S' && v === 2) return 'thio';
       if (e === 'N' && mol.atom(x).charge === 0) return v === 2 && mol.implicitHydrogens(x) === 1 ? 'azanediyl' : v === 3 ? 'azanetriyl' : null;
       if (e === 'C' && v === 2 && mol.implicitHydrogens(x) === 2) return 'methylene';
+    }
+    // One nitrogen all the units hang from, with groups of its own: (phenylazanediyl).
+    const one = [...new Set(ends)];
+    if (one.length === 1 && el(mol, one[0]!) === 'N' && mol.atom(one[0]!).charge === 0 && valence(one[0]!) === 2) {
+      const x = one[0]!;
+      const own = mol.neighbours(x).filter((y) => inL.has(y));
+      if (own.length && own.every((y) => mol.bondBetween(x, y)!.order === 1)) return `${citeRun(countSubs(own.map((y) => this.substituent(y, x))))}azanediyl`;
     }
     // Heteroatom bridges at each end, the same at all: ethane-1,2-diylbis(oxy).
     const endSet = [...new Set(ends)];
@@ -2920,7 +2976,6 @@ class Namer {
         : [0, 0, 0, 0, 0, 0, 0];
       const { mult, dbl } = this.unsaturationAtoms(p);
       const heteroAtoms = p.ring?.kind === 'vonbaeyer' || p.ring?.kind === 'cyclo' ? p.atoms.filter((a) => el(this.mol, a) !== 'C') : [];
-      const carbocycle = p.kind === 'ring' && p.atoms.every((a) => el(this.mol, a) === 'C');
       for (const numbering of p.numberings) {
         const key: (number | number[])[] = [
           -count,
@@ -2932,7 +2987,7 @@ class Namer {
           heteroAtoms.map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...heteroAtoms].sort((a, b) => 'OSN'.indexOf(el(this.mol, a)) - 'OSN'.indexOf(el(this.mol, b))).map((a) => locVal(numbering.get(a)!)),
           // A carbocyclic ketone takes its indicated hydrogen on a ketone carbon; then the fewest added hydrogens.
-          carbocycle && this.principal === 'ketone' ? -(hydroOf.get(numbering)?.ih ?? []).filter((a) => [...sites.values()].includes(a)).length : 0,
+          prefOf.get(numbering) ?? 0,
           (hydroOf.get(numbering)?.added ?? []).length,
           (hydroOf.get(numbering)?.ih ?? []).map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...sites.values()].map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
@@ -4001,7 +4056,7 @@ class Namer {
       // A ring atom double-bonded outwards needs a saturated position: 2,3-dihydro-...-2-ylidene.
       if (ylidene && !h && t.aromatic) throw new OutOfScope('ring ylidene substituent');
       if (h?.saturated && t.saturated) core = `${t.saturated.replace(/e$/, '')}${ium}-${fv}-yl`;
-      else if (h && el(mol, a) === 'N' && h.hydro.includes(a) && !h.ih.includes(a) && !ium && !ylidene) {
+      else if (h && (el(mol, a) === 'N' || ylidene) && h.hydro.includes(a) && !h.ih.includes(a) && !ium) {
         // Joined through a ring nitrogen that would be a hydro position: its hydrogen is added
         // hydrogen, with the lowest one beside it: 3,4-dihydroquinolin-1(2H)-yl, 2-oxopyrimidin-1(2H)-yl.
         const byLoc = (x: AtomId, y: AtomId) => compareLocant(numbering.get(x)!, numbering.get(y)!);

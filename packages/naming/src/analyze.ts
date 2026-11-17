@@ -147,6 +147,13 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       // Urea: C(=O) between two open-chain nitrogens, named as the parent "urea".
       const ureaN = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
         && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
+      // One open-chain N and one ring N: a carboxamide on the ring nitrogen (2-oxoimidazolidine-1-carboxamide).
+      const ringNs = singles.filter((n) => el(mol, n.atom) === 'N' && ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0);
+      if (ureaN.length === 1 && ringNs.length === 1 && others === 2 && mol.neighbours(ureaN[0]!.atom).every((m) => m === c.id || el(mol, m) === 'C')) {
+        groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, ureaN[0]!.atom], nitrogen: ureaN[0]!.atom });
+        claimed.add(dblO.atom); claimed.add(ureaN[0]!.atom);
+        continue;
+      }
       if (ureaN.length === 2 && others === 2) {
         groups.push({ kind: 'urea', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, ureaN[0]!.atom, ureaN[1]!.atom] });
         claimed.add(dblO.atom); claimed.add(ureaN[0]!.atom); claimed.add(ureaN[1]!.atom);
