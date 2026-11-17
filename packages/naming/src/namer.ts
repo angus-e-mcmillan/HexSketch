@@ -1983,6 +1983,8 @@ class Namer {
   }
 
   name(): string {
+    const nitrate = this.nitrateEster();
+    if (nitrate) return nitrate;
     const aa = this.aminoAcidName();
     if (aa) return aa;
     if (this.principal === 'ester' || this.principal === 'sulfonateEster') return this.nameEster();
@@ -2016,7 +2018,9 @@ class Namer {
       for (const g of this.principalGroups) {
         const own = chains.filter((c) => { const st = this.principalSites(c); return st.size === 1 && st.has(g); });
         own.sort((x, y) => y.atoms.length - x.atoms.length);
-        if (own[0]) units.push(own[0]);
+        // A group's own carbon on a ring (a benzoic acid, a benzimidamide) goes with the ring.
+        const onRing = g.ownCarbon && mol.neighbours(g.anchor).some((x) => this.an.ringAtoms.has(x)) && own[0]?.atoms.length === 1;
+        if (own[0] && !onRing) units.push(own[0]);
         else for (const r of this.ringCandidates()) if (!r.ring?.assembly && this.principalSites(r).has(g) && !units.includes(r)) units.push(r);
       }
     } else {
@@ -2345,6 +2349,11 @@ class Namer {
     const items: [string, string][] = [];
     const inSet = new Set(atoms);
     for (const a of atoms) { const l = this.rs.get(a); if (l) { items.push([numbering.get(a)!, l]); this.cited.add(a); } }
+    // The sulfur of a sulfinic group on this skeleton: (R)-2-methylpropane-2-sulfinamide.
+    for (const g of this.principalGroups) {
+      const sx = g.sulfin ? g.consumed[0]! : undefined, l = sx !== undefined ? this.rs.get(sx) : undefined;
+      if (sx !== undefined && l && inSet.has(g.anchor)) { items.push([numbering.get(g.anchor)!, l]); this.cited.add(sx); }
+    }
     for (const b of this.mol.bonds()) {
       const l = this.ez.get(`${b.begin}-${b.end}`);
       if (!l) continue;
@@ -2846,7 +2855,7 @@ class Namer {
         case 'peracid': return 'benzoperoxoic acid';
         case 'aldehyde': return 'benzaldehyde';
         case 'nitrile': return 'benzonitrile';
-        case 'amide': return g?.thio ? 'benzothioamide' : 'benzamide';
+        case 'amide': return g?.thio ? 'benzothioamide' : g?.imid ? 'benzimidamide' : g?.hydrazide ? 'benzohydrazide' : 'benzamide';
         case 'acylHalide': return `benzoyl ${HALIDE[g!.halogen!]}`;
         default: void nPre;
       }
@@ -2885,7 +2894,7 @@ class Namer {
       switch (kind) {
         case 'carboxylate': return acetic ? 'acetate' : 'formate';
         case 'acid': return acetic ? 'acetic acid' : 'formic acid';
-        case 'amide': return g.thio ? null : acetic ? 'acetamide' : 'formamide';
+        case 'amide': return g.thio ? null : g.imid ? (acetic ? 'acetimidamide' : 'formimidamide') : g.hydrazide ? (acetic ? 'acetohydrazide' : 'formohydrazide') : acetic ? 'acetamide' : 'formamide';
         case 'aldehyde': return acetic ? 'acetaldehyde' : 'formaldehyde';
         case 'nitrile': return acetic ? 'acetonitrile' : null;
         case 'acylHalide': return acetic ? `acetyl ${HALIDE[g.halogen!]}` : null;
@@ -2938,17 +2947,17 @@ class Namer {
       carboxylate: ['oate', 'carboxylate'],
       sulfonate: ['sulfonate', 'sulfonate'],
       diazonium: ['diazonium', 'diazonium'],
-      sulfonic: ['sulfonic acid', 'sulfonic acid'],
+      sulfonic: g.sulfin ? ['sulfinic acid', 'sulfinic acid'] : ['sulfonic acid', 'sulfonic acid'],
       sulfonateEster: ['sulfonate', 'sulfonate'],
-      sulfonylHalide: [`sulfonyl ${HALIDE[g.halogen ?? 'Cl']}`, `sulfonyl ${HALIDE[g.halogen ?? 'Cl']}`],
-      sulfonamide: ['sulfonamide', 'sulfonamide'],
+      sulfonylHalide: [`sulfonyl ${g.halogen === 'N3' ? 'azide' : HALIDE[g.halogen ?? 'Cl']}`, `sulfonyl ${g.halogen === 'N3' ? 'azide' : HALIDE[g.halogen ?? 'Cl']}`],
+      sulfonamide: g.sulfin ? ['sulfinamide', 'sulfinamide'] : ['sulfonamide', 'sulfonamide'],
       peracid: ['peroxoic acid', 'carboperoxoic acid'],
       olate: ['olate', 'olate'],
       aminium: ['aminium', 'aminium'],
       acid: ['oic acid', 'carboxylic acid'],
-      ester: ['oate', 'carboxylate'],
+      ester: g.thio ? ['ethioate', 'carbothioate'] : ['oate', 'carboxylate'],
       acylHalide: [`oyl ${HALIDE[g.halogen ?? 'Cl']}`, `carbonyl ${HALIDE[g.halogen ?? 'Cl']}`],
-      amide: g.thio ? ['thioamide', 'carbothioamide'] : ['amide', 'carboxamide'],
+      amide: g.thio ? ['thioamide', 'carbothioamide'] : g.imid ? ['imidamide', 'carboximidamide'] : g.hydrazide ? ['ehydrazide', 'carbohydrazide'] : ['amide', 'carboxamide'],
       urea: ['urea', 'urea'],
       ium: ['ium', 'ium'],
       ide: ['ide', 'ide'],
@@ -3166,14 +3175,20 @@ class Namer {
     const sites = this.principalSites(p);
     const esters = [...sites.keys()];
     if (!esters.length) throw new OutOfScope('ester not on the parent');
-    const alkyls = esters.map((g) => this.substituent(g.esterCarbon!, g.consumed[1]!));
+    // An S-ester's alkyl group says which atom it is on: S-methyl ethanethioate.
+    const thio = esters.some((g) => g.thio);
+    if (thio && esters.some((g) => !g.thio)) throw new OutOfScope('O- and S-esters together');
+    const alkyls = esters.map((g) => {
+      const r = this.substituent(g.esterCarbon!, g.consumed[1]!);
+      return thio ? { ...r, text: `S-${r.complex ? `(${r.text})` : r.text}`, complex: false } : r;
+    });
     // Retained acid names give retained anion names.
     const pre = this.prefixes(p, sites);
     const carboxylic = this.principal === 'ester';
     const benzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene';
     let acid: string;
-    if (carboxylic && benzene && sites.size === 1) acid = this.prefixString(pre, best.numbering, false) + 'benzoate';
-    else if (carboxylic && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && this.unsaturationAtoms(p).mult.length === 0) {
+    if (carboxylic && benzene && sites.size === 1) acid = this.prefixString(pre, best.numbering, false) + (thio ? 'benzothioate' : 'benzoate');
+    else if (carboxylic && !thio && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && this.unsaturationAtoms(p).mult.length === 0) {
       const ps = this.prefixString(pre, best.numbering, p.atoms.length === 1);
       // A haloformate: ethyl carbonochloridate.
       const halo = p.atoms.length === 1 && pre.length === 1 ? Object.entries(HALO).find(([, w]) => w === pre[0]!.text)?.[0] : undefined;
@@ -3197,6 +3212,39 @@ class Namer {
       return `${locs.sort(compareLocant).join(',')}-${body}`;
     });
     return `${words.join(' ')} ${acid}`;
+  }
+
+  /**
+   * Nitrate and nitrite esters where nothing more senior is present, named on the alcohol:
+   * methyl nitrate, isopentyl nitrite, propane-1,2,3-triyl trinitrate, (...)furan-3-yl nitrate.
+   */
+  nitrateEster(): string | null {
+    const mol = this.mol;
+    if (this.principal && !['ketone', 'alcohol', 'thiol', 'amine', 'aldehyde', 'nitrile'].includes(this.principal)) return null;
+    const found: { o: AtomId; c: AtomId; n: AtomId; kind: 'nitrate' | 'nitrite' }[] = [];
+    for (const n of mol.atoms()) {
+      if (n.element !== 'N' || this.an.ringAtoms.has(n.id)) continue;
+      const nb = mol.neighbours(n.id);
+      const bridge = nb.filter((o) => el(mol, o) === 'O' && mol.neighbours(o).length === 2 && mol.bondBetween(n.id, o)!.order === 1);
+      const ends = nb.filter((o) => el(mol, o) === 'O' && mol.neighbours(o).length === 1);
+      if (bridge.length !== 1) continue;
+      const c = mol.neighbours(bridge[0]!).find((x) => x !== n.id)!;
+      if (el(mol, c) !== 'C' || isAcylCarbon(mol, c)) continue;
+      const nitro = ends.length === 2 && ((n.charge === 1 && ends.some((o) => mol.atom(o).charge === -1)) || (n.charge === 0 && ends.every((o) => mol.bondBetween(n.id, o)!.order === 2)));
+      const nitroso = ends.length === 1 && n.charge === 0 && mol.bondBetween(n.id, ends[0]!)!.order === 2 && nb.length === 2;
+      if (nitro) found.push({ o: bridge[0]!, c, n: n.id, kind: 'nitrate' });
+      else if (nitroso) found.push({ o: bridge[0]!, c, n: n.id, kind: 'nitrite' });
+    }
+    if (!found.length || new Set(found.map((f) => f.kind)).size !== 1) return null;
+    const word = found[0]!.kind;
+    if (found.length === 1) {
+      const r = this.substituent(found[0]!.c, found[0]!.o);
+      return `${r.text} ${word}`;
+    }
+    const dropped = new Set(found.flatMap((f) => [f.o, f.n, ...mol.neighbours(f.n)]));
+    const rest = [...mol.atoms()].map((a) => a.id).filter((x) => !dropped.has(x));
+    const core = this.coreDiyl(rest, found.map((f) => f.c));
+    return core ? `${core} ${multiplier(found.length)}${word}` : null;
   }
 
   /**
@@ -3584,6 +3632,8 @@ class Namer {
       const locs = prefixes.map((x) => numbering.get(x.at as AtomId)).sort().join(',');
       if (n === 3 && fv === 2 && locs === '2') return { text: 'tert-butyl', complex: true, sortKey: 'butyl' };
       if (n === 3 && fv === 1 && locs === '2') return { text: 'isobutyl', complex: false, sortKey: 'isobutyl' };
+      if (n === 4 && fv === 1 && locs === '3') return { text: 'isopentyl', complex: false, sortKey: 'isopentyl' };
+      if (n === 3 && fv === 1 && locs === '2,2') return { text: 'neopentyl', complex: false, sortKey: 'neopentyl' };
     }
     if (ending === 'yl' && sat && n === 1 && prefixes.length === 1 && prefixes[0]!.text === 'phenyl') return { text: 'benzyl', complex: false, sortKey: 'benzyl' };
     if (ending === 'ylidene' && n === 1 && prefixes.length === 1 && prefixes[0]!.text === 'phenyl') {

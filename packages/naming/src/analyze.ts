@@ -18,8 +18,13 @@ export interface Group {
   esterCarbon?: AtomId;
   nitrogen?: AtomId;
   halogen?: string;
-  /** C=S in place of C=O: a thiourea or thioamide. */
+  /** C=S in place of C=O (a thiourea or thioamide), or S in place of the ester O (a thioate). */
   thio?: boolean;
+  /** A sulfinic acid or what is made from it: S(=O) rather than S(=O)2. */
+  sulfin?: boolean;
+  /** An amidine (C(=NH)N) or a hydrazide (C(=O)NHNH2) rather than an amide. */
+  imid?: boolean;
+  hydrazide?: boolean;
 }
 
 export interface Analysis {
@@ -78,6 +83,17 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     const carbons = nbrs.filter((n) => el(mol, n.atom) === 'C');
     const singles = nbrs.filter((n) => n.order === 1 && el(mol, n.atom) !== 'C');
 
+    // Amidines: C(=NH) with an open-chain amino nitrogen beside it and carbon (or nothing) on the other side.
+    const dblNH = nbrs.find((n) => n.order === 2 && el(mol, n.atom) === 'N' && mol.neighbours(n.atom).length === 1 && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0);
+    if (dblNH && !ringAtoms.has(c.id) && carbons.length <= 1) {
+      const nAm = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
+        && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1) && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C'));
+      if (nAm.length === 1 && singles.length === 1) {
+        groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblNH.atom, nAm[0]!.atom], nitrogen: nAm[0]!.atom, imid: true });
+        claimed.add(dblNH.atom); claimed.add(nAm[0]!.atom);
+        continue;
+      }
+    }
     // Thioureas and thioamides: C(=S) between two open-chain nitrogens, or on one with carbon beside it.
     const dblS = nbrs.find((n) => n.order === 2 && el(mol, n.atom) === 'S' && mol.neighbours(n.atom).length === 1 && mol.atom(n.atom).charge === 0);
     if (dblS && !ringAtoms.has(c.id)) {
@@ -132,6 +148,25 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
         continue;
       }
       if (oh && others <= 2) { groups.push({ kind: 'acid', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, oh.atom] }); claimed.add(dblO.atom); claimed.add(oh.atom); continue; }
+      // An S-ester: C(=O)-S-R, an ...thioate.
+      const sr = singles.find((n) => el(mol, n.atom) === 'S' && mol.neighbours(n.atom).length === 2 && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0);
+      if (sr && !or && others <= 2 && singles.length === 1) {
+        const esterCarbon = mol.neighbours(sr.atom).find((m) => m !== c.id)!;
+        if (el(mol, esterCarbon) === 'C' && !isAcylCarbon(mol, esterCarbon) && !mol.incidentBonds(esterCarbon).some((b) => mol.bond(b).order === 2 && el(mol, mol.otherAtom(mol.bond(b), esterCarbon)) === 'S')) {
+          groups.push({ kind: 'ester', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, sr.atom], esterCarbon, thio: true });
+          claimed.add(dblO.atom); claimed.add(sr.atom);
+          continue;
+        }
+      }
+      // A hydrazide: C(=O)-NH-NH2.
+      const nHyd = singles.find((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0 && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1)
+        && mol.neighbours(n.atom).length === 2 && mol.neighbours(n.atom).some((m) => m !== c.id && el(mol, m) === 'N' && mol.neighbours(m).length === 1 && mol.atom(m).charge === 0 && !ringAtoms.has(m)));
+      if (nHyd && singles.length === 1 && others <= 2) {
+        const n2 = mol.neighbours(nHyd.atom).find((m) => m !== c.id)!;
+        groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, nHyd.atom, n2], nitrogen: nHyd.atom, hydrazide: true });
+        claimed.add(dblO.atom); claimed.add(nHyd.atom); claimed.add(n2);
+        continue;
+      }
       if (or && others <= 2) {
         const esterCarbon = mol.neighbours(or.atom).find((m) => m !== c.id)!;
         if ((el(mol, esterCarbon) === 'C' && !isAcylCarbon(mol, esterCarbon)) || el(mol, esterCarbon) === 'Si') {
@@ -191,6 +226,32 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       const r = xn.find((m) => m !== sAtom.id)!;
       if ((el(mol, r) === 'C' && !isAcylCarbon(mol, r)) || el(mol, r) === 'Si') made = { kind: 'sulfonateEster', ...base, esterCarbon: r };
     } else if (['F', 'Cl', 'Br', 'I'].includes(xe)) made = { kind: 'sulfonylHalide', ...base, halogen: xe };
+    else if (xe === 'N' && xn.length === 2 && mol.atom(x).charge === 0 && xn.some((m) => m !== sAtom.id && el(mol, m) === 'N' && mol.atom(m).charge === 1)) {
+      // A sulfonyl azide: -N=N+=N-.
+      const n2 = xn.find((m) => m !== sAtom.id)!, n3 = mol.neighbours(n2).find((m) => m !== x);
+      if (n3 !== undefined && el(mol, n3) === 'N' && mol.atom(n3).charge === -1 && mol.neighbours(n3).length === 1) {
+        made = { kind: 'sulfonylHalide', ...base, consumed: [...base.consumed, n2, n3], halogen: 'N3' };
+      }
+    }
+    else if (xe === 'N' && !ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1)
+      && xn.every((m) => m === sAtom.id || el(mol, m) === 'C')) made = { kind: 'sulfonamide', ...base, nitrogen: x };
+    if (!made) continue;
+    groups.push(made);
+    for (const a of made.consumed) claimed.add(a);
+  }
+
+  // Sulfinic acids and what is made from them: R-S(=O)-OH, -NR2, -OR (a sulfur stereocentre often).
+  for (const sAtom of mol.atoms()) {
+    if (sAtom.element !== 'S' || sAtom.charge !== 0 || ringAtoms.has(sAtom.id) || claimed.has(sAtom.id) || mol.neighbours(sAtom.id).length !== 3) continue;
+    const nb = mol.incidentBonds(sAtom.id).map((b) => ({ atom: mol.otherAtom(mol.bond(b), sAtom.id), order: mol.bond(b).order }));
+    const oxo = nb.filter((n) => n.order === 2 && el(mol, n.atom) === 'O' && mol.neighbours(n.atom).length === 1);
+    const carbon = nb.filter((n) => n.order === 1 && el(mol, n.atom) === 'C');
+    const rest = nb.filter((n) => n.order === 1 && el(mol, n.atom) !== 'C');
+    if (oxo.length !== 1 || carbon.length !== 1 || rest.length !== 1) continue;
+    const x = rest[0]!.atom, xe = el(mol, x), xn = mol.neighbours(x);
+    const base = { anchor: carbon[0]!.atom, ownCarbon: false, consumed: [sAtom.id, x, oxo[0]!.atom], sulfin: true };
+    let made: Group | null = null;
+    if (xe === 'O' && xn.length === 1 && h.get(x) === 1) made = { kind: 'sulfonic', ...base };
     else if (xe === 'N' && !ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1)
       && xn.every((m) => m === sAtom.id || el(mol, m) === 'C')) made = { kind: 'sulfonamide', ...base, nitrogen: x };
     if (!made) continue;
