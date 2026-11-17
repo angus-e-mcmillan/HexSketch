@@ -2948,7 +2948,51 @@ class Namer {
       const asm = this.assembly(out[i]!, out[j]!);
       if (asm) out.push(asm);
     }
+    // Three in a row: 1,1':4',1''-terphenyl, 2,2':6',2''-terpyridine.
+    const singles = out.filter((p) => !p.ring?.assembly);
+    for (const B of singles) for (const A of singles) for (const C of singles) {
+      if (A === B || B === C || A.atoms[0]! >= C.atoms[0]!) continue;
+      const ter = this.assembly3(A, B, C);
+      if (ter) out.push(ter);
+    }
     return out;
+  }
+
+  /** A ring assembly of three identical rings in a row, as a parent: primes '' on the third ring. */
+  assembly3(A: Parent, B: Parent, C: Parent): Parent | null {
+    const mol = this.mol;
+    const t = [A, B, C].map((p) => p.ring?.template);
+    if ([A, B, C].some((p) => p.ring?.kind !== 'template' || p.ring.hydro) || t.some((x) => !x || x.name !== t[0]!.name || x.indicatedH || !x.aromatic)) return null;
+    const link = (P: Parent, Q: Parent) => {
+      const inQ = new Set(Q.atoms);
+      const ls = P.atoms.flatMap((a) => mol.neighbours(a).filter((n) => inQ.has(n)).map((n) => [a, n] as [AtomId, AtomId]));
+      return ls.length === 1 && mol.bondBetween(ls[0]![0], ls[0]![1])!.order === 1 ? ls[0]! : null;
+    };
+    const ab = link(A, B), bc = link(B, C);
+    if (!ab || !bc || link(A, C) || ab[1] === bc[0]) return null;
+    let best: number[] | null = null;
+    const numberings: Numbering[] = [];
+    for (const [P, Q, R, pq, qr] of [[A, B, C, ab, bc], [C, B, A, [bc[1], bc[0]], [ab[1], ab[0]]]] as const) {
+      for (const n1 of P.numberings) for (const n2 of Q.numberings) for (const n3 of R.numberings) {
+        const key = [locVal(n1.get(pq[0])!), locVal(n2.get(pq[1])!), locVal(n2.get(qr[0])!), locVal(n3.get(qr[1])!)];
+        const c = best ? cmpVec(key, best) : -1;
+        if (c > 0) continue;
+        if (c < 0) { best = key; numberings.length = 0; }
+        numberings.push(new Map([...n1, ...[...n2].map(([k, v]) => [k, `${v}'`] as [AtomId, string]), ...[...n3].map(([k, v]) => [k, `${v}''`] as [AtomId, string])]));
+      }
+    }
+    if (!numberings.length) return null;
+    const n0 = numberings[0]!;
+    const ends = [ab, bc].flat().map((x) => n0.get(x)!);
+    const un = ends.find((l) => !l.includes("'"))!, dbl = ends.find((l) => l.endsWith("''"))!;
+    const mids = ends.filter((l) => /[^']'$/.test(l)).sort(compareLocant);
+    // The middle ring's locant beside the unprimed ring comes first.
+    const first = n0.get(ab[0])!.includes("'") ? n0.get(bc[0])! : n0.get(ab[1])!;
+    const second = mids.find((m) => m !== first) ?? mids[1]!;
+    const body = t[0]!.name === 'benzene' ? 'phenyl' : /[[\]()]/.test(t[0]!.name) || /^\d/.test(t[0]!.name) ? `(${t[0]!.name})` : t[0]!.name;
+    const fullName = `${un},${first}:${second},${dbl}-ter${body}`;
+    const template: RingTemplate = { name: `[${fullName}]`, yl: `[${fullName}]`, smiles: '', locants: [], aromatic: true };
+    return { kind: 'ring', atoms: [...A.atoms, ...B.atoms, ...C.atoms], numberings, ring: { ...A.ring!, template, size: A.atoms.length * 3, ringCount: (A.ring!.ringCount ?? 1) * 3, assembly: true } as RingInfo };
   }
 
   /**
