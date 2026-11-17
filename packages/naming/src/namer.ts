@@ -2975,7 +2975,7 @@ class Namer {
       const rest = mol.neighbours(n).filter((x) => x !== from);
       if (rest.every((x) => el(mol, x) === 'C' && mol.bondBetween(n, x)!.order === 1)) {
         const text = `${this.groupedSubs(rest, n)}-λ5-phosphanylidene`;
-        return { text, complex: true, sortKey: text.replace(/[^a-z]/g, '') };
+        return { text, complex: true, sortKey: sortKeyOf(text) };
       }
     }
     throw new OutOfScope('ylidene substituent');
@@ -3715,7 +3715,7 @@ class Namer {
       const word = e === 'Si' ? 'silyl' : 'stannyl';
       const inner = others.length ? this.groupedSubs(others, a) : '';
       const text = `${inner}${word}`;
-      return { text, complex: true, sortKey: text.replace(/^(tert|sec)-/, '').replace(/[^a-z]/g, '') };
+      return { text, complex: true, sortKey: sortKeyOf(text) };
     }
     if (e === 'P') {
       // (RO)2P(=O)- phosphoryl, (RO)2P(=S)- phosphorothioyl, R2P- phosphanyl.
@@ -3741,7 +3741,7 @@ class Namer {
       const plain = `${inner}${word}`;
       const rs = this.rs.get(a);
       if (rs) this.cited.add(a);
-      return { text: rs ? `(${rs})-${plain}` : plain, complex: true, sortKey: plain.replace(/[^a-z]/g, '') };
+      return { text: rs ? `(${rs})-${plain}` : plain, complex: true, sortKey: sortKeyOf(plain) };
     }
     if (e === 'S') {
       const oxo = others.filter((n) => el(mol, n) === 'O' && mol.bondBetween(a, n)!.order === 2).length;
@@ -3791,7 +3791,7 @@ class Namer {
         // Open-chain ammonium as a prefix: trimethylazaniumyl, azaniumyl.
         if (!mol.incidentBonds(a).every((b) => mol.bond(b).order === 1)) throw new OutOfScope('nitrogen substituent');
         const inner = others.length ? this.groupedSubs(others, a) : '';
-        return { text: `${inner}azaniumyl`, complex: true, sortKey: `${inner}azaniumyl`.replace(/[^a-z]/g, '') };
+        return { text: `${inner}azaniumyl`, complex: true, sortKey: sortKeyOf(`${inner}azaniumyl`) };
       }
       const dbl = others.find((n) => mol.bondBetween(a, n)!.order === 2);
       if (dbl !== undefined && el(mol, dbl) === 'O' && others.length === 1) return simple('nitroso');
@@ -3854,7 +3854,9 @@ class Namer {
         return { text: `di${s.complex ? `(${s.text})` : s.text}amino`, complex: true, sortKey: `di${s.sortKey}amino` };
       }
       const inner = subs.map((s, i) => (i < subs.length - 1 || s.complex) ? (s.complex || subs.length > 1 && i > 0 ? `(${s.text})` : s.text) : s.text).join('');
-      const wrap0 = subs[0]!.complex ? `(${subs[0]!.text})` : subs[0]!.text;
+      const s0 = subs[0]!;
+      const bare = subs.length === 1 && (TRADITIONAL.test(s0.text) || (s0.di && !/^\d/.test(s0.text)));
+      const wrap0 = s0.complex && !bare ? `(${s0.text})` : s0.text;
       const text = subs.length === 1 ? `${wrap0}amino` : `${wrap0}(${subs[1]!.text})amino`;
       void inner;
       return { text, complex: true, sortKey: `${subs.map((s) => s.sortKey).join('')}amino` };
@@ -3905,7 +3907,7 @@ class Namer {
           if (!text && m) text = R.text.slice(0, m.index) + `${t.indicatedH && !R.text.slice(0, m.index).endsWith('H-') ? '' : ''}${t.name}-${m[1]}-carbonyl`;
         }
         if (!text) text = `${R.complex ? `(${R.text})` : R.text}carbonyl`;
-        return { text, complex: true, sortKey: text.replace(/[^a-z]/g, '') };
+        return { text, complex: true, sortKey: sortKeyOf(text) };
       }
       if (re === 'N') {
         const nsubs = mol.neighbours(r.n).filter((n) => n !== a);
@@ -3914,7 +3916,7 @@ class Namer {
         // What is on the nitrogen, double-bonded as an ylidene: ((diaminomethylidene)carbamoyl), (dimethylcarbamoyl).
         const S = nsubs.map((n) => (mol.bondBetween(r.n, n)!.order === 2 ? this.ylidene(n, r.n) : this.substituent(n, r.n)));
         const text = `${citeRun(countSubs(S))}carbamoyl`;
-        return { text, complex: true, sortKey: text.replace(/[^a-z]/g, '') };
+        return { text, complex: true, sortKey: sortKeyOf(text) };
       }
       if (re === 'S' && rest.length === 1 && r.o === 1 && mol.neighbours(r.n).length === 2 && !this.an.ringAtoms.has(r.n)) {
         // C(=O)S-R hanging off something: ((methylthio)carbonyl).
@@ -4058,7 +4060,7 @@ class Namer {
     const text = stereo ? `${stereo}-${plain}` : plain;
     // A substituent that has substituents goes in brackets: (bromomethyl)benzene.
     const complex = prefixes.length > 0 || /[0-9]/.test(text) || text.includes('(');
-    return { text, complex, sortKey: plain.replace(/^(tert|sec)-/, '').replace(/[^a-z]/g, '') };
+    return { text, complex, sortKey: sortKeyOf(plain) };
   }
 
   ringSubstituent(a: AtomId, from: AtomId, ylidene = false): SubName {
@@ -4157,6 +4159,6 @@ class Namer {
     const text = stereo ? `${stereo}-${plain}` : plain;
     const complex = /[0-9]/.test(text) || text.includes('(') || /^per/.test(preText);
     // Nothing on the ring: two of them are di(1H-imidazol-1-yl), not bis.
-    return { text, complex, sortKey: plain.replace(/[^a-z]/g, ''), ...(complex && !pre.length && !stereo ? { di: true } : {}) };
+    return { text, complex, sortKey: sortKeyOf(plain), ...(complex && !pre.length && !stereo ? { di: true } : {}) };
   }
 }
