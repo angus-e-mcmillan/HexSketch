@@ -142,7 +142,7 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       // (or a sulfonyl: an N-sulfonyl amide is named as the amide, N-((4-aminophenyl)sulfonyl)acetamide).
       const sulfonyl = (m: AtomId) => el(mol, m) === 'S' && mol.neighbours(m).filter((o) => el(mol, o) === 'O' && mol.bondBetween(m, o)!.order === 2).length === 2;
       const nAmide = singles.find((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
-        && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C' || sulfonyl(m) || (el(mol, m) === 'O' && !ringAtoms.has(m) && mol.atom(m).charge === 0)) && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
+        && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C' || sulfonyl(m) || (el(mol, m) === 'N' && ringAtoms.has(m)) || (el(mol, m) === 'O' && !ringAtoms.has(m) && mol.atom(m).charge === 0)) && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
       const others = carbons.length + singles.length;
       // Urea: C(=O) between two open-chain nitrogens, named as the parent "urea".
       const ureaN = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
