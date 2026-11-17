@@ -161,6 +161,12 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
         claimed.add(dblO.atom); claimed.add(ureaN[0]!.atom);
         continue;
       }
+      // A formyl group on a ring nitrogen: piperidine-1-carbaldehyde.
+      if (ringNs.length === 1 && singles.length === 1 && carbons.length === 0 && (h.get(c.id) ?? 0) === 1 && mol.incidentBonds(ringNs[0]!.atom).every((b) => mol.bond(b).order === 1)) {
+        groups.push({ kind: 'aldehyde', anchor: c.id, ownCarbon: true, consumed: [dblO.atom] });
+        claimed.add(dblO.atom);
+        continue;
+      }
       if (ureaN.length === 2 && others === 2) {
         groups.push({ kind: 'urea', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, ureaN[0]!.atom, ureaN[1]!.atom] });
         claimed.add(dblO.atom); claimed.add(ureaN[0]!.atom); claimed.add(ureaN[1]!.atom);
@@ -265,7 +271,7 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       }
     }
     else if (xe === 'N' && !groups.some((g) => g.kind === 'amide' && g.nitrogen === x) && !ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1)
-      && xn.every((m) => m === sAtom.id || el(mol, m) === 'C')) made = { kind: 'sulfonamide', ...base, nitrogen: x };
+      && xn.every((m) => m === sAtom.id || el(mol, m) === 'C' || (el(mol, m) === 'N' && ringAtoms.has(m) && mol.atom(m).charge === 0))) made = { kind: 'sulfonamide', ...base, nitrogen: x };
     if (!made) continue;
     groups.push(made);
     for (const a of made.consumed) claimed.add(a);

@@ -225,7 +225,7 @@ function alkoxy(R: SubName): SubName {
     return { text: swap(R.text), complex: R.complex, sortKey: swap(R.sortKey) };
   }
   // A ring with nothing on it needs no brackets: (cyclohex-1-en-1-yloxy), (pyridin-2-yloxy).
-  return { text: `${R.complex && !(R.di && !/^\d/.test(R.text)) ? `(${R.text})` : R.text}oxy`, complex: true, sortKey: `${R.sortKey}oxy` };
+  return { text: `${wrapInner(R)}oxy`, complex: true, sortKey: `${R.sortKey}oxy` };
 }
 
 /**
@@ -234,6 +234,14 @@ function alkoxy(R: SubName): SubName {
  */
 const ATOM_LIKE = /^(fluoro|chloro|bromo|iodo|nitro|nitroso|cyano|oxo|thioxo|hydroxy|azido|carboxy|carboxylato|sulfo|sulfonato|sulfino|sulfinato|isocyanato|isothiocyanato|oxido|dihydroxyamino)$/;
 const TRADITIONAL = /^(tert|sec)-[a-z]+$/;
+/**
+ * A lone substituent inside a compound prefix (…oxy, …imino, …amino, …thio) is bracketed unless it is
+ * a traditional or unsubstituted ring name that cannot be misread: tert-butylamino, pyridin-2-yloxy,
+ * p-tolylimino, but (1,2,3-thiadiazol-4-yl)amino.
+ */
+function wrapInner(R: SubName): string {
+  return R.complex && !/^(tert|sec)-(butyl|pentyl)$/.test(R.text) && !(R.di && !/^\d/.test(R.text)) ? `(${R.text})` : R.text;
+}
 
 /**
  * Prefixes cited one after another with no locants between them, already in order:
@@ -2202,7 +2210,7 @@ class Namer {
     if (o.length !== 1 || n.length !== 1 || c.length !== 2) return null;
     const nr = mol.neighbours(n[0]!).filter((x) => x !== sx);
     if (nr.length > 1) return null;
-    const imino: SubName = nr.length ? (() => { const r = this.substituent(nr[0]!, n[0]!); const t = `${r.complex && !(r.di && !/^\d/.test(r.text)) ? `(${r.text})` : r.text}imino`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; })()
+    const imino: SubName = nr.length ? (() => { const r = this.substituent(nr[0]!, n[0]!); const t = `${wrapInner(r)}imino`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; })()
       : { text: 'imino', complex: false, sortKey: 'imino' };
     const subs = [imino, ...c.map((x) => this.substituent(x, sx))];
     const rs = this.rs.get(sx);
@@ -2397,7 +2405,7 @@ class Namer {
     // A one-carbon unit, or a benzene ring with nothing else on it, needs no locants: oxydibenzene.
     const oneCarbon = (P.kind === 'chain' && P.atoms.length === 1) || unitName === 'benzene';
     const locs = oneCarbon ? '' : `${Array.from({ length: n }, (_, i) => `${numbering.get(j0.u)}${"'".repeat(i)}`).join(',')}-`;
-    const bare = /^(oxy|thio|methylene|carbonyl|sulfonyl|sulfinyl)$/.test(linkerName);
+    const bare = /^(oxy|thio|methylene|carbonyl|sulfonyl|sulfinyl|disulfanediyl)$/.test(linkerName);
     return `${stereo}${locs}${bare ? linkerName : `(${linkerName})`}${body}`;
   }
 
@@ -2419,6 +2427,8 @@ class Namer {
       if (e === 'S' && k === 1) return 'sulfinyl';
       if (e === 'C' && k === 1) return 'carbonyl';
     }
+    // Disulfanediyl: 3,3'-disulfanediyldipropanoic acid.
+    if (atoms.length === 2 && atoms.every((x) => el(mol, x) === 'S' && valence(x) === 1 && mol.atom(x).charge === 0) && mol.bondBetween(atoms[0]!, atoms[1]!)?.order === 1) return 'disulfanediyl';
     // Diazene-1,2-diyl, with its E or Z.
     if (atoms.length === 2 && atoms.every((x) => el(mol, x) === 'N' && valence(x) === 1) && mol.bondBetween(atoms[0]!, atoms[1]!)?.order === 2) {
       const ez = this.ez.get(`${atoms[0]}-${atoms[1]}`);
@@ -2963,7 +2973,7 @@ class Namer {
       }
       const R = this.substituent(r, n);
       const word = mol.atom(n).charge === 1 ? 'iminio' : 'imino';
-      const text = `${R.complex && !(R.di && !/^\d/.test(R.text)) ? `(${R.text})` : R.text}${word}`;
+      const text = `${wrapInner(R)}${word}`;
       return { text, complex: true, sortKey: `${R.sortKey}${word}` };
     }
     if (e === 'C') {
@@ -3229,7 +3239,7 @@ class Namer {
       if (t === 'methoxy') { pre.length = 0; return 'anisole'; }
     }
     if (p.kind === 'chain' && g?.ownCarbon) {
-      const { mult, dbl } = this.unsaturationAtoms(p);
+      const { mult, dbl, trip } = this.unsaturationAtoms(p);
       const ends = new Set([p.atoms[0], p.atoms[p.atoms.length - 1]]);
       // Methacrylic and isobutyric acids and what is made from them: methyl methacrylate.
       if (!this.excluded.size && sites.size === 1 && p.atoms.length === 3 && pre.length === 1 && pre[0]!.text === 'methyl' && this.currentNumbering?.get(pre[0]!.at as AtomId) === '2' && ends.has([...sites.values()][0]!)) {
@@ -3240,6 +3250,11 @@ class Namer {
       // Prop-2-enoic acid and what is made from it, substituted or not: (E)-3-(3,4-dihydroxyphenyl)acrylic acid.
       if (sites.size === 1 && p.atoms.length === 3 && mult.length === 1 && dbl.length === 1 && !dbl[0]!.includes([...sites.values()][0]!)) {
         const w: Partial<Record<GroupKind, string>> = { acid: 'acrylic acid', amide: g.thio ? undefined : 'acrylamide', ester: 'acrylate', carboxylate: 'acrylate', nitrile: 'acrylonitrile', aldehyde: 'acrylaldehyde' };
+        if (kind && w[kind]) return w[kind]!;
+      }
+      // Propiolic acid and what is made from it: 3-phenylpropiolamide.
+      if (sites.size === 1 && p.atoms.length === 3 && mult.length === 1 && trip.length === 1 && !trip[0]!.includes([...sites.values()][0]!)) {
+        const w: Partial<Record<GroupKind, string>> = { acid: 'propiolic acid', amide: g.thio || g.imid || g.hydrazide ? undefined : 'propiolamide', ester: 'propiolate', carboxylate: 'propiolate' };
         if (kind && w[kind]) return w[kind]!;
       }
       // Propionic and butyric acids and what is made from them, with nothing on the chain: ethyl propionate.
@@ -3762,10 +3777,20 @@ class Namer {
       // Oxido on a sulfur reads as =O.
       if (rest.length === 1 && el(mol, rest[0]!) === 'O' && mol.atom(rest[0]!).charge !== 0) throw new OutOfScope('sulfur substituent');
       if (rest.length === 1 && !oxo && el(mol, rest[0]!) === 'C' && mol.neighbours(rest[0]!).length === 2 && mol.incidentBonds(rest[0]!).some((b) => mol.bond(b).order === 3)) return simple('thiocyanato');
+      // -S-S-R: methyldisulfaneyl.
+      const s2 = rest.length === 1 && !oxo ? rest[0]! : undefined;
+      if (s2 !== undefined && el(mol, s2) === 'S' && mol.atom(s2).charge === 0 && mol.neighbours(s2).length === 2 && mol.incidentBonds(s2).every((b) => mol.bond(b).order === 1)) {
+        const far = mol.neighbours(s2).find((x) => x !== a)!;
+        if (el(mol, far) === 'C') {
+          const R = this.substituent(far, s2);
+          const text = `${wrapInner(R)}disulfaneyl`;
+          return { text, complex: true, sortKey: sortKeyOf(text) };
+        }
+      }
       if (rest.length === 1) {
         const R = this.substituent(rest[0]!, a);
         const tail = oxo === 2 ? 'sulfonyl' : oxo === 1 ? 'sulfinyl' : 'thio';
-        const inner = R.complex && !(R.di && !/^\d/.test(R.text)) ? `(${R.text})` : R.text;
+        const inner = wrapInner(R);
         // A sulfinyl sulfur is a stereocentre: ((S)-phenylsulfinyl).
         const rs = this.rs.get(a);
         if (rs) this.cited.add(a);
@@ -3858,8 +3883,7 @@ class Namer {
       }
       const inner = subs.map((s, i) => (i < subs.length - 1 || s.complex) ? (s.complex || subs.length > 1 && i > 0 ? `(${s.text})` : s.text) : s.text).join('');
       const s0 = subs[0]!;
-      const bare = subs.length === 1 && (TRADITIONAL.test(s0.text) || (s0.di && !/^\d/.test(s0.text)));
-      const wrap0 = s0.complex && !bare ? `(${s0.text})` : s0.text;
+      const wrap0 = subs.length === 1 ? wrapInner(s0) : s0.complex ? `(${s0.text})` : s0.text;
       const text = subs.length === 1 ? `${wrap0}amino` : `${wrap0}(${subs[1]!.text})amino`;
       void inner;
       return { text, complex: true, sortKey: `${subs.map((s) => s.sortKey).join('')}amino` };
