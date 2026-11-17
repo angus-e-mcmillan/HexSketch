@@ -1680,6 +1680,8 @@ class Namer {
   readonly ez = new Map<string, 'E' | 'Z'>();
   /** Stereocentres whose descriptor some name built here cites. */
   readonly cited = new Set<AtomId>();
+  /** Atoms left out of a parent's prefixes: the linker of a multiplicative name. */
+  readonly excluded = new Set<AtomId>();
   /** The side chains of the residues in the name being built. */
   sides: Set<AtomId>[] = [];
   /** Stereocentres an amino acid's L or D stands for (no R or S of their own in the name). */
@@ -1975,8 +1977,224 @@ class Namer {
     if (guanidine) return guanidine;
     // Two ureas in one structure: there is no rule here for which is the urea and what the other is called.
     if (this.principal === 'urea') throw new OutOfScope('more than one urea');
+    const mult = this.multiplicativeName();
+    if (mult) return mult;
     const best = this.chooseParent();
     return this.withStereo(best.parent.atoms, best.numbering, this.render(best.parent, best.numbering)) + this.oxideSuffix(best.parent.atoms, best.numbering);
+  }
+
+  /**
+   * Identical units joined through a linker, named once and multiplied, where that gives the parent more
+   * principal groups (or, with none, more of the senior ring) than any single parent:
+   * (5-hydroxy-6-methylpyridine-3,4-diyl)dimethanol, 2,2'-(propane-2,2-diyl)bis(4-phenyl-4,5-dihydrooxazole),
+   * 2,2'-(ethane-1,2-diylbis(oxy))bis(ethan-1-ol), 2,2',2'',2'''-(ethane-1,2-diylbis(azanetriyl))tetraacetic acid.
+   */
+  multiplicativeName(): string | null {
+    const mol = this.mol;
+    if (this.principal && !['acid', 'carboxylate', 'amide', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'].includes(this.principal)) return null;
+    let normal: { parent: Parent; numbering: Numbering };
+    try { normal = this.chooseParent(); } catch (e) { if (e instanceof OutOfScope) return null; throw e; }
+    const normalCount = this.principalSites(normal.parent).size;
+    // Units: for each principal site the longest chain holding it alone; or rings of one name.
+    const units: Parent[] = [];
+    if (this.principal) {
+      const chains = this.chainCandidates();
+      for (const g of this.principalGroups) {
+        const own = chains.filter((c) => { const st = this.principalSites(c); return st.size === 1 && st.has(g); });
+        own.sort((x, y) => y.atoms.length - x.atoms.length);
+        if (own[0]) units.push(own[0]);
+        else for (const r of this.ringCandidates()) if (!r.ring?.assembly && this.principalSites(r).has(g) && !units.includes(r)) units.push(r);
+      }
+    } else {
+      const senior = normal.parent;
+      if (senior.kind !== 'ring' || senior.ring?.kind !== 'template' || senior.ring.assembly) return null;
+      for (const r of this.ringCandidates()) if (!r.ring?.assembly && r.ring?.kind === 'template' && r.ring.template?.name === senior.ring.template?.name && !r.ring.hydro === !senior.ring.hydro) units.push(r);
+    }
+    const unique = units.filter((u, i) => units.findIndex((v) => v.atoms.length === u.atoms.length && v.atoms.every((x) => u.atoms.includes(x))) === i);
+    // The largest set of units of one kind.
+    const sig = (u: Parent) => `${u.kind}|${u.atoms.length}|${u.ring?.template?.name ?? ''}|${this.principalSites(u).size}`;
+    const bySig = new Map<string, Parent[]>();
+    for (const u of unique) bySig.set(sig(u), [...(bySig.get(sig(u)) ?? []), u]);
+    const distinct = [...bySig.values()].sort((x, y) => y.length - x.length)[0] ?? [];
+    if (distinct.length < 2) return null;
+    if (distinct.some((u, i) => distinct.some((v, j) => j > i && u.atoms.some((x) => v.atoms.includes(x))))) return null;
+    const perUnit = this.principal ? this.principalSites(distinct[0]!).size : 0;
+    if (this.principal && distinct.length * perUnit <= normalCount) return null;
+    // The linker: what lies on the paths between units, with whatever hangs off it.
+    const inUnit = new Map<AtomId, number>();
+    distinct.forEach((u, i) => u.atoms.forEach((x) => inUnit.set(x, i)));
+    const path = (from: AtomId[], to: Set<AtomId>): AtomId[] | null => {
+      const prev = new Map<AtomId, AtomId>(), q = [...from];
+      for (const f of from) prev.set(f, f);
+      while (q.length) {
+        const x = q.shift()!;
+        if (to.has(x)) { const out: AtomId[] = []; for (let y = prev.get(x)!; !from.includes(y); y = prev.get(y)!) out.push(y); return out; }
+        for (const y of mol.neighbours(x)) if (!prev.has(y) && (!inUnit.has(y) || to.has(y))) { prev.set(y, x); q.push(y); }
+      }
+      return null;
+    };
+    const core = new Set<AtomId>();
+    for (let i = 1; i < distinct.length; i++) {
+      const pth = path(distinct[0]!.atoms, new Set(distinct[i]!.atoms));
+      if (!pth || !pth.length) return null;
+      pth.forEach((x) => core.add(x));
+    }
+    // Everything not reached from a unit without crossing the linker core belongs to the linker.
+    const unitOf = new Map<AtomId, number>();
+    distinct.forEach((u, i) => {
+      const stack = [...u.atoms];
+      for (const x of u.atoms) unitOf.set(x, i);
+      while (stack.length) { const x = stack.pop()!; for (const y of mol.neighbours(x)) if (!core.has(y) && !unitOf.has(y)) { unitOf.set(y, i); stack.push(y); } }
+    });
+    if ([...unitOf.keys()].some((x) => core.has(x))) return null;
+    const linker = [...mol.atoms()].map((a) => a.id).filter((x) => !unitOf.has(x));
+    // Each unit hangs off the linker by one bond, from an atom of its parent.
+    const joins: { unit: number; u: AtomId; l: AtomId }[] = [];
+    for (const x of linker) for (const y of mol.neighbours(x)) if (unitOf.has(y)) joins.push({ unit: unitOf.get(y)!, u: y, l: x });
+    if (joins.length !== distinct.length || new Set(joins.map((j) => j.unit)).size !== distinct.length) return null;
+    if (joins.some((j) => !distinct[j.unit]!.atoms.includes(j.u) || mol.bondBetween(j.u, j.l)!.order !== 1)) return null;
+    // The units must be the same: each with its attachment marked.
+    const unitMol = (i: number) => {
+      const m = mol.clone();
+      for (const a of [...m.atoms()]) if (unitOf.get(a.id) !== i) m.removeAtom(a.id);
+      const j = joins.find((x) => x.unit === i)!;
+      m.addBond({ begin: j.u, end: m.addAtom({ element: 'Xe', x: 0, y: 0, explicitHydrogens: 0 }).id, order: 1 });
+      return m;
+    };
+    const ums = distinct.map((_, i) => unitMol(i));
+    const maps: Map<AtomId, AtomId>[] = [];
+    for (let i = 1; i < ums.length; i++) { const it = isomorphisms(ums[0]!, ums[i]!).next(); if (it.done) return null; maps.push(it.value); }
+    // Name the linker, then the first unit with the linker left out of its prefixes.
+    const linkerName = this.linkerName(linker, joins.map((j) => j.l));
+    if (!linkerName) return null;
+    const P = distinct[0]!, j0 = joins.find((j) => j.unit === 0)!;
+    this.excluded.add(j0.l);
+    let unitName: string, numbering: Numbering;
+    try {
+      const sites = this.principalSites(P);
+      let best: { n: Numbering; key: (number | number[])[] } | null = null;
+      for (const n of P.numberings) {
+        const key = [[...sites.values()].map((x) => locVal(n.get(x)!)).sort((x, y) => x - y), locVal(n.get(j0.u)!),
+          this.prefixes(P, sites).filter((x) => x.at !== 'N').map((x) => locVal(n.get(x.at as AtomId)!)).sort((x, y) => x - y)];
+        if (!best || cmpKey(key, best.key) < 0) best = { n, key };
+      }
+      numbering = best!.n;
+      unitName = this.render(P, numbering);
+    } catch (e) { this.excluded.delete(j0.l); if (e instanceof OutOfScope) return null; throw e; }
+    this.excluded.delete(j0.l);
+    // Configurations in the unit's own parent, cited for every unit with primes; those in its prefixes
+    // stand for each unit inside bis(...).
+    const items: [string, string][] = [];
+    const cited0 = [...this.cited].filter((x) => unitOf.get(x) === 0);
+    distinct.forEach((_, i) => {
+      const map = i === 0 ? new Map(P.atoms.map((x) => [x, x])) : maps[i - 1]!;
+      for (const x of P.atoms) { const y = map.get(x)!; const l = this.rs.get(y); if (l) { items.push([`${numbering.get(x)}${"'".repeat(i)}`, l]); this.cited.add(y); } }
+      if (i > 0) for (const x of cited0) { const y = map.get(x); if (y !== undefined) this.cited.add(y); }
+    });
+    if ([...mol.bonds()].some((b) => this.ez.get(`${b.begin}-${b.end}`) && unitOf.has(b.begin) && P.atoms.includes(b.begin) && P.atoms.includes(b.end))) return null;
+    items.sort((x, y) => compareLocant(x[0], y[0]));
+    const stereo = items.length ? `(${items.map(([l, d]) => `${l}${d}`).join(',')})-` : '';
+    const n = distinct.length;
+    const simple = !/[\d()[\]]/.test(unitName) && !/^[a-z]+(yl|oxy)/.test(unitName) && !unitName.includes('-');
+    const body = simple ? `${multiplier(n)}${unitName}` : `${complexMultiplier(n)}(${unitName})`;
+    const oneCarbon = P.kind === 'chain' && P.atoms.length === 1;
+    const locs = oneCarbon ? '' : `${Array.from({ length: n }, (_, i) => `${numbering.get(j0.u)}${"'".repeat(i)}`).join(',')}-`;
+    const bare = /^(oxy|thio|methylene|carbonyl|sulfonyl|sulfinyl)$/.test(linkerName);
+    return `${stereo}${locs}${bare ? linkerName : `(${linkerName})`}${body}`;
+  }
+
+  /**
+   * A linker of a multiplicative name: oxy, azanediyl, methylene, propane-2,2-diyl, ethane-1,2-diyl,
+   * ethane-1,2-diylbis(oxy), (4S,5S)-2,2-dimethyl-1,3-dioxolane-4,5-diyl. `ends` are the linker atoms
+   * the units hang from (repeated where two hang from one).
+   */
+  linkerName(atoms: AtomId[], ends: AtomId[]): string | null {
+    const mol = this.mol;
+    const inL = new Set(atoms);
+    const valence = (x: AtomId) => ends.filter((e) => e === x).length;
+    // A sulfonyl, sulfinyl or carbonyl bridge: 4,4'-sulfonyldianiline.
+    const oxo = (x: AtomId) => mol.neighbours(x).filter((y) => el(mol, y) === 'O' && mol.bondBetween(x, y)!.order === 2 && mol.neighbours(y).length === 1);
+    const centre = atoms.filter((x) => !(el(mol, x) === 'O' && mol.neighbours(x).length === 1));
+    if (centre.length === 1 && valence(centre[0]!) >= 2 && atoms.length === 1 + oxo(centre[0]!).length) {
+      const x = centre[0]!, k = oxo(x).length, e = el(mol, x);
+      if (e === 'S' && k === 2) return 'sulfonyl';
+      if (e === 'S' && k === 1) return 'sulfinyl';
+      if (e === 'C' && k === 1) return 'carbonyl';
+    }
+    // Diazene-1,2-diyl, with its E or Z.
+    if (atoms.length === 2 && atoms.every((x) => el(mol, x) === 'N' && valence(x) === 1) && mol.bondBetween(atoms[0]!, atoms[1]!)?.order === 2) {
+      const ez = this.ez.get(`${atoms[0]}-${atoms[1]}`);
+      return `${ez ? `(${ez})-` : ''}diazene-1,2-diyl`;
+    }
+    if (atoms.length === 1) {
+      const x = atoms[0]!, e = el(mol, x), v = valence(x);
+      if (e === 'O' && v === 2) return 'oxy';
+      if (e === 'S' && v === 2) return 'thio';
+      if (e === 'N' && mol.atom(x).charge === 0) return v === 2 && mol.implicitHydrogens(x) === 1 ? 'azanediyl' : v === 3 ? 'azanetriyl' : null;
+      if (e === 'C' && v === 2 && mol.implicitHydrogens(x) === 2) return 'methylene';
+    }
+    // Heteroatom bridges at each end, the same at all: ethane-1,2-diylbis(oxy).
+    const endSet = [...new Set(ends)];
+    const bridge = endSet.every((x) => ['O', 'S', 'N'].includes(el(mol, x)) && !this.an.ringAtoms.has(x)) && new Set(endSet.map((x) => `${el(mol, x)}${valence(x)}`)).size === 1;
+    if (bridge && endSet.length >= 2) {
+      const coreAtoms = atoms.filter((x) => !endSet.includes(x));
+      const coreEnds = endSet.map((x) => mol.neighbours(x).find((y) => inL.has(y) && !endSet.includes(y)));
+      if (coreEnds.some((x) => x === undefined) || endSet.some((x) => mol.neighbours(x).filter((y) => inL.has(y)).length !== 1)) return null;
+      const coreName = this.coreDiyl(coreAtoms, coreEnds as AtomId[]);
+      if (!coreName) return null;
+      const e = el(mol, endSet[0]!), v = valence(endSet[0]!);
+      const word = e === 'O' ? 'oxy' : e === 'S' ? 'thio' : v === 1 && mol.implicitHydrogens(endSet[0]!) === 1 ? 'azanediyl' : v === 2 ? 'azanetriyl' : null;
+      if (!word) return null;
+      return `${coreName}${complexMultiplier(endSet.length)}(${word})`;
+    }
+    return this.coreDiyl(atoms, ends);
+  }
+
+  /** A ring or chain with several free valences: 1,3-dioxolane-4,5-diyl, propane-2,2-diyl, ethane-1,2-diyl. */
+  coreDiyl(atoms: AtomId[], ends: AtomId[]): string | null {
+    const mol = this.mol;
+    const inL = new Set(atoms);
+    let parent: Parent | null = null;
+    const ringSys = this.an.ringSystems.find((sys) => sys.every((x) => inL.has(x)) && ends.every((e) => sys.includes(e)));
+    if (ringSys) {
+      const r = recognizeRing(this.an, ringSys);
+      if (!r) return null;
+      parent = { kind: 'ring', atoms: ringSys, numberings: r.numberings, ring: r.info };
+    } else {
+      if (atoms.some((x) => this.an.ringAtoms.has(x) && !ends.includes(x))) { /* rings hang off: prefixes */ }
+      const carbons = atoms.filter((x) => el(mol, x) === 'C' && !this.an.ringAtoms.has(x));
+      if (!ends.every((e) => carbons.includes(e))) return null;
+      const chains = this.chainCandidates().filter((c) => c.atoms.every((x) => inL.has(x)) && ends.every((e) => c.atoms.includes(e)));
+      chains.sort((x, y) => y.atoms.length - x.atoms.length || this.unsaturationAtoms(y).mult.length - this.unsaturationAtoms(x).mult.length);
+      parent = chains[0] ?? null;
+    }
+    if (!parent) return null;
+    const pre: Prefix[] = [];
+    for (const a of parent.atoms) for (const b of mol.incidentBonds(a)) {
+      const bd = mol.bond(b), n = mol.otherAtom(bd, a);
+      if (parent.atoms.includes(n) || !inL.has(n)) continue;
+      if (bd.order === 2) { pre.push({ ...this.ylidene(n, a), at: a }); continue; }
+      if (bd.order !== 1) return null;
+      pre.push({ ...this.substituent(n, a), at: a });
+    }
+    // Ring oxides on a linker are prefixes, as on any ring substituent: 3,12-dioxido.
+    for (const x of parent.atoms) for (let i = this.oxides.get(x) ?? 0; i > 0; i--) pre.push({ text: 'oxido', complex: false, sortKey: 'oxido', at: x });
+    const { dbl, trip, mult } = this.unsaturationAtoms(parent);
+    let best: { n: Numbering; key: (number | number[])[] } | null = null;
+    for (const n of parent.numberings) {
+      const h = hydroOf.get(n);
+      const key = [(h?.ih ?? []).map((x) => locVal(n.get(x)!)).sort((x, y) => x - y), ends.map((x) => locVal(n.get(x)!)).sort((x, y) => x - y),
+        [...(h?.hydro ?? [])].map((x) => locVal(n.get(x)!)).sort((x, y) => x - y),
+        mult.map((bd) => this.bondLocant(parent!, n, bd)).sort((x, y) => x - y), pre.map((x) => locVal(n.get(x.at as AtomId)!)).sort((x, y) => x - y)];
+      if (!best || cmpKey(key, best.key) < 0) best = { n, key };
+    }
+    const n = best!.n;
+    const preText = this.prefixString(pre, n, false);
+    const hyd = this.hydrideName(parent, n, dbl, trip, false);
+    const locs = ends.map((x) => n.get(x)!).sort(compareLocant);
+    const stereo = this.stereoPrefix(parent.atoms, n);
+    const text = `${preText}${preText && /^[0-9([]/.test(hyd) ? '-' : ''}${hyd}-${locs.join(',')}-${multiplier(locs.length)}yl`;
+    return stereo ? `${stereo}-${text}` : text;
   }
 
   /**
@@ -2354,7 +2572,7 @@ class Namer {
       for (const b of mol.incidentBonds(a)) {
         const bd = mol.bond(b);
         const n = mol.otherAtom(bd, a);
-        if (inP.has(n) || consumed.has(n)) continue;
+        if (inP.has(n) || consumed.has(n) || this.excluded.has(n)) continue;
         if (bd.order === 2) { out.push({ ...this.ylidene(n, a), at: a }); continue; }
         if (bd.order !== 1) throw new OutOfScope('multiple bond leaving the parent');
         out.push({ ...this.substituent(n, a), at: a });
@@ -2558,6 +2776,7 @@ class Namer {
   currentNumbering: Numbering | null = null;
 
   render(p: Parent, numbering: Numbering): string {
+    const mol = this.mol;
     this.currentNumbering = numbering;
     const sites = this.principalSites(p);
     const pre = this.prefixes(p, sites);
@@ -2570,7 +2789,9 @@ class Namer {
     const retained = this.retainedParent(p, kind, sites, pre);
     const cPrefixes = pre.filter((x) => x.at !== 'N').length;
     // A two-carbon chain's double or triple bond can only be in one place.
-    const features = sites.size + cPrefixes + (p.kind === 'chain' && p.atoms.length === 2 ? 0 : mult.length);
+    // A unit of a multiplicative name also has its point of attachment to cite: bis(ethan-1-ol).
+    const features = sites.size + cPrefixes + (p.kind === 'chain' && p.atoms.length === 2 ? 0 : mult.length)
+      + (p.atoms.some((a) => mol.neighbours(a).some((n) => this.excluded.has(n))) ? 1 : 0);
 
     // Locant omission: methane/ethane-like parents and monosubstituted symmetric rings.
     const symmetricRing = p.kind === 'ring' && ((p.ring!.kind === 'cyclo' && p.atoms.every((a) => el(this.mol, a) === 'C')) || p.ring!.template?.name === 'benzene');
