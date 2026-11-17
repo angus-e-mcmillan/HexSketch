@@ -1461,7 +1461,7 @@ const RETAINED_MOLECULES: [string, string][] = [
   ['O=C1C=CC(=O)C=C1', 'benzoquinone'], ['O=CC=O', 'oxalaldehyde'], ['CC(=O)C(C)=O', 'biacetyl'], ['CCN(CC)CC', 'triethylamine'],
   ['O=C/C=C/c1ccccc1', 'cinnamaldehyde'], ['NC(=O)c1cccnc1', 'nicotinamide'], ['CCCCCCCC/C=C\\CCCCCCCC(=O)O', 'oleic acid'],
   ['O=C(/C=C/c1ccccc1)c1ccccc1', '(E)-chalcone'], ['Cc1ccc(C)cc1', 'p-xylene'], ['Cc1cccc(C)c1', 'm-xylene'], ['Cc1ccccc1C', 'o-xylene'],
-  ['OC(=O)c1cccnc1', 'nicotinic acid'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
+  ['OC(=O)c1cccnc1', 'nicotinic acid'], ['C=CC(C)=C', 'isoprene'], ['Cc1ccc(cc1)C(C)C', 'p-cymene'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
 ];
 let retainedMols: { mol: Molecule; name: string; formula: string }[] | null = null;
 function retainedMolecule(mol: Molecule): string | null {
@@ -1494,7 +1494,7 @@ export function frontLoneDescriptor(name: string, open: { centre: boolean; bond:
   let before = name.slice(start, m.index);
   // A word bracketed only for its descriptor loses the brackets with it: (benzylidene)amino, benzylideneamino.
   const w = /^([a-z]+)\)/.exec(rest);
-  if (w && before.endsWith('(') && /^[a-z]/.test(rest.slice(w[0].length))) { before = before.slice(0, -1); rest = w[1] + rest.slice(w[0].length); }
+  if (w && /ylidene$/.test(w[1]!) && before.endsWith('(') && /^[a-z]/.test(rest.slice(w[0].length))) { before = before.slice(0, -1); rest = w[1] + rest.slice(w[0].length); }
   return name.slice(0, start) + m[0] + before + rest;
 }
 
@@ -1802,6 +1802,8 @@ class Namer {
         return `${R.complex ? `(${R.text})` : R.text}boronic acid`;
       }
     }
+    // A borane with three carbon groups: tris(perfluorophenyl)borane, triethylborane.
+    if (c.element === 'B' && c.charge === 0 && carbonNbrs.length === 3 && nbrs.length === 3 && !this.an.ringAtoms.has(c.id)) return `${this.groupedSubs(carbonNbrs, c.id)}borane`;
     if (c.element === 'B' && c.charge === -1 && carbonNbrs.length === 1) {
       const fs = nbrs.filter((n) => el(mol, n) === 'F');
       if (fs.length === 3) {
@@ -2873,7 +2875,10 @@ class Namer {
       || (symmetricRing && features <= 1 && (p.ring!.kind !== 'cyclo' || mult.length <= 1));
 
     const manyN = [...sites.keys()].filter((g) => g.nitrogen !== undefined).length > 1;
-    const prefixText = this.prefixString(pre, numbering, omitAll, manyN);
+    let prefixText = this.prefixString(pre, numbering, omitAll, manyN);
+    // Every hydrogen of the parent replaced by one halogen: perbromomethane, perchloroethane.
+    if (pre.length >= 2 && !sites.size && new Set(pre.map((x) => x.text)).size === 1 && /^(fluoro|chloro|bromo|iodo)$/.test(pre[0]!.text)
+      && p.atoms.every((a) => mol.implicitHydrogens(a) === 0)) prefixText = `per${pre[0]!.text}`;
 
     let parentName: string;
     const ium = kind === 'ium' ? [] : p.atoms.filter((a) => isRingCation(this.mol, a) && this.an.ringAtoms.has(a)).map(loc).sort(compareLocant);
@@ -3084,6 +3089,7 @@ class Namer {
       // carrying the one before: chloro(methoxy)methane, not chloromethoxymethane.
       const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !ATOM_LIKE.test(sub.text));
       const body = n > 1 && TRADITIONAL.test(sub.text) ? `${multiplier(n)}-${sub.text}`
+        : omitAll && n === 1 && pre.length === 1 && TRADITIONAL.test(sub.text) ? sub.text
         : bracket ? `${n > 1 && (sub as { di?: boolean }).di ? multiplier(n) : complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);
@@ -3690,6 +3696,7 @@ class Namer {
     if (ending === 'yl' && sat && prefixes.length && prefixes.every((x) => x.text === 'methyl')) {
       const locs = prefixes.map((x) => numbering.get(x.at as AtomId)).sort().join(',');
       if (n === 3 && fv === 2 && locs === '2') return { text: 'tert-butyl', complex: true, sortKey: 'butyl' };
+      if (n === 4 && fv === 2 && locs === '2') return { text: 'tert-pentyl', complex: true, sortKey: 'pentyl' };
       if (n === 3 && fv === 1 && locs === '2') return { text: 'isobutyl', complex: false, sortKey: 'isobutyl' };
       if (n === 4 && fv === 1 && locs === '3') return { text: 'isopentyl', complex: false, sortKey: 'isopentyl' };
       if (n === 3 && fv === 1 && locs === '2,2') return { text: 'neopentyl', complex: false, sortKey: 'neopentyl' };
@@ -3763,7 +3770,9 @@ class Namer {
       if (!best || cmpKey(key, best.key) < 0) best = { numbering, key, pre };
     }
     const numbering = best!.numbering;
-    const preText = this.prefixString(pre, numbering, false);
+    let preText = this.prefixString(pre, numbering, false);
+    if (pre.length >= 2 && new Set(pre.map((x) => x.text)).size === 1 && /^(fluoro|chloro|bromo|iodo)$/.test(pre[0]!.text)
+      && system.every((x) => mol.implicitHydrogens(x) === 0)) preText = `per${pre[0]!.text}`;
     const fv = numbering.get(a)!;
     // Cationic ring nitrogens: piperidin-1-ium-4-yl.
     const iumLocs = system.filter((x) => isRingCation(mol, x)).map((x) => numbering.get(x)!).sort(compareLocant);
@@ -3812,7 +3821,7 @@ class Namer {
     const plain = preText + (preText && /^[0-9]/.test(core) ? '-' : '') + core;
     const stereo = this.stereoPrefix(system, numbering, from);
     const text = stereo ? `${stereo}-${plain}` : plain;
-    const complex = /[0-9]/.test(text) || text.includes('(');
+    const complex = /[0-9]/.test(text) || text.includes('(') || /^per/.test(preText);
     // Nothing on the ring: two of them are di(1H-imidazol-1-yl), not bis.
     return { text, complex, sortKey: plain.replace(/[^a-z]/g, ''), ...(complex && !pre.length && !stereo ? { di: true } : {}) };
   }

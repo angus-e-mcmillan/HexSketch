@@ -181,7 +181,7 @@ const EXPECTED: [string, string][] = [
   ['O=NN1CCCCC1', '1-nitrosopiperidine'],
   ['CC(C)=[NH+]C', 'N-methylpropan-2-iminium'],
   ['c1cc[n-]n1', '1H-pyrazol-1-ide'],
-  ['C[S@@](=O)c1ccccc1', '(R)-methylsulfinylbenzene'],
+  ['C[S@@](=O)c1ccccc1', '(R)-(methylsulfinyl)benzene'],
   // Long chains: the unit keeps its "a", icosa loses its "i" after one (were tetrdecane, octdecanoic acid, tetraicosane).
   ['CCCCCCCCCCCCCC', 'tetradecane'], ['CCCCCCCCCCCCCCCCCC(=O)O', 'stearic acid'], ['CCCCCCCCCCCCCCCCCCCCCCCC', 'tetracosane'], ['C1CCCCCCCCCCCCCCCCC1', 'cyclooctadecane'],
   // A substituted methyl: no locant, and brackets.
