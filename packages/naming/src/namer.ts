@@ -51,7 +51,10 @@ function subsets<T>(items: T[], size: number): T[][] {
 /** "2,3-dihydro-1H-" + "indole", or for a substituent stem "2,3-dihydro-1H-" + "inden". */
 function withHydro(stem: string, h: Hydro, numbering: Numbering): string {
   const loc = (a: AtomId) => numbering.get(a)!;
-  const ih = h.ih.map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
+  let ih = h.ih.map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
+  // The CH2 of a fused 1,3-dioxole goes without its indicated hydrogen, as chemists write it:
+  // 5,6,7,8-tetrahydro-[1,3]dioxolo[4,5-g]isoquinoline.
+  if (ih === '2H' && /^\[1,3\]dioxolo\[/.test(stem)) ih = '';
   // Fully saturated, the hydro prefixes need no locants: octahydro-2H-quinolizine, dihydrofuran-2(3H)-one.
   const hy = !h.hydro.length ? '' : h.saturated ? `${multiplier(h.hydro.length)}hydro` : `${h.hydro.map(loc).sort(compareLocant).join(',')}-${multiplier(h.hydro.length)}hydro`;
   const ihText = ih ? `${ih}-` : '';
@@ -781,7 +784,10 @@ function vonBaeyer(an: Analysis, system: AtomId[], base: { heteroN: boolean; het
     if (uniq.length !== 2) return null;
     uniq.sort((x, y) => x.length - y.length);
     const [small, large] = uniq as [AtomId[], AtomId[]];
-    for (const s1 of [small, [...small].reverse()]) for (const l1 of [large, [...large].reverse()]) add([...s1, sp, ...l1]);
+    // Rings of one size may each come first: 1,5-dioxaspiro[5.5]undecane.
+    for (const [a1, b1] of small.length === large.length ? [[small, large], [large, small]] : [[small, large]]) {
+      for (const s1 of [a1!, [...a1!].reverse()]) for (const l1 of [b1!, [...b1!].reverse()]) add([...s1, sp, ...l1]);
+    }
     const bracket = `spiro[${small.length}.${large.length}]`;
     return { info: { kind: 'vonbaeyer' as const, bracket, size: system.length, ringCount: 2, ...base }, numberings };
   }
@@ -2421,9 +2427,12 @@ class Namer {
       const count = sites.size;
       let pre: Prefix[];
       try { pre = this.prefixes(p, sites); } catch (e) { if (e instanceof OutOfScope) continue; throw e; }
+      // Ring seniority (P-44.2.1.2): a heterocycle; one with nitrogen; else the senior heteroatom (O, then S);
+      // then more rings, more ring atoms, more heteroatoms.
+      const heteroCount = p.ring ? p.atoms.filter((a) => el(this.mol, a) !== 'C').length : 0;
       const ringKey = p.ring
-        ? [-Number(p.ring.heteroN), -Number(p.ring.heteroO), -Number(p.ring.heteroS), -p.ring.ringCount, -p.ring.size]
-        : [0, 0, 0, 0, 0];
+        ? [-Number(heteroCount > 0), -Number(p.ring.heteroN), p.ring.heteroN ? 0 : -Number(p.ring.heteroO), p.ring.heteroN ? 0 : -Number(p.ring.heteroS), -p.ring.ringCount, -p.ring.size, -heteroCount]
+        : [0, 0, 0, 0, 0, 0, 0];
       const { mult, dbl } = this.unsaturationAtoms(p);
       const heteroAtoms = p.ring?.kind === 'vonbaeyer' || p.ring?.kind === 'cyclo' ? p.atoms.filter((a) => el(this.mol, a) !== 'C') : [];
       for (const numbering of p.numberings) {
@@ -3356,7 +3365,11 @@ class Namer {
     if (r.info.kind !== 'template' && r.info.kind !== 'spiro') for (const b of mol.bonds()) if (inS.has(b.begin) && inS.has(b.end) && b.order === 2) unsat.push([b.begin, b.end]);
     const ringP: Parent = { kind: 'ring', atoms: system, numberings: r.numberings, ring: r.info };
     for (const numbering of r.numberings) {
+      const heteros = r.info.kind === 'vonbaeyer' || r.info.kind === 'cyclo' ? system.filter((x) => el(mol, x) !== 'C') : [];
       const key: (number | number[])[] = [
+        // A von Baeyer or replacement name numbers its heteroatoms first: 2-oxa-6-azaspiro[3.3]heptan-6-yl.
+        heteros.map((x) => locVal(numbering.get(x)!)).sort((x, y) => x - y),
+        [...heteros].sort((x, y) => 'OSN'.indexOf(el(mol, x)) - 'OSN'.indexOf(el(mol, y))).map((x) => locVal(numbering.get(x)!)),
         // Indicated hydrogen at the point of attachment where there is any: 9H-purin-9-yl.
         (el(mol, a) === 'N' || ylidene) && (hydroOf.get(numbering)?.ih ?? []).length && !(hydroOf.get(numbering)?.ih ?? []).includes(a) ? 1 : 0,
         (hydroOf.get(numbering)?.ih ?? []).map((x) => locVal(numbering.get(x)!)).sort((x, y) => x - y),
