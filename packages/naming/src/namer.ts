@@ -1849,7 +1849,7 @@ class Namer {
    * parent: R-B(OH)2 boronic acids, R3P phosphanes, RBF3- borates.
    */
   functionalClassName(): string | null {
-    const nn = this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
+    const nn = this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
     if (nn) return nn;
     const mol = this.mol;
     // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
@@ -2056,6 +2056,19 @@ class Namer {
     return `${this.prefixString(subs, numbering, false)}${multiplier(chain.length)}sulfane`;
   }
 
+  /** A secondary or tertiary amine with like groups and nothing more senior: dipropylamine, triphenylamine. */
+  symmetricAmine(): string | null {
+    if (this.principal !== 'amine' || this.principalGroups.length !== 1) return null;
+    const mol = this.mol, n = this.principalGroups[0]!.nitrogen!;
+    if (this.an.ringAtoms.has(n) || mol.atom(n).charge) return null;
+    const nb = mol.neighbours(n);
+    if (nb.length < 2 || nb.some((x) => el(mol, x) !== 'C')) return null;
+    const subs = nb.map((x) => this.substituent(x, n));
+    if (new Set(subs.map((x) => x.text)).size !== 1) return null;
+    const r = subs[0]!;
+    return `${r.complex ? `${complexMultiplier(nb.length)}(${r.text})` : `${multiplier(nb.length)}${r.text}`}amine`;
+  }
+
   /** A sulfoximine with nothing more senior: imino(methyl)(phenyl)-λ6-sulfanone, methyl(methylimino)(phenyl)-λ6-sulfanone. */
   sulfoximineName(): string | null {
     if (this.principal) return null;
@@ -2207,6 +2220,8 @@ class Namer {
     });
     if ([...unitOf.keys()].some((x) => core.has(x))) return null;
     const linker = [...mol.atoms()].map((a) => a.id).filter((x) => !unitOf.has(x));
+    // The linker holds no part of a principal group (a diarylamine's N is its amine, not a linker).
+    if (this.principalGroups.some((g) => linker.includes(g.anchor) || (g.nitrogen !== undefined && linker.includes(g.nitrogen)) || g.consumed.some((x) => linker.includes(x)))) return null;
     // Each unit hangs off the linker by one bond, from an atom of its parent.
     const joins: { unit: number; u: AtomId; l: AtomId }[] = [];
     for (const x of linker) for (const y of mol.neighbours(x)) if (unitOf.has(y)) joins.push({ unit: unitOf.get(y)!, u: y, l: x });
