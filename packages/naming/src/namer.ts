@@ -1,4 +1,4 @@
-import { RESIDUES, isomorphisms, peptideMolecule, cipLimits, ezLabel, labelStructure, Molecule, perceiveRings, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
+import { RESIDUES, isomorphisms, peptideMolecule, pseudoLabel, cipLimits, ezLabel, labelStructure, Molecule, perceiveRings, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
 import { analyze, SENIORITY, isAcylCarbon, isIminium, isRingAnion, isRingCation, type Analysis, type Group, type GroupKind } from './analyze.ts';
 import type { RingRow } from './rings.ts';
 import { TEMPLATES, type RingTemplate } from './templates.ts';
@@ -1417,14 +1417,14 @@ function nameOneSystematic(input: Molecule): string {
   let centres = 0, bonds = 0;
   const times: number[] = [];
   const TIMES: Record<string, number> = { bis: 2, tris: 3, tetrakis: 4, pentakis: 5, hexakis: 6, heptakis: 7, octakis: 8, nonakis: 9, decakis: 10 };
-  const group = /^\((?:\d+[a-z]?'*)?[RSEZ](?:,(?:\d+[a-z]?'*)?[RSEZ])*\)/;
+  const group = /^\((?:\d+[a-z]?'*)?[RSEZrs](?:,(?:\d+[a-z]?'*)?[RSEZrs])*\)/;
   for (let i = 0; i < name.length; i++) {
     if (name[i] === ')') { times.pop(); continue; }
     if (name[i] !== '(') continue;
     const found = group.exec(name.slice(i));
     if (found) {
       const n = times.reduce((p, q) => p * q, 1);
-      centres += n * (found[0].match(/[RS]/g) ?? []).length;
+      centres += n * (found[0].match(/[RSrs]/g) ?? []).length;
       bonds += n * (found[0].match(/[EZ]/g) ?? []).length;
       i += found[0].length - 1;
       continue;
@@ -1711,7 +1711,7 @@ class Namer {
   readonly principal: GroupKind | null;
   readonly principalGroups: Group[];
   readonly ringByAtom = new Map<AtomId, AtomId[]>();
-  readonly rs = new Map<AtomId, 'R' | 'S'>();
+  readonly rs = new Map<AtomId, 'R' | 'S' | 'r' | 's'>();
   readonly ez = new Map<string, 'E' | 'Z'>();
   /** Stereocentres whose descriptor some name built here cites. */
   readonly cited = new Set<AtomId>();
@@ -1735,7 +1735,7 @@ class Namer {
     // The first ranking given up ends the naming: each one costs as much again.
     const gaveUp = cipLimits.gaveUp;
     const costly = () => { if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out'); };
-    for (const a of an.mol.atoms()) { const l = rsLabel(full, a.id); costly(); if (l) this.rs.set(a.id, l); }
+    for (const a of an.mol.atoms()) { const l = rsLabel(full, a.id) ?? pseudoLabel(full, a.id); costly(); if (l) this.rs.set(a.id, l); }
     for (const b of an.mol.bonds()) {
       const fb = full.bondBetween(b.begin, b.end);
       const l = fb ? ezLabel(full, fb.id) : null;
@@ -2401,7 +2401,7 @@ class Namer {
     // skeleton could take it: beside a centre left unspecified, a bare "(S)" would not say which one is meant.
     // ... only beside one of its own kind: a lone (Z) cannot mean a centre.
     const open = this.openStereoKinds(atoms);
-    const rs = items.filter(([, d]) => d === 'R' || d === 'S').sort((p, q) => compareLocant(p[0], q[0]));
+    const rs = items.filter(([, d]) => /^[RSrs]$/.test(d)).sort((p, q) => compareLocant(p[0], q[0]));
     const ez = items.filter(([, d]) => d === 'E' || d === 'Z').sort((p, q) => compareLocant(p[0], q[0]));
     const cite = (xs: [string, string][], openHere: boolean) => xs.map(([l, d]) => (xs.length === 1 && !openHere ? d : `${l}${d}`));
     return `(${[...cite(rs, open.centre), ...cite(ez, open.bond)].join(',')})`;
