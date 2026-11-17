@@ -485,7 +485,10 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
   // Atoms that can carry a ring double bond in the mancude parent.
   // (A pyrylium-type O+ or S+ takes a double bond too.)
   const capable = system.filter((a) => (el(mol, a) === 'C' && ringNb(a).length <= 3) || (el(mol, a) === 'N' && ringNb(a).length === 2)
-    || ((el(mol, a) === 'O' || el(mol, a) === 'S') && mol.atom(a).charge === 1 && ringNb(a).length === 2));
+    || ((el(mol, a) === 'O' || el(mol, a) === 'S') && mol.atom(a).charge === 1 && ringNb(a).length === 2)
+    // Trivalent P, As and B and tetravalent Si and Ge as N and C are: 1H-phosphole, 1H-silole, 1H-borole.
+    || (['P', 'As', 'B', 'Si', 'Ge'].includes(el(mol, a)) && mol.atom(a).charge === 0 && ringNb(a).length === 2 && ringNb(a).some((b) => el(mol, b) === 'C' || el(mol, b) === 'N')
+      && mol.neighbours(a).length + (an.h.get(a) ?? 0) === (['Si', 'Ge'].includes(el(mol, a)) ? 4 : 3) && mol.incidentBonds(a).every((b) => mol.bond(b).order === 1 || inSys.has(mol.otherAtom(mol.bond(b), a)))));
   const capSet = new Set(capable);
   if (double.some(([x, y]) => !capSet.has(x) || !capSet.has(y))) return null;
   const inDouble = new Set(double.flat());
@@ -689,8 +692,8 @@ function spiroText(numbering: Numbering): string {
   return `${hy}${hy && ih ? '-' : ''}${ih}spiro[${s.first}-${s.la},${s.lb}'-${s.second}]`;
 }
 
-const HW_PRIORITY = ['O', 'S', 'Se', 'N', 'P', 'Si', 'B'];
-const HW_PREFIX: Record<string, string> = { O: 'oxa', S: 'thia', Se: 'selena', N: 'aza', P: 'phospha', Si: 'sila', B: 'bora' };
+const HW_PRIORITY = ['O', 'S', 'Se', 'Te', 'N', 'P', 'As', 'Sb', 'Si', 'Ge', 'Sn', 'B'];
+const HW_PREFIX: Record<string, string> = { O: 'oxa', S: 'thia', Se: 'selena', Te: 'tellura', N: 'aza', P: 'phospha', As: 'arsa', Sb: 'stiba', Si: 'sila', Ge: 'germa', Sn: 'stanna', B: 'bora' };
 const hwCache = new Map<string, CompiledTemplate>();
 
 /**
@@ -1320,7 +1323,7 @@ function subMolecule(mol: Molecule, atoms: AtomId[]): Molecule {
   return copy;
 }
 
-const SUPPORTED = new Set(['C', 'H', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'Si', 'Sn', 'B', 'P']);
+const SUPPORTED = new Set(['C', 'H', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'Si', 'Sn', 'B', 'P', 'Se', 'Te', 'As', 'Sb', 'Ge', 'Pb']);
 
 /** A peptide written as a label ("H-Ala-Gly-OH" on a lone atom) or drawn out in full. */
 function peptideOf(mol: Molecule): Peptide | null {
@@ -1947,13 +1950,19 @@ class Namer {
         }
       }
     }
-    // A lone Si or Sn with no characteristic group to name: ethoxytrimethylsilane, tetrabutylstannane.
-    const metalloids = [...mol.atoms()].filter((a) => a.element === 'Si' || a.element === 'Sn');
-    if (metalloids.length === 1 && !this.principal && ![...mol.atoms()].some((a) => a.element === 'B' || a.element === 'P')) {
+    // A lone Si, Ge, Sn, Pb, As, Sb, Se or Te with no characteristic group to name: ethoxytrimethylsilane,
+    // tributylstannane, triphenylarsane, dimethylselane; with OH on it, trimethylsilanol.
+    const HYDRIDE: Record<string, [string, number]> = { Si: ['silane', 4], Ge: ['germane', 4], Sn: ['stannane', 4], Pb: ['plumbane', 4], As: ['arsane', 3], Sb: ['stibane', 3], Se: ['selane', 2], Te: ['tellane', 2] };
+    const metalloids = [...mol.atoms()].filter((a) => HYDRIDE[a.element]);
+    if (metalloids.length === 1 && ![...mol.atoms()].some((a) => a.element === 'B' || a.element === 'P')) {
       const m = metalloids[0]!;
+      const [hydride, v] = HYDRIDE[m.element]!;
       const nb2 = mol.neighbours(m.id);
-      if (nb2.length === 4 && mol.incidentBonds(m.id).every((b) => mol.bond(b).order === 1) && !this.an.ringAtoms.has(m.id)) {
-        return `${this.centreStereo(m.id)}${this.groupedSubs(nb2, m.id)}${m.element === 'Si' ? 'silane' : 'stannane'}`;
+      const oh = nb2.filter((n) => el(mol, n) === 'O' && mol.neighbours(n).length === 1 && this.an.h.get(n) === 1 && mol.atom(n).charge === 0);
+      const ol = oh.length === 1 && (!this.principal || (this.principal === 'alcohol' && this.principalGroups.length === 1 && this.principalGroups[0]!.consumed.includes(oh[0]!)) || this.principalGroups.every((g) => g.anchor === oh[0] || g.consumed.includes(oh[0]!)));
+      if ((!this.principal || ol) && m.charge === 0 && nb2.length + (this.an.h.get(m.id) ?? 0) === v && mol.incidentBonds(m.id).every((b) => mol.bond(b).order === 1) && !this.an.ringAtoms.has(m.id)) {
+        const subs = nb2.filter((n) => !ol || n !== oh[0]);
+        return `${this.centreStereo(m.id)}${subs.length ? this.groupedSubs(subs, m.id) : ''}${ol ? `${hydride.replace(/e$/, '')}ol` : hydride}`;
       }
     }
     const centres = [...mol.atoms()].filter((a) => a.element === 'B' || a.element === 'P');
@@ -2173,7 +2182,10 @@ class Namer {
     const mol = this.mol;
     // A ring with N or O in it is the senior parent: 4-(methylthio)pteridine.
     if ([...this.an.ringAtoms].some((a) => el(mol, a) === 'N' || el(mol, a) === 'O')) return null;
-    const sulfide = (x: AtomId) => el(mol, x) === 'S' && !this.an.ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.neighbours(x).length === 2
+    // Diselanes and ditellanes likewise: 1,2-diphenyldiselane.
+    const E = [...mol.atoms()].some((a) => a.element === 'Se') ? 'Se' : [...mol.atoms()].some((a) => a.element === 'Te') ? 'Te' : 'S';
+    const word = ({ S: 'sulfane', Se: 'selane', Te: 'tellane' } as Record<string, string>)[E]!;
+    const sulfide = (x: AtomId) => el(mol, x) === E && !this.an.ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.neighbours(x).length === 2
       && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1);
     const ss = [...mol.atoms()].filter((a) => sulfide(a.id)).map((a) => a.id);
     if (!ss.length) return null;
@@ -2184,14 +2196,14 @@ class Namer {
     if (chain.length !== ss.length) return null;
     const ends = chain.length === 1 ? mol.neighbours(chain[0]!) : [mol.neighbours(chain[0]!).find((y) => !chain.includes(y))!, mol.neighbours(chain.at(-1)!).find((y) => !chain.includes(y))!];
     if (ends.some((c) => c === undefined || el(mol, c) !== 'C' || isAcylCarbon(mol, c) || mol.incidentBonds(c).some((b) => mol.bond(b).order === 3) || mol.incidentBonds(c).some((b) => mol.bond(b).order === 2 && el(mol, mol.otherAtom(mol.bond(b), c)) === 'S'))) return null;
-    if (chain.length === 1) return `${this.groupedSubs(ends, chain[0]!)}sulfane`;
+    if (chain.length === 1) return `${this.groupedSubs(ends, chain[0]!)}${word}`;
     let subs = [{ ...this.substituent(ends[0]!, chain[0]!), at: chain[0]! }, { ...this.substituent(ends[1]!, chain.at(-1)!), at: chain.at(-1)! }];
     if (subs[1]!.sortKey < subs[0]!.sortKey) chain.reverse();
     subs = [{ ...this.substituent(ends[0]!, chain[0]!), at: chain[0]! }, { ...this.substituent(ends[1]!, chain.at(-1)!), at: chain.at(-1)! }];
     const numbering: Numbering = new Map(chain.map((x, i) => [x, String(i + 1)]));
     const first = numbering.get(subs[0]!.at)!;
     if (first !== '1') numbering.forEach((v, k) => numbering.set(k, String(chain.length + 1 - Number(v))));
-    return `${this.prefixString(subs, numbering, false)}${multiplier(chain.length)}sulfane`;
+    return `${this.prefixString(subs, numbering, false)}${multiplier(chain.length)}${word}`;
   }
 
   /**

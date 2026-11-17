@@ -37,6 +37,8 @@ export const TEMPLATES: RingTemplate[] = [
   { name: 'pyridazine', yl: 'pyridazin', smiles: 'n1ncccc1', locants: seq(6), aromatic: true },
   { name: 'furan', yl: 'furan', smiles: 'o1cccc1', locants: seq(5), aromatic: true },
   { name: 'thiophene', yl: 'thiophen', smiles: 's1cccc1', locants: seq(5), aromatic: true },
+  { name: 'selenophene', yl: 'selenophen', smiles: '[se]1cccc1', locants: seq(5), aromatic: true },
+  { name: 'tellurophene', yl: 'tellurophen', smiles: '[te]1cccc1', locants: seq(5), aromatic: true },
   { name: 'pyrrole', yl: 'pyrrol', smiles: '[nH]1cccc1', locants: seq(5), indicatedH: '1', aromatic: true },
   { name: 'imidazole', yl: 'imidazol', smiles: '[nH]1cncc1', locants: seq(5), indicatedH: '1', aromatic: true },
   { name: 'pyrazole', yl: 'pyrazol', smiles: '[nH]1nccc1', locants: seq(5), indicatedH: '1', aromatic: true },
@@ -95,7 +97,7 @@ export const TEMPLATES: RingTemplate[] = [
 ];
 
 /** Parents named by hydro prefixes when partly saturated (benzene's are cycloalkenes). */
-const HYDRO_PARENTS = new Set(['pyridine', 'pyrimidine', 'pyrazine', 'pyridazine', 'furan', 'thiophene', 'pyrrole', 'imidazole', 'pyrazole',
+const HYDRO_PARENTS = new Set(['pyridine', 'pyrimidine', 'pyrazine', 'pyridazine', 'furan', 'thiophene', 'selenophene', 'tellurophene', 'pyrrole', 'imidazole', 'pyrazole',
   'oxazole', 'thiazole', 'isoxazole', 'isothiazole', 'naphthalene', 'quinoline', 'isoquinoline', 'indole', 'benzofuran', 'benzo[b]thiophene',
   'benzo[d]imidazole', 'benzo[d]oxazole', 'benzo[d]thiazole', 'quinoxaline', 'quinazoline', 'purine', 'indazole', 'fluorene']);
 for (const t of TEMPLATES) if (HYDRO_PARENTS.has(t.name)) t.mancude = true;
