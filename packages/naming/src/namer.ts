@@ -1760,7 +1760,7 @@ class Namer {
    * parent: R-B(OH)2 boronic acids, R3P phosphanes, RBF3- borates.
    */
   functionalClassName(): string | null {
-    const nn = this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
+    const nn = this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
     if (nn) return nn;
     const mol = this.mol;
     // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
@@ -1965,6 +1965,28 @@ class Namer {
     const first = numbering.get(subs[0]!.at)!;
     if (first !== '1') numbering.forEach((v, k) => numbering.set(k, String(chain.length + 1 - Number(v))));
     return `${this.prefixString(subs, numbering, false)}${multiplier(chain.length)}sulfane`;
+  }
+
+  /** A sulfoximine with nothing more senior: imino(methyl)(phenyl)-λ6-sulfanone, methyl(methylimino)(phenyl)-λ6-sulfanone. */
+  sulfoximineName(): string | null {
+    if (this.principal) return null;
+    const mol = this.mol;
+    const ss = [...mol.atoms()].filter((a) => a.element === 'S' && !this.an.ringAtoms.has(a.id) && mol.neighbours(a.id).length === 4 && a.charge === 0);
+    if (ss.length !== 1) return null;
+    const sx = ss[0]!.id;
+    const nb = mol.neighbours(sx);
+    const o = nb.filter((x) => el(mol, x) === 'O' && mol.bondBetween(sx, x)!.order === 2 && mol.neighbours(x).length === 1);
+    const n = nb.filter((x) => el(mol, x) === 'N' && mol.bondBetween(sx, x)!.order === 2 && !this.an.ringAtoms.has(x));
+    const c = nb.filter((x) => el(mol, x) === 'C' && mol.bondBetween(sx, x)!.order === 1);
+    if (o.length !== 1 || n.length !== 1 || c.length !== 2) return null;
+    const nr = mol.neighbours(n[0]!).filter((x) => x !== sx);
+    if (nr.length > 1) return null;
+    const imino: SubName = nr.length ? (() => { const r = this.substituent(nr[0]!, n[0]!); const t = `${r.complex ? `(${r.text})` : r.text}imino`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; })()
+      : { text: 'imino', complex: false, sortKey: 'imino' };
+    const subs = [imino, ...c.map((x) => this.substituent(x, sx))];
+    const rs = this.rs.get(sx);
+    if (rs) this.cited.add(sx);
+    return `${rs ? `(${rs})-` : ''}${citeRun(countSubs(subs))}-λ6-sulfanone`;
   }
 
   /** A carbodiimide with nothing more senior: dicyclohexylmethanediimine. */
