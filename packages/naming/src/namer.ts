@@ -2063,8 +2063,9 @@ class Namer {
     const cPart = carbons.length ? citeRun(countSubs(carbons)) : '';
     // An acid with no esters: phenylphosphonic acid, dimethylphosphinic acid, phosphoric acid.
     if (!esters.length) {
-      if (n > 1 || thio || amino || anions) return null;
-      if (!cPart) return null;
+      if (n > 1 || thio || amino || !cPart) return null;
+      // Its anion: hydrogen phenylphosphonate, phenylphosphonate.
+      if (anions) return `${hs.length ? `${multiplier(hs.length)}hydrogen ` : ''}${carbons.length === 1 ? wrap(carbons[0]!) : cPart}${acid}`;
       return `${carbons.length === 1 ? wrap(carbons[0]!) : cPart}${acid.replace(/ate$/, 'ic acid')}`;
     }
     // Each ester group with the atom it is on in a thio acid: O,O-diethyl S-(2-(ethylthio)ethyl) phosphorodithioate.
