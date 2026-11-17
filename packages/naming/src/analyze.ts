@@ -94,6 +94,8 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
         continue;
       }
     }
+    // O-C#N and S-C#N are cyanates, named as prefixes (cyanatomethane).
+    if (tripN && singles.some((n) => el(mol, n.atom) === 'O' || el(mol, n.atom) === 'S')) continue;
     if (tripN && !ringAtoms.has(c.id)) {
       groups.push({ kind: 'nitrile', anchor: c.id, ownCarbon: true, consumed: [tripN.atom] });
       claimed.add(tripN.atom);
@@ -148,6 +150,12 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     }
     if (dblO && ringAtoms.has(c.id) && singles.every((n) => ringAtoms.has(n.atom) && ['N', 'O', 'S'].includes(el(mol, n.atom)))
         && carbons.length + singles.length === 2) {
+      groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [dblO.atom] });
+      claimed.add(dblO.atom);
+      continue;
+    }
+    // A ketene's C=O: ethenone, 2,2-diphenylethen-1-one.
+    if (dblO && !ringAtoms.has(c.id) && singles.length === 0 && carbons.length === 1 && carbons[0]!.order === 2) {
       groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [dblO.atom] });
       claimed.add(dblO.atom);
       continue;
