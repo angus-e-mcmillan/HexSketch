@@ -1779,6 +1779,8 @@ function organometallic(mol: Molecule, metal: AtomId): string {
   const drawn = [...mol.atoms()].some((a) => a.x !== 0 || a.y !== 0);
   if (drawn && fromGeometry) perceiveStereoFromGeometry(mol);
   const namer = new Namer(analyze(mol));
+  // Tetravalent lead is a hydride: tetraethylplumbane.
+  if (mol.atom(metal).element === 'Pb' && nbrs.length === 4 && mol.atom(metal).charge === 0) return `${namer.groupedSubs(nbrs, metal)}plumbane`;
   return `${namer.groupedSubs(nbrs, metal)}${metalName(mol.atom(metal).element)}`;
 }
 
@@ -3565,7 +3567,7 @@ class Namer {
       ketone: g.thio ? ['thione', 'thione'] : ['one', 'one'],
       imine: ['imine', 'imine'],
       alcohol: ['ol', 'ol'],
-      thiol: ['thiol', 'thiol'],
+      thiol: g.selenium ? ['selenol', 'selenol'] : ['thiol', 'thiol'],
       amine: ['amine', 'amine'],
     };
     const [chainForm, ringForm] = SUFFIX[kind];
@@ -3950,6 +3952,11 @@ class Namer {
         if (far.length === 1 && el(mol, far[0]!) === 'C') { const t = `${wrapInner(this.substituent(far[0]!, r))}peroxy`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; }
       }
       return alkoxy(this.substituent(r, a));
+    }
+    if (e === 'Se' && mol.atom(a).charge === 0 && mol.incidentBonds(a).every((b) => mol.bond(b).order === 1)) {
+      // -SeH hydroseleno, -Se-R methylselanyl.
+      if (!others.length) return simple('hydroseleno');
+      if (others.length === 1 && el(mol, others[0]!) === 'C') { const t = `${wrapInner(this.substituent(others[0]!, a))}selanyl`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; }
     }
     if (e === 'Si' || e === 'Sn') {
       // Trialkylsilyl / trialkylstannyl, e.g. tert-butyldimethylsilyl, tributylstannyl.

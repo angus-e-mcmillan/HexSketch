@@ -25,6 +25,8 @@ export interface Group {
   /** An amidine (C(=NH)N) or a hydrazide (C(=O)NHNH2) rather than an amide. */
   imid?: boolean;
   hydrazide?: boolean;
+  /** A selenol rather than a thiol: benzeneselenol. */
+  selenium?: boolean;
   /** C=S in place of the ester's C=O: an O-alkyl ...thioate, or with an S-alkyl a ...dithioate. */
   thiono?: boolean;
   /** The far nitrogen of a hydrazide, whose substituents are cited as N'. */
@@ -392,8 +394,8 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     const ringN = mol.neighbours(x.id).find((n) => el(mol, n) === 'N' && ringAtoms.has(n) && mol.atom(n).charge === 0 && mol.neighbours(n).length === 3);
     if (x.element === 'O' && mol.neighbours(x.id).length === 1 && h.get(x.id) === 1 && (carbonNbrs.length === 1 || ringN !== undefined)) {
       groups.push({ kind: 'alcohol', anchor: carbonNbrs[0] ?? ringN!, ownCarbon: false, consumed: [x.id] });
-    } else if (x.element === 'S' && mol.neighbours(x.id).length === 1 && h.get(x.id) === 1 && carbonNbrs.length === 1) {
-      groups.push({ kind: 'thiol', anchor: carbonNbrs[0]!, ownCarbon: false, consumed: [x.id] });
+    } else if ((x.element === 'S' || x.element === 'Se') && mol.neighbours(x.id).length === 1 && h.get(x.id) === 1 && carbonNbrs.length === 1) {
+      groups.push({ kind: 'thiol', anchor: carbonNbrs[0]!, ownCarbon: false, consumed: [x.id], ...(x.element === 'Se' ? { selenium: true } : {}) });
     } else if (x.element === 'N' && carbonNbrs.length === mol.neighbours(x.id).length && carbonNbrs.length >= 1
       && carbonNbrs.every((c) => !isAcylCarbon(mol, c))) {
       // One group per nitrogen; the anchor is chosen later among its carbons.
