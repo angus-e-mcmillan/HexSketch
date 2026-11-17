@@ -50,11 +50,16 @@ function subsets<T>(items: T[], size: number): T[][] {
 
 /** "2,3-dihydro-1H-" + "indole", or for a substituent stem "2,3-dihydro-1H-" + "inden". */
 function withHydro(stem: string, h: Hydro, numbering: Numbering): string {
+  // (h is reassigned below for porphyrin)
   const loc = (a: AtomId) => numbering.get(a)!;
   let ih = h.ih.map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
   // The CH2 of a fused 1,3-dioxole goes without its indicated hydrogen, as chemists write it:
   // 5,6,7,8-tetrahydro-[1,3]dioxolo[4,5-g]isoquinoline.
-  if (ih === '2H' && /^\[1,3\]dioxolo\[/.test(stem)) ih = '';
+  if (ih === '2H' && /\[1,3\]dioxol/.test(stem)) ih = '';
+  // Porphyrin is the 21H,23H parent itself.
+  let hydro = h.hydro;
+  if (/^porphyrin/.test(stem) && hydro.map(loc).sort(compareLocant).join(',') === '21,23') hydro = [];
+  h = { ...h, hydro };
   // Fully saturated, the hydro prefixes need no locants: octahydro-2H-quinolizine, dihydrofuran-2(3H)-one.
   const hy = !h.hydro.length ? '' : h.saturated ? `${multiplier(h.hydro.length)}hydro` : `${h.hydro.map(loc).sort(compareLocant).join(',')}-${multiplier(h.hydro.length)}hydro`;
   const ihText = ih ? `${ih}-` : '';
@@ -513,10 +518,13 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
     const numberings: Numbering[] = [];
     // A ring with a name of its own when saturated takes the ketone as is: 1,4-dithiepan-6-one.
     for (const m of maps) for (const style of double.length === 0 && ct.t.saturated ? plain : styles) {
+      // Porphyrin is named for its 21H,23H form; another tautomer has no porphyrin name here.
+      if (ct.t.name === 'porphyrin' && !['21', '23'].every((l) => [...style.hydro, ...style.ih].some((a) => m.get(a) === l))) continue;
       const n = new Map(m);
       hydroOf.set(n, style);
       numberings.push(n);
     }
+    if (!numberings.length) continue;
     const ringCount = ct.t.locants.filter((l) => /a$/.test(l)).length / 2 + 1;
     return { info: { kind: 'template', template: ct.t, hydro: true, size: system.length, ringCount, ...base }, numberings };
   }
@@ -2113,6 +2121,8 @@ class Namer {
     items.sort((x, y) => compareLocant(x[0], y[0]));
     const stereo = items.length ? `(${items.map(([l, d]) => `${l}${d}`).join(',')})-` : '';
     const n = distinct.length;
+    // Propanoic acid multiplied goes by its old name: 3,3'-(...diyl)dipropionic acid.
+    if (unitName === 'propanoic acid') unitName = 'propionic acid';
     const simple = !/[\d()[\]]/.test(unitName) && !/^[a-z]+(yl|oxy)/.test(unitName) && !unitName.includes('-');
     const body = simple ? `${multiplier(n)}${unitName}` : `${complexMultiplier(n)}(${unitName})`;
     const oneCarbon = P.kind === 'chain' && P.atoms.length === 1;
