@@ -2021,7 +2021,7 @@ class Namer {
     const dbl = (p: AtomId) => mol.neighbours(p).filter((x) => mol.bondBetween(p, x)!.order === 2);
     const esters: SubName[] = [], hs: AtomId[] = [], carbons: SubName[] = [];
     const sEsters = new Set<number>();
-    let amino = 0, thio = false;
+    let amino = 0, thio = false, anions = 0;
     for (const p of pIds) {
       const d = dbl(p);
       if (d.length > 1 || (d.length === 1 && (mol.neighbours(d[0]!).length !== 1 || !['O', 'S'].includes(el(mol, d[0]!))))) return null;
@@ -2034,7 +2034,7 @@ class Namer {
         if (e === 'C') { if (pIds.length > 1) return null; carbons.push(this.substituent(x, p)); continue; }
         if (e === 'N') { if (pIds.length > 1 || mol.neighbours(x).length !== 1 || mol.atom(x).charge) return null; amino++; continue; }
         const beyond = mol.neighbours(x).filter((y) => y !== p);
-        if (e === 'O' && mol.atom(x).charge === -1 && !beyond.length) continue;
+        if (e === 'O' && mol.atom(x).charge === -1 && !beyond.length) { anions++; continue; }
         if ((e !== 'O' && e !== 'S') || mol.atom(x).charge) return null;
         if (!beyond.length) { if (e === 'S') return null; hs.push(x); continue; }
         if (beyond.length !== 1 || el(mol, beyond[0]!) !== 'C' || isAcylCarbon(mol, beyond[0]!)) return null;
@@ -2063,7 +2063,7 @@ class Namer {
     const cPart = carbons.length ? citeRun(countSubs(carbons)) : '';
     // An acid with no esters: phenylphosphonic acid, dimethylphosphinic acid, phosphoric acid.
     if (!esters.length) {
-      if (n > 1 || thio || amino) return null;
+      if (n > 1 || thio || amino || anions) return null;
       if (!cPart) return null;
       return `${carbons.length === 1 ? wrap(carbons[0]!) : cPart}${acid.replace(/ate$/, 'ic acid')}`;
     }
