@@ -1929,7 +1929,7 @@ class Namer {
    * parent: R-B(OH)2 boronic acids, R3P phosphanes, RBF3- borates.
    */
   functionalClassName(): string | null {
-    const nn = this.thiocarbamate() ?? this.hydroxylamine() ?? this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineCarbonyl() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
+    const nn = this.thiocarbamate() ?? this.hydroxylamine() ?? this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.inorganicEster() ?? this.hydrazineCarbonyl() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
     if (nn) return nn;
     const mol = this.mol;
     // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
@@ -2096,6 +2096,69 @@ class Namer {
    * A hydrazine or diazene with nothing more senior on it, named as the parent: phenylhydrazine,
    * 1,1-dimethylhydrazine, 1-phenyl-2-(propan-2-ylidene)hydrazine, (E)-1,2-diphenyldiazene.
    */
+  /**
+   * Esters and amides of inorganic acids named by functional class: dimethyl sulfate, methyl sulfamate,
+   * R dimethylsulfamate, dimethylcarbamic chloride, trimethyl borate, 1,1,1,3,3,3-hexamethyldisiloxane.
+   */
+  inorganicEster(): string | null {
+    const mol = this.mol;
+    const below = (k: string) => !this.principal || SENIORITY.indexOf(this.principal) > SENIORITY.indexOf(k as typeof SENIORITY[number]);
+    const alkylO = (o: AtomId, from: AtomId) => {
+      const r = mol.neighbours(o).filter((y) => y !== from);
+      return el(mol, o) === 'O' && mol.atom(o).charge === 0 && !this.an.ringAtoms.has(o) && r.length === 1 && el(mol, r[0]!) === 'C' && !isAcylCarbon(mol, r[0]!) ? r[0]! : undefined;
+    };
+    const amineN = (n: AtomId, from: AtomId) => el(mol, n) === 'N' && mol.atom(n).charge === 0 && !this.an.ringAtoms.has(n)
+      && mol.incidentBonds(n).every((b) => mol.bond(b).order === 1) && mol.neighbours(n).every((y) => y === from || (el(mol, y) === 'C' && !isAcylCarbon(mol, y)));
+    const esterWords = (rs: SubName[]) => {
+      const c = countSubs(rs.sort((x, y) => x.sortKey.localeCompare(y.sortKey)));
+      return c.map((x, i) => x.n > 1 ? (x.complex ? `${complexMultiplier(x.n)}(${x.text})` : `${multiplier(x.n)}${x.text}`) : i > 0 && x.complex ? `(${x.text})` : x.text).join(' ');
+    };
+    // Sulfates and sulfamates: S(=O)2 with two of OR and NR2.
+    const sul = [...mol.atoms()].filter((a) => a.element === 'S' && a.charge === 0 && !this.an.ringAtoms.has(a.id) && mol.neighbours(a.id).length === 4
+      && mol.neighbours(a.id).filter((o) => el(mol, o) === 'O' && mol.bondBetween(a.id, o)!.order === 2 && mol.neighbours(o).length === 1).length === 2);
+    if (sul.length === 1 && below('ester')) {
+      const sAt = sul[0]!.id;
+      const xs = mol.neighbours(sAt).filter((o) => mol.bondBetween(sAt, o)!.order === 1);
+      const ors = xs.map((x) => alkylO(x, sAt)).filter((r) => r !== undefined) as AtomId[];
+      const ns = xs.filter((x) => amineN(x, sAt));
+      if (ors.length === 2) return `${esterWords(ors.map((r) => this.substituent(r, xs.find((x) => mol.neighbours(x).includes(r))!)))} sulfate`;
+      if (ors.length === 1 && ns.length === 1) {
+        const o = xs.find((x) => x !== ns[0])!;
+        const nSubs = mol.neighbours(ns[0]!).filter((y) => y !== sAt).map((y) => this.substituent(y, ns[0]!));
+        return `${this.substituent(ors[0]!, o).text} ${nSubs.length ? citeRun(countSubs(nSubs.sort((x, y) => x.sortKey.localeCompare(y.sortKey)))) : ''}sulfamate`;
+      }
+    }
+    // A carbamoyl chloride: dimethylcarbamic chloride.
+    if (this.principal === 'acylHalide' && this.principalGroups.length === 1) {
+      const g = this.principalGroups[0]!;
+      const n = mol.neighbours(g.anchor).find((y) => !g.consumed.includes(y));
+      if (n !== undefined && amineN(n, g.anchor) && g.halogen) {
+        const nSubs = mol.neighbours(n).filter((y) => y !== g.anchor).map((y) => this.substituent(y, n));
+        return `${nSubs.length ? citeRun(countSubs(nSubs.sort((x, y) => x.sortKey.localeCompare(y.sortKey)))) : ''}carbamic ${HALIDE[g.halogen] ?? 'chloride'}`;
+      }
+    }
+    // A borate: trimethyl borate.
+    const bs = [...mol.atoms()].filter((a) => a.element === 'B');
+    if (bs.length === 1 && !this.principal && bs[0]!.charge === 0 && mol.neighbours(bs[0]!.id).length === 3 && !this.an.ringAtoms.has(bs[0]!.id)) {
+      const b = bs[0]!.id;
+      const rs = mol.neighbours(b).map((o) => alkylO(o, b));
+      if (rs.every((r) => r !== undefined)) return `${esterWords(rs.map((r) => this.substituent(r!, mol.neighbours(r!).find((y) => mol.neighbours(y).includes(b))!)))} borate`;
+    }
+    // A disiloxane: R3Si-O-SiR3.
+    const sis = [...mol.atoms()].filter((a) => a.element === 'Si');
+    if (sis.length === 2 && !this.principal) {
+      const [a, b] = [sis[0]!.id, sis[1]!.id];
+      const o = mol.neighbours(a).find((y) => el(mol, y) === 'O' && mol.neighbours(y).includes(b));
+      if (o !== undefined && [a, b].every((x) => mol.neighbours(x).every((y) => y === o || el(mol, y) === 'C') && mol.neighbours(x).length === 4)) {
+        const pre: Prefix[] = [a, b].flatMap((x) => mol.neighbours(x).filter((y) => y !== o).map((y) => ({ ...this.substituent(y, x), at: x })));
+        const one = (x: AtomId) => pre.filter((p) => p.at === x).map((p) => p.sortKey).sort().join(' ');
+        const [s1, s2] = one(a) <= one(b) ? [a, b] : [b, a];
+        return `${this.prefixString(pre, new Map([[s1, '1'], [o, '2'], [s2, '3']]), false)}disiloxane`;
+      }
+    }
+    return null;
+  }
+
   /**
    * Semicarbazides, thiosemicarbazides and carbazates, named on hydrazine: hydrazinecarboxamide,
    * 2-(propan-2-ylidene)hydrazine-1-carbothioamide, methyl hydrazinecarboxylate.

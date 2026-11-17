@@ -220,6 +220,12 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       claimed.add(ringS.atom);
       continue;
     }
+    // An open-chain or carbocyclic C=S between two carbons: propane-2-thione, diphenylmethanethione.
+    if (ringS && !dblO && singles.length === 0 && carbons.length === 2 && carbons.every((n) => n.order === 1)) {
+      groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [ringS.atom], thio: true });
+      claimed.add(ringS.atom);
+      continue;
+    }
     if (dblO && ringAtoms.has(c.id) && singles.every((n) => ringAtoms.has(n.atom) && ['N', 'O', 'S'].includes(el(mol, n.atom)))
         && carbons.length + singles.length === 2) {
       groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [dblO.atom] });
