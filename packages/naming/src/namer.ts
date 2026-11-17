@@ -566,8 +566,11 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'im
       const lowIh = (st: Hydro) => Math.min(...st.ih.map((a) => locVal(m.get(a)!)), Infinity);
       const atKetone = (st: Hydro) => st.ih.some((a) => ketones.includes(a));
       const kMin = Math.min(...list.filter(atKetone).map(lowIh), Infinity);
-      const zMin = Math.min(...list.filter((st) => !(st.added ?? []).length).map(lowIh), Infinity);
-      const favourKetone = ketones.length > 0 && kMin < Infinity && (carbocyclic || !(zMin < kMin));
+      // In a heterocycle, a lower locant with fewer added hydrogens wins: 7,9-dihydro-1H-purine-2,6,8(3H)-trione.
+      const nAdded = (st: Hydro) => (st.added ?? []).length;
+      const kFewest = Math.min(...list.filter(atKetone).map(nAdded), Infinity);
+      const lowerBetter = list.some((st) => lowIh(st) < kMin && nAdded(st) < kFewest);
+      const favourKetone = ketones.length > 0 && kMin < Infinity && (carbocyclic || !lowerBetter);
       for (const style of list) {
         // Porphyrin is named for its 21H,23H form; another tautomer has no porphyrin name here.
         if (ct.t.name === 'porphyrin' && !['21', '23'].every((l) => [...style.hydro, ...style.ih].some((a) => m.get(a) === l))) continue;
