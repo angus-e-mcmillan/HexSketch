@@ -89,12 +89,14 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     const singles = nbrs.filter((n) => n.order === 1 && el(mol, n.atom) !== 'C');
 
     // Amidines: C(=NH) with an open-chain amino nitrogen beside it and carbon (or nothing) on the other side.
-    const dblNH = nbrs.find((n) => n.order === 2 && el(mol, n.atom) === 'N' && mol.neighbours(n.atom).length === 1 && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0);
+    // Its imine nitrogen may carry a carbon group, cited as N': N'-phenyl-N,N-dimethylformimidamide.
+    const dblNH = nbrs.find((n) => n.order === 2 && el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
+      && (mol.neighbours(n.atom).length === 1 || (mol.neighbours(n.atom).length === 2 && mol.neighbours(n.atom).every((m) => m === c.id || (el(mol, m) === 'C' && !isAcylCarbon(mol, m) && mol.incidentBonds(m).every((b) => mol.bond(b).order === 1 || ringAtoms.has(m)))))));
     if (dblNH && !ringAtoms.has(c.id) && carbons.length <= 1) {
       const nAm = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
         && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1) && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C'));
       if (nAm.length === 1 && singles.length === 1) {
-        groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblNH.atom, nAm[0]!.atom], nitrogen: nAm[0]!.atom, imid: true });
+        groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblNH.atom, nAm[0]!.atom], nitrogen: nAm[0]!.atom, imid: true, ...(mol.neighbours(dblNH.atom).length === 2 ? { nPrime: dblNH.atom } : {}) });
         claimed.add(dblNH.atom); claimed.add(nAm[0]!.atom);
         continue;
       }
@@ -117,6 +119,9 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     }
     // O-C#N and S-C#N are cyanates, named as prefixes (cyanatomethane).
     if (tripN && singles.some((n) => el(mol, n.atom) === 'O' || el(mol, n.atom) === 'S')) continue;
+    // A cyano group on a guanidine nitrogen is a prefix: 2-cyanoguanidine.
+    if (tripN && singles.some((n) => el(mol, n.atom) === 'N' && mol.neighbours(n.atom).some((g) => g !== c.id && el(mol, g) === 'C' && !ringAtoms.has(g)
+      && mol.neighbours(g).length === 3 && mol.neighbours(g).every((x) => el(mol, x) === 'N')))) continue;
     if (tripN && !ringAtoms.has(c.id)) {
       groups.push({ kind: 'nitrile', anchor: c.id, ownCarbon: true, consumed: [tripN.atom] });
       claimed.add(tripN.atom);

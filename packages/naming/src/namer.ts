@@ -2924,7 +2924,7 @@ class Namer {
       }
       // On the far nitrogen of a hydrazide: N'-benzylidene, N',N'-dimethyl.
       if (g.nPrime !== undefined) for (const n of mol.neighbours(g.nPrime)) {
-        if (n === g.nitrogen) continue;
+        if (n === g.nitrogen || n === g.anchor) continue;
         const sub = mol.bondBetween(g.nPrime, n)!.order === 2 ? this.ylidene(n, g.nPrime) : this.substituent(n, g.nPrime);
         out.push({ ...sub, at: 'N', nOf: locAt, prime: true });
       }
@@ -3179,6 +3179,9 @@ class Namer {
       if (ium.length) hydride = attachSuffix(hydride, ium.join(','), `${multiplier(ium.length)}ium`);
       if (ide.length) hydride = attachSuffix(hydride, ide.join(','), `${multiplier(ide.length)}ide`);
       parentName = this.withSuffix(p, hydride, kind, siteLocs, sites.size, omitAll);
+      // A ring anion on the atom the indicated hydrogen would be on needs none: pyrazol-1-ide.
+      const ideAt = kind === 'ide' ? siteLocs.map(String) : ide;
+      if (ideAt.length === 1) parentName = parentName.replace(new RegExp(`(^|-)${ideAt[0]}H-(?=[a-z[])`), '$1');
     }
     // An assembly's name is bracketed only where a locant follows it: [1,1'-biphenyl]-4-ol, 4-methyl-1,1'-biphenyl.
     if (p.ring?.assembly && /^\[[^\]]*\]$/.test(parentName)) parentName = parentName.slice(1, -1);
