@@ -140,6 +140,8 @@ function chemistStyle(s: SubName): SubName {
   if (t === '2-hydroxy-2-oxoethyl') return mk('carboxymethyl');
   if (t === 'amino(imino)methyl') return mk('carbamimidoyl', false);
   if (t === '(amino(imino)methyl)amino' || t === 'carbamimidoylamino') return mk('guanidino', false);
+  if (t === 'carbamoylamino') return mk('ureido', false);
+  if (t === '(p-tolyl)sulfonyl' || t === 'p-tolylsulfonyl') return mk('tosyl', false);
   if (t === '3-hydroxy-3-oxopropyl') return mk('2-carboxyethyl');
   if (ACYL[t]) return mk(ACYL[t]!, false);
   if (/^(\([EZ]\)-)?3-.*prop-2-enoyl$/.test(t)) return mk(t.replace(/prop-2-enoyl$/, 'acryloyl'));
@@ -207,7 +209,8 @@ function alkoxy(R: SubName): SubName {
     const swap = (t: string) => t.replace(/(methyl|ethyl|propyl|butyl|phenyl)$/, (m) => ALKOXY[m]!);
     return { text: swap(R.text), complex: R.complex, sortKey: swap(R.sortKey) };
   }
-  return { text: `${R.complex ? `(${R.text})` : R.text}oxy`, complex: true, sortKey: `${R.sortKey}oxy` };
+  // A ring with nothing on it needs no brackets: (cyclohex-1-en-1-yloxy), (pyridin-2-yloxy).
+  return { text: `${R.complex && !R.di ? `(${R.text})` : R.text}oxy`, complex: true, sortKey: `${R.sortKey}oxy` };
 }
 
 /**
@@ -2599,15 +2602,27 @@ class Namer {
         sites.set(g, g.anchor);
       }
     }
+    // A chain holding none of its acids' own carbons carries them all as -carboxylic acid where that gives
+    // it more of them: 2-hydroxypropane-1,2,3-tricarboxylic acid.
+    if (p.kind === 'chain' && !sites.size) {
+      const ext = new Map<Group, AtomId>();
+      for (const g of this.principalGroups) {
+        if (!g.ownCarbon || inP.has(g.anchor) || !['acid', 'carboxylate', 'ester', 'amide', 'nitrile'].includes(g.kind)) continue;
+        const r = this.mol.neighbours(g.anchor).find((n) => inP.has(n));
+        if (r !== undefined) ext.set(g, r);
+      }
+      if (ext.size >= 3) { this.externalSites.add(p); return ext; }
+    }
     return sites;
   }
+  readonly externalSites = new WeakSet<Parent>();
 
   /** Atoms that belong to principal groups placed on this parent (not to be named as prefixes). */
   consumedBy(p: Parent, sites: Map<Group, AtomId>): Set<AtomId> {
     const out = new Set<AtomId>();
     for (const g of sites.keys()) {
       g.consumed.forEach((a) => out.add(a));
-      if (p.kind === 'ring' && g.ownCarbon) out.add(g.anchor);
+      if ((p.kind === 'ring' || this.externalSites.has(p)) && g.ownCarbon) out.add(g.anchor);
     }
     return out;
   }
@@ -2972,8 +2987,8 @@ class Namer {
   withSuffix(p: Parent, hydride: string, kind: GroupKind | null, locs: string[], count: number, omitAll: boolean): string {
     if (!kind || count === 0) return hydride;
     const m = multiplier(count);
-    const ownCarbonOnRing = p.kind === 'ring' && this.principalGroups[0]!.ownCarbon;
-    const terminal = p.kind === 'chain' && this.principalGroups[0]!.ownCarbon;
+    const ownCarbonOnRing = (p.kind === 'ring' || this.externalSites.has(p)) && this.principalGroups[0]!.ownCarbon;
+    const terminal = p.kind === 'chain' && !this.externalSites.has(p) && this.principalGroups[0]!.ownCarbon;
     // One group on benzene needs no locant: 4-methylbenzenesulfonyl chloride, 4-chlorobenzenethiol.
     const onBenzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene' && count === 1;
     const showLocs = !(omitAll || terminal || onBenzene) ? locs.join(',') : '';
@@ -3415,7 +3430,7 @@ class Namer {
       if (rest.length === 1) {
         const R = this.substituent(rest[0]!, a);
         const tail = oxo === 2 ? 'sulfonyl' : oxo === 1 ? 'sulfinyl' : 'thio';
-        const inner = R.complex ? `(${R.text})` : R.text;
+        const inner = R.complex && !R.di ? `(${R.text})` : R.text;
         // A sulfinyl sulfur is a stereocentre: ((S)-phenylsulfinyl).
         const rs = this.rs.get(a);
         if (rs) this.cited.add(a);
