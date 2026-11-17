@@ -38,6 +38,8 @@ interface Hydro {
   ih: AtomId[]; hydro: AtomId[];
   /** No ring double bonds left (1,4-dithiepane rather than hydro prefixes). */ saturated: boolean;
   /** Added hydrogen for a ketone suffix: the 1 of quinolin-2(1H)-one. */ added?: AtomId[];
+  /** Ring CH2 between two ring O or S atoms, whose indicated hydrogen goes unwritten: 1,3-dioxole, 4H-1,3-dioxine. */ quiet?: AtomId[];
+  /** The ring atoms that can carry a ring double bond in the mancude parent. */ capable?: AtomId[];
 }
 const hydroOf = new WeakMap<Numbering, Hydro>();
 /** 0 for a numbering whose indicated hydrogen sits where it is preferred (see hydroParent), else 1. */
@@ -54,10 +56,9 @@ function subsets<T>(items: T[], size: number): T[][] {
 function withHydro(stem: string, h: Hydro, numbering: Numbering): string {
   // (h is reassigned below for porphyrin)
   const loc = (a: AtomId) => numbering.get(a)!;
-  let ih = h.ih.map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
-  // The CH2 of a fused 1,3-dioxole or 1,3-dioxine goes without its indicated hydrogen, as chemists
-  // write it: 5,6,7,8-tetrahydro-[1,3]dioxolo[4,5-g]isoquinoline, 4H-benzo[d][1,3]dioxine.
-  if (/\[1,3\]diox(ol|in)/.test(stem)) ih = ih.split(',').filter((x) => x !== '2H').join(',');
+  // The CH2 between two ring O or S atoms goes without its indicated hydrogen, as chemists write it:
+  // 1,3-dioxole, 5,6,7,8-tetrahydro-[1,3]dioxolo[4,5-g]isoquinoline, 4H-benzo[d][1,3]dioxine.
+  const ih = h.ih.filter((a) => !h.quiet?.includes(a)).map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
   // Porphyrin is the 21H,23H parent itself.
   let hydro = h.hydro;
   if (/^porphyrin/.test(stem) && hydro.map(loc).sort(compareLocant).join(',') === '21,23') hydro = [];
@@ -558,6 +559,7 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'im
     const numberings: Numbering[] = [];
     // A ring with a name of its own when saturated takes the ketone as is: 1,4-dithiepan-6-one.
     const carbocyclic = system.every((a) => el(mol, a) === 'C');
+    const quiet = system.filter((a) => el(mol, a) === 'C' && ringNb(a).length === 2 && ringNb(a).every((b) => (el(mol, b) === 'O' || el(mol, b) === 'S') && mol.neighbours(b).length === 2 && !ringOxideAtoms.has(b)));
     for (const m of maps) {
       const list = double.length === 0 && ct.t.saturated ? plain : styles;
       // Where a ketone takes the suffix, its indicated hydrogen goes on a ketone carbon (3H-...-3,17(2H)-dione,
@@ -575,7 +577,7 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'im
         // Porphyrin is named for its 21H,23H form; another tautomer has no porphyrin name here.
         if (ct.t.name === 'porphyrin' && !['21', '23'].every((l) => [...style.hydro, ...style.ih].some((a) => m.get(a) === l))) continue;
         const n = new Map(m);
-        hydroOf.set(n, style);
+        hydroOf.set(n, { ...style, capable, ...(quiet.length ? { quiet } : {}) });
         prefOf.set(n, favourKetone ? (atKetone(style) ? 0 : 1) : 0);
         numberings.push(n);
       }
@@ -1734,8 +1736,11 @@ function anhydrideName(mol: Molecule): string | null {
 }
 
 /** The molecule without the =O on ring S, Se, P and As atoms, and how many each carried. */
+/** Ring atoms of the molecule being named that carry an oxide (left off the ring while it is named). */
+let ringOxideAtoms: { has(a: AtomId): boolean } = new Set();
 function withoutRingOxides(mol: Molecule): { bare: Molecule; oxides: Map<AtomId, number> } {
   const oxides = new Map<AtomId, number>();
+  ringOxideAtoms = oxides;
   const drop: AtomId[] = [];
   for (const a of mol.atoms()) {
     if (!['S', 'Se', 'P', 'As'].includes(a.element) || a.charge !== 0 || mol.neighbours(a.id).length < 3 || !perceiveRingMember(mol, a.id)) continue;
@@ -3621,6 +3626,8 @@ class Namer {
       const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !ATOM_LIKE.test(sub.text));
       const body = n > 1 && TRADITIONAL.test(sub.text) ? `${multiplier(n)}-${sub.text}`
         : omitAll && n === 1 && pre.length === 1 && (TRADITIONAL.test(sub.text) || ((sub as { di?: boolean }).di && !/^\d/.test(sub.text) && !locs[0]!.startsWith('N') && (parent || !/^[omp]-/.test(sub.text)))) ? sub.text
+        // The first of several on a parent cited without locants: quinolin-4-yl(5-vinylquinuclidin-2-yl)methanol.
+        : omitAll && parent && n === 1 && out === '' && (sub as { di?: boolean }).di && !/^(\d|[omp]-)/.test(sub.text) && !locs[0]!.startsWith('N') ? sub.text
         : bracket ? `${n > 1 && (sub as { di?: boolean }).di ? multiplier(n) : complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);
@@ -4370,9 +4377,12 @@ class Namer {
       if (h?.saturated && t.saturated) core = `${t.saturated.replace(/e$/, '')}${ium}-${fv}-yl`;
       else if (h && (el(mol, a) === 'N' || ylidene) && h.hydro.includes(a) && !h.ih.includes(a) && !ium) {
         // Joined through a ring nitrogen that would be a hydro position: its hydrogen is added
-        // hydrogen, with the lowest one beside it: 3,4-dihydroquinolin-1(2H)-yl, 2-oxopyrimidin-1(2H)-yl.
+        // hydrogen, as low as it goes with the rest of the parent still a Kekulé structure:
+        // 3,4-dihydroquinolin-1(2H)-yl, 5,6-dihydro-[1,2,4]triazolo[4,3-a]pyrazin-7(8H)-yl, 2,3-dihydroquinazolin-4(1H)-ylidene.
         const byLoc = (x: AtomId, y: AtomId) => compareLocant(numbering.get(x)!, numbering.get(y)!);
-        const partner = h.hydro.filter((x) => x !== a && mol.bondBetween(a, x)).sort(byLoc)[0] ?? h.hydro.filter((x) => x !== a).sort(byLoc)[0]!;
+        const others = h.hydro.filter((x) => x !== a).sort(byLoc);
+        const valid = h.capable ? others.filter((p) => { const left = h.capable!.filter((x) => x !== a && x !== p && !h.ih.includes(x)); return maxMatching(this.an, left) * 2 === left.length; }) : [];
+        const partner = valid[0] ?? others.find((x) => mol.bondBetween(a, x)) ?? others[0]!;
         const rest: Hydro = { ...h, hydro: h.hydro.filter((x) => x !== a && x !== partner) };
         core = `${withHydro((bridgeOf.get(numbering) ?? '') + t.yl, rest, numbering)}-${fv}(${numbering.get(partner)}H)-yl`;
       } else if (h) core = `${withHydro((bridgeOf.get(numbering) ?? '') + t.yl, h, numbering)}${ium}-${fv}-yl`;
