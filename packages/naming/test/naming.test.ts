@@ -175,7 +175,7 @@ const EXPECTED: [string, string][] = [
   ['C1Cc2ccccc2C1', '2,3-dihydro-1H-indene'],
   ['c1nc2c(s1)CCCC2', '4,5,6,7-tetrahydrobenzo[d]thiazole'],
   ['c1nc2ccccn2c1', 'imidazo[1,2-a]pyridine'],
-  ['C1CC2CC1C1CCCC21', 'tricyclo[5.2.1.0^{2,6}]decane'],
+  ['C1CC2CC1C1CCCC21', 'octahydro-1H-4,7-methanoindene'],
   ['C1CCC2(CC1)CCc1ccccc12', "2',3'-dihydrospiro[cyclohexane-1,1'-indene]"],
   ['C1CSCCSC1', '1,4-dithiepane'],
   ['O=NN1CCCCC1', '1-nitrosopiperidine'],

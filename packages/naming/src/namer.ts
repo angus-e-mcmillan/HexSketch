@@ -705,6 +705,89 @@ function hantzschWidman(an: Analysis, system: AtomId[]): CompiledTemplate | null
   return ct;
 }
 
+/** The bridge prefix of a bridged fused parent for one numbering of it: "4,7-methano". */
+const bridgeOf = new WeakMap<Numbering, string>();
+
+/**
+ * A fused parent with one or two bridges across it (P-25.4): octahydro-1H-4,7-methanoindene,
+ * 3a,4,7,7a-tetrahydro-4,7-epoxyisobenzofuran, ...-4,12-methanobenzofuro[3,2-e]isoquinoline.
+ * The bridge is one or two atoms (methano, ethano, epoxy, epithio); what is left must be a fused
+ * system with a name. Bridgeheads take locants as low as they go; bridge atoms are numbered on from
+ * the fused system's highest locant, starting beside the higher-numbered bridgehead.
+ */
+function bridgedFused(an: Analysis, system: AtomId[], ketoneSuffix: boolean): { info: RingInfo; numberings: Numbering[] } | null {
+  const mol = an.mol;
+  const inSys = new Set(system);
+  const ringNb = (a: AtomId, within: Set<AtomId>) => mol.neighbours(a).filter((n) => within.has(n) && an.ringBonds.has(mol.bondBetween(a, n)!.id));
+  const NAMES: Record<string, string> = { C: 'methano', O: 'epoxy', S: 'epithio', CC: 'ethano' };
+  const candidates: AtomId[][] = [];
+  for (const a of system) {
+    if (ringNb(a, inSys).length !== 2 || !['C', 'O', 'S'].includes(el(mol, a))) continue;
+    candidates.push([a]);
+    for (const b of ringNb(a, inSys)) if (b > a && el(mol, a) === 'C' && el(mol, b) === 'C' && ringNb(b, inSys).length === 2) candidates.push([a, b]);
+  }
+  const tryBridges = (bridges: AtomId[][]) => {
+    const drop = new Set(bridges.flat());
+    if (bridges.some((br) => br.some((x) => mol.incidentBonds(x).some((bd) => mol.bond(bd).order !== 1 && inSys.has(mol.otherAtom(mol.bond(bd), x)))))) return null;
+    const rest = system.filter((x) => !drop.has(x));
+    const restSet = new Set(rest);
+    if (rest.some((x) => ringNb(x, restSet).length < 2)) return null;
+    // Still one ring system, and a fused one (two rings or more).
+    const seen = new Set([rest[0]!]), st = [rest[0]!];
+    while (st.length) { const x = st.pop()!; for (const y of ringNb(x, restSet)) if (!seen.has(y)) { seen.add(y); st.push(y); } }
+    if (seen.size !== rest.length) return null;
+    const edges = rest.reduce((n, x) => n + ringNb(x, restSet).length, 0) / 2;
+    if (edges - rest.length + 1 < 2) return null;
+    const heads = bridges.map((br) => [br[0]!, br[br.length - 1]!].map((e, i) => ringNb(e, inSys).find((y) => restSet.has(y) && (br.length > 1 || i === 0 || y !== ringNb(e, inSys).find((z) => restSet.has(z))))!));
+    if (heads.some((h) => h.some((x) => x === undefined) || h[0] === h[1])) return null;
+    const subAn: Analysis = { ...an, ringSystems: an.ringSystems };
+    const fused = hydroParent(subAn, rest, ketoneSuffix);
+    if (!fused || fused.info.kind !== 'template') return null;
+    const locNum = (l: string) => Number(/^\d+/.exec(l)![0]);
+    // Lowest bridgehead locants first.
+    const key = (n: Numbering) => heads.flat().map((x) => locVal(n.get(x)!)).sort((x, y) => x - y);
+    let best: number[] | null = null;
+    const keep: Numbering[] = [];
+    for (const n of fused.numberings) {
+      const k = key(n);
+      const c = best ? cmpVec(k, best) : -1;
+      if (c < 0) { best = k; keep.length = 0; }
+      if (c <= 0) keep.push(n);
+    }
+    const out: Numbering[] = [];
+    for (const n of keep) {
+      const top = Math.max(...[...n.values()].map(locNum));
+      const m = new Map(n);
+      let next = top + 1;
+      const order = bridges.map((br, i) => ({ br, heads: heads[i]! })).sort((x, y) => Math.max(...y.heads.map((h) => locVal(n.get(h)!))) - Math.max(...x.heads.map((h) => locVal(n.get(h)!))));
+      const parts: string[] = [];
+      for (const { br, heads: hd } of order) {
+        // Start beside the higher-numbered bridgehead.
+        const hiHead = locVal(n.get(hd[0]!)!) > locVal(n.get(hd[1]!)!) ? 0 : 1;
+        const atoms = hiHead === 0 ? br : [...br].reverse();
+        for (const x of atoms) m.set(x, String(next++));
+        const word = NAMES[br.map((x) => el(mol, x)).join('')];
+        if (!word) return null;
+        parts.push(`${hd.map((h) => n.get(h)!).sort(compareLocant).join(',')}-${word}`);
+      }
+      hydroOf.set(m, hydroOf.get(n)!);
+      bridgeOf.set(m, parts.sort().join(':') + (parts.length > 1 ? '' : ''));
+      out.push(m);
+    }
+    if (!out.length) return null;
+    // Two bridges: 3,8:4,8-dimethano.
+    if (bridges.length === 2) for (const m of out) { const b = bridgeOf.get(m)!; const ws = b.split(':'); if (ws.every((w) => w.endsWith(ws[0]!.split('-')[1]!))) bridgeOf.set(m, `${ws.map((w) => w.split('-')[0]).join(':')}-di${ws[0]!.split('-')[1]}`); else return null; }
+    return { info: { ...fused.info, size: system.length, ringCount: fused.info.ringCount + bridges.length }, numberings: out };
+  };
+  // The largest fused system, then the shortest bridge: 4,7-methanoindene, not 1,3-ethanopentalene.
+  let best: { r: { info: RingInfo; numberings: Numbering[] }; size: number; bridge: number } | null = null;
+  for (const c of candidates) {
+    const r = tryBridges([c]);
+    if (r && (!best || system.length - c.length > best.size || (system.length - c.length === best.size && c.length < best.bridge))) best = { r, size: system.length - c.length, bridge: c.length };
+  }
+  return best?.r ?? null;
+}
+
 /** `ketoneSuffix`: a ring C=O is the principal ketone, so its hydrogen is described as for pyridin-2(1H)-one. */
 function recognizeRing(an: Analysis, system: AtomId[], ketoneSuffix = false): { info: RingInfo; numberings: Numbering[] } | null {
   const mol = an.mol;
@@ -725,6 +808,8 @@ function recognizeRing(an: Analysis, system: AtomId[], ketoneSuffix = false): { 
   }
   const hydro = hydroParent(an, system, ketoneSuffix);
   if (hydro) return hydro;
+  const bridged = bridgedFused(an, system, ketoneSuffix);
+  if (bridged) return bridged;
   // A single ring: a cycloalkane or cycloalkene, or (too large for a Hantzsch-Widman name, as a
   // macrolide or a crown ether is) the same with its heteroatoms as replacement prefixes:
   // 1-oxacyclotetradecane, 1,4,7,10-tetraoxacyclododecane.
@@ -2994,7 +3079,7 @@ class Namer {
       const t = p.ring!.template!;
       const h = hydroOf.get(numbering);
       if (h?.saturated && t.saturated) return t.saturated;
-      if (h) return withHydro(t.name, h, numbering);
+      if (h) return withHydro((bridgeOf.get(numbering) ?? '') + t.name, h, numbering);
       return t.indicatedH ? `${t.indicatedH}H-${t.name}` : t.name;
     }
     const n = p.kind === 'ring' ? p.ring!.size : p.atoms.length;
@@ -3816,8 +3901,8 @@ class Namer {
         const byLoc = (x: AtomId, y: AtomId) => compareLocant(numbering.get(x)!, numbering.get(y)!);
         const partner = h.hydro.filter((x) => x !== a && mol.bondBetween(a, x)).sort(byLoc)[0] ?? h.hydro.filter((x) => x !== a).sort(byLoc)[0]!;
         const rest: Hydro = { ...h, hydro: h.hydro.filter((x) => x !== a && x !== partner) };
-        core = `${withHydro(t.yl, rest, numbering)}-${fv}(${numbering.get(partner)}H)-yl`;
-      } else if (h) core = `${withHydro(t.yl, h, numbering)}${ium}-${fv}-yl`;
+        core = `${withHydro((bridgeOf.get(numbering) ?? '') + t.yl, rest, numbering)}-${fv}(${numbering.get(partner)}H)-yl`;
+      } else if (h) core = `${withHydro((bridgeOf.get(numbering) ?? '') + t.yl, h, numbering)}${ium}-${fv}-yl`;
       else if (t.name === 'benzene') core = 'phenyl';
       else if ((t.name === 'morpholine' || t.name === 'thiomorpholine') && fv === '4' && !ium) core = `${t.name.replace(/e$/, '')}o`;
       else core = `${t.indicatedH ? `${t.indicatedH}H-` : ''}${t.yl}${ium}-${fv}-yl`;

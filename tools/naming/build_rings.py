@@ -87,6 +87,7 @@ benzo[a]acridine benzo[c]acridine dibenzo[a,h]acridine dibenzo[a,j]acridine dibe
 benzo[c]cinnoline benzo[f]quinoxaline benzo[g]quinoxaline benzo[h]isoquinoline benzo[f]isoquinoline benzo[c]phenanthridine benzo[b]naphtho[2,1-d]thiophene benzo[b]naphtho[2,3-d]furan benzo[b]naphtho[1,2-d]furan
 dibenzo[b,d]pyran dibenzo[c,h]chromene benzo[c]chromene 6H-benzo[c]chromene indeno[1,2-b]furan indeno[2,1-b]indole cyclopenta[def]phenanthrene cyclopenta[def]chrysene
 indolo[4,3-fg]quinoline indolo[2',3':3,4]pyrido[1,2-b]isoquinoline pyrano[3',4':6,7]indolizino[1,2-b]quinoline [1,3]dioxolo[4,5-g]isoquinolino[3,2-a]isoquinoline isoquinolino[3,2-a]isoquinoline benzo[2,3]benzofuro[4,3-cd]azepine furo[3',4':6,7]naphtho[2,3-d][1,3]dioxole benzo[a]heptalene chromeno[3,4-b]furo[2,3-h]chromene cyclopenta[c]furo[3',2':4,5]furo[2,3-h]chromene benzofuro[3,2-c]chromene benzo[c][1]oxacyclotetradecine oxireno[2',3':9,10]cyclodeca[1,2-b]furan dipyrido[3,2-b:2',3'-e][1,4]diazepine dinaphtho[1,2-d:1',2'-f][1,3,2]dioxaphosphepine furo[3,2-d][1,3,2]dioxaphosphinine benzo[d][1,3,2]dioxaborole pyrrolo[1,2-c][1,3,2]oxazaborole 1,2-azaborinine porphyrin benzo[a]quinolizine indolo[2,3-a]quinolizine
+benzofuro[3,2-e]isoquinoline azecino[5,4-b]indole [1,2]dioxepino[4,3-i]isochromene benzo[d]azocine
 spiro[4.5]decane
 """.split()
 NAMED = [n for n in NAMED if not n.startswith('spiro')]
