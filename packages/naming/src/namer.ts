@@ -3107,7 +3107,7 @@ class Namer {
       const gem = [...sites.keys()].filter((o) => o.nitrogen !== undefined && locOf(o) === locAt).map((o) => o.nitrogen!);
       for (const n of mol.neighbours(g.nitrogen)) {
         if (n === anchorC || g.consumed.includes(n)) continue;
-        out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: locAt, nAtom: g.nitrogen, nGem: gem });
+        out.push({ ...(mol.bondBetween(g.nitrogen, n)!.order === 2 ? this.ylidene(n, g.nitrogen) : this.substituent(n, g.nitrogen)), at: 'N', nOf: locAt, nAtom: g.nitrogen, nGem: gem });
       }
       // On the far nitrogen of a hydrazide: N'-benzylidene, N',N'-dimethyl.
       if (g.nPrime !== undefined) for (const n of mol.neighbours(g.nPrime)) {
