@@ -149,6 +149,10 @@ function chemistStyle(s: SubName): SubName {
   if (t === 'amino(imino)methyl') return mk('carbamimidoyl', false);
   if (t === '(amino(imino)methyl)amino' || t === 'carbamimidoylamino') return mk('guanidino', false);
   if (t === 'carbamoylamino') return mk('ureido', false);
+  // (Phenylamino)thioxomethyl: phenylcarbamothioyl.
+  if (t === 'aminothioxomethyl') return mk('carbamothioyl', false);
+  const ct = /^\((.+)amino\)thioxomethyl$/.exec(t) ?? /^thioxo\((.+)amino\)methyl$/.exec(t);
+  if (ct && balanced(ct[1]!)) return mk(`${ct[1]}carbamothioyl`);
   const sa = /^\((\(.+\)|[a-z]+)sulfonyl\)amino$/.exec(t);
   if (sa && balanced(sa[1]!)) return mk(`${sa[1]}sulfonamido`);
   let mu = /^\((di)?([a-z]+|\(.+\))carbamoyl\)amino$/.exec(t);
@@ -1922,7 +1926,7 @@ class Namer {
    * parent: R-B(OH)2 boronic acids, R3P phosphanes, RBF3- borates.
    */
   functionalClassName(): string | null {
-    const nn = this.thiocarbamate() ?? this.hydroxylamine() ?? this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
+    const nn = this.thiocarbamate() ?? this.hydroxylamine() ?? this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineCarbonyl() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
     if (nn) return nn;
     const mol = this.mol;
     // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
@@ -2078,6 +2082,52 @@ class Namer {
    * A hydrazine or diazene with nothing more senior on it, named as the parent: phenylhydrazine,
    * 1,1-dimethylhydrazine, 1-phenyl-2-(propan-2-ylidene)hydrazine, (E)-1,2-diphenyldiazene.
    */
+  /**
+   * Semicarbazides, thiosemicarbazides and carbazates, named on hydrazine: hydrazinecarboxamide,
+   * 2-(propan-2-ylidene)hydrazine-1-carbothioamide, methyl hydrazinecarboxylate.
+   */
+  hydrazineCarbonyl(): string | null {
+    const mol = this.mol;
+    const nns = [...mol.bonds()].filter((b) => b.order === 1 && el(mol, b.begin) === 'N' && el(mol, b.end) === 'N' && !this.an.ringAtoms.has(b.begin) && !this.an.ringAtoms.has(b.end));
+    if (nns.length !== 1) return null;
+    const ns = [nns[0]!.begin, nns[0]!.end];
+    if (ns.some((x) => mol.atom(x).charge !== 0 || mol.incidentBonds(x).some((b) => mol.bond(b).order !== 1 && el(mol, mol.otherAtom(mol.bond(b), x)) !== 'C'))) return null;
+    const acyls = ns.flatMap((n) => mol.neighbours(n).filter((c) => isAcylCarbon(mol, c) || (el(mol, c) === 'C' && mol.incidentBonds(c).some((b) => mol.bond(b).order === 2 && el(mol, mol.otherAtom(mol.bond(b), c)) === 'S' && mol.neighbours(mol.otherAtom(mol.bond(b), c)).length === 1))).map((c) => [n, c] as const));
+    if (acyls.length !== 1) return null;
+    const [n1, ac] = acyls[0]!;
+    const n2 = ns.find((x) => x !== n1)!;
+    const acN = mol.neighbours(ac).filter((x) => x !== n1);
+    const dbl = acN.find((x) => mol.bondBetween(ac, x)!.order === 2)!;
+    const x = acN.find((y) => y !== dbl);
+    if (acN.length !== 2 || x === undefined || this.an.ringAtoms.has(x) || mol.atom(x).charge !== 0) return null;
+    const thio = el(mol, dbl) === 'S';
+    // The group on the carbonyl must be the principal one, and nothing else outranks it.
+    const ours = this.principalGroups.length && this.principalGroups.every((g) => g.anchor === ac || g.consumed.includes(ac));
+    if (!ours && this.principal && SENIORITY.indexOf(this.principal) <= SENIORITY.indexOf('urea')) return null;
+    let suffix: string, alkyl = '';
+    const pre: Prefix[] = [];
+    if (el(mol, x) === 'N') {
+      if (!mol.neighbours(x).every((y) => y === ac || (el(mol, y) === 'C' && !isAcylCarbon(mol, y)))) return null;
+      suffix = thio ? 'carbothioamide' : 'carboxamide';
+      for (const y of mol.neighbours(x)) if (y !== ac) pre.push({ ...this.substituent(y, x), at: 'N' });
+    } else if (el(mol, x) === 'O' && !thio) {
+      const r = mol.neighbours(x).find((y) => y !== ac);
+      if (r === undefined) { if (!this.an.h.get(x)) return null; suffix = 'carboxylic acid'; }
+      else { if (el(mol, r) !== 'C' || isAcylCarbon(mol, r)) return null; alkyl = `${this.substituent(r, x).text} `; suffix = 'carboxylate'; }
+    } else return null;
+    for (const n of ns) for (const bd of mol.incidentBonds(n).map((b) => mol.bond(b))) {
+      const o = mol.otherAtom(bd, n);
+      if (ns.includes(o) || o === ac) continue;
+      if (el(mol, o) !== 'C' || isAcylCarbon(mol, o)) return null;
+      pre.push({ ...(bd.order === 2 ? this.ylidene(o, n) : this.substituent(o, n)), at: n });
+    }
+    const onHydrazine = pre.some((p) => p.at !== 'N');
+    const numbering: Numbering = new Map([[n1, '1'], [n2, '2']]);
+    const preText = this.prefixString(pre, numbering, false);
+    const parent = `hydrazine${onHydrazine ? '-1-' : ''}${suffix}`;
+    return `${alkyl}${preText}${preText && /^[0-9([]/.test(parent) ? '-' : ''}${parent}`;
+  }
+
   hydrazineName(): string | null {
     const mol = this.mol;
     const nns = [...mol.bonds()].filter((b) => el(mol, b.begin) === 'N' && el(mol, b.end) === 'N' && !this.an.ringAtoms.has(b.begin) && !this.an.ringAtoms.has(b.end));
@@ -2966,7 +3016,7 @@ class Namer {
         ? mol.neighbours(r).filter((x) => x !== n) : [];
       if (rr.length === 1 && mol.bondBetween(r, rr[0]!)!.order === 1 && !this.an.ringAtoms.has(r)) {
         const R2 = this.substituent(rr[0]!, r);
-        if (!/(oyl|carbonyl|sulfonyl)$/.test(R2.text)) {
+        {
           const text = `2-${R2.complex ? `(${R2.text})` : R2.text}hydrazineylidene`;
           return { text, complex: true, sortKey: sortKeyOf(text) };
         }
