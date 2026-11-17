@@ -50,9 +50,9 @@ export const TEMPLATES: RingTemplate[] = [
   { name: 'indole', yl: 'indol', smiles: '[nH]1ccc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], indicatedH: '1', aromatic: true },
   { name: 'benzofuran', yl: 'benzofuran', smiles: 'o1ccc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
   { name: 'benzo[b]thiophene', yl: 'benzo[b]thiophen', smiles: 's1ccc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
-  { name: 'benzimidazole', yl: 'benzimidazol', smiles: '[nH]1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], indicatedH: '1', aromatic: true },
-  { name: 'benzoxazole', yl: 'benzoxazol', smiles: 'o1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
-  { name: 'benzothiazole', yl: 'benzothiazol', smiles: 's1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
+  { name: 'benzo[d]imidazole', yl: 'benzo[d]imidazol', smiles: '[nH]1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], indicatedH: '1', aromatic: true },
+  { name: 'benzo[d]oxazole', yl: 'benzo[d]oxazol', smiles: 'o1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
+  { name: 'benzo[d]thiazole', yl: 'benzo[d]thiazol', smiles: 's1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
   { name: 'piperidine', yl: 'piperidin', smiles: 'N1CCCCC1', locants: seq(6), aromatic: false },
   { name: 'piperazine', yl: 'piperazin', smiles: 'N1CCNCC1', locants: seq(6), aromatic: false },
   { name: 'morpholine', yl: 'morpholin', smiles: 'O1CCNCC1', locants: seq(6), aromatic: false },
@@ -97,5 +97,5 @@ export const TEMPLATES: RingTemplate[] = [
 /** Parents named by hydro prefixes when partly saturated (benzene's are cycloalkenes). */
 const HYDRO_PARENTS = new Set(['pyridine', 'pyrimidine', 'pyrazine', 'pyridazine', 'furan', 'thiophene', 'pyrrole', 'imidazole', 'pyrazole',
   'oxazole', 'thiazole', 'isoxazole', 'isothiazole', 'naphthalene', 'quinoline', 'isoquinoline', 'indole', 'benzofuran', 'benzo[b]thiophene',
-  'benzimidazole', 'benzoxazole', 'benzothiazole', 'quinoxaline', 'quinazoline', 'purine', 'indazole', 'fluorene']);
+  'benzo[d]imidazole', 'benzo[d]oxazole', 'benzo[d]thiazole', 'quinoxaline', 'quinazoline', 'purine', 'indazole', 'fluorene']);
 for (const t of TEMPLATES) if (HYDRO_PARENTS.has(t.name)) t.mancude = true;

@@ -37,7 +37,7 @@ test('formula and mass of written peptides', () => {
 });
 
 test('Expand Label: caption becomes the structure, which is named back from its wedges (L and D)', () => {
-  for (const [text, name] of [['H-Ala-Gly-OH', 'L-alanylglycine'], ['H-D-Ala-Phe-OH', 'D-alanyl-L-phenylalanine'], ['Ac-Lys-Pro-NH2', 'N-acetyl-L-lysyl-L-prolinamide'], ['H-Thr-D-Ile-OH', 'L-threonyl-D-isoleucine']] as const) {
+  for (const [text, name] of [['H-Ala-Gly-OH', 'L-alanylglycine'], ['H-D-Ala-Phe-OH', 'D-alanyl-L-phenylalanine'], ['Ac-Lys-Pro-NH2', '(S)-1-((S)-2-acetamido-6-aminohexanoyl)pyrrolidine-2-carboxamide'], ['H-Thr-D-Ile-OH', 'L-threonyl-D-isoleucine']] as const) {
     const ed = new Editor();
     ed.doc.objects.push(makeCaption(100, 100, text));
     assert.equal(ed.expandLabels(), 1);
@@ -57,8 +57,8 @@ test('Expand Label on atoms: a lone peptide label, and abbreviations drawn out i
   ed.doc.edit((m) => { m.addAtom({ element: 'C', x: 300, y: 300, label: 'Boc-Gly-OMe' }); });
   assert.equal(ed.expandLabels(), 2);
   assert.ok(sameStructure(ed.doc.mol, parseSmiles('Cc1ccccc1.COC(=O)CNC(=O)OC(C)(C)C')));
-  // A protected peptide gets a systematic name when the namer has one (OPSIN can check it), else its sequence.
-  assert.equal(nameMolecule(ed.doc.mol).name, 'toluene · methyl 2-((tert-butoxycarbonyl)amino)acetate');
+  // A protected amino acid is named on the amino acid, as chemists name it.
+  assert.equal(nameMolecule(ed.doc.mol).name, 'toluene · methyl (tert-butoxycarbonyl)glycinate');
 });
 
 test('recognition finds the sequence of a drawn peptide and refuses lookalikes', () => {
@@ -74,7 +74,7 @@ test('recognition finds the sequence of a drawn peptide and refuses lookalikes',
   // OPSIN reads "isoleucine" as L-isoleucine, so the name is the systematic one, citing only what was drawn.
   assert.equal(peptideName(partly), null);
   // With C3 left open, the descriptor carries its locant: a bare "(S)" would not say which centre it is.
-  assert.equal(nameMolecule(parseSmiles('N[C@@H](C)C(=O)N[C@@H](C(C)CC)C(=O)O')).name, '(2S)-2-(((S)-2-aminopropanoyl)amino)-3-methylpentanoic acid');
+  assert.equal(nameMolecule(parseSmiles('N[C@@H](C)C(=O)N[C@@H](C(C)CC)C(=O)O')).name, '(2S)-2-((S)-2-aminopropanamido)-3-methylpentanoic acid');
 });
 
 test('expanded peptides have no overlapping atoms (prolines kink the chain)', () => {
@@ -182,7 +182,7 @@ test("a peptide's long name stays on the page", () => {
   ed.hover = { kind: 'atom', id: [...ed.doc.mol.atoms()][0]!.id };
   assert.ok(ed.toggleAnalysis('name'));
   const c = ed.doc.objects.find((o): o is Caption => o.kind === 'text' && !!o.analysis)!;
-  assert.match(c.text, /^methyl \(2S,3S\)-2-\(\(\(R\)-2-/);
+  assert.match(c.text, /^methyl \(\(S\)-6-\(\(\(benzyloxy\)carbonyl\)amino\)-2-/);
   assert.ok(captionBounds(c, ed.doc.style).x0 >= 0, 'name starts on the page');
 });
 
@@ -193,11 +193,13 @@ test('a peptide typed as an atom label is analysed, named and expands', () => {
   ed.setLabel(id, 'Ac-Lys-Pro-NH2');
   assert.equal(ed.doc.mol.atom(id).label, 'Ac-Lys-Pro-NH2');
   assert.equal(ed.mass?.formula, 'C13H24N4O3');
-  assert.equal(nameMolecule(ed.doc.mol).name, 'N-acetyl-L-lysyl-L-prolinamide');
+  // A C-terminal amide is named systematically, not as a peptide.
+  const name = '(S)-1-((S)-2-acetamido-6-aminohexanoyl)pyrrolidine-2-carboxamide';
+  assert.equal(nameMolecule(ed.doc.mol).name, name);
   ed.hover = { kind: 'atom', id };
   assert.equal(ed.expandLabels(), 1);
   assert.equal(ed.mass?.formula, 'C13H24N4O3');
-  assert.equal(nameMolecule(ed.doc.mol).name, 'N-acetyl-L-lysyl-L-prolinamide');
+  assert.equal(nameMolecule(ed.doc.mol).name, name);
 });
 
 import { cleanUpStructure, peptideSmiles, type Caption, type Molecule } from '@hexsketch/core';

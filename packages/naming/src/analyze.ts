@@ -137,6 +137,14 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
     if (dblO && singles.length === 0 && carbons.length === 2) {
       groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [dblO.atom] });
       claimed.add(dblO.atom);
+      continue;
+    }
+    // An open-chain C=O on a ring nitrogen with nothing but carbon or ring nitrogens beside it is named as a
+    // ketone: 1-(piperidin-1-yl)prop-2-en-1-one, di(1H-imidazol-1-yl)methanone.
+    if (dblO && !ringAtoms.has(c.id) && singles.length >= 1 && carbons.length + singles.length === 2
+        && singles.every((n) => el(mol, n.atom) === 'N' && ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0)) {
+      groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [dblO.atom] });
+      claimed.add(dblO.atom);
     }
   }
 

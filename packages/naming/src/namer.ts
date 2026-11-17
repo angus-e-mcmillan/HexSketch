@@ -1,4 +1,4 @@
-import { cipLimits, ezLabel, labelStructure, Molecule, perceiveRings, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
+import { RESIDUES, isomorphisms, peptideMolecule, cipLimits, ezLabel, labelStructure, Molecule, perceiveRings, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
 import { analyze, SENIORITY, isAcylCarbon, isIminium, isRingAnion, isRingCation, type Analysis, type Group, type GroupKind } from './analyze.ts';
 import type { RingRow } from './rings.ts';
 import { TEMPLATES, type RingTemplate } from './templates.ts';
@@ -50,9 +50,10 @@ function subsets<T>(items: T[], size: number): T[][] {
 function withHydro(stem: string, h: Hydro, numbering: Numbering): string {
   const loc = (a: AtomId) => numbering.get(a)!;
   const ih = h.ih.map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
-  const hy = h.hydro.length ? `${h.hydro.map(loc).sort(compareLocant).join(',')}-${multiplier(h.hydro.length)}hydro` : '';
+  // Fully saturated, the hydro prefixes need no locants: octahydro-2H-quinolizine, dihydrofuran-2(3H)-one.
+  const hy = !h.hydro.length ? '' : h.saturated ? `${multiplier(h.hydro.length)}hydro` : `${h.hydro.map(loc).sort(compareLocant).join(',')}-${multiplier(h.hydro.length)}hydro`;
   const ihText = ih ? `${ih}-` : '';
-  const join = hy && (ihText || /^[0-9]/.test(stem)) ? '-' : '';
+  const join = hy && (ihText || /^[0-9[]/.test(stem)) ? '-' : '';
   return `${hy}${join}${ihText}${stem}`;
 }
 
@@ -61,7 +62,113 @@ interface Prefix {
   /** For 'N': the carbon whose amine or amide this nitrogen is. */ nOf?: AtomId;
   /** For 'N': the nitrogen itself, and every principal nitrogen on the same carbon (two or more: N and N'). */ nAtom?: AtomId; nGem?: AtomId[];
 }
-interface SubName { text: string; complex: boolean; sortKey: string }
+/** `di`: bracketed but unsubstituted, so multiplied with di/tri: di(1H-imidazol-1-yl). */
+interface SubName { text: string; complex: boolean; sortKey: string; di?: boolean }
+
+/** The sort key of a prefix: its letters, italic prefixes (tert-, sec-, o-, m-, p-) and locants left out. */
+const sortKeyOf = (text: string) => text.replace(/\((?:\d+[a-z]?'*)?[RSEZrs](?:,(?:\d+[a-z]?'*)?[RSEZrs])*\)-/g, '').replace(/\b(tert|sec|[omp])-/g, '').replace(/[^a-z]/g, '');
+
+/**
+ * Each amino acid with a name, as a free acid laid out for matching: its N, alpha carbon and
+ * carboxyl carbon, and the alpha carbon with its side chain as a molecule of its own.
+ */
+interface ResidueRef { code: string; free: string; acyl: string | null; achiral: boolean; mol: Molecule; n: AtomId; ca: AtomId; c: AtomId; side: Molecule; sideMap: Map<AtomId, AtomId> }
+let residueRefs: ResidueRef[] | null = null;
+function residues(): ResidueRef[] {
+  if (residueRefs) return residueRefs;
+  residueRefs = [];
+  for (const [code, def] of Object.entries(RESIDUES)) {
+    if (!def.free || code === 'Sar' || code === 'bAla') continue;
+    let k = 1;
+    const ph = new Map<string, number>();
+    const fill = (t: string) => t.replace(/\{(\w)\}/g, (_, x: string) => String(ph.get(x) ?? (ph.set(x, k++), ph.get(x))));
+    const smi = def.special ? fill(def.special.smiles) + 'O' : def.side ? `N[C@@H](${fill(def.side)})C(=O)O` : 'NCC(=O)O';
+    const mol = parseSmiles(smi);
+    const ids = [...mol.atoms()].map((a) => a.id);
+    const [n, ca, c] = def.special ? def.special.main.map((i) => ids[i]!) : [ids[0]!, ids[1]!, ids[ids.length - 3]!];
+    const side = sideChain(mol, ca!, n!, c!);
+    residueRefs.push({ code, free: def.free, acyl: def.acyl?.replace(/^α-/, '') ?? null, achiral: !!def.achiral, mol, n: n!, ca: ca!, c: c!, ...side });
+  }
+  return residueRefs;
+}
+
+/** The alpha carbon and everything reached from it but its N and carboxyl carbon, as a molecule. */
+function sideChain(mol: Molecule, ca: AtomId, n: AtomId, c: AtomId): { side: Molecule; sideMap: Map<AtomId, AtomId>; atoms: Set<AtomId> } {
+  const atoms = new Set<AtomId>([ca]);
+  const stack = [ca];
+  while (stack.length) { const x = stack.pop()!; for (const y of mol.neighbours(x)) if (y !== n && y !== c && !atoms.has(y)) { atoms.add(y); stack.push(y); } }
+  const side = mol.clone();
+  // Each atom keeps the hydrogens it had, whether they were written ([C@@H]) or implied.
+  for (const a of side.atoms()) a.explicitHydrogens = mol.implicitHydrogens(a.id);
+  for (const a of [...side.atoms()]) if (!atoms.has(a.id)) side.removeAtom(a.id);
+  return { side, sideMap: new Map([...atoms].map((x) => [x, x])), atoms };
+}
+
+/** Unbalanced if a bracket closes before it opens or is left open. */
+const balanced = (t: string) => { let d = 0; for (const c of t) { if (c === '(') d++; else if (c === ')' && --d < 0) return false; } return d === 0; };
+
+/** The acyl groups chemists keep their own names for, by systematic name. */
+const ACYL: Record<string, string> = {
+  'prop-2-enoyl': 'acryloyl', '2-methylprop-2-enoyl': 'methacryloyl', hexadecanoyl: 'palmitoyl', octadecanoyl: 'stearoyl',
+  '(Z)-octadec-9-enoyl': 'oleoyl', dodecanoyl: 'lauroyl', tetradecanoyl: 'myristoyl',
+};
+
+/**
+ * Substituent prefixes as chemists write them: p-tolyl, mesityl, 4-methoxybenzyl, phenethyl, 4-hydroxystyryl,
+ * 2-hydroxyacetyl, acryloyl, 2-phenylacetamido, carboxymethyl, trimethylammonio, diphenylphosphaneyl.
+ */
+function chemistStyle(s: SubName): SubName {
+  const t = s.text;
+  const mk = (text: string, complex = true, di?: boolean): SubName => ({ text, complex, sortKey: sortKeyOf(text), ...(di ? { di } : {}) });
+  const TOLYL: Record<string, string> = { '2-methylphenyl': 'o-tolyl', '3-methylphenyl': 'm-tolyl', '4-methylphenyl': 'p-tolyl' };
+  if (TOLYL[t]) return mk(TOLYL[t]!, true, true);
+  if (t === '2,4,6-trimethylphenyl') return mk('mesityl', false);
+  if (t === '2-phenylethyl') return mk('phenethyl', false);
+  if (t === 'eth-1-en-1-yl') return mk('vinyl', false);
+  if (t === '2-hydroxy-2-oxoethyl') return mk('carboxymethyl');
+  if (t === 'amino(imino)methyl') return mk('carbamimidoyl', false);
+  if (t === '(amino(imino)methyl)amino') return mk('guanidino', false);
+  if (t === '3-hydroxy-3-oxopropyl') return mk('2-carboxyethyl');
+  if (ACYL[t]) return mk(ACYL[t]!, false);
+  // (4-methoxyphenyl)methyl: 4-methoxybenzyl; (4-methoxyphenyl)methylidene: 4-methoxybenzylidene.
+  let m = /^\((.+)phenyl\)methyl(idene)?$/.exec(t);
+  if (m && balanced(m[1]!)) return mk(`${m[1]}benzyl${m[2] ? 'idene' : ''}`);
+  if (t === 'phenylmethylidene') return mk('benzylidene', false);
+  // (E)-2-(4-hydroxyphenyl)eth-1-en-1-yl: (E)-4-hydroxystyryl.
+  m = /^(\([EZ]\)-)?2-(?:\((.+)phenyl\)|phenyl)eth-1-en-1-yl$/.exec(t);
+  if (m && balanced(m[2] ?? '')) return mk(`${m[1] ?? ''}${m[2] ?? ''}styryl`, true);
+  // A substituted two-carbon acyl keeps "acetyl": 2-hydroxyacetyl, 2-phenylacetyl.
+  if (/ethanoyl$/.test(t)) return mk(t.replace(/ethanoyl$/, 'acetyl'));
+  if (/methylidene$/.test(t) && !/^(\([EZ]\)-)?methylidene$/.test(t)) return mk(t.replace(/methylidene$/, 'methylene'), s.complex);
+  if (/azaniumyl$/.test(t)) return mk(t.replace(/azaniumyl$/, 'ammonio'), t !== 'azaniumyl' && s.complex);
+  if (/phosphanyl$/.test(t) && !/λ/.test(t)) return mk(t.replace(/phosphanyl$/, 'phosphaneyl'), s.complex);
+  return s;
+}
+
+/**
+ * A ring's acyl group named from the ring: pyrazine-2-carbonyl, cyclohexanecarbonyl, 4-methoxybenzoyl,
+ * (S)-pyrrolidine-2-carbonyl. Null where the ring's name gives no such form.
+ */
+function ringCarbonyl(yl: string): string | null {
+  const m = /^(.*)phenyl$/.exec(yl);
+  if (m && balanced(m[1]!)) return `${m[1]}benzoyl`;
+  if (/ium|ide-|spiro/.test(yl)) return null;
+  const cyc = /^(.*cyclo[a-z]+)yl$/.exec(yl);
+  if (cyc && !/-\d/.test(cyc[1]!.slice(cyc[1]!.lastIndexOf('cyclo')))) return `${cyc[1]}anecarbonyl`;
+  const r = /^(.*[a-z\]])-(\d+[a-z]?'*)-yl$/.exec(yl);
+  if (!r) return null;
+  return `${r[1]}${/(furan|pyran)$/.test(r[1]!) ? '' : 'e'}-${r[2]}-carbonyl`;
+}
+
+/** An acylamino prefix as one word: acetamido, 2-phenylacetamido, pentanamido, benzamido, pyrazine-2-carboxamido. */
+function amido(acyl: string): string | null {
+  if (/acetyl$/.test(acyl)) return acyl.replace(/acetyl$/, 'acetamido');
+  if (/benzoyl$/.test(acyl)) return acyl.replace(/benzoyl$/, 'benzamido');
+  if (/([a-z\]]-\d+[a-z]?'*-c|anec)arbonyl$/.test(acyl) && balanced(acyl)) return acyl.replace(/carbonyl$/, 'carboxamido');
+  if (/(an|en|yn)oyl$/.test(acyl)) return acyl.replace(/oyl$/, 'amido');
+  const RET: Record<string, string> = { acryloyl: 'acrylamido', palmitoyl: 'palmitamido', stearoyl: 'stearamido', methacryloyl: 'methacrylamido' };
+  return RET[acyl] ?? null;
+}
 
 const el = (mol: Molecule, id: AtomId) => mol.atom(id).element;
 
@@ -374,7 +481,10 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
   const base = { heteroN: hetero('N'), heteroO: hetero('O'), heteroS: hetero('S') };
   const monocyclic = system.every((a) => ringNb(a).length === 2);
   const hw = monocyclic ? hantzschWidman(an, system) : null;
-  for (const ct of [...parentsFor(system.map((a) => el(mol, a))), ...(hw ? [hw] : [])]) {
+  for (const ct0 of [...parentsFor(system.map((a) => el(mol, a))), ...(hw ? [hw] : [])]) {
+    // A fully saturated heteromonocycle has a name of its own: oxepane, 1,3-dithiolane, isothiazolidine, azocane.
+    const sat = monocyclic && double.length === 0 && !ct0.t.saturated ? saturatedName(ct0.t.name, system.some((a) => el(mol, a) === 'N')) : null;
+    const ct = sat ? compiledWithSaturated(ct0, sat) : ct0;
     const maps = matchSkeleton(an, system, ct);
     if (!maps.length) continue;
     const numberings: Numbering[] = [];
@@ -388,6 +498,23 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
     return { info: { kind: 'template', template: ct.t, hydro: true, size: system.length, ringCount, ...base }, numberings };
   }
   return null;
+}
+
+/** The saturated name of a heteromonocycle from its mancude one, where it has one: oxepine, oxepane. */
+function saturatedName(name: string, nitrogen: boolean): string | null {
+  if (/^(pyridine|pyrimidine|pyrazine|pyridazine|pyran|thiopyran|selenopyran|furan|thiophene|pyrrole)$/.test(name)) return null;
+  const rules: [RegExp, string][] = [[/irine$/, 'iridine'], [/irene$/, 'irane'], [/ete$/, nitrogen ? 'etidine' : 'etane'], [/ole$/, nitrogen ? 'olidine' : 'olane'],
+    [/epine$/, 'epane'], [/ocine$/, 'ocane'], [/onine$/, 'onane'], [/ecine$/, 'ecane'], [/inine$/, 'inane'], [/ine$/, nitrogen ? 'inane' : 'ane']];
+  // Six-membered with only O or S: 1,4-dioxine, 1,4-dioxane.
+  for (const [re, to] of rules) if (re.test(name)) return name.replace(re, to);
+  return null;
+}
+const satCache = new Map<string, CompiledTemplate>();
+function compiledWithSaturated(ct: CompiledTemplate, saturated: string): CompiledTemplate {
+  const key = `${ct.t.name}|${saturated}`;
+  let hit = satCache.get(key);
+  if (!hit) { hit = { ...ct, t: { ...ct.t, saturated } }; satCache.set(key, hit); }
+  return hit;
 }
 
 /** How a spiro union's name is built for one numbering of it. */
@@ -519,7 +646,8 @@ function hantzschWidman(an: Analysis, system: AtomId[]): CompiledTemplate | null
   const names = (() => {
     const cited = HW_PRIORITY.filter((e) => order.includes(e));
     const locs = cited.flatMap((e) => order.map((x, i) => (x === e ? String(i + 1) : '')).filter(Boolean));
-    const prefix = cited.map((e) => `${multiplier(order.filter((x) => x === e).length)}${HW_PREFIX[e]}`).join('');
+    // The a of a prefix goes before a vowel: dithiazocane, dioxazaborocane.
+    const prefix = cited.map((e) => `${multiplier(order.filter((x) => x === e).length)}${HW_PREFIX[e]}`).reduce((acc, p) => (acc && /a$/.test(acc) && /^[aeiou]/.test(p) ? acc.slice(0, -1) : acc) + p, '');
     const last = cited[cited.length - 1]!;
     const stem = n === 3 ? (last === 'N' ? 'irine' : 'irene') : n === 4 ? 'ete' : n === 5 ? 'ole'
       : n === 6 ? (['B', 'P'].includes(last) ? 'inine' : 'ine') : n === 7 ? 'epine' : n === 8 ? 'ocine' : n === 9 ? 'onine' : 'ecine';
@@ -1063,17 +1191,21 @@ const labelledHalogen = (mol: Molecule, a: { id: AtomId; element: string; isotop
 function nameOne(input: Molecule): string {
   const deuterated = perdeuterated(input);
   if (deuterated) return deuterated;
+  // Oligonucleotides and peptides are named in full where a name can be made (residues by name:
+  // L-alanylglycine, (tert-butoxycarbonyl)-L-alanine), else by their sequence.
   const oligo = oligoOf(input);
-  if (oligo) return oligoText(oligo);
-  // Peptides get peptide names ("L-alanylglycine"), or their sequence when protected.
-  const pep = peptideOf(input);
-  // A residue name reads as L (or D); with no configuration given, name it systematically.
-  if (pep && !pep.residues.some((r) => r.stereoUnknown)) {
-    const n = peptideName(pep);
-    if (n) return n;
-    try { return nameOneSystematic(input); } catch (e) { if (e instanceof OutOfScope) return peptideText(pep); throw e; }
+  // Three units or more go by their sequence: a systematic name would run to hundreds of characters.
+  if (oligo && oligo.units.length >= 3) return oligoText(oligo);
+  const pep = oligo ? null : peptideOf(input);
+  // A sequence written as a label is named as the structure it stands for.
+  if (input.atomCount === 1 && oligo) { try { return nameOne(parseSmiles(oligoSmiles(oligo))); } catch { return oligoText(oligo); } }
+  if (input.atomCount === 1 && pep) { try { return nameOne(peptideMolecule(pep)); } catch { return peptideName(pep) ?? peptideText(pep); } }
+  try { return nameOneSystematic(input); } catch (e) {
+    if (!(e instanceof OutOfScope)) throw e;
+    if (oligo) return oligoText(oligo);
+    if (pep && !pep.residues.some((r) => r.stereoUnknown)) return peptideName(pep) ?? peptideText(pep);
+    throw e;
   }
-  return nameOneSystematic(input);
 }
 
 /** Explicit hydrogen atoms ([H] in SMILES) folded into their atom's hydrogen count, keeping stereo that refers to them. */
@@ -1146,7 +1278,9 @@ function nameOneSystematic(input: Molecule): string {
   const namer = new Namer(an, mol, oxides);
   costly();
   namer.afterRanking = costly;
-  const name = namer.functionalClassName() ?? namer.name();
+  const raw = namer.functionalClassName() ?? namer.name();
+  // Beside a centre left unspecified, a descriptor in front would not say which centre it is.
+  const name = namer.openStereo([...namer.mol.atoms()].map((a) => a.id)) ? raw : frontLoneDescriptor(raw);
   costly();
   // A configuration the name has no place for (a phosphane's P, an ammonium N) is not dropped silently.
   if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
@@ -1179,8 +1313,27 @@ function nameOneSystematic(input: Molecule): string {
     const word = /([a-z]+)$/.exec(name.slice(0, i))?.[1] ?? '';
     times.push(Object.entries(TIMES).find(([w]) => word.endsWith(w))?.[1] ?? 1);
   }
-  if (centres !== namer.rs.size || bonds !== namer.ez.size / 2) throw new OutOfScope('stereodescriptors do not add up');
+  if (centres + namer.residueCited.size !== namer.rs.size || bonds !== namer.ez.size / 2) throw new OutOfScope('stereodescriptors do not add up');
   return name;
+}
+
+/**
+ * A structure with one configuration in all has its descriptor in front of the whole name, wherever
+ * that centre or double bond is: (S)-3-(1-methylpyrrolidin-2-yl)pyridine, (E)-5-(4-hydroxystyryl)benzene-1,3-diol.
+ * In an ester or salt name, in front of the word that holds it.
+ */
+export function frontLoneDescriptor(name: string): string {
+  const all = [...name.matchAll(/\((?:\d+[a-z]?'*)?[RSEZrs](?:,(?:\d+[a-z]?'*)?[RSEZrs])*\)-?/g)];
+  if (all.length !== 1) return name;
+  // An amino acid's L or D is a configuration too.
+  if (/(^|[-( ])[DL]-[a-z]/.test(name)) return name;
+  const m = all[0]!;
+  if (!/^\([RSEZ]\)-$/.test(m[0])) return name;
+  const start = name.lastIndexOf(' ', m.index) + 1;
+  if (m.index === start) return name;
+  // Inside bis(...) it stands for two.
+  if (/(bis|tris|kis)\(/.test(name.slice(start, m.index))) return name;
+  return name.slice(0, start) + m[0] + name.slice(start, m.index) + name.slice(m.index + m[0].length);
 }
 
 /** Bonds plus hydrogens each element may have, by charge; what the names here are written for. */
@@ -1396,6 +1549,10 @@ class Namer {
   readonly ez = new Map<string, 'E' | 'Z'>();
   /** Stereocentres whose descriptor some name built here cites. */
   readonly cited = new Set<AtomId>();
+  /** The side chains of the residues in the name being built. */
+  sides: Set<AtomId>[] = [];
+  /** Stereocentres an amino acid's L or D stands for (no R or S of their own in the name). */
+  readonly residueCited = new Set<AtomId>();
   /** Called after each CIP ranking made while naming, to stop when one was given up. */
   afterRanking: () => void = () => {};
 
@@ -1512,6 +1669,8 @@ class Namer {
   }
 
   name(): string {
+    const aa = this.aminoAcidName();
+    if (aa) return aa;
     if (this.principal === 'ester' || this.principal === 'sulfonateEster') return this.nameEster();
     if (this.principal === 'urea' && this.principalGroups.length === 1) return this.nameUrea(this.principalGroups[0]!);
     const guanidine = this.guanidine();
@@ -1522,6 +1681,123 @@ class Namer {
     if (biphenyl) return biphenyl;
     const best = this.chooseParent();
     return this.withStereo(best.parent.atoms, best.numbering, this.render(best.parent, best.numbering)) + this.oxideSuffix(best.parent.atoms, best.numbering);
+  }
+
+  /**
+   * An alpha-amino acid whose own carboxyl is the principal group, named on the amino acid with what is
+   * on its nitrogen in front: (tert-butoxycarbonyl)-L-alanine, methylglycine, N-carbamimidoyl-N-methylglycine,
+   * methyl (tert-butoxycarbonyl)-L-phenylalanyl-L-alaninate, ((S)-3-mercapto-2-methylpropanoyl)-L-proline.
+   */
+  aminoAcidName(): string | null {
+    const cited = new Set(this.cited), resCited = new Set(this.residueCited);
+    const name = this.aminoAcidNameInner();
+    if (!name) {
+      this.cited.clear(); for (const a of cited) this.cited.add(a);
+      this.residueCited.clear(); for (const a of resCited) this.residueCited.add(a);
+    }
+    return name;
+  }
+
+  aminoAcidNameInner(): string | null {
+    const kind = this.principal;
+    if (kind !== 'acid' && kind !== 'ester' && kind !== 'carboxylate') return null;
+    const mol = this.mol;
+    const groups = this.principalGroups;
+    for (const g of groups) {
+      if (!g.ownCarbon) continue;
+      const c = g.anchor;
+      const ca = mol.neighbours(c).find((x) => el(mol, x) === 'C' && mol.bondBetween(c, x)!.order === 1);
+      if (ca === undefined) continue;
+      const res = this.residueAt(ca, c);
+      if (!res) continue;
+      const word = kind === 'acid' ? res.ref.free : res.ref.free.replace(/ic acid$/, 'ate').replace(/ine$/, 'inate').replace(/an$/, 'anate');
+      this.sides = [];
+      const body = this.residueText(res, word);
+      if (!body) continue;
+      // Every other principal group in a side chain of the residues named (glutamic acid's); another
+      // ester only as a carbamate on a nitrogen (Boc).
+      const inSide = (x: AtomId) => this.sides.some((sd) => sd.has(x));
+      if (groups.some((h) => h !== g && !inSide(h.anchor) && !(kind === 'ester' && mol.neighbours(h.anchor).some((x) => el(mol, x) === 'N')))) continue;
+      if (kind === 'ester') {
+        const alkyl = this.substituent(g.esterCarbon!, g.consumed[1]!);
+        return `${alkyl.text} ${body}`;
+      }
+      return body;
+    }
+    return null;
+  }
+
+  /** The amino acid an alpha carbon is part of, with its N and the configuration it has, if it is one with a name. */
+  residueAt(ca: AtomId, c: AtomId): { ref: ResidueRef; n: AtomId; ca: AtomId; side: Set<AtomId>; cfg: string } | null {
+    const mol = this.mol;
+    if (this.an.ringAtoms.has(c)) return null;
+    for (const n of mol.neighbours(ca)) {
+      if (el(mol, n) !== 'N' || mol.atom(n).charge !== 0 || mol.bondBetween(ca, n)!.order !== 1) continue;
+      if (!mol.incidentBonds(n).every((b) => mol.bond(b).order === 1)) continue;
+      const mine = sideChain(mol, ca, n, c);
+      for (const ref of residues()) {
+        if (ref.side.atomCount !== mine.side.atomCount) continue;
+        // Bonds from the side chain back to N (proline's ring) must be the same too.
+        const backN = (m: Molecule, atoms: Iterable<AtomId>, nn: AtomId) => [...atoms].filter((x) => m.bondBetween(x, nn)).length;
+        if (backN(ref.mol, ref.sideMap.keys(), ref.n) !== backN(mol, mine.atoms, n)) continue;
+        for (const map of isomorphisms(ref.side, mine.side)) {
+          if (map.get(ref.ca) !== ca) continue;
+          // Configurations: the alpha carbon gives L or D; side-chain centres must agree with it.
+          let cfg = '';
+          if (!ref.achiral) {
+            const want = rsLabel(ref.mol, ref.ca), got = this.rs.get(ca);
+            if (!want || !got) return null;
+            const d = want !== got;
+            cfg = d ? 'D-' : 'L-';
+            for (const [x, y] of map) {
+              if (x === ref.ca) continue;
+              const w = rsLabel(ref.mol, x), gy = this.rs.get(y);
+              if ((w ?? null) === null && !gy) continue;
+              if (!w || !gy || (w !== gy) !== d) return null;
+            }
+          } else if (this.rs.get(ca)) return null;
+          return { ref, n, ca, side: mine.atoms, cfg };
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * An amino acid with what is on its nitrogen: the residue's word with prefixes for the N's groups,
+   * an aminoacyl group named as a residue in turn (L-alanyl-L-proline). Null where a group is not plain.
+   */
+  residueText(res: { ref: ResidueRef; n: AtomId; ca: AtomId; side: Set<AtomId>; cfg: string }, word: string): string | null {
+    const mol = this.mol;
+    const subs = mol.neighbours(res.n).filter((x) => x !== res.ca && !res.side.has(x));
+    const parts: { text: string; complex: boolean; sortKey: string; residue?: boolean }[] = [];
+    for (const x of subs) {
+      // An aminoacyl group: C(=O) on another amino acid's alpha carbon.
+      if (el(mol, x) === 'C' && !this.an.ringAtoms.has(x) && mol.neighbours(x).some((o) => el(mol, o) === 'O' && mol.bondBetween(x, o)!.order === 2)) {
+        const ca2 = mol.neighbours(x).find((y) => y !== res.n && el(mol, y) === 'C' && mol.bondBetween(x, y)!.order === 1);
+        const inner = ca2 === undefined ? null : this.residueAt(ca2, x);
+        if (inner && inner.ref.acyl && !inner.side.has(res.n)) {
+          const t = this.residueText(inner, inner.ref.acyl);
+          if (!t) return null;
+          parts.push({ text: t, complex: true, sortKey: sortKeyOf(t), residue: true });
+          continue;
+        }
+      }
+      try { parts.push(this.substituent(x, res.n)); } catch (e) { if (e instanceof OutOfScope) return null; throw e; }
+    }
+    for (const a of [res.ca, ...res.side]) if (this.rs.get(a)) { this.cited.add(a); this.residueCited.add(a); }
+    this.sides.push(res.side);
+    const tail = `${res.cfg}${word}`;
+    const join = (a: string, b: string) => a + (/^([DL]|[αβ])-/.test(b) ? '-' : '') + b;
+    if (!parts.length) return tail;
+    if (parts.length === 1) {
+      const p0 = parts[0]!;
+      return join(p0.residue || !p0.complex ? p0.text : `(${p0.text})`, tail);
+    }
+    if (parts.some((p) => p.residue && parts.length > 1 && false)) return null;
+    parts.sort((x, y) => x.sortKey.localeCompare(y.sortKey));
+    if (parts.length === 2 && parts[0]!.text === parts[1]!.text) return join(`N,N-${parts[0]!.complex ? `bis(${parts[0]!.text})` : `di${parts[0]!.text}`}`, tail);
+    return join(parts.map((p) => `N-${p.complex ? `(${p.text})` : p.text}`).join('-'), tail);
   }
 
   /** " 1,1-dioxide" for the parent's ring atoms that carry =O. */
@@ -1558,11 +1834,13 @@ class Namer {
       items.push([numbering.get(inside)!, l]);
     }
     if (!items.length) return '';
-    // A lone descriptor goes without its locant only where nothing else in the skeleton could
-    // take it: beside a centre left unspecified, a bare "(S)" would not say which one is meant.
-    if (items.length === 1 && !this.openStereo(atoms)) return `(${items[0]![1]})`;
-    items.sort((p, q) => compareLocant(p[0], q[0]));
-    return `(${items.map(([l, d]) => `${l}${d}`).join(',')})`;
+    // A lone descriptor of its kind goes without its locant, (2S,3R,E), only where nothing else in the
+    // skeleton could take it: beside a centre left unspecified, a bare "(S)" would not say which one is meant.
+    const open = this.openStereo(atoms);
+    const rs = items.filter(([, d]) => d === 'R' || d === 'S').sort((p, q) => compareLocant(p[0], q[0]));
+    const ez = items.filter(([, d]) => d === 'E' || d === 'Z').sort((p, q) => compareLocant(p[0], q[0]));
+    const cite = (xs: [string, string][]) => xs.map(([l, d]) => (xs.length === 1 && !open ? d : `${l}${d}`));
+    return `(${[...cite(rs), ...cite(ez)].join(',')})`;
   }
 
   /** Does the skeleton hold a centre or double bond that could have a configuration but was given none? */
@@ -2069,7 +2347,8 @@ class Namer {
       // With no locant between them, a prefix after another goes in brackets where it could be read as
       // carrying the one before: chloro(methoxy)methane, not chloromethoxymethane.
       const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !ATOM_LIKE.test(sub.text));
-      const body = bracket ? `${complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
+      const body = n > 1 && TRADITIONAL.test(sub.text) ? `${multiplier(n)}-${sub.text}`
+        : bracket ? `${n > 1 && (sub as { di?: boolean }).di ? multiplier(n) : complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);
       const showC = !omitAll;
@@ -2248,7 +2527,7 @@ class Namer {
 
   // -------------------------------------------------------- substituents
 
-  substituent(a: AtomId, from: AtomId): SubName { return this.remembered(`${a}<${from}`, () => this.computeSubstituent(a, from)); }
+  substituent(a: AtomId, from: AtomId): SubName { return this.remembered(`${a}<${from}`, () => chemistStyle(this.computeSubstituent(a, from))); }
 
   /**
    * Each group is named once, whether it has a name or not: every candidate parent asks for the
@@ -2406,6 +2685,8 @@ class Namer {
         const A = this.substituent(acyl, a);
         if (A.text === 'acetyl') return simple('acetamido');
         if (A.text === 'benzoyl') return simple('benzamido');
+        const am = amido(A.text);
+        if (am) return { text: am, complex: true, sortKey: sortKeyOf(am) };
         return { text: `${A.complex ? `(${A.text})` : A.text}amino`, complex: true, sortKey: `${A.sortKey}amino` };
       }
       if (others.length === 0) return simple('amino');
@@ -2445,7 +2726,7 @@ class Namer {
         const R = this.substituent(beyond[0]!, r.n);
         const ro = alkoxy(R).text;
         // A substituted alkoxy is bracketed before carbonyl: (2-hydroxyethoxy)carbonyl.
-        const alk = R.text === 'benzyl' ? 'benzyloxy' : ALKOXY[R.text] || /(yl|\))oxy$/.test(ro) ? ro : `(${ro})`;
+        const alk = R.text === 'benzyl' ? '(benzyloxy)' : ALKOXY[R.text] || /(yl|\))oxy$/.test(ro) ? ro : `(${ro})`;
         return { text: `${alk}carbonyl`, complex: true, sortKey: `${alk.replace(/^tert-/, '')}carbonyl` };
       }
       if (re === 'N' && this.an.ringAtoms.has(r.n)) {
@@ -2480,6 +2761,8 @@ class Namer {
         if (this.an.ringAtoms.has(r.n)) {
           const R = this.ringSubstituent(r.n, a);
           if (R.text === 'phenyl') return simple('benzoyl');
+          const c = ringCarbonyl(R.text);
+          if (c) return { text: c, complex: true, sortKey: sortKeyOf(c) };
           return { text: `${R.complex ? `(${R.text})` : R.text}carbonyl`, complex: true, sortKey: `${R.sortKey}carbonyl` };
         }
         const chain = this.alkyl(a, from, 'oyl');
@@ -2688,6 +2971,7 @@ class Namer {
     const stereo = this.stereoPrefix(system, numbering, from);
     const text = stereo ? `${stereo}-${plain}` : plain;
     const complex = /[0-9]/.test(text) || text.includes('(');
-    return { text, complex, sortKey: plain.replace(/[^a-z]/g, '') };
+    // Nothing on the ring: two of them are di(1H-imidazol-1-yl), not bis.
+    return { text, complex, sortKey: plain.replace(/[^a-z]/g, ''), ...(complex && !pre.length && !stereo ? { di: true } : {}) };
   }
 }
