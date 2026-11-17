@@ -680,6 +680,7 @@ export const RING_ROWS: RingRow[] = [
   ['porphyrin', 'CCCCCCCCCCCCCCCCCCCCNNNN', '........................', '0.19 0.20 3.20 5.21 8.21 10.22 13.22 15.23 18.23', '19 20 21 22'],
   ['benzo[a]quinolizine', 'CCCCNCCCCCCCCC', '.......a....ab', '0.13 4.13 7.12', ''],
   ['indolo[2,3-a]quinolizine', 'CCCCNCCCCCCCCCNCC', '.......ab....a.ab', '0.16 4.16 7.15 8.13', ''],
+  ['benzo[e][1,2,4]thiadiazine', 'SNCNCCCCCC', '....a....a', '0.9 4.9', ''],
   ['benzofuro[3,2-e]isoquinoline', 'CCNCCCCCCOCCCCCCC', '....a...a.a....ab', '0.16 4.16 8.16 10.15', ''],
   ['azecino[5,4-b]indole', 'CCNCCCCCCNCCCCCCC', '........a.a....ab', '0.16 8.16 10.15', ''],
   ['[1,2]dioxepino[4,3-i]isochromene', 'OOCCCCCCCCCCOCC', '.....a...a....a', '0.14 5.14 9.14', ''],

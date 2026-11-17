@@ -182,7 +182,7 @@ function esterWord(acyl: string): string | null {
   if (acyl === 'acetyl') return 'acetate';
   if (acyl === 'benzoyl') return 'benzoate';
   if (/anoyl$|enoyl$/.test(acyl)) return acyl.replace(/oyl$/, 'oate');
-  const RET: Record<string, string> = { acryloyl: 'acrylate', palmitoyl: 'palmitate', stearoyl: 'stearate', methacryloyl: 'methacrylate', formyl: 'formate' };
+  const RET: Record<string, string> = { acryloyl: 'acrylate', palmitoyl: 'palmitate', stearoyl: 'stearate', methacryloyl: 'methacrylate', formyl: 'formate', carbamoyl: 'carbamate' };
   return RET[acyl] ?? null;
 }
 
@@ -493,16 +493,19 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
     return bd.order === 2 && el(mol, mol.otherAtom(bd, a)) === 'O' && !inSys.has(mol.otherAtom(bd, a));
   })) : [];
   if (ketones.length) {
-    let best: Hydro[] = [], fewest = Infinity;
+    // The fewest added hydrogens for each choice of indicated hydrogen (which is chosen later: a
+    // carbocycle puts it on a ketone carbon, 3H-...-3,11(2H)-dione; a heterocycle takes the fewest added).
+    const best: Hydro[] = [];
     for (const ih of choices) {
       const others = rest.filter((a) => !ketones.includes(a) && !ih.includes(a));
+      let fewest = Infinity;
       for (let size = 0; size <= Math.min(ketones.length, others.length, fewest); size++) {
         for (const added of subsets(others, size)) {
           const hydro = others.filter((a) => !added.includes(a));
           if (hydro.length % 2) continue;
           const left = capable.filter((a) => !ketones.includes(a) && !ih.includes(a) && !added.includes(a));
           if (maxMatching(an, left) * 2 !== left.length) continue;
-          if (size < fewest) { fewest = size; best = []; }
+          fewest = size;
           best.push({ ih, hydro, added, saturated: double.length === 0 });
         }
       }
@@ -775,8 +778,13 @@ function bridgedFused(an: Analysis, system: AtomId[], ketoneSuffix: boolean): { 
       out.push(m);
     }
     if (!out.length) return null;
-    // Two bridges: 3,8:4,8-dimethano.
-    if (bridges.length === 2) for (const m of out) { const b = bridgeOf.get(m)!; const ws = b.split(':'); if (ws.every((w) => w.endsWith(ws[0]!.split('-')[1]!))) bridgeOf.set(m, `${ws.map((w) => w.split('-')[0]).join(':')}-di${ws[0]!.split('-')[1]}`); else return null; }
+    // Two bridges of one kind: 1,4:5,8-dimethano.
+    if (bridges.length === 2) for (const m of out) {
+      const ws = bridgeOf.get(m)!.split(':').map((w) => { const k = w.lastIndexOf('-'); return [w.slice(0, k), w.slice(k + 1)] as const; });
+      if (ws[0]![1] !== ws[1]![1]) return null;
+      ws.sort((x, y) => compareLocant(x[0].split(',')[0]!, y[0].split(',')[0]!));
+      bridgeOf.set(m, `${ws.map((w) => w[0]).join(':')}-di${ws[0]![1]}`);
+    }
     return { info: { ...fused.info, size: system.length, ringCount: fused.info.ringCount + bridges.length }, numberings: out };
   };
   // The largest fused system, then the shortest bridge: 4,7-methanoindene, not 1,3-ethanopentalene.
@@ -784,6 +792,14 @@ function bridgedFused(an: Analysis, system: AtomId[], ketoneSuffix: boolean): { 
   for (const c of candidates) {
     const r = tryBridges([c]);
     if (r && (!best || system.length - c.length > best.size || (system.length - c.length === best.size && c.length < best.bridge))) best = { r, size: system.length - c.length, bridge: c.length };
+  }
+  if (best) return best.r;
+  // Two bridges where one does not do: 1,4:5,8-dimethanonaphthalene.
+  for (let i = 0; i < candidates.length; i++) for (let j = i + 1; j < candidates.length; j++) {
+    const a = candidates[i]!, b = candidates[j]!;
+    if (a.length !== 1 || b.length !== 1 || a.some((x) => b.includes(x)) || mol.bondBetween(a[0]!, b[0]!)) continue;
+    const r = tryBridges([a, b]);
+    if (r && (!best || system.length - 2 > best.size)) best = { r, size: system.length - 2, bridge: 2 };
   }
   return best?.r ?? null;
 }
@@ -1550,7 +1566,9 @@ const RETAINED_MOLECULES: [string, string][] = [
   ['Oc1cccc(O)c1', 'resorcinol'], ['Oc1ccc(O)cc1', 'hydroquinone'], ['Oc1ccccc1O', 'catechol'], ['Cc1ccccc1O', 'o-cresol'],
   ['Cc1cccc(O)c1', 'm-cresol'], ['Cc1ccc(O)cc1', 'p-cresol'], ['CC(=O)c1ccccc1', 'acetophenone'], ['CCC(=O)c1ccccc1', 'propiophenone'],
   ['OC(=O)CCCC(O)=O', 'glutaric acid'], ['OC(=O)CCCCC(O)=O', 'adipic acid'], ['CC(C)C(O)=O', 'isobutyric acid'], ['CC(=C)C(O)=O', 'methacrylic acid'],
-  ['OC(=O)c1ccccc1C(O)=O', 'phthalic acid'], ['OC(=O)c1cccc(c1)C(O)=O', 'isophthalic acid'], ['OC(=O)c1ccc(cc1)C(O)=O', 'terephthalic acid'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
+  ['OC(=O)c1ccccc1C(O)=O', 'phthalic acid'], ['OC(=O)c1cccc(c1)C(O)=O', 'isophthalic acid'], ['OC(=O)c1ccc(cc1)C(O)=O', 'terephthalic acid'],
+  ['Cc1ccccc1N', 'o-toluidine'], ['Cc1cccc(N)c1', 'm-toluidine'], ['Cc1ccc(N)cc1', 'p-toluidine'], ['Nc1ccc(cc1)-c1ccc(N)cc1', 'benzidine'],
+  ['NNC(=O)c1ccncc1', 'isonicotinohydrazide'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
 ];
 let retainedMols: { mol: Molecule; name: string; formula: string }[] | null = null;
 function retainedMolecule(mol: Molecule): string | null {
@@ -2856,6 +2874,7 @@ class Namer {
         : [0, 0, 0, 0, 0, 0, 0];
       const { mult, dbl } = this.unsaturationAtoms(p);
       const heteroAtoms = p.ring?.kind === 'vonbaeyer' || p.ring?.kind === 'cyclo' ? p.atoms.filter((a) => el(this.mol, a) !== 'C') : [];
+      const carbocycle = p.kind === 'ring' && p.atoms.every((a) => el(this.mol, a) === 'C');
       for (const numbering of p.numberings) {
         const key: (number | number[])[] = [
           -count,
@@ -2866,6 +2885,9 @@ class Namer {
           -dbl.length,
           heteroAtoms.map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...heteroAtoms].sort((a, b) => 'OSN'.indexOf(el(this.mol, a)) - 'OSN'.indexOf(el(this.mol, b))).map((a) => locVal(numbering.get(a)!)),
+          // A carbocyclic ketone takes its indicated hydrogen on a ketone carbon; then the fewest added hydrogens.
+          carbocycle && this.principal === 'ketone' ? -(hydroOf.get(numbering)?.ih ?? []).filter((a) => [...sites.values()].includes(a)).length : 0,
+          (hydroOf.get(numbering)?.added ?? []).length,
           (hydroOf.get(numbering)?.ih ?? []).map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...sites.values()].map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...(hydroOf.get(numbering)?.hydro ?? []), ...(hydroOf.get(numbering)?.added ?? [])].map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
@@ -3004,7 +3026,7 @@ class Namer {
       || (symmetricRing && features <= 1 && (p.ring!.kind !== 'cyclo' || mult.length <= 1));
 
     const manyN = [...sites.keys()].filter((g) => g.nitrogen !== undefined).length > 1;
-    let prefixText = this.prefixString(pre, numbering, omitAll, manyN);
+    let prefixText = this.prefixString(pre, numbering, omitAll, manyN, true);
     // Every hydrogen of the parent replaced by one halogen: perbromomethane, perchloroethane.
     if (pre.length >= 2 && !sites.size && new Set(pre.map((x) => x.text)).size === 1 && /^(fluoro|chloro|bromo|iodo)$/.test(pre[0]!.text)
       && p.atoms.every((a) => mol.implicitHydrogens(a) === 0)) prefixText = `per${pre[0]!.text}`;
@@ -3187,7 +3209,7 @@ class Namer {
   }
 
   /** `manyN`: the parent carries several amines or amides, so N locants say whose nitrogen (N1,N1-diethyl). */
-  prefixString(pre: Prefix[], numbering: Numbering, omitAll: boolean, manyN = false): string {
+  prefixString(pre: Prefix[], numbering: Numbering, omitAll: boolean, manyN = false, parent = false): string {
     // Group identical prefixes.
     const groups = new Map<string, { sub: Prefix; locs: string[] }>();
     // Two nitrogens on one carbon (an aminal, a guanidine written as a diamine) are N and N': the one
@@ -3224,7 +3246,7 @@ class Namer {
       // carrying the one before: chloro(methoxy)methane, not chloromethoxymethane.
       const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !ATOM_LIKE.test(sub.text));
       const body = n > 1 && TRADITIONAL.test(sub.text) ? `${multiplier(n)}-${sub.text}`
-        : omitAll && n === 1 && pre.length === 1 && TRADITIONAL.test(sub.text) ? sub.text
+        : omitAll && n === 1 && pre.length === 1 && (TRADITIONAL.test(sub.text) || (parent && (sub as { di?: boolean }).di)) ? sub.text
         : bracket ? `${n > 1 && (sub as { di?: boolean }).di ? multiplier(n) : complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);
@@ -3364,10 +3386,10 @@ class Namer {
   }
 
   nameEster(): string {
-    const carbonic = this.carbonicEster();
-    if (carbonic) return carbonic;
     const onAlcohol = this.polyolEster();
     if (onAlcohol) return onAlcohol;
+    const carbonic = this.carbonicEster();
+    if (carbonic) return carbonic;
     const best = this.chooseParent();
     const p = best.parent;
     const sites = this.principalSites(p);

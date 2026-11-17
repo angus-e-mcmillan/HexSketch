@@ -136,8 +136,10 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
       const or = singles.find((n) => el(mol, n.atom) === 'O' && mol.neighbours(n.atom).length === 2 && !ringAtoms.has(n.atom));
       const x = singles.find((n) => ['F', 'Cl', 'Br', 'I'].includes(el(mol, n.atom)));
       // The nitrogen of an amide carries carbon, or an oxygen (N-hydroxy, a Weinreb amide's N-methoxy).
+      // (or a sulfonyl: an N-sulfonyl amide is named as the amide, N-((4-aminophenyl)sulfonyl)acetamide).
+      const sulfonyl = (m: AtomId) => el(mol, m) === 'S' && mol.neighbours(m).filter((o) => el(mol, o) === 'O' && mol.bondBetween(m, o)!.order === 2).length === 2;
       const nAmide = singles.find((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
-        && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C' || (el(mol, m) === 'O' && !ringAtoms.has(m) && mol.atom(m).charge === 0)) && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
+        && mol.neighbours(n.atom).every((m) => m === c.id || el(mol, m) === 'C' || sulfonyl(m) || (el(mol, m) === 'O' && !ringAtoms.has(m) && mol.atom(m).charge === 0)) && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1));
       const others = carbons.length + singles.length;
       // Urea: C(=O) between two open-chain nitrogens, named as the parent "urea".
       const ureaN = singles.filter((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0
@@ -233,7 +235,7 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
         made = { kind: 'sulfonylHalide', ...base, consumed: [...base.consumed, n2, n3], halogen: 'N3' };
       }
     }
-    else if (xe === 'N' && !ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1)
+    else if (xe === 'N' && !groups.some((g) => g.kind === 'amide' && g.nitrogen === x) && !ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1)
       && xn.every((m) => m === sAtom.id || el(mol, m) === 'C')) made = { kind: 'sulfonamide', ...base, nitrogen: x };
     if (!made) continue;
     groups.push(made);
