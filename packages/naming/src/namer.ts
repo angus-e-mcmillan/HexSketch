@@ -2221,7 +2221,7 @@ class Namer {
     if ([...unitOf.keys()].some((x) => core.has(x))) return null;
     const linker = [...mol.atoms()].map((a) => a.id).filter((x) => !unitOf.has(x));
     // The linker holds no part of a principal group (a diarylamine's N is its amine, not a linker).
-    if (this.principalGroups.some((g) => linker.includes(g.anchor) || (g.nitrogen !== undefined && linker.includes(g.nitrogen)) || g.consumed.some((x) => linker.includes(x)))) return null;
+    if (this.principalGroups.some((g) => g.nitrogen !== undefined && linker.includes(g.nitrogen))) return null;
     // Each unit hangs off the linker by one bond, from an atom of its parent.
     const joins: { unit: number; u: AtomId; l: AtomId }[] = [];
     for (const x of linker) for (const y of mol.neighbours(x)) if (unitOf.has(y)) joins.push({ unit: unitOf.get(y)!, u: y, l: x });
