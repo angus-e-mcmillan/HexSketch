@@ -73,6 +73,7 @@ interface Prefix {
   text: string; complex: boolean; sortKey: string; at: AtomId | 'N';
   /** For 'N': the carbon whose amine or amide this nitrogen is. */ nOf?: AtomId;
   /** For 'N': the nitrogen itself, and every principal nitrogen on the same carbon (two or more: N and N'). */ nAtom?: AtomId; nGem?: AtomId[];
+  /** On the far nitrogen of a hydrazide: N'. */ prime?: boolean;
 }
 /** `di`: bracketed but unsubstituted, so multiplied with di/tri: di(1H-imidazol-1-yl). */
 interface SubName { text: string; complex: boolean; sortKey: string; di?: boolean }
@@ -2921,6 +2922,12 @@ class Namer {
         if (n === anchorC || g.consumed.includes(n)) continue;
         out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: locAt, nAtom: g.nitrogen, nGem: gem });
       }
+      // On the far nitrogen of a hydrazide: N'-benzylidene, N',N'-dimethyl.
+      if (g.nPrime !== undefined) for (const n of mol.neighbours(g.nPrime)) {
+        if (n === g.nitrogen) continue;
+        const sub = mol.bondBetween(g.nPrime, n)!.order === 2 ? this.ylidene(n, g.nPrime) : this.substituent(n, g.nPrime);
+        out.push({ ...sub, at: 'N', nOf: locAt, prime: true });
+      }
     }
     return out;
   }
@@ -3202,7 +3209,7 @@ class Namer {
     const pyridine = p.kind === 'ring' && p.ring!.template?.name === 'pyridine' && !hydroOf.get(this.currentNumbering!);
     if (pyridine && sites.size === 1 && g?.ownCarbon && this.currentNumbering && !this.excluded.size) {
       const stem = ({ '2': 'picolin', '3': 'nicotin', '4': 'isonicotin' } as Record<string, string>)[this.currentNumbering.get([...sites.values()][0]!)!];
-      const w: Partial<Record<GroupKind, string>> = stem ? { acid: `${stem}ic acid`, amide: g.thio || g.imid || g.hydrazide ? undefined : `${stem}amide`, ester: `${stem}ate`, carboxylate: `${stem}ate`, nitrile: `${stem}onitrile` } : {};
+      const w: Partial<Record<GroupKind, string>> = stem ? { acid: `${stem}ic acid`, amide: g.thio || g.imid ? undefined : g.hydrazide ? `${stem}ohydrazide` : `${stem}amide`, ester: `${stem}ate`, carboxylate: `${stem}ate`, nitrile: `${stem}onitrile` } : {};
       if (kind && w[kind]) return w[kind]!;
     }
     if (benzene && sites.size === 2 && g?.ownCarbon && this.currentNumbering && !this.excluded.size) {
@@ -3372,7 +3379,7 @@ class Namer {
     }
     for (const x of pre) {
       const loc = x.at === 'N'
-        ? (x.nAtom !== undefined && primes.has(x.nAtom) ? `N${primes.get(x.nAtom)}` : manyN && x.nOf !== undefined ? `N${numbering.get(x.nOf)}` : 'N')
+        ? x.prime ? "N'" : (x.nAtom !== undefined && primes.has(x.nAtom) ? `N${primes.get(x.nAtom)}` : manyN && x.nOf !== undefined ? `N${numbering.get(x.nOf)}` : 'N')
         : numbering.get(x.at)!;
       const g = groups.get(x.text);
       if (g) g.locs.push(loc); else groups.set(x.text, { sub: x, locs: [loc] });
@@ -3814,8 +3821,16 @@ class Namer {
       // -NH-NH2 hydrazineyl; other N, O and S neighbours are named as prefixes on amino:
       // (phenylamino)amino, hydroxyamino, (methylsulfonyl)amino.
       if (others.length === 1 && el(mol, others[0]!) === 'N' && mol.neighbours(others[0]!).length === 1 && mol.atom(others[0]!).charge === 0) return simple('hydrazineyl');
-      // -NH-N=CR2: 2-(3-methylbenzylidene)hydrazineyl.
+      // -NH-NR2: 2,2-dimethylhydrazineyl, 2-phenylhydrazineyl.
       const o0 = others[0]!;
+      const far = others.length === 1 && el(mol, o0) === 'N' && mol.atom(o0).charge === 0 && !this.an.ringAtoms.has(o0) && mol.incidentBonds(o0).every((b) => mol.bond(b).order === 1)
+        ? mol.neighbours(o0).filter((x) => x !== a) : [];
+      if (far.length && far.every((x) => el(mol, x) === 'C' && !isAcylCarbon(mol, x))) {
+        const subs = countSubs(far.map((x) => this.substituent(x, o0)).sort((x, y) => x.sortKey.localeCompare(y.sortKey)));
+        const text = subs.map((x) => `${Array(x.n).fill('2').join(',')}-${x.n > 1 ? (x.complex ? complexMultiplier(x.n) : multiplier(x.n)) : ''}${x.complex ? `(${x.text})` : x.text}`).join('-') + 'hydrazineyl';
+        return { text, complex: true, sortKey: sortKeyOf(text) };
+      }
+      // -NH-N=CR2: 2-(3-methylbenzylidene)hydrazineyl.
       const hz = others.length === 1 && el(mol, o0) === 'N' && mol.atom(o0).charge === 0 && !this.an.ringAtoms.has(o0) && mol.neighbours(o0).length === 2
         ? mol.neighbours(o0).find((x) => x !== a && el(mol, x) === 'C' && mol.bondBetween(o0, x)!.order === 2) : undefined;
       if (hz !== undefined) {

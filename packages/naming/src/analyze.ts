@@ -25,6 +25,8 @@ export interface Group {
   /** An amidine (C(=NH)N) or a hydrazide (C(=O)NHNH2) rather than an amide. */
   imid?: boolean;
   hydrazide?: boolean;
+  /** The far nitrogen of a hydrazide, whose substituents are cited as N'. */
+  nPrime?: AtomId;
 }
 
 export interface Analysis {
@@ -170,12 +172,16 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
           continue;
         }
       }
-      // A hydrazide: C(=O)-NH-NH2.
+      // A hydrazide: C(=O)-NH-NH2, its far nitrogen free to carry carbon groups or a ylidene:
+      // N'-methylacetohydrazide, N'-benzylideneisonicotinohydrazide.
+      const farOk = (m: AtomId) => el(mol, m) === 'N' && mol.atom(m).charge === 0 && !ringAtoms.has(m)
+        && mol.neighbours(m).every((x) => x === nHydOf(m) || (el(mol, x) === 'C' && !isAcylCarbon(mol, x) && !mol.incidentBonds(x).some((b) => mol.bond(b).order === 2 && el(mol, mol.otherAtom(mol.bond(b), x)) !== 'C' && mol.otherAtom(mol.bond(b), x) !== m)));
+      const nHydOf = (m: AtomId) => mol.neighbours(m).find((x) => singles.some((sn) => sn.atom === x));
       const nHyd = singles.find((n) => el(mol, n.atom) === 'N' && !ringAtoms.has(n.atom) && mol.atom(n.atom).charge === 0 && mol.incidentBonds(n.atom).every((b) => mol.bond(b).order === 1)
-        && mol.neighbours(n.atom).length === 2 && mol.neighbours(n.atom).some((m) => m !== c.id && el(mol, m) === 'N' && mol.neighbours(m).length === 1 && mol.atom(m).charge === 0 && !ringAtoms.has(m)));
+        && mol.neighbours(n.atom).length === 2 && mol.neighbours(n.atom).some((m) => m !== c.id && farOk(m)));
       if (nHyd && singles.length === 1 && others <= 2) {
         const n2 = mol.neighbours(nHyd.atom).find((m) => m !== c.id)!;
-        groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, nHyd.atom, n2], nitrogen: nHyd.atom, hydrazide: true });
+        groups.push({ kind: 'amide', anchor: c.id, ownCarbon: true, consumed: [dblO.atom, nHyd.atom, n2], nitrogen: nHyd.atom, hydrazide: true, nPrime: n2 });
         claimed.add(dblO.atom); claimed.add(nHyd.atom); claimed.add(n2);
         continue;
       }
