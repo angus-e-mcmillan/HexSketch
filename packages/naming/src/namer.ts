@@ -55,9 +55,9 @@ function withHydro(stem: string, h: Hydro, numbering: Numbering): string {
   // (h is reassigned below for porphyrin)
   const loc = (a: AtomId) => numbering.get(a)!;
   let ih = h.ih.map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
-  // The CH2 of a fused 1,3-dioxole goes without its indicated hydrogen, as chemists write it:
-  // 5,6,7,8-tetrahydro-[1,3]dioxolo[4,5-g]isoquinoline.
-  if (ih === '2H' && /\[1,3\]dioxol/.test(stem)) ih = '';
+  // The CH2 of a fused 1,3-dioxole or 1,3-dioxine goes without its indicated hydrogen, as chemists
+  // write it: 5,6,7,8-tetrahydro-[1,3]dioxolo[4,5-g]isoquinoline, 4H-benzo[d][1,3]dioxine.
+  if (/\[1,3\]diox(ol|in)/.test(stem)) ih = ih.split(',').filter((x) => x !== '2H').join(',');
   // Porphyrin is the 21H,23H parent itself.
   let hydro = h.hydro;
   if (/^porphyrin/.test(stem) && hydro.map(loc).sort(compareLocant).join(',') === '21,23') hydro = [];
@@ -2214,6 +2214,9 @@ class Namer {
     if (ns.some((x) => mol.atom(x).charge !== 0)) return null;
     if (this.principal && !(this.principal === 'amine' && this.principalGroups.every((g) => g.nitrogen !== undefined ? ns.includes(g.nitrogen) : ns.some((x) => g.consumed.includes(x))))) return null;
     if (b.order !== 1 && b.order !== 2) return null;
+    // A heterocycle on it is the senior parent: 3-hydrazineyl-6-(1H-pyrazol-1-yl)pyridazine.
+    const heteroRing = (a: AtomId) => this.ringByAtom.get(a)?.some((x) => el(mol, x) !== 'C');
+    if (b.order === 1 && ns.some((n) => mol.neighbours(n).some((o) => !ns.includes(o) && heteroRing(o)))) return null;
     const pre: Prefix[] = [];
     for (const n of ns) for (const bd of mol.incidentBonds(n).map((x) => mol.bond(x))) {
       const o = mol.otherAtom(bd, n);
@@ -3135,6 +3138,15 @@ class Namer {
       // =N-R: hydroxyimino (oximes), methoxyimino, phenylimino, (dimethylamino)imino.
       const r = mol.neighbours(n).find((x) => x !== from)!;
       if (mol.bondBetween(n, r)!.order !== 1) throw new OutOfScope('ylidene substituent');
+      // =N-N=CR2: ((5-methylfuran-2-yl)methylene)hydrazineylidene.
+      if (el(mol, r) === 'N' && mol.atom(r).charge === 0 && mol.atom(n).charge === 0 && !this.an.ringAtoms.has(r) && mol.neighbours(r).length === 2) {
+        const cY = mol.neighbours(r).find((x) => x !== n && mol.bondBetween(r, x)!.order === 2 && el(mol, x) === 'C');
+        if (cY !== undefined) {
+          const Y = this.ylidene(cY, r);
+          const text = `${Y.complex ? `(${Y.text})` : Y.text}hydrazineylidene`;
+          return { text, complex: true, sortKey: sortKeyOf(text) };
+        }
+      }
       // =N-NH-R: 2-(thiazol-2-yl)hydrazineylidene.
       const rr = el(mol, r) === 'N' && mol.atom(r).charge === 0 && mol.atom(n).charge === 0 && mol.implicitHydrogens(r) === 1
         ? mol.neighbours(r).filter((x) => x !== n) : [];
@@ -4341,7 +4353,7 @@ class Namer {
       const hetero = heteroPrefix(this.mol, system, numbering);
       const base2 = `${hetero}${r.info.bracket}${alkaneStem(r.info.size)}`;
       core = unsat.length
-        ? `${base2}-${unsat.map((u) => this.bondLocantText(ringP, numbering, u)).sort(compareLocant).join(',')}-${multiplier(unsat.length)}en${ium}-${fv}-yl`
+        ? `${base2}${multiplier(unsat.length) ? 'a' : ''}-${unsat.map((u) => this.bondLocantText(ringP, numbering, u)).sort(compareLocant).join(',')}-${multiplier(unsat.length)}en${ium}-${fv}-yl`
         : `${base2}an${ium}-${fv}-yl`;
       if (ylidene) core += 'idene';
     } else {
