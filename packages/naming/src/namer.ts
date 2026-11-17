@@ -141,6 +141,8 @@ function chemistStyle(s: SubName): SubName {
   if (t === 'amino(imino)methyl') return mk('carbamimidoyl', false);
   if (t === '(amino(imino)methyl)amino' || t === 'carbamimidoylamino') return mk('guanidino', false);
   if (t === 'carbamoylamino') return mk('ureido', false);
+  let mu = /^\((di)?([a-z]+|\(.+\))carbamoyl\)amino$/.exec(t);
+  if (mu && balanced(mu[2]!) && !/carbamoyl/.test(mu[2]!)) return mk(`${mu[1] ? '3,3-di' : '3-'}${mu[2]}ureido`);
   if (t === 'hydroxy(oxo)-λ5-phosphanyl') return mk('hydroxyhydrophosphoryl');
   if (t === '(p-tolyl)sulfonyl' || t === 'p-tolylsulfonyl') return mk('tosyl', false);
   if (t === '3-hydroxy-3-oxopropyl') return mk('2-carboxyethyl');
@@ -228,9 +230,10 @@ const TRADITIONAL = /^(tert|sec)-[a-z]+$/;
  * read as one substituted group (chlorovinyl, methylphenyl); a multiplied prefix, or one
  * that cannot be substituted, needs none. A substituted prefix is always bracketed.
  */
-function citeRun(items: readonly { text: string; complex: boolean; n: number }[]): string {
+function citeRun(items: readonly { text: string; complex: boolean; n: number; di?: boolean }[]): string {
   return items.map(({ text, complex, n }, i) => {
     if (TRADITIONAL.test(text)) return n > 1 ? `${multiplier(n)}-${text}` : i === 0 ? text : `(${text})`;
+    if (complex && n === 1 && i === 0 && items.length === 1 && (items[0] as { di?: boolean }).di && !/^[omp]-/.test(text)) return text;
     if (complex) return `${complexMultiplier(n)}(${text})`;
     if (n > 1) return `${multiplier(n)}${text}`;
     return i === 0 || ATOM_LIKE.test(text) ? text : `(${text})`;
@@ -238,9 +241,9 @@ function citeRun(items: readonly { text: string; complex: boolean; n: number }[]
 }
 
 /** Identical prefixes counted, then sorted alphabetically: the items of a citeRun. */
-function countSubs(subs: readonly SubName[]): { text: string; complex: boolean; n: number; sortKey: string }[] {
-  const counts = new Map<string, { text: string; complex: boolean; n: number; sortKey: string }>();
-  for (const s of subs) { const e = counts.get(s.text); if (e) e.n++; else counts.set(s.text, { text: s.text, complex: s.complex, n: 1, sortKey: s.sortKey }); }
+function countSubs(subs: readonly SubName[]): { text: string; complex: boolean; n: number; sortKey: string; di?: boolean }[] {
+  const counts = new Map<string, { text: string; complex: boolean; n: number; sortKey: string; di?: boolean }>();
+  for (const s of subs) { const e = counts.get(s.text); if (e) e.n++; else counts.set(s.text, { text: s.text, complex: s.complex, n: 1, sortKey: s.sortKey, di: s.di }); }
   return [...counts.values()].sort((x, y) => x.sortKey.localeCompare(y.sortKey) || x.text.localeCompare(y.text));
 }
 
@@ -1496,7 +1499,19 @@ function nameOneSystematic(input: Molecule): string {
   // silently, and no time is spent on the rest of the name once one has been given up.
   const gaveUp = cipLimits.gaveUp;
   const costly = () => { if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out'); };
-  const namer = new Namer(an, mol, oxides);
+  // A ring named with its oxides takes its amines, alcohols and thiols as prefixes:
+  // 2,6-diamino-4-(piperidin-1-yl)pyrimidine 1-oxide, 2,7-dihydroxy-...dioxaphosphinine 2-oxide.
+  let anUse = an;
+  if (oxides.size) {
+    const low = ['amine', 'alcohol', 'thiol'];
+    const top = SENIORITY.find((k) => an.groups.some((g) => g.kind === k));
+    const oxSystems = an.ringSystems.filter((sys) => sys.some((x) => oxides.has(x)));
+    const onOx = (g: Group) => oxSystems.some((sys) => sys.includes(g.anchor) || bare.neighbours(g.anchor).some((y) => sys.includes(y)));
+    if (top && low.includes(top) && an.groups.filter((g) => g.kind === top).every(onOx)) anUse = { ...an, groups: an.groups.filter((g) => !low.includes(g.kind)) };
+  }
+  const namer = new Namer(anUse, mol, oxides);
+  // ... and that ring stays the parent.
+  if (anUse !== an) namer.preferAtoms = new Set(an.ringSystems.find((sys) => sys.some((x) => oxides.has(x)))!);
   costly();
   namer.afterRanking = costly;
   const raw = retainedRings(namer.functionalClassName() ?? namer.name());
@@ -1568,7 +1583,7 @@ const RETAINED_MOLECULES: [string, string][] = [
   ['OC(=O)CCCC(O)=O', 'glutaric acid'], ['OC(=O)CCCCC(O)=O', 'adipic acid'], ['CC(C)C(O)=O', 'isobutyric acid'], ['CC(=C)C(O)=O', 'methacrylic acid'],
   ['OC(=O)c1ccccc1C(O)=O', 'phthalic acid'], ['OC(=O)c1cccc(c1)C(O)=O', 'isophthalic acid'], ['OC(=O)c1ccc(cc1)C(O)=O', 'terephthalic acid'],
   ['Cc1ccccc1N', 'o-toluidine'], ['Cc1cccc(N)c1', 'm-toluidine'], ['Cc1ccc(N)cc1', 'p-toluidine'], ['Nc1ccc(cc1)-c1ccc(N)cc1', 'benzidine'],
-  ['NNC(=O)c1ccncc1', 'isonicotinohydrazide'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
+  ['NNC(=O)c1ccncc1', 'isonicotinohydrazide'], ['N#Cc1ccccc1C#N', 'phthalonitrile'], ['NC(=O)c1ccccc1C(N)=O', 'phthalamide'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
 ];
 let retainedMols: { mol: Molecule; name: string; formula: string }[] | null = null;
 function retainedMolecule(mol: Molecule): string | null {
@@ -1867,7 +1882,7 @@ class Namer {
    * parent: R-B(OH)2 boronic acids, R3P phosphanes, RBF3- borates.
    */
   functionalClassName(): string | null {
-    const nn = this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
+    const nn = this.hydroxylamine() ?? this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
     if (nn) return nn;
     const mol = this.mol;
     // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
@@ -1958,6 +1973,7 @@ class Namer {
     if (pIds.length > 1 && bridges.size !== pIds.length - 1) return null;
     const dbl = (p: AtomId) => mol.neighbours(p).filter((x) => mol.bondBetween(p, x)!.order === 2);
     const esters: SubName[] = [], hs: AtomId[] = [], carbons: SubName[] = [];
+    const sEsters = new Set<number>();
     let amino = 0, thio = false;
     for (const p of pIds) {
       const d = dbl(p);
@@ -1970,10 +1986,11 @@ class Namer {
         const e = el(mol, x);
         if (e === 'C') { if (pIds.length > 1) return null; carbons.push(this.substituent(x, p)); continue; }
         if (e === 'N') { if (pIds.length > 1 || mol.neighbours(x).length !== 1 || mol.atom(x).charge) return null; amino++; continue; }
-        if (e !== 'O' || mol.atom(x).charge) return null;
+        if ((e !== 'O' && e !== 'S') || mol.atom(x).charge) return null;
         const beyond = mol.neighbours(x).filter((y) => y !== p);
-        if (!beyond.length) { hs.push(x); continue; }
+        if (!beyond.length) { if (e === 'S') return null; hs.push(x); continue; }
         if (beyond.length !== 1 || el(mol, beyond[0]!) !== 'C' || isAcylCarbon(mol, beyond[0]!)) return null;
+        if (e === 'S') { if (pIds.length > 1) return null; sEsters.add(esters.length); }
         esters.push(this.substituent(beyond[0]!, x));
       }
     }
@@ -1991,6 +2008,9 @@ class Namer {
     else if (carbons.length === 2) acid = 'phosphinate';
     else if (carbons.length) return null;
     else acid = thio ? 'phosphorothioate' : 'phosphate';
+    // S-esters add to the sulfur count: phosphorodithioate, phosphorotrithioate.
+    const nS = (thio ? 1 : 0) + sEsters.size;
+    if (sEsters.size) { if (carbons.length || amino || n > 1 || !hasDbl) return null; acid = `phosphoro${['', '', 'di', 'tri', 'tetra'][nS]}thioate`; thio = true; }
     const wrap = (x: SubName) => (x.complex ? `(${x.text})` : x.text);
     const cPart = carbons.length ? citeRun(countSubs(carbons)) : '';
     // An acid with no esters: phenylphosphonic acid, dimethylphosphinic acid, phosphoric acid.
@@ -1999,12 +2019,15 @@ class Namer {
       if (!cPart) return null;
       return `${carbons.length === 1 ? wrap(carbons[0]!) : cPart}${acid.replace(/ate$/, 'ic acid')}`;
     }
-    const sorted = [...esters].sort((x, y) => x.sortKey.localeCompare(y.sortKey));
+    // Each ester group with the atom it is on in a thio acid: O,O-diethyl S-(2-(ethylthio)ethyl) phosphorodithioate.
+    const tagged = esters.map((e, i) => ({ ...e, on: sEsters.has(i) ? 'S' : 'O' }));
+    const groupsBy = new Map<string, { e: typeof tagged[number]; n: number }>();
+    for (const t of tagged) { const k = `${t.on}|${t.text}`; const g = groupsBy.get(k); if (g) g.n++; else groupsBy.set(k, { e: t, n: 1 }); }
     const words: string[] = [];
-    const counts = countSubs(sorted);
-    counts.forEach((c, i) => {
-      const body = c.n > 1 ? (c.complex && !/^(tert|sec)-/.test(c.text) ? `${complexMultiplier(c.n)}(${c.text})` : `${multiplier(c.n)}${c.text}`) : i > 0 && c.complex ? `(${c.text})` : c.text;
-      words.push(thio ? body.replace(/^/, `${Array(c.n).fill('O').join(',')}-`) : body);
+    [...groupsBy.values()].sort((x, y) => x.e.sortKey.localeCompare(y.e.sortKey)).forEach(({ e: c, n: k }, i) => {
+      const wrapIt = c.complex && !/^(tert|sec)-/.test(c.text);
+      if (thio) { words.push(`${Array(k).fill(c.on).join(',')}-${k > 1 ? (wrapIt ? `${complexMultiplier(k)}(${c.text})` : `${multiplier(k)}${c.text}`) : wrapIt ? `(${c.text})` : c.text}`); return; }
+      words.push(k > 1 ? (wrapIt ? `${complexMultiplier(k)}(${c.text})` : `${multiplier(k)}${c.text}`) : i > 0 && c.complex ? `(${c.text})` : c.text);
     });
     if (hs.length) words.push(`${thio ? 'O-' : ''}${multiplier(hs.length) || ''}hydrogen`);
     const head = carbons.length === 1 ? wrap(carbons[0]!) : cPart;
@@ -2053,6 +2076,8 @@ class Namer {
   sulfaneName(): string | null {
     if (this.principal) return null;
     const mol = this.mol;
+    // A ring with N or O in it is the senior parent: 4-(methylthio)pteridine.
+    if ([...this.an.ringAtoms].some((a) => el(mol, a) === 'N' || el(mol, a) === 'O')) return null;
     const sulfide = (x: AtomId) => el(mol, x) === 'S' && !this.an.ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.neighbours(x).length === 2
       && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1);
     const ss = [...mol.atoms()].filter((a) => sulfide(a.id)).map((a) => a.id);
@@ -2072,6 +2097,21 @@ class Namer {
     const first = numbering.get(subs[0]!.at)!;
     if (first !== '1') numbering.forEach((v, k) => numbering.set(k, String(chain.length + 1 - Number(v))));
     return `${this.prefixString(subs, numbering, false)}${multiplier(chain.length)}sulfane`;
+  }
+
+  /** An N-substituted hydroxylamine with nothing more senior: N-phenylhydroxylamine. */
+  hydroxylamine(): string | null {
+    if (this.principal) return null;
+    const mol = this.mol;
+    const ns = [...mol.atoms()].filter((a) => a.element === 'N' && a.charge === 0 && !this.an.ringAtoms.has(a.id) && mol.incidentBonds(a.id).every((b) => mol.bond(b).order === 1)
+      && mol.neighbours(a.id).some((o) => el(mol, o) === 'O' && mol.neighbours(o).length === 1 && mol.atom(o).charge === 0));
+    if (ns.length !== 1) return null;
+    const n = ns[0]!.id;
+    const cs = mol.neighbours(n).filter((x) => el(mol, x) !== 'O');
+    if (!cs.length || cs.some((x) => el(mol, x) !== 'C') || mol.neighbours(n).length !== cs.length + 1) return null;
+    const subs = countSubs(cs.map((x) => this.substituent(x, n)));
+    const text = subs.length === 1 && subs[0]!.n === 2 ? `N,N-di${subs[0]!.complex ? `(${subs[0]!.text})` : subs[0]!.text}` : subs.map((x) => `N-${x.complex ? `(${x.text})` : x.text}`).join('-');
+    return `${text}hydroxylamine`;
   }
 
   /** A secondary or tertiary amine with like groups and nothing more senior: dipropylamine, triphenylamine. */
@@ -2460,6 +2500,8 @@ class Namer {
           let cfg = '';
           if (!ref.achiral) {
             const want = rsLabel(ref.mol, ref.ca), got = this.rs.get(ca);
+            // Drawn without its configuration: the amino acid's name alone (phenylalanine).
+            if (want && !got && ![...map.values()].some((y) => this.rs.get(y)) && ![...map.keys()].some((x) => x !== ref.ca && rsLabel(ref.mol, x))) return { ref, n, ca, side: mine.atoms, cfg: '' };
             if (!want || !got) return null;
             const d = want !== got;
             cfg = d ? 'D-' : 'L-';
@@ -2855,8 +2897,12 @@ class Namer {
     throw new OutOfScope('ylidene substituent');
   }
 
+  /** A ring that must be the parent (the one named with its oxides). */
+  preferAtoms: Set<AtomId> | null = null;
+
   chooseParent(): { parent: Parent; numbering: Numbering } {
-    const candidates = [...this.ringCandidates(), ...this.chainCandidates()];
+    let candidates = [...this.ringCandidates(), ...this.chainCandidates()];
+    if (this.preferAtoms) { const pa = this.preferAtoms; const only = candidates.filter((c) => c.atoms.length === pa.size && c.atoms.every((x) => pa.has(x))); if (only.length) candidates = only; }
     let best: { parent: Parent; numbering: Numbering; key: (number | number[])[] } | null = null;
     // The best ring and the best chain, each with how many principal groups and prefixes it has.
     const bestOf: Record<'ring' | 'chain', { parent: Parent; numbering: Numbering; key: (number | number[])[]; count: number; pre: number } | null> = { ring: null, chain: null };
@@ -2890,6 +2936,8 @@ class Namer {
           (hydroOf.get(numbering)?.added ?? []).length,
           (hydroOf.get(numbering)?.ih ?? []).map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...sites.values()].map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
+          // Ring oxides as low as they go: pyrimidine 1-oxide.
+          p.atoms.filter((a) => this.oxides.has(a)).map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...(hydroOf.get(numbering)?.hydro ?? []), ...(hydroOf.get(numbering)?.added ?? [])].map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           (hydroOf.get(numbering)?.added ?? []).map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           mult.map((bond) => this.bondLocant(p, numbering, bond)).sort((x, y) => x - y),
@@ -3044,7 +3092,7 @@ class Namer {
     }
     // An assembly's name is bracketed only where a locant follows it: [1,1'-biphenyl]-4-ol, 4-methyl-1,1'-biphenyl.
     if (p.ring?.assembly && /^\[[^\]]*\]$/.test(parentName)) parentName = parentName.slice(1, -1);
-    const joiner = prefixText && /^[0-9(]/.test(parentName) ? '-' : '';
+    const joiner = prefixText && /^[0-9([]/.test(parentName) ? '-' : '';
     return prefixText + joiner + parentName;
   }
 
@@ -3184,7 +3232,7 @@ class Namer {
       thiolate: ['thiolate', 'thiolate'],
       nitrile: ['nitrile', 'carbonitrile'],
       aldehyde: ['al', 'carbaldehyde'],
-      ketone: ['one', 'one'],
+      ketone: g.thio ? ['thione', 'thione'] : ['one', 'one'],
       alcohol: ['ol', 'ol'],
       thiol: ['thiol', 'thiol'],
       amine: ['amine', 'amine'],
@@ -3246,7 +3294,7 @@ class Namer {
       // carrying the one before: chloro(methoxy)methane, not chloromethoxymethane.
       const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !ATOM_LIKE.test(sub.text));
       const body = n > 1 && TRADITIONAL.test(sub.text) ? `${multiplier(n)}-${sub.text}`
-        : omitAll && n === 1 && pre.length === 1 && (TRADITIONAL.test(sub.text) || (parent && (sub as { di?: boolean }).di)) ? sub.text
+        : omitAll && n === 1 && pre.length === 1 && (TRADITIONAL.test(sub.text) || (parent && (sub as { di?: boolean }).di && !/^[omp]-/.test(sub.text))) ? sub.text
         : bracket ? `${n > 1 && (sub as { di?: boolean }).di ? multiplier(n) : complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);
@@ -3421,6 +3469,8 @@ class Namer {
       const w = ({ '1,2': 'phthalate', '1,3': 'isophthalate', '1,4': 'terephthalate' } as Record<string, string>)[l];
       if (w) acid = w;
     }
+    if (acid === 'pyridine-3-carboxylate') acid = 'nicotinate';
+    if (acid === 'pyridine-4-carboxylate') acid = 'isonicotinate';
     const alkyl = alkyls[0]!;
     if (esters.length === 1) return `${alkyl.text} ${acid}`;
     if (new Set(alkyls.map((a) => a.text)).size === 1) return alkyl.complex ? `${complexMultiplier(esters.length)}(${alkyl.text}) ${acid}` : `${multiplier(esters.length)}${alkyl.text} ${acid}`;

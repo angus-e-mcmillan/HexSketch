@@ -66,7 +66,10 @@ export function analyze(mol: Molecule): Analysis {
     ringSystems.push(comp);
   }
 
-  return { mol, h, ringAtoms, ringBonds, ringSystems, groups: findGroups(mol, h, ringAtoms) };
+  // Thiones only where no ketone is present: a ketone takes the suffix, a C=S is then thioxo.
+  let groups = findGroups(mol, h, ringAtoms);
+  if (groups.some((g) => g.kind === 'ketone' && !g.thio)) groups = groups.filter((g) => !(g.kind === 'ketone' && g.thio));
+  return { mol, h, ringAtoms, ringBonds, ringSystems, groups };
 }
 
 const el = (mol: Molecule, id: AtomId) => mol.atom(id).element;
@@ -184,6 +187,14 @@ function findGroups(mol: Molecule, h: Map<AtomId, number>, ringAtoms: Set<AtomId
         claimed.add(dblO.atom);
         continue;
       }
+    }
+    // A ring C=S beside ring heteroatoms, named as a thione: imidazolidine-2-thione.
+    const ringS = nbrs.find((n) => n.order === 2 && el(mol, n.atom) === 'S' && mol.neighbours(n.atom).length === 1 && mol.atom(n.atom).charge === 0);
+    if (ringS && !dblO && ringAtoms.has(c.id) && singles.length >= 1 && singles.every((n) => ringAtoms.has(n.atom) && ['N', 'O', 'S'].includes(el(mol, n.atom)))
+        && carbons.length + singles.length === 2) {
+      groups.push({ kind: 'ketone', anchor: c.id, ownCarbon: false, consumed: [ringS.atom], thio: true });
+      claimed.add(ringS.atom);
+      continue;
     }
     if (dblO && ringAtoms.has(c.id) && singles.every((n) => ringAtoms.has(n.atom) && ['N', 'O', 'S'].includes(el(mol, n.atom)))
         && carbons.length + singles.length === 2) {
