@@ -28,10 +28,11 @@ test('a caption holding a sequence is analysed; Expand Label draws the strand, w
 
 test('a lone atom label holding a sequence expands too; a mirror-image strand is not called by the natural sequence', () => {
   const ed = new Editor();
-  ed.doc.edit((m) => { m.addAtom({ element: 'C', x: 300, y: 300, label: 'r(AU)' }); });
-  assert.equal(ed.mass?.formula, 'C19H24N7O12P');
+  ed.doc.edit((m) => { m.addAtom({ element: 'C', x: 300, y: 300, label: 'r(AUG)' }); });
+  assert.equal(ed.mass?.formula, 'C29H36N12O19P2');
   assert.equal(ed.expandLabels(), 1);
-  assert.equal(nameMolecule(ed.doc.mol).name, "5'-r(AU)-3'");
-  const mirror = parseSmiles(oligoSmiles(parseOligo('d(TT)')!).replace(/@@?/g, (m) => (m === '@' ? '@@' : '@')));
-  assert.notEqual(nameMolecule(mirror).name, "5'-d(TT)-3'");
+  // Three units or more go by their sequence (a dinucleotide gets its systematic name).
+  assert.equal(nameMolecule(ed.doc.mol).name, "5'-r(AUG)-3'");
+  const mirror = parseSmiles(oligoSmiles(parseOligo('d(TTT)')!).replace(/@@?/g, (m) => (m === '@' ? '@@' : '@')));
+  assert.notEqual(nameMolecule(mirror).name, "5'-d(TTT)-3'");
 });

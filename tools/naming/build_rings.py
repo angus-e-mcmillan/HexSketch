@@ -30,71 +30,108 @@ OUT = ROOT / 'packages' / 'naming' / 'src' / 'rings.ts'
 # them where IUPAC allows a choice; indicated hydrogen is left off (the namer
 # adds it for each structure).
 NAMED = """
+benzo[1,2-d:4,5-d']bis([1,3]dioxole) benzo[4,5]imidazo[1,2-a][1,3,5]triazine benzo[4,5]imidazo[1,2-a]azepine benzo[4,5]imidazo[1,2-a]pyrazine benzo[4,5]imidazo[1,2-b][1,2,4]triazine benzo[4,5]imidazo[1,2-b][1,2,4]triazole
+benzo[4,5]imidazo[1,2-c]pyrimidine benzo[4,5]imidazo[1,2-c]thiazole benzo[4,5]imidazo[2,1-c][1,2,4]triazine benzo[4,5]imidazo[2,1-c][1,2,4]triazole benzo[4,5]imidazo[2,1-c][1,4]oxazine benzo[4,5]oxazolo[3,2-a]pyridine
+benzo[4,5]thiazolo[2,3-b]quinazoline benzo[4,5]thiazolo[2,3-c][1,2,4]triazole benzo[4,5]thiazolo[3,2-a]pyrimidine benzo[4,5]thiazolo[3,2-d]tetrazole benzo[c]chromene benzo[d]imidazo[1,2-a]imidazole
+benzo[de]chromene benzo[e]acephenanthrylene benzo[f]tetraphene benzo[k]tetraphene benzo[m]tetraphene benzo[pqr]tetraphene
+benzo[rst]pentaphene benzofuro[4,5-d]imidazole dibenzo[b,g][1,8]naphthyridine dibenzo[c,pqr]tetraphene dibenzo[f,pqr]tetraphene indeno[1,2,3-hi]chrysene
+naphtho[1,2,3,4-pqr]tetraphene naphtho[2,1-b]benzofuran naphtho[2,3-b]benzofuran pyrazolo[3,4-d]thiazole quinolino[2,3-b]quinoxaline thiazolo[2,3-c][1,2,4]triazole
+thiazolo[3,2-b][1,2,4]triazole thiazolo[5,4-d]thiazole
 pyridine pyrimidine pyrazine pyridazine 1,2,3-triazine 1,2,4-triazine 1,3,5-triazine 1,2,4,5-tetrazine
 furan thiophene pyrrole imidazole pyrazole oxazole isoxazole thiazole isothiazole
 1,2,3-triazole 1,2,4-triazole tetrazole 1,2,3-oxadiazole 1,2,4-oxadiazole 1,2,5-oxadiazole 1,3,4-oxadiazole
 1,2,3-thiadiazole 1,2,4-thiadiazole 1,2,5-thiadiazole 1,3,4-thiadiazole 1,2,3,4-thiatriazole 1,2,3,4-oxatriazole
 1,3-dioxole 1,2-dioxole 1,3-oxathiole 1,3-dithiole 1,2-dithiole 1,2-oxathiole
 pyran thiopyran 1,4-dioxine 1,3-dioxine 1,4-oxathiine 1,4-dithiine 1,3-oxazine 1,4-oxazine 1,2-oxazine 1,3-thiazine 1,4-thiazine 1,2-thiazine
-1,3,5-oxadiazine 1,3,4-oxadiazine 1,3,4-thiadiazine 1,3,5-thiadiazine 1,2,4-oxadiazine 1,2,4-thiadiazine 1,2,3-oxathiazine 1,4,2-dioxazine 1,3,5-dioxazine 1,3,5-dithiazine 1,2,4,5-tetrazine
-azepine 1,2-diazepine 1,3-diazepine 1,4-diazepine oxepine thiepine 1,4-oxazepine 1,3-oxazepine 1,4-thiazepine 1,3-thiazepine 1,2,4-triazepine 1,3,5-triazepine
+1,3,5-oxadiazine 1,3,4-oxadiazine 1,3,4-thiadiazine 1,3,5-thiadiazine 1,2,4-oxadiazine 1,2,4-thiadiazine 1,2,3-oxathiazine 1,4,2-dioxazine 1,3,5-dioxazine 1,3,5-dithiazine
+pyrrolizine azepine 1,2-diazepine 1,3-diazepine 1,4-diazepine oxepine thiepine 1,4-oxazepine 1,3-oxazepine 1,4-thiazepine 1,3-thiazepine 1,2,4-triazepine 1,3,5-triazepine
 azocine 1,5-diazocine oxocine azonine azete 1,2-diazete oxete thiete azirine oxirene diazirine
 naphthalene azulene indene anthracene phenanthrene fluorene pyrene acenaphthylene biphenylene phenalene chrysene tetracene triphenylene
-cyclopenta[a]phenanthrene benzo[a]anthracene benzo[c]phenanthrene fluoranthene pentalene heptalene as-indacene s-indacene
-indole isoindole indolizine indazole benzimidazole benzoxazole benzothiazole 1,2-benzoxazole 2,1-benzoxazole 1,2-benzothiazole 2,1-benzothiazole
-benzofuran isobenzofuran benzo[b]thiophene benzo[c]thiophene benzotriazole 2,1,3-benzoxadiazole 2,1,3-benzothiadiazole 1,2,3-benzothiadiazole 1,2,3-benzotriazine 1,2,4-benzotriazine
+cyclopenta[a]phenanthrene tetraphene benzo[c]phenanthrene fluoranthene pentalene heptalene as-indacene s-indacene
+indole isoindole indolizine indazole benzo[d]imidazole benzo[d]oxazole benzo[d]thiazole benzo[d]isoxazole benzo[c]isoxazole benzo[d]isothiazole benzo[c]isothiazole
+benzofuran isobenzofuran benzo[b]thiophene benzo[c]thiophene benzo[d][1,2,3]triazole benzo[c][1,2,5]oxadiazole benzo[c][1,2,5]thiadiazole benzo[d][1,2,3]thiadiazole benzo[d][1,2,3]triazine benzo[e][1,2,4]triazine
 quinoline isoquinoline quinolizine quinazoline quinoxaline cinnoline phthalazine
 1,5-naphthyridine 1,6-naphthyridine 1,7-naphthyridine 1,8-naphthyridine 2,6-naphthyridine 2,7-naphthyridine
-pteridine purine chromene isochromene thiochromene isothiochromene xanthene thioxanthene acridine phenazine phenothiazine phenoxazine phenoxathiine phenanthridine phenanthroline
-1,10-phenanthroline 4,7-phenanthroline 1,7-phenanthroline perimidine carbazole beta-carboline dibenzofuran dibenzothiophene dibenzo[b,e][1,4]dioxine thianthrene
-benzo[d][1,3]dioxole 1,4-benzodioxine 1,3-benzodioxine 1,3-benzodioxole 1,4-benzoxazine 3,1-benzoxazine 2,1-benzoxazine 1,3-benzoxazine 1,4-benzothiazine 1,3-benzothiazine 1,2-benzothiazine 3,1-benzothiazine
-1-benzazepine 2-benzazepine 3-benzazepine 1,4-benzodiazepine 1,5-benzodiazepine 2,3-benzodiazepine 1,3-benzodiazepine 1,5-benzoxazepine 1,4-benzoxazepine 1,5-benzothiazepine 1,4-benzothiazepine 4,1-benzoxazepine 3,1-benzoxazepine
-1-benzoxepine 3-benzoxepine 1-benzothiepine dibenzo[b,f]azepine dibenzo[b,e]azepine dibenzo[b,f]oxepine dibenzo[b,e]oxepine dibenzo[b,f][1,4]oxazepine dibenzo[b,e][1,4]diazepine dibenzo[b,f][1,4]thiazepine dibenzo[a,d]cycloheptene
-benzo[b][1,4]dioxepine benzo[b][1,4]oxazepine benzo[f][1,4]oxazepine benzo[e][1,4]diazepine benzo[b][1,4]diazepine benzo[cd]indole benzo[de]isoquinoline benzo[g]quinoline benzo[h]quinoline benzo[f]quinoline benzo[g]indole benzo[e]indole benzo[f]indole benzo[g]chromene benzo[h]chromene benzo[f]chromene
+pteridine purine chromene isochromene thiochromene isothiochromene xanthene thioxanthene acridine phenazine phenothiazine phenoxazine phenoxathiine phenanthridine
+1,10-phenanthroline 4,7-phenanthroline 1,7-phenanthroline perimidine carbazole dibenzo[b,d]furan dibenzo[b,d]thiophene dibenzo[b,e][1,4]dioxine thianthrene
+benzo[d][1,3]dioxole benzo[b][1,4]dioxine benzo[d][1,3]dioxine 1,3-benzodioxole benzo[b][1,4]oxazine benzo[d][1,3]oxazine benzo[c][1,2]oxazine benzo[e][1,3]oxazine benzo[b][1,4]thiazine benzo[e][1,3]thiazine benzo[e][1,2]thiazine benzo[d][1,3]thiazine
+benzo[b]azepine benzo[c]azepine benzo[d]azepine benzo[e][1,4]diazepine benzo[b][1,4]diazepine benzo[d][1,2]diazepine benzo[d][1,3]diazepine benzo[b][1,4]oxazepine benzo[f][1,4]oxazepine benzo[b][1,4]thiazepine benzo[f][1,4]thiazepine benzo[e][1,4]oxazepine benzo[d][1,3]oxazepine
+benzo[b]oxepine benzo[d]oxepine benzo[b]thiepine dibenzo[b,f]azepine dibenzo[b,e]azepine dibenzo[b,f]oxepine dibenzo[b,e]oxepine dibenzo[b,f][1,4]oxazepine dibenzo[b,e][1,4]diazepine dibenzo[b,f][1,4]thiazepine dibenzo[a,d][7]annulene
+benzo[b][1,4]dioxepine benzo[cd]indole benzo[de]isoquinoline benzo[g]quinoline benzo[h]quinoline benzo[f]quinoline benzo[g]indole benzo[e]indole benzo[f]indole benzo[g]chromene benzo[h]chromene benzo[f]chromene
 naphtho[2,1-b]furan naphtho[1,2-b]furan naphtho[2,3-b]furan naphtho[2,1-b]thiophene naphtho[1,2-d]thiazole naphtho[2,1-d]thiazole naphtho[1,2-d]oxazole naphtho[1,2-d]imidazole naphtho[2,3-d]imidazole
 cyclopenta[b]pyridine cyclopenta[c]pyridine cyclopenta[d]pyrimidine cyclopenta[b]thiophene cyclopenta[c]thiophene cyclopenta[b]furan cyclopenta[b]pyrrole cyclopenta[c]pyrrole cyclopenta[c]pyrazole cyclopenta[d]thiazole cyclopenta[d]imidazole cyclopenta[b]indole cyclopenta[b]quinoline cyclopenta[b]pyran cyclopenta[c]pyran cyclopenta[c]chromene
 cyclohepta[b]pyridine cyclohepta[b]thiophene cyclohepta[d]pyrimidine cyclohepta[b]indole cyclohepta[b]furan cyclohepta[c]pyrazole cyclohepta[d]thiazole cyclohepta[b]pyrrole cyclohepta[c]pyridine cycloocta[b]pyridine cycloocta[b]thiophene cycloocta[d]pyrimidine
 thieno[2,3-d]pyrimidine thieno[3,2-d]pyrimidine thieno[3,4-d]pyrimidine thieno[2,3-b]pyridine thieno[3,2-b]pyridine thieno[2,3-c]pyridine thieno[3,2-c]pyridine thieno[3,4-b]pyridine thieno[2,3-b]thiophene thieno[3,2-b]thiophene thieno[2,3-b]pyrazine thieno[2,3-d]pyridazine thieno[3,2-b]pyrrole thieno[2,3-b]pyrrole thieno[2,3-d]thiazole thieno[3,2-d]thiazole
-[1]benzothieno[2,3-d]pyrimidine [1]benzothieno[3,2-d]pyrimidine [1]benzothieno[2,3-b]pyridine [1]benzothieno[3,2-b]pyridine [1]benzothieno[2,3-c]pyridine [1]benzofuro[3,2-d]pyrimidine [1]benzofuro[2,3-d]pyrimidine [1]benzofuro[3,2-b]pyridine
-pyrido[2,3-d]pyrimidine pyrido[3,2-d]pyrimidine pyrido[3,4-d]pyrimidine pyrido[4,3-d]pyrimidine pyrido[1,2-a]pyrimidine pyrido[2,3-b]pyrazine pyrido[3,4-b]pyrazine pyrido[1,2-a]pyrazine pyrido[2,3-d]pyridazine pyrido[3,4-d]pyridazine pyrido[1,2-a]benzimidazole pyrido[1,2-a]indole pyrido[3,4-b]indole pyrido[4,3-b]indole pyrido[2,3-b]indole pyrido[3,2-b]indole pyrido[1,2-b]indazole pyrido[2,1-b]quinazoline pyrido[1,2-a]pyrimidine
-pyrimido[4,5-d]pyrimidine pyrimido[5,4-d]pyrimidine pyrimido[1,2-a]benzimidazole pyrimido[2,1-b]quinazoline pyrimido[4,5-b]quinoline pyrimido[5,4-b]indole pyrimido[1,6-a]benzimidazole pyrimido[2,1-b][1,3]thiazine pyrimido[2,1-a]isoquinoline
-pyrazino[2,3-b]pyrazine pyrazino[1,2-a]indole pyrazino[1,2-a]pyrazine pyrazino[2,1-b]quinazoline pyrazino[2,3-b]quinoxaline pyrazino[1,2-a]benzimidazole
-pyrrolo[2,3-b]pyridine pyrrolo[3,2-b]pyridine pyrrolo[2,3-c]pyridine pyrrolo[3,2-c]pyridine pyrrolo[3,4-b]pyridine pyrrolo[3,4-c]pyridine pyrrolo[1,2-a]pyrazine pyrrolo[1,2-a]pyrimidine pyrrolo[1,2-c]pyrimidine pyrrolo[2,3-d]pyrimidine pyrrolo[3,2-d]pyrimidine pyrrolo[3,4-d]pyrimidine pyrrolo[1,2-b]pyridazine pyrrolo[2,1-b]thiazole pyrrolo[2,1-c][1,4]oxazine pyrrolo[2,1-c][1,4]benzodiazepine pyrrolo[1,2-a]indole pyrrolo[3,4-b]indole pyrrolo[2,3-b]indole pyrrolo[3,2-b]indole pyrrolo[1,2-a]quinoxaline pyrrolo[1,2-a]quinoline pyrrolo[3,4-c]pyrrole pyrrolo[3,2-b]pyrrole pyrrolo[1,2-a]imidazole pyrrolo[1,2-c]imidazole pyrrolo[2,1-a]isoquinoline pyrrolo[1,2-a]azepine pyrrolo[2,3-b]pyrazine pyrrolo[1,2-a][1,4]diazepine pyrrolo[3,4-c]pyrazole pyrrolo[3,4-c]quinoline
+benzo[4,5]thieno[2,3-d]pyrimidine benzo[4,5]thieno[3,2-d]pyrimidine benzo[4,5]thieno[2,3-b]pyridine benzo[4,5]thieno[3,2-b]pyridine benzo[4,5]thieno[2,3-c]pyridine benzofuro[3,2-d]pyrimidine benzofuro[2,3-d]pyrimidine benzofuro[3,2-b]pyridine
+pyrido[2,3-d]pyrimidine pyrido[3,2-d]pyrimidine pyrido[3,4-d]pyrimidine pyrido[4,3-d]pyrimidine pyrido[1,2-a]pyrimidine pyrido[2,3-b]pyrazine pyrido[3,4-b]pyrazine pyrido[1,2-a]pyrazine pyrido[2,3-d]pyridazine pyrido[3,4-d]pyridazine benzo[4,5]imidazo[1,2-a]pyridine pyrido[1,2-a]indole pyrido[3,4-b]indole pyrido[4,3-b]indole pyrido[2,3-b]indole pyrido[3,2-b]indole pyrido[1,2-b]indazole pyrido[2,1-b]quinazoline
+pyrimido[4,5-d]pyrimidine pyrimido[5,4-d]pyrimidine benzo[4,5]imidazo[1,2-a]pyrimidine pyrimido[2,1-b]quinazoline pyrimido[4,5-b]quinoline pyrimido[5,4-b]indole pyrimido[1,6-a]benzo[d]imidazole pyrimido[2,1-b][1,3]thiazine pyrimido[2,1-a]isoquinoline
+pyrazino[2,3-b]pyrazine pyrazino[1,2-a]indole pyrazino[1,2-a]pyrazine pyrazino[2,1-b]quinazoline pyrazino[2,3-b]quinoxaline pyrazino[1,2-a]benzo[d]imidazole
+pyrrolo[2,3-b]pyridine pyrrolo[3,2-b]pyridine pyrrolo[2,3-c]pyridine pyrrolo[3,2-c]pyridine pyrrolo[3,4-b]pyridine pyrrolo[3,4-c]pyridine pyrrolo[1,2-a]pyrazine pyrrolo[1,2-a]pyrimidine pyrrolo[1,2-c]pyrimidine pyrrolo[2,3-d]pyrimidine pyrrolo[3,2-d]pyrimidine pyrrolo[3,4-d]pyrimidine pyrrolo[1,2-b]pyridazine pyrrolo[2,1-b]thiazole pyrrolo[2,1-c][1,4]oxazine benzo[e]pyrrolo[1,2-a][1,4]diazepine pyrrolo[1,2-a]indole pyrrolo[3,4-b]indole pyrrolo[2,3-b]indole pyrrolo[3,2-b]indole pyrrolo[1,2-a]quinoxaline pyrrolo[1,2-a]quinoline pyrrolo[3,4-c]pyrrole pyrrolo[3,2-b]pyrrole pyrrolo[1,2-a]imidazole pyrrolo[1,2-c]imidazole pyrrolo[2,1-a]isoquinoline pyrrolo[1,2-a]azepine pyrrolo[2,3-b]pyrazine pyrrolo[1,2-a][1,4]diazepine pyrrolo[3,4-c]pyrazole pyrrolo[3,4-c]quinoline
 pyrazolo[1,5-a]pyrimidine pyrazolo[3,4-d]pyrimidine pyrazolo[4,3-d]pyrimidine pyrazolo[1,5-c]pyrimidine pyrazolo[3,4-b]pyridine pyrazolo[4,3-b]pyridine pyrazolo[3,4-c]pyridine pyrazolo[4,3-c]pyridine pyrazolo[1,5-a]pyridine pyrazolo[1,5-a]pyrazine pyrazolo[1,5-b]pyridazine pyrazolo[3,4-b]pyrazine pyrazolo[5,1-b]thiazole pyrazolo[5,1-c][1,2,4]triazine pyrazolo[3,4-d]pyridazine pyrazolo[1,2-a]pyrazole pyrazolo[1,5-a][1,3,5]triazine pyrazolo[3,4-b]quinoline pyrazolo[1,5-a]quinazoline pyrazolo[5,1-b]quinazoline pyrazolo[3,4-c]pyrazole pyrazolo[1,5-d][1,2,4]triazine pyrazolo[4,3-c]quinoline pyrazolo[3,4-d][1,3]thiazole pyrazolo[1,5-a][1,4]diazepine pyrazolo[4,3-e][1,2,4]triazolo[1,5-c]pyrimidine
-imidazo[1,2-a]pyridine imidazo[1,5-a]pyridine imidazo[4,5-b]pyridine imidazo[4,5-c]pyridine imidazo[1,2-a]pyrimidine imidazo[1,2-c]pyrimidine imidazo[1,5-a]pyrimidine imidazo[1,2-a]pyrazine imidazo[1,5-a]pyrazine imidazo[1,2-b]pyridazine imidazo[2,1-b]thiazole imidazo[2,1-b][1,3]thiazole imidazo[2,1-b][1,3,4]thiadiazole imidazo[2,1-b]oxazole imidazo[4,5-d]pyridazine imidazo[1,2-a]benzimidazole imidazo[2,1-b]benzothiazole imidazo[1,2-a]quinoline imidazo[1,2-a]quinoxaline imidazo[4,5-f]quinoline imidazo[1,5-a]quinoxaline imidazo[2,1-a]isoquinoline imidazo[1,2-d][1,2,4]triazine imidazo[5,1-f][1,2,4]triazine imidazo[4,5-d]imidazole imidazo[1,2-a][1,3,5]triazine imidazo[4,5-e]benzofuran imidazo[1,2-c]quinazoline imidazo[4,5-b]pyrazine imidazo[1,5-a]imidazole imidazo[1,2-b]pyrazole imidazo[2,1-b][1,3]thiazine imidazo[4,5-g]quinazoline imidazo[2,1-f]purine imidazo[1,2-a]azepine imidazo[2,1-b]quinazoline
-[1,2,4]triazolo[1,5-a]pyrimidine [1,2,4]triazolo[4,3-a]pyrimidine [1,2,4]triazolo[1,5-c]pyrimidine [1,2,4]triazolo[4,3-c]pyrimidine [1,2,4]triazolo[4,3-a]pyridine [1,2,4]triazolo[1,5-a]pyridine [1,2,4]triazolo[4,3-a]pyrazine [1,2,4]triazolo[1,5-a]pyrazine [1,2,4]triazolo[4,3-b]pyridazine [1,2,4]triazolo[1,5-b]pyridazine [1,2,4]triazolo[3,4-b][1,3,4]thiadiazole [1,2,4]triazolo[3,4-b][1,3,4]thiadiazine [1,2,4]triazolo[5,1-b][1,3,4]thiadiazole [1,2,4]triazolo[3,4-b]benzothiazole [1,2,4]triazolo[4,3-a]quinoxaline [1,2,4]triazolo[1,5-a]quinazoline [1,2,4]triazolo[4,3-a]quinazoline [1,2,4]triazolo[1,5-c]quinazoline [1,2,4]triazolo[4,3-c]quinazoline [1,2,4]triazolo[3,4-a]phthalazine [1,2,4]triazolo[4,3-a]quinoline [1,2,4]triazolo[5,1-b]thiazole [1,2,4]triazolo[3,4-b]thiazole [1,2,4]triazolo[3,2-b]thiazole [1,2,4]triazolo[1,5-a][1,3,5]triazine [1,2,4]triazolo[4,3-b][1,2,4]triazine [1,2,4]triazolo[4,3-a]benzimidazole [1,2,4]triazolo[1,5-a]benzimidazole [1,2,4]triazolo[3,4-f][1,2,4]triazine [1,2,4]triazolo[4,3-d][1,4]benzodiazepine [1,2,4]triazolo[4,3-a][1,4]benzodiazepine [1,2,4]triazolo[1,5-d][1,2,4]triazine [1,2,4]triazolo[5,1-c][1,2,4]triazine [1,2,4]triazolo[3,4-b][1,3]benzothiazole [1,2,4]triazolo[4,3-a]azepine [1,2,4]triazolo[1,5-a]azepine
+imidazo[1,2-a]pyridine imidazo[1,5-a]pyridine imidazo[4,5-b]pyridine imidazo[4,5-c]pyridine imidazo[1,2-a]pyrimidine imidazo[1,2-c]pyrimidine imidazo[1,5-a]pyrimidine imidazo[1,2-a]pyrazine imidazo[1,5-a]pyrazine imidazo[1,2-b]pyridazine imidazo[2,1-b]thiazole imidazo[2,1-b][1,3]thiazole imidazo[2,1-b][1,3,4]thiadiazole imidazo[2,1-b]oxazole imidazo[4,5-d]pyridazine imidazo[1,2-a]benzo[d]imidazole benzo[d]imidazo[2,1-b]thiazole imidazo[1,2-a]quinoline imidazo[1,2-a]quinoxaline imidazo[4,5-f]quinoline imidazo[1,5-a]quinoxaline imidazo[2,1-a]isoquinoline imidazo[1,2-d][1,2,4]triazine imidazo[5,1-f][1,2,4]triazine imidazo[4,5-d]imidazole imidazo[1,2-a][1,3,5]triazine imidazo[4,5-e]benzofuran imidazo[1,2-c]quinazoline imidazo[4,5-b]pyrazine imidazo[1,5-a]imidazole imidazo[1,2-b]pyrazole imidazo[2,1-b][1,3]thiazine imidazo[4,5-g]quinazoline imidazo[2,1-f]purine imidazo[1,2-a]azepine imidazo[2,1-b]quinazoline
+[1,2,4]triazolo[1,5-a]pyrimidine [1,2,4]triazolo[4,3-a]pyrimidine [1,2,4]triazolo[1,5-c]pyrimidine [1,2,4]triazolo[4,3-c]pyrimidine [1,2,4]triazolo[4,3-a]pyridine [1,2,4]triazolo[1,5-a]pyridine [1,2,4]triazolo[4,3-a]pyrazine [1,2,4]triazolo[1,5-a]pyrazine [1,2,4]triazolo[4,3-b]pyridazine [1,2,4]triazolo[1,5-b]pyridazine [1,2,4]triazolo[3,4-b][1,3,4]thiadiazole [1,2,4]triazolo[3,4-b][1,3,4]thiadiazine [1,2,4]triazolo[5,1-b][1,3,4]thiadiazole [1,2,4]triazolo[3,4-b][1,3]benzothiazole [1,2,4]triazolo[4,3-a]quinoxaline [1,2,4]triazolo[1,5-a]quinazoline [1,2,4]triazolo[4,3-a]quinazoline [1,2,4]triazolo[1,5-c]quinazoline [1,2,4]triazolo[4,3-c]quinazoline [1,2,4]triazolo[3,4-a]phthalazine [1,2,4]triazolo[4,3-a]quinoline [1,2,4]triazolo[5,1-b]thiazole [1,2,4]triazolo[3,4-b]thiazole [1,2,4]triazolo[3,2-b]thiazole [1,2,4]triazolo[1,5-a][1,3,5]triazine [1,2,4]triazolo[4,3-b][1,2,4]triazine [1,2,4]triazolo[4,3-a]benzo[d]imidazole [1,2,4]triazolo[1,5-a]benzo[d]imidazole [1,2,4]triazolo[3,4-f][1,2,4]triazine benzo[f][1,2,4]triazolo[4,3-d][1,4]diazepine benzo[f][1,2,4]triazolo[4,3-a][1,4]diazepine [1,2,4]triazolo[1,5-d][1,2,4]triazine [1,2,4]triazolo[5,1-c][1,2,4]triazine [1,2,4]triazolo[3,4-b][1,3]benzothiazole [1,2,4]triazolo[4,3-a]azepine [1,2,4]triazolo[1,5-a]azepine
 [1,2,3]triazolo[4,5-d]pyrimidine [1,2,3]triazolo[1,5-a]pyridine [1,2,3]triazolo[4,5-b]pyridine [1,2,3]triazolo[1,5-a]pyrimidine [1,2,3]triazolo[1,5-a]quinazoline [1,2,3]triazolo[4,5-c]pyridine [1,2,3]triazolo[1,5-a]pyrazine
 tetrazolo[1,5-a]pyridine tetrazolo[1,5-a]pyrimidine tetrazolo[1,5-b]pyridazine tetrazolo[1,5-a]quinoline tetrazolo[1,5-a]quinoxaline tetrazolo[1,5-c]quinazoline tetrazolo[5,1-b]benzothiazole
-[1,3]thiazolo[3,2-a]pyrimidine [1,3]thiazolo[4,5-d]pyrimidine [1,3]thiazolo[5,4-d]pyrimidine [1,3]thiazolo[4,5-b]pyridine [1,3]thiazolo[5,4-b]pyridine [1,3]thiazolo[4,5-c]pyridine [1,3]thiazolo[5,4-c]pyridine [1,3]thiazolo[3,2-a]pyridine [1,3]thiazolo[3,2-b][1,2,4]triazole [1,3]thiazolo[2,3-c][1,2,4]triazole [1,3]thiazolo[3,2-a]benzimidazole [1,3]thiazolo[2,3-b]quinazoline [1,3]thiazolo[4,5-d]thiazole [1,3]thiazolo[5,4-d][1,3]thiazole [1,3]thiazolo[3,2-b][1,2,4]triazine [1,3]thiazolo[3,4-a]benzimidazole [1,3]thiazolo[4,5-b]quinoxaline [1,3]thiazolo[3,2-a][1,3,5]triazine [1,3]thiazolo[2,3-b][1,3]thiazine [1,3]thiazolo[3,2-c]pyrimidine [1,3]thiazolo[4,5-c]quinoline [1,3]thiazolo[3,2-a]azepine [1,3]thiazolo[5,4-f]quinazoline
-[1,3]oxazolo[4,5-b]pyridine [1,3]oxazolo[5,4-b]pyridine [1,3]oxazolo[4,5-c]pyridine [1,3]oxazolo[5,4-d]pyrimidine [1,3]oxazolo[4,5-d]pyrimidine [1,3]oxazolo[3,2-a]pyridine [1,3]oxazolo[3,2-a]pyrimidine [1,3]oxazolo[4,5-c]quinoline [1,2]oxazolo[5,4-b]pyridine [1,2]oxazolo[4,5-b]pyridine [1,2]oxazolo[4,5-c]pyridine [1,2]oxazolo[5,4-d]pyrimidine [1,2]oxazolo[4,5-d]pyridazine [1,2]oxazolo[4,5-d]pyrimidine [1,2]oxazolo[3,4-d]pyridazine [1,2]oxazolo[2,3-a]pyridine [1,2]thiazolo[5,4-b]pyridine [1,2]thiazolo[4,5-d]pyrimidine [1,2]thiazolo[4,5-b]pyridine [1,2]thiazolo[5,4-d]pyrimidine
+thiazolo[3,2-a]pyrimidine thiazolo[4,5-d]pyrimidine thiazolo[5,4-d]pyrimidine thiazolo[4,5-b]pyridine thiazolo[5,4-b]pyridine thiazolo[4,5-c]pyridine thiazolo[5,4-c]pyridine thiazolo[3,2-a]pyridine thiazolo[3,2-b][1,2,4]triazole thiazolo[2,3-c][1,2,4]triazole benzo[4,5]imidazo[2,1-b]thiazole thiazolo[2,3-b]quinazoline thiazolo[4,5-d]thiazole thiazolo[5,4-d][1,3]thiazole thiazolo[3,2-b][1,2,4]triazine thiazolo[3,4-a]benzo[d]imidazole thiazolo[4,5-b]quinoxaline thiazolo[3,2-a][1,3,5]triazine thiazolo[2,3-b][1,3]thiazine thiazolo[3,2-c]pyrimidine thiazolo[4,5-c]quinoline thiazolo[3,2-a]azepine thiazolo[5,4-f]quinazoline
+oxazolo[4,5-b]pyridine oxazolo[5,4-b]pyridine oxazolo[4,5-c]pyridine oxazolo[5,4-d]pyrimidine oxazolo[4,5-d]pyrimidine oxazolo[3,2-a]pyridine oxazolo[3,2-a]pyrimidine oxazolo[4,5-c]quinoline isoxazolo[5,4-b]pyridine isoxazolo[4,5-b]pyridine isoxazolo[4,5-c]pyridine isoxazolo[5,4-d]pyrimidine isoxazolo[4,5-d]pyridazine isoxazolo[4,5-d]pyrimidine isoxazolo[3,4-d]pyridazine isoxazolo[2,3-a]pyridine isothiazolo[5,4-b]pyridine isothiazolo[4,5-d]pyrimidine isothiazolo[4,5-b]pyridine isothiazolo[5,4-d]pyrimidine
 furo[2,3-b]pyridine furo[3,2-b]pyridine furo[2,3-c]pyridine furo[3,2-c]pyridine furo[3,4-b]pyridine furo[3,4-c]pyridine furo[2,3-d]pyrimidine furo[3,2-d]pyrimidine furo[3,4-d]pyrimidine furo[2,3-b]quinoline furo[3,2-c]chromene furo[3,2-g]chromene furo[2,3-b]pyrazine furo[3,4-c]furan furo[3,2-b]furan furo[2,3-b]furan furo[3,2-b]pyrrole furo[3,4-c]pyrrole furo[3,4-b]pyrazine furo[2,3-c]pyrazole furo[3,4-c]pyrazole furo[3,4-b]indole furo[3,4-c]quinoline furo[3,2-c]pyran furo[3,4-b]pyran furo[3,4-c]pyridazine
 [1,3]dioxolo[4,5-g]quinoline [1,3]dioxolo[4,5-g]chromene [1,3]dioxolo[4,5-b]pyridine [1,3]dioxolo[4,5-c]pyridine [1,3]dioxolo[4,5-g]isoquinoline [1,3]dioxolo[4,5-g]quinazoline [1,3]dioxolo[4,5-f]indole [1,3]dioxolo[4,5-f][1,3]benzodioxole [1,4]dioxino[2,3-b]pyridine [1,4]dioxino[2,3-g]quinoline [1,4]dioxino[2,3-f]quinazoline [1,4]dioxino[2,3-c]pyrrole [1,4]dioxino[2,3-b]pyrazine
 [1,3,4]thiadiazolo[3,2-a]pyrimidine [1,3,4]thiadiazolo[2,3-b]quinazoline [1,3,4]thiadiazolo[3,2-b][1,2,4]triazine [1,2,4]oxadiazolo[4,3-a]pyridine [1,2,5]oxadiazolo[3,4-b]pyrazine [1,2,5]oxadiazolo[3,4-b]pyridine [1,2,5]thiadiazolo[3,4-b]pyridine [1,2,5]thiadiazolo[3,4-b]pyrazine [1,3,4]oxadiazolo[3,2-a]pyridine
-oxazolo[4,5-b]pyridine oxazolo[5,4-b]pyridine thiazolo[3,2-a]pyrimidine thiazolo[4,5-d]pyrimidine thiazolo[5,4-b]pyridine thiazolo[4,5-b]pyridine
+
 pyrano[2,3-c]pyrazole pyrano[3,2-c]chromene pyrano[2,3-d]pyrimidine pyrano[3,2-b]pyridine pyrano[4,3-c]pyrazole pyrano[2,3-b]pyridine pyrano[3,4-c]pyridine pyrano[4,3-b]pyridine pyrano[3,2-c]pyridine pyrano[2,3-b]quinoline pyrano[3,2-c]quinoline pyrano[3,4-b]indole pyrano[4,3-b]indole pyrano[2,3-c]pyridine pyrano[3,4-b]pyrrole pyrano[3,2-b]pyrrole pyrano[4,3-c]pyridine pyrano[3,4-d]imidazole pyrano[4,3-d]pyrimidine pyrano[4,3-d]thiazole pyrano[3,2-g]chromene pyrano[3,4-c]pyrrole pyrano[2,3-c]pyrrole pyrano[4,3-b]pyran pyrano[3,2-b]pyran
 thiopyrano[2,3-b]pyridine thiopyrano[4,3-d]pyrimidine thiopyrano[4,3-c]pyrazole thiopyrano[3,4-b]indole thiopyrano[3,2-c]pyrazole thiopyrano[4,3-b]pyridine thiopyrano[2,3-d]thiazole thiopyrano[2,3-d]pyrimidine thiopyrano[4,3-b]indole
-azepino[4,5-b]indole azepino[3,4-b]indole azepino[1,2-a]benzimidazole azeto[1,2-a]benzimidazole
-oxazino[2,3-a]isoquinoline [1,3]oxazino[3,2-a]benzimidazole [1,4]oxazino[4,3-a]benzimidazole [1,4]oxazino[3,4-c][1,4]benzoxazine pyrido[2,1-c][1,4]oxazine pyrazino[2,1-c][1,4]oxazine pyrido[1,2-c]pyrimidine
-[1,2,4]triazino[5,6-b]indole [1,2,4]triazino[4,3-a]benzimidazole [1,2,4]triazino[2,3-a]benzimidazole [1,3,5]triazino[1,2-a]benzimidazole [1,2,4]triazolo[3,4-b][1,3,4]thiadiazepine
+azepino[4,5-b]indole azepino[3,4-b]indole azepino[1,2-a]benzo[d]imidazole azeto[1,2-a]benzo[d]imidazole
+oxazino[2,3-a]isoquinoline [1,3]oxazino[3,2-a]benzo[d]imidazole [1,4]oxazino[4,3-a]benzo[d]imidazole [1,4]oxazino[3,4-c][1,4]benzoxazine pyrido[2,1-c][1,4]oxazine pyrazino[2,1-c][1,4]oxazine pyrido[1,2-c]pyrimidine
+[1,2,4]triazino[5,6-b]indole [1,2,4]triazino[4,3-a]benzo[d]imidazole [1,2,4]triazino[2,3-a]benzo[d]imidazole [1,3,5]triazino[1,2-a]benzo[d]imidazole [1,2,4]triazolo[3,4-b][1,3,4]thiadiazepine
 isoindolo[1,2-b]quinazoline isoindolo[2,1-a]quinazoline indolo[2,3-b]quinoxaline indolo[2,1-b]quinazoline indolo[1,2-c]quinazoline indolo[3,2-b]quinoline indolo[2,3-a]carbazole indolo[3,2-c]quinoline indeno[1,2-b]pyridine indeno[1,2-c]pyrazole indeno[2,1-b]pyridine indeno[1,2-d]pyrimidine indeno[1,2-d]thiazole indeno[1,2-b]quinoxaline indeno[1,2-b]indole indeno[1,2-b]pyrazine indeno[1,2-c]pyridine indeno[1,2-b]quinoline indeno[2,1-c]pyridine
 chromeno[2,3-b]pyridine chromeno[4,3-b]pyridine chromeno[3,4-c]pyridine chromeno[4,3-c]pyrazole chromeno[3,4-d]thiazole chromeno[2,3-d]pyrimidine chromeno[4,3-d]pyrimidine chromeno[3,4-b]pyridine chromeno[4,3-b]quinoline chromeno[2,3-c]pyrrole chromeno[3,4-c]pyrrole chromeno[4,3-c]pyridine chromeno[4,3-d]thiazole chromeno[3,4-d]imidazole
-quino[2,3-b]quinoxaline thiazolo[3,2-a]benzimidazole benzimidazo[1,2-a]quinoline benzimidazo[2,1-b]quinazoline benzimidazo[1,2-c]quinazoline benzimidazo[2,1-b][1,3]thiazole benzimidazo[1,2-a]pyrimidine benzofuro[3,2-c]pyridine benzofuro[2,3-b]pyridine benzothieno[3,2-b]indole benzothiazolo[2,3-b]quinazoline benzothiazolo[3,2-a]pyrimidine benzoxazolo[3,2-a]pyridine
-thiazino[3,2-a]benzimidazole [1,3]thiazino[3,2-a]benzimidazole [1,3]thiazino[2,3-b]quinazoline [1,4]thiazino[3,4-c][1,4]oxazine
+quino[2,3-b]quinoxaline benzo[4,5]imidazo[1,2-a]quinoline benzo[4,5]imidazo[2,1-b]quinazoline benzo[4,5]imidazo[1,2-c]quinazoline benzofuro[3,2-c]pyridine benzofuro[2,3-b]pyridine benzo[4,5]thieno[3,2-b]indole benzo[4,5]thiazolo[2,3-b]quinazoline benzo[4,5]thiazolo[3,2-a]pyrimidine benzo[4,5]oxazolo[3,2-a]pyridine
+thiazino[3,2-a]benzo[d]imidazole [1,3]thiazino[3,2-a]benzo[d]imidazole [1,3]thiazino[2,3-b]quinazoline [1,4]thiazino[3,4-c][1,4]oxazine
 quinolino[2,3-b]quinoline naphtho[2,3-d]oxazole naphtho[1,8-bc]pyran naphtho[2,3-b]thiophene naphtho[1,2-b]pyran naphtho[2,1-b]pyran naphtho[2,3-c]furan naphtho[1,2-e][1,3]oxazine naphtho[2,1-e][1,3]oxazine
 benzo[a]pyrene benzo[e]pyrene perylene dibenzo[a,h]anthracene dibenzo[a,j]anthracene dibenzo[a,c]anthracene benzo[b]fluoranthene benzo[k]fluoranthene benzo[j]fluoranthene benzo[ghi]perylene indeno[1,2,3-cd]pyrene coronene picene pentacene pentaphene
 benzo[a]fluorene benzo[b]fluorene benzo[c]fluorene cyclopenta[cd]pyrene acephenanthrylene aceanthrylene benzo[c]chrysene benzo[g]chrysene dibenzo[a,l]pyrene dibenzo[a,e]pyrene dibenzo[a,i]pyrene dibenzo[a,h]pyrene naphtho[1,2-b]fluoranthene
 benzo[a]acridine benzo[c]acridine dibenzo[a,h]acridine dibenzo[a,j]acridine dibenzo[c,g]carbazole benzo[a]carbazole benzo[b]carbazole benzo[c]carbazole benzo[a]phenazine dibenzo[a,c]phenazine indeno[1,2,1-jk]fluorene
 benzo[c]cinnoline benzo[f]quinoxaline benzo[g]quinoxaline benzo[h]isoquinoline benzo[f]isoquinoline benzo[c]phenanthridine benzo[b]naphtho[2,1-d]thiophene benzo[b]naphtho[2,3-d]furan benzo[b]naphtho[1,2-d]furan
 dibenzo[b,d]pyran dibenzo[c,h]chromene benzo[c]chromene 6H-benzo[c]chromene indeno[1,2-b]furan indeno[2,1-b]indole cyclopenta[def]phenanthrene cyclopenta[def]chrysene
+indolo[4,3-fg]quinoline indolo[2',3':3,4]pyrido[1,2-b]isoquinoline pyrano[3',4':6,7]indolizino[1,2-b]quinoline [1,3]dioxolo[4,5-g]isoquinolino[3,2-a]isoquinoline isoquinolino[3,2-a]isoquinoline benzo[2,3]benzofuro[4,3-cd]azepine furo[3',4':6,7]naphtho[2,3-d][1,3]dioxole benzo[a]heptalene chromeno[3,4-b]furo[2,3-h]chromene cyclopenta[c]furo[3',2':4,5]furo[2,3-h]chromene benzofuro[3,2-c]chromene benzo[c][1]oxacyclotetradecine oxireno[2',3':9,10]cyclodeca[1,2-b]furan dipyrido[3,2-b:2',3'-e][1,4]diazepine dinaphtho[1,2-d:1',2'-f][1,3,2]dioxaphosphepine furo[3,2-d][1,3,2]dioxaphosphinine benzo[d][1,3,2]dioxaborole pyrrolo[1,2-c][1,3,2]oxazaborole 1,2-azaborinine porphyrin benzo[a]quinolizine indolo[2,3-a]quinolizine
+benzo[e][1,2,4]thiadiazine benzo[b][1,4]thiazepine benzofuro[3,2-e]isoquinoline azecino[5,4-b]indole [1,2]dioxepino[4,3-i]isochromene benzo[d]azocine
+[1,2,3]thiadiazolo[4',5':3,4]benzo[1,2-c][1,2,5]oxadiazole [1,2,3]thiadiazolo[4,5-d]pyrimidine [1,2,3]triazino[5,4-b]indole [1,2,3]triazolo[2,1-a][1,2,3]triazole [1,2,4]triazolo[4,3-b][1,2,4,5]tetrazine [1,2,4]triazolo[5',1':3,4][1,2,4]triazino[5,6-b]indole [1,2,5]oxadiazolo[3,4-c][1,2,5]triazepine [1,2,5]oxadiazolo[3,4-e]indole
+[1,2,5]thiadiazolo[3,4-b]quinoxaline [1,2,5]thiadiazolo[3,4-d]pyrimidine [1,3]dioxino[5,4-b]pyridine [1,3]dithiolo[4,5-c][1,2]dithiole [1,3]dithiolo[4,5-c]chromene [1,3]oxathiolo[4,5-b]pyridine [1,3]thiazino[3,2-b][1,2,4]triazine [1,4]dioxino[2',3':4,5]benzo[1,2-d]imidazole
+[1,4]thiazino[2,3,4-ij]quinoline acenaphtho[1,2-e][1,2,4]triazine azepino[1,2-b]isoquinoline benzo[5,6]cycloocta[1,2-c]furan benzo[8]annulene benzo[a]azulene benzo[b][1,4,6]oxadiazocine benzo[c][1,2,6]thiadiazine
+benzo[c][1,2]diazepine benzo[d][1,2]iodaoxole benzo[d][1,3,2]thiazaphosphole benzo[d][1,3]dithiole benzo[d][1,3]oxaphosphole benzo[d][1,3]oxathiole benzo[d]pyrrolo[1,2-a]imidazole benzo[d]pyrrolo[2,1-b]oxazole
+benzo[de]anthracene benzo[e][1,2,3]thiadiazine benzo[e]pyrazolo[1,5-c][1,2,3]triazine benzo[f][1,2,4]triazolo[1,2-a]indazole benzo[f][1,3]oxazocine benzo[f]pyridazino[1,2-a]cinnoline benzo[f]pyrido[2,1-b][1,3]thiazepine benzo[g][1,3,5]triazecine
+chromeno[3,4-c][1,2,5]thiadiazole chromeno[3,4-d]isoxazole cyclodeca[3,4]benzo[1,2-b]oxete cyclopenta[a]quinolizine cyclopenta[b]pyrazine cyclopenta[b]thiopyran cyclopenta[c]naphtho[2,1-e]oxepine cyclopenta[c]thiopyran
+cyclopenta[d][1,3]dioxole cyclopenta[d]isoxazole diazacyclopenta[hi]indene dibenzo[a,i]carbazole dibenzo[b,d]thiepine dibenzo[b,e][1,4]dioxepine dibenzo[c,e][1,2]thiazine dibenzo[cd,g]indazole
+difuro[3,2-d:3',2'-j][1,3,7,9]tetraoxa[2,8]diphosphacyclododecine dioxazolo[3,4-d:4',3'-g][1,4]diazepine dipyrido[1,2-a:1',2'-e][1,5]diazocine dipyrido[1,2-a:3',2'-e]pyrimidine dipyrido[3,4-b:4',3'-e][1,4]thiazine furo[2',3':6,7]oxepino[3,2-b]pyrano[2,3-f]oxepine furo[2,3-b]pyrano[3,2-e]pyridine furo[2,3-d][1,3]dioxole
+furo[3,2-d][1,3]dioxine furo[3,2-e]tetrazolo[1,5-c]pyrimidine imidazo[1,2-b][1,2,4]triazole imidazo[1,5-b]isoxazole imidazo[2,1-b]pyrimido[5,4-e][1,3]thiazine imidazo[4',5':3,4]cyclopenta[1,2-d]oxazole imidazo[4,5-c][1,2,5]thiadiazole indeno[1,2-b]azete
+indeno[1,2-b]azirine indeno[1,2-b]oxirene indeno[2,1-c]chromene indeno[2,1-e][1,2,4]triazolo[4,3-c][1,3]oxazine indolo[3,2,1-ij]oxepino[2,3,4-de]pyrrolo[2,3-h]quinoline indolo[3,2-b]quinolizine naphtho[1,2-d][1,3]dioxole naphtho[1,8-cd][1,2]oxathiole
+naphtho[2',1':4,5]indeno[1,2-d][1,3]dioxole naphtho[2',1':4,5]indeno[2,1-b]furan naphtho[2,3-b][1,4]dithiine naphtho[2,3-b]oxirene oxazolo[3,2-c]pyrimidine pyrano[2,3-b]quinolizine pyrano[2,3-d]imidazole pyrano[3',4':4,5]thieno[3,2-d]pyrimidine
+pyrano[3,2-b]pyrano[2',3':6,7]oxepino[2,3-f]oxepine pyrano[3,4-b]pyrazolo[4,3-e]pyridine pyrano[3,4-c]pyran pyrazolo[1,2-a][1,2,4]triazole pyrazolo[3,4-b]thieno[3,4-e]pyridine pyrazolo[3,4-d][1,2]diazepine pyrido[1,2-a][1,5]diazocine pyrido[1,2-a]pyrimido[4,5-d]pyrimidine
+pyrido[1,2-b]isoquinoline pyrido[1,2-c][1,3]diazepine pyrido[1,2-c][1,3]thiazepine pyrido[2,1-a]isoindole pyrido[2,1-b][1,3]thiazine pyrido[2,3-e][1,2,4]thiadiazine pyrimido[4,5-e][1,2,3,4]tetrazine pyrrolo[1,2-a][1,4,7,10,13]pentaazacyclopentadecine
+thiazolo[2,3-b][1,3,4]thiadiazine thiazolo[3,2-a]pyrazine thieno[2',3':4,5]pyrrolo[1,2-a]pyrazine thieno[2,3-e][1,2]thiazine thieno[2,3-g][1,4]oxazonine thieno[3'',2'':5',6']pyrido[4',3':3,4]pyrazolo[1,5-a]pyrimidine thieno[3,4-c]isoxazole thieno[3,4-d][1,3]dioxole
+thiochromeno[4,3-d]thiazole
 spiro[4.5]decane
 """.split()
 NAMED = [n for n in NAMED if not n.startswith('spiro')]
+
+# Conventional names OPSIN does not read, keyed by an equivalent name it does (the numbering of a
+# fused system does not depend on which of its fusion names is used).
+ALIAS = {
+    '[1,2,4]triazolo[3,4-b]benzothiazole': 'benzo[4,5]thiazolo[2,3-c][1,2,4]triazole',
+    '[1,2,4]triazolo[3,4-b][1,3]benzothiazole': 'benzo[4,5]thiazolo[2,3-c][1,2,4]triazole',
+    'tetrazolo[5,1-b]benzothiazole': 'benzo[4,5]thiazolo[3,2-d]tetrazole',
+    '[1,3]dioxolo[4,5-f][1,3]benzodioxole': "benzo[1,2-d:4,5-d']bis([1,3]dioxole)",
+    'benzothiazolo[2,3-b]quinazoline': 'benzo[4,5]thiazolo[2,3-b]quinazoline',
+    'benzothiazolo[3,2-a]pyrimidine': 'benzo[4,5]thiazolo[3,2-a]pyrimidine',
+    'benzoxazolo[3,2-a]pyridine': 'benzo[4,5]oxazolo[3,2-a]pyridine',
+}
+NAMED = list(ALIAS) + NAMED
 
 # Two-ring fusion names from components, to catch systems NAMED misses.
 ATTACHED = {  # prefix form: monocycle name, ring size
     'pyrido': ('pyridine', 6), 'pyrimido': ('pyrimidine', 6), 'pyrazino': ('pyrazine', 6), 'pyridazino': ('pyridazine', 6),
     'thieno': ('thiophene', 5), 'furo': ('furan', 5), 'pyrrolo': ('pyrrole', 5), 'imidazo': ('imidazole', 5), 'pyrazolo': ('pyrazole', 5),
-    '[1,3]thiazolo': ('thiazole', 5), '[1,3]oxazolo': ('oxazole', 5), '[1,2]oxazolo': ('isoxazole', 5), '[1,2]thiazolo': ('isothiazole', 5),
+    'thiazolo': ('thiazole', 5), 'oxazolo': ('oxazole', 5), 'isoxazolo': ('isoxazole', 5), 'isothiazolo': ('isothiazole', 5),
     '[1,2,4]triazolo': ('1,2,4-triazole', 5), '[1,2,3]triazolo': ('1,2,3-triazole', 5), 'tetrazolo': ('tetrazole', 5),
     '[1,3,4]thiadiazolo': ('1,3,4-thiadiazole', 5), '[1,3,4]oxadiazolo': ('1,3,4-oxadiazole', 5), '[1,2,4]oxadiazolo': ('1,2,4-oxadiazole', 5),
     '[1,2,4]triazino': ('1,2,4-triazine', 6), '[1,3,5]triazino': ('1,3,5-triazine', 6), 'pyrano': ('pyran', 6), 'thiopyrano': ('thiopyran', 6),
@@ -102,7 +139,7 @@ ATTACHED = {  # prefix form: monocycle name, ring size
     'azepino': ('azepine', 7), '[1,4]diazepino': ('1,4-diazepine', 7), '[1,3]dioxolo': ('1,3-dioxole', 5), '[1,4]dioxino': ('1,4-dioxine', 6),
 }
 BASES = ['pyridine', 'pyrimidine', 'pyrazine', 'pyridazine', '[1,2,4]triazine', '[1,3,5]triazine', 'thiophene', 'furan', 'pyrrole', 'imidazole',
-         'pyrazole', '[1,3]thiazole', '[1,3]oxazole', '[1,2]oxazole', '[1,2]thiazole', '[1,3,4]thiadiazole', '[1,2,4]triazole', '[1,2,3]triazole',
+         'pyrazole', 'thiazole', 'oxazole', 'isoxazole', 'isothiazole', '[1,3,4]thiadiazole', '[1,2,4]triazole', '[1,2,3]triazole',
          '[1,3,4]oxadiazole', '[1,2,4]thiadiazole', 'azepine', '[1,4]diazepine', '[1,3]diazepine', '[1,4]oxazine', '[1,3]oxazine', '[1,4]thiazine',
          '[1,3]thiazine', 'pyran', 'thiopyran', '[1,4]oxazepine', '[1,4]thiazepine', '[1,3,4]thiadiazine', 'tetrazole', '[1,2,4]triazepine']
 BASE_SIZE = {b: 7 if 'epine' in b else 5 if b.endswith(('ole', 'thiophene', 'furan', 'pyrrole')) else 6 for b in BASES}
@@ -198,18 +235,15 @@ def stem(name: str) -> str:
 # numbering, ring count and heteroatoms).
 BICYCLIC_PREFIXES = {
     'indolo': '1H-indole', 'isoindolo': '2H-isoindole', 'quino': 'quinoline', 'isoquino': 'isoquinoline', 'quinazolino': 'quinazoline',
-    'quinoxalino': 'quinoxaline', 'benzimidazo': '1H-benzimidazole', '[1]benzothieno': '1-benzothiophene', '[1]benzofuro': '1-benzofuran',
-    'naphtho': 'naphthalene', 'indeno': '1H-indene', 'chromeno': '2H-chromene', '[1,3]benzoxazolo': '1,3-benzoxazole',
-    '[1,3]benzothiazolo': '1,3-benzothiazole', 'purino': '7H-purine', 'pteridino': 'pteridine', 'phthalazino': 'phthalazine',
+    'quinoxalino': 'quinoxaline', 'benzofuro': '1-benzofuran',
+    'naphtho': 'naphthalene', 'indeno': '1H-indene', 'chromeno': '2H-chromene', 'purino': '7H-purine', 'pteridino': 'pteridine', 'phthalazino': 'phthalazine',
     'cinnolino': 'cinnoline', 'indazolo': '1H-indazole', 'indolizino': 'indolizine', 'quinolizino': '4H-quinolizine',
 }
 BICYCLIC_BASES = {
     'quinoline': 'quinoline', 'isoquinoline': 'isoquinoline', 'quinazoline': 'quinazoline', 'quinoxaline': 'quinoxaline', 'indole': '1H-indole',
-    'isoindole': '2H-isoindole', 'benzimidazole': '1H-benzimidazole', '[1,3]benzoxazole': '1,3-benzoxazole', '[1,3]benzothiazole': '1,3-benzothiazole',
-    '[1]benzofuran': '1-benzofuran', '[1]benzothiophene': '1-benzothiophene', 'indazole': '1H-indazole', 'purine': '7H-purine', 'pteridine': 'pteridine',
+    'isoindole': '2H-isoindole', 'benzofuran': '1-benzofuran', 'indazole': '1H-indazole', 'purine': '7H-purine', 'pteridine': 'pteridine',
     'phthalazine': 'phthalazine', 'cinnoline': 'cinnoline', 'naphthalene': 'naphthalene', 'chromene': '2H-chromene', '[1,8]naphthyridine': '1,8-naphthyridine',
-    '[1,6]naphthyridine': '1,6-naphthyridine', 'indolizine': 'indolizine', 'quinolizine': '4H-quinolizine', '[1,4]benzodiazepine': '1H-1,4-benzodiazepine',
-    '[1,4]benzoxazine': '2H-1,4-benzoxazine', '[1,4]benzothiazine': '2H-1,4-benzothiazine', '[1,3]benzodioxole': '1,3-benzodioxole',
+    '[1,6]naphthyridine': '1,6-naphthyridine', 'indolizine': 'indolizine', 'quinolizine': '4H-quinolizine',
     'imidazo[1,2-a]pyridine': 'imidazo[1,2-a]pyridine', 'thieno[2,3-d]pyrimidine': 'thieno[2,3-d]pyrimidine', 'pyrrolo[2,3-b]pyridine': '1H-pyrrolo[2,3-b]pyridine',
 }
 MONO_FOR_BASE = {b: re.sub(r'^\[([\d,]+)\]', lambda m: m.group(1) + '-', b) for b in BASES}
@@ -276,8 +310,22 @@ def fusion_names() -> list[tuple[str, tuple]]:
             for (p, q) in pi['pairs']:
                 for x, y in ((p, q), (q, p)):
                     for li in range(nletters):
-                        out.append((f'{pre}[{x},{y}-{letters[li]}]{base}', (rank0, li, min(x, y), x > y)))
+                        name = f'{pre}[{x},{y}-{letters[li]}]{base}'
+                        out.append((name, (rank0, li, min(x, y), x > y)))
+                        # A benzene ring on the attached azole (benzo[4,5]imidazo[1,2-a]pyridine), or on
+                        # a seven-membered or oxazine base (benzo[f][1,2,4]triazolo[4,3-a][1,4]diazepine).
+                        if pre in BENZO_ON_PREFIX:
+                            for bp in ('4,5', '3,4', '2,3'):
+                                out.append((f'benzo[{bp}]{name}', (rank0, 50 + li, min(x, y), x > y)))
+                        if base in BENZO_ON_BASE:
+                            for bl in range(nletters):
+                                if bl != li:
+                                    out.append((f'benzo[{letters[bl]}]{name}', (rank0, 50 + li, min(x, y), x > y, bl)))
     return out
+
+
+BENZO_ON_PREFIX = {'imidazo', 'thiazolo', 'oxazolo', 'thieno', 'isoxazolo', 'isothiazolo'}
+BENZO_ON_BASE = {'[1,4]diazepine', '[1,3]diazepine', 'azepine', '[1,4]oxazepine', '[1,4]thiazepine', '[1,4]oxazine', '[1,4]thiazine', '[1,3]oxazine', '[1,3]thiazine'}
 
 
 def encode_locants(locs: list[str]) -> str:
@@ -322,7 +370,7 @@ def main():
             r = parse_one(d)
             if r is None:
                 continue
-            r['name'] = n
+            r['name'] = ALIAS.get(n, n)
             cands.append((rank, r))
         cands.sort(key=lambda c: c[0])
         for _, r in cands:

@@ -37,6 +37,8 @@ export const TEMPLATES: RingTemplate[] = [
   { name: 'pyridazine', yl: 'pyridazin', smiles: 'n1ncccc1', locants: seq(6), aromatic: true },
   { name: 'furan', yl: 'furan', smiles: 'o1cccc1', locants: seq(5), aromatic: true },
   { name: 'thiophene', yl: 'thiophen', smiles: 's1cccc1', locants: seq(5), aromatic: true },
+  { name: 'selenophene', yl: 'selenophen', smiles: '[se]1cccc1', locants: seq(5), aromatic: true },
+  { name: 'tellurophene', yl: 'tellurophen', smiles: '[te]1cccc1', locants: seq(5), aromatic: true },
   { name: 'pyrrole', yl: 'pyrrol', smiles: '[nH]1cccc1', locants: seq(5), indicatedH: '1', aromatic: true },
   { name: 'imidazole', yl: 'imidazol', smiles: '[nH]1cncc1', locants: seq(5), indicatedH: '1', aromatic: true },
   { name: 'pyrazole', yl: 'pyrazol', smiles: '[nH]1nccc1', locants: seq(5), indicatedH: '1', aromatic: true },
@@ -50,9 +52,9 @@ export const TEMPLATES: RingTemplate[] = [
   { name: 'indole', yl: 'indol', smiles: '[nH]1ccc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], indicatedH: '1', aromatic: true },
   { name: 'benzofuran', yl: 'benzofuran', smiles: 'o1ccc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
   { name: 'benzo[b]thiophene', yl: 'benzo[b]thiophen', smiles: 's1ccc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
-  { name: 'benzimidazole', yl: 'benzimidazol', smiles: '[nH]1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], indicatedH: '1', aromatic: true },
-  { name: 'benzoxazole', yl: 'benzoxazol', smiles: 'o1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
-  { name: 'benzothiazole', yl: 'benzothiazol', smiles: 's1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
+  { name: 'benzo[d]imidazole', yl: 'benzo[d]imidazol', smiles: '[nH]1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], indicatedH: '1', aromatic: true },
+  { name: 'benzo[d]oxazole', yl: 'benzo[d]oxazol', smiles: 'o1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
+  { name: 'benzo[d]thiazole', yl: 'benzo[d]thiazol', smiles: 's1cnc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
   { name: 'piperidine', yl: 'piperidin', smiles: 'N1CCCCC1', locants: seq(6), aromatic: false },
   { name: 'piperazine', yl: 'piperazin', smiles: 'N1CCNCC1', locants: seq(6), aromatic: false },
   { name: 'morpholine', yl: 'morpholin', smiles: 'O1CCNCC1', locants: seq(6), aromatic: false },
@@ -89,13 +91,15 @@ export const TEMPLATES: RingTemplate[] = [
   { name: '1,2,3,4-tetrahydroquinoline', yl: '1,2,3,4-tetrahydroquinolin', smiles: 'N1CCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
   { name: '1,2,3,4-tetrahydroisoquinoline', yl: '1,2,3,4-tetrahydroisoquinolin', smiles: 'C1NCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
   { name: 'chromane', yl: 'chroman', smiles: 'O1CCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
+  { name: 'isochromane', yl: 'isochroman', smiles: 'C1OCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
+  { name: 'thiochromane', yl: 'thiochroman', smiles: 'S1CCCc2ccccc12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: true },
   { name: '2,3-dihydrobenzofuran', yl: '2,3-dihydrobenzofuran', smiles: 'O1CCc2ccccc12', locants: ['1', '2', '3', '3a', '4', '5', '6', '7', '7a'], aromatic: true },
   { name: '1,3,2-dioxaborolane', yl: '1,3,2-dioxaborolan', smiles: 'O1BOCC1', locants: seq(5), aromatic: false },
   { name: 'decahydronaphthalene', yl: 'decahydronaphthalen', smiles: 'C1CCCC2CCCCC12', locants: ['1', '2', '3', '4', '4a', '5', '6', '7', '8', '8a'], aromatic: false },
 ];
 
 /** Parents named by hydro prefixes when partly saturated (benzene's are cycloalkenes). */
-const HYDRO_PARENTS = new Set(['pyridine', 'pyrimidine', 'pyrazine', 'pyridazine', 'furan', 'thiophene', 'pyrrole', 'imidazole', 'pyrazole',
+const HYDRO_PARENTS = new Set(['pyridine', 'pyrimidine', 'pyrazine', 'pyridazine', 'furan', 'thiophene', 'selenophene', 'tellurophene', 'pyrrole', 'imidazole', 'pyrazole',
   'oxazole', 'thiazole', 'isoxazole', 'isothiazole', 'naphthalene', 'quinoline', 'isoquinoline', 'indole', 'benzofuran', 'benzo[b]thiophene',
-  'benzimidazole', 'benzoxazole', 'benzothiazole', 'quinoxaline', 'quinazoline', 'purine', 'indazole', 'fluorene']);
+  'benzo[d]imidazole', 'benzo[d]oxazole', 'benzo[d]thiazole', 'quinoxaline', 'quinazoline', 'purine', 'indazole', 'fluorene']);
 for (const t of TEMPLATES) if (HYDRO_PARENTS.has(t.name)) t.mancude = true;

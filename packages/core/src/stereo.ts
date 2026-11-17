@@ -142,6 +142,50 @@ export function rsLabel(mol: Molecule, centre: AtomId): 'R' | 'S' | null {
   return ch.anticlockwise !== odd ? 'R' : 'S';
 }
 
+/**
+ * r or s for a pseudoasymmetric centre (CIP rule 5): two of its branches are the same but for the
+ * configurations in them, the nearest centre on one R and on the other S, and the R branch ranks
+ * higher. Null for anything else. The 3r of a tropan-3-ol, the 2r and 5s of myo-inositol.
+ */
+export function pseudoLabel(mol: Molecule, centre: AtomId): 'r' | 's' | null {
+  const ch = mol.atom(centre).chirality;
+  if (!ch || ch.order.length !== 4 || new Set(ch.order).size !== 4) return null;
+  const nbrs: AtomId[] = [...mol.neighbours(centre)];
+  for (let i = 0; i < mol.implicitHydrogens(centre); i++) nbrs.push(H);
+  if (nbrs.length !== 4) return null;
+  spent = 0;
+  let ties: [AtomId, AtomId][] = [];
+  let sorted: AtomId[];
+  try {
+    sorted = [...nbrs].sort((p, q) => -compareBranches(mol, centre, p, q));
+    for (let i = 0; i + 1 < sorted.length; i++) if (compareBranches(mol, centre, sorted[i]!, sorted[i + 1]!) === 0) ties.push([sorted[i]!, sorted[i + 1]!]);
+  } catch (e) { if (e instanceof TooLarge) { cipLimits.gaveUp++; return null; } throw e; }
+  if (ties.length !== 1 || ties[0]!.includes(H)) return null;
+  // The nearest labelled centre along each tied branch, at the same distance, one R and one S.
+  const nearest = (start: AtomId): [number, 'R' | 'S'] | null => {
+    const seen = new Set<AtomId>([centre, start]);
+    let front = [start];
+    for (let d = 0; front.length && d < 12; d++) {
+      const labels = front.map((x) => rsLabel(mol, x)).filter((l): l is 'R' | 'S' => l !== null);
+      if (labels.length) return new Set(labels).size === 1 ? [d, labels[0]!] : null;
+      const next: AtomId[] = [];
+      for (const x of front) for (const y of mol.neighbours(x)) if (!seen.has(y)) { seen.add(y); next.push(y); }
+      front = next;
+    }
+    return null;
+  };
+  const [a, b] = ties[0]!;
+  const na = nearest(a), nb = nearest(b);
+  if (!na || !nb || na[0] !== nb[0] || na[1] === nb[1]) return null;
+  const [hi, lo] = na[1] === 'R' ? [a, b] : [b, a];
+  const i = sorted.indexOf(a), j = sorted.indexOf(b);
+  sorted[Math.min(i, j)] = hi; sorted[Math.max(i, j)] = lo;
+  const ref = [sorted[3]!, sorted[0]!, sorted[1]!, sorted[2]!];
+  if (!ch.order.every((x) => ref.includes(x))) return null;
+  const odd = permutationParity(ch.order, ref) === 1;
+  return ch.anticlockwise !== odd ? 'r' : 's';
+}
+
 /** E or Z for a double bond with a recorded configuration, or null if not stereogenic. */
 export function ezLabel(mol: Molecule, bond: BondId): 'E' | 'Z' | null {
   const b = mol.bond(bond);

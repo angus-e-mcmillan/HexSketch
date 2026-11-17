@@ -19,6 +19,8 @@ const ORGANIC = new Set(['B', 'C', 'N', 'O', 'P', 'S', 'F', 'Cl', 'Br', 'I']);
 const AROMATIC_ORGANIC = new Set(['b', 'c', 'n', 'o', 'p', 's']);
 const DEFAULT_VALENCE: Record<string, number[]> = {
   B: [3], C: [4], N: [3, 5], O: [2], P: [3, 5], S: [2, 4, 6], F: [1], Cl: [1], Br: [1], I: [1],
+  // Bracket-only elements, for kekulizing aromatic [se], [te], [as], [si]: selenophene, arsole.
+  Se: [2, 4, 6], Te: [2, 4, 6], As: [3, 5], Sb: [3, 5], Si: [4], Ge: [4],
 };
 
 interface ParsedAtom {
@@ -263,7 +265,7 @@ export function parseSmiles(smiles: string): Molecule {
 }
 
 function parseBracket(body: string): ParsedAtom {
-  const m = /^(\d+)?([A-Z][a-z]?|[bcnops]|se|as|\*)(@{1,2}(?:TH[12]|AL[12]|SP[123]|TB\d+|OH\d+)?)?(H\d*)?([+-]+\d*|[+-]\d+)?(?::(\d+))?$/.exec(body);
+  const m = /^(\d+)?([A-Z][a-z]?|[bcnops]|se|te|as|\*)(@{1,2}(?:TH[12]|AL[12]|SP[123]|TB\d+|OH\d+)?)?(H\d*)?([+-]+\d*|[+-]\d+)?(?::(\d+))?$/.exec(body);
   if (!m) throw new Error(`bad bracket atom [${body}]`);
   const [, iso, sym, , h, chg, map] = m;
   const aromatic = /^[a-z]/.test(sym!);

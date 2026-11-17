@@ -60,7 +60,8 @@ export function compareLocant(a: number | string, b: number | string): number {
     const m = /^(\d+)([a-z]?)('*)(?:\(\d+\))?$/.exec(s);
     // Primed locants (second ring of an assembly) sort after all unprimed ones.
     if (!m) return [1e6, s.charCodeAt(0), 0, 0] as const;
-    return [m[3]!.length, Number(m[1]), m[2] ? m[2].charCodeAt(0) : 0, 0] as const;
+    // By number first, primed after unprimed of the same number: 2,3',4,4'.
+    return [Number(m[1]), m[2] ? m[2].charCodeAt(0) : 0, m[3]!.length, 0] as const;
   };
   const ka = key(a), kb = key(b);
   for (let i = 0; i < 4; i++) if (ka[i] !== kb[i]) return (ka[i] as number) - (kb[i] as number);

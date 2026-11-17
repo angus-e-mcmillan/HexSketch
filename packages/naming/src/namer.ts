@@ -1,4 +1,4 @@
-import { cipLimits, ezLabel, labelStructure, Molecule, perceiveRings, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
+import { RESIDUES, isomorphisms, peptideMolecule, pseudoLabel, cipLimits, ezLabel, labelStructure, Molecule, perceiveRings, oligoSmiles, oligoText, parseOligo, parsePeptide, parseSmiles, peptideName, peptideText, perceiveStereoFromGeometry, recogniseOligo, recognisePeptide, rsLabel, sameStereoisomer, type AtomId, type Oligo, type Peptide } from '@hexsketch/core';
 import { analyze, SENIORITY, isAcylCarbon, isIminium, isRingAnion, isRingCation, type Analysis, type Group, type GroupKind } from './analyze.ts';
 import type { RingRow } from './rings.ts';
 import { TEMPLATES, type RingTemplate } from './templates.ts';
@@ -19,6 +19,8 @@ interface Parent {
 
 interface RingInfo {
   kind: 'template' | 'cyclo' | 'vonbaeyer' | 'spiro';
+  /** Two identical rings joined by a bond (1,1'-biphenyl): the name is bracketed before a locant. */
+  assembly?: boolean;
   /** A template parent named with hydro prefixes; each numbering's choice is in hydroOf. */
   hydro?: boolean;
   /** von Baeyer/spiro: "bicyclo[2.2.1]" or "spiro[3.5]", and total ring atoms. */
@@ -36,8 +38,12 @@ interface Hydro {
   ih: AtomId[]; hydro: AtomId[];
   /** No ring double bonds left (1,4-dithiepane rather than hydro prefixes). */ saturated: boolean;
   /** Added hydrogen for a ketone suffix: the 1 of quinolin-2(1H)-one. */ added?: AtomId[];
+  /** Ring CH2 between two ring O or S atoms, whose indicated hydrogen goes unwritten: 1,3-dioxole, 4H-1,3-dioxine. */ quiet?: AtomId[];
+  /** The ring atoms that can carry a ring double bond in the mancude parent. */ capable?: AtomId[];
 }
 const hydroOf = new WeakMap<Numbering, Hydro>();
+/** 0 for a numbering whose indicated hydrogen sits where it is preferred (see hydroParent), else 1. */
+const prefOf = new WeakMap<Numbering, number>();
 
 function subsets<T>(items: T[], size: number): T[][] {
   if (size === 0) return [[]];
@@ -48,11 +54,19 @@ function subsets<T>(items: T[], size: number): T[][] {
 
 /** "2,3-dihydro-1H-" + "indole", or for a substituent stem "2,3-dihydro-1H-" + "inden". */
 function withHydro(stem: string, h: Hydro, numbering: Numbering): string {
+  // (h is reassigned below for porphyrin)
   const loc = (a: AtomId) => numbering.get(a)!;
-  const ih = h.ih.map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
-  const hy = h.hydro.length ? `${h.hydro.map(loc).sort(compareLocant).join(',')}-${multiplier(h.hydro.length)}hydro` : '';
+  // The CH2 between two ring O or S atoms goes without its indicated hydrogen, as chemists write it:
+  // 1,3-dioxole, 5,6,7,8-tetrahydro-[1,3]dioxolo[4,5-g]isoquinoline, 4H-benzo[d][1,3]dioxine.
+  const ih = h.ih.filter((a) => !h.quiet?.includes(a)).map(loc).sort(compareLocant).map((l) => `${l}H`).join(',');
+  // Porphyrin is the 21H,23H parent itself.
+  let hydro = h.hydro;
+  if (/^porphyrin/.test(stem) && hydro.map(loc).sort(compareLocant).join(',') === '21,23') hydro = [];
+  h = { ...h, hydro };
+  // Fully saturated, the hydro prefixes need no locants: octahydro-2H-quinolizine, dihydrofuran-2(3H)-one.
+  const hy = !h.hydro.length ? '' : h.saturated ? `${multiplier(h.hydro.length)}hydro` : `${h.hydro.map(loc).sort(compareLocant).join(',')}-${multiplier(h.hydro.length)}hydro`;
   const ihText = ih ? `${ih}-` : '';
-  const join = hy && (ihText || /^[0-9]/.test(stem)) ? '-' : '';
+  const join = hy && (ihText || /^[0-9[]/.test(stem)) ? '-' : '';
   return `${hy}${join}${ihText}${stem}`;
 }
 
@@ -60,8 +74,148 @@ interface Prefix {
   text: string; complex: boolean; sortKey: string; at: AtomId | 'N';
   /** For 'N': the carbon whose amine or amide this nitrogen is. */ nOf?: AtomId;
   /** For 'N': the nitrogen itself, and every principal nitrogen on the same carbon (two or more: N and N'). */ nAtom?: AtomId; nGem?: AtomId[];
+  /** On the far nitrogen of a hydrazide: N'. */ prime?: boolean;
 }
-interface SubName { text: string; complex: boolean; sortKey: string }
+/** `di`: bracketed but unsubstituted, so multiplied with di/tri: di(1H-imidazol-1-yl). */
+interface SubName { text: string; complex: boolean; sortKey: string; di?: boolean }
+
+/** The sort key of a prefix: its letters, italic prefixes (tert-, sec-, o-, m-, p-) and locants left out. */
+const sortKeyOf = (text: string) => text.replace(/\((?:\d+[a-z]?'*)?[RSEZrs](?:,(?:\d+[a-z]?'*)?[RSEZrs])*\)-/g, '').replace(/\b(tert|sec|[omp])-/g, '').replace(/[^a-z]/g, '');
+
+/**
+ * Each amino acid with a name, as a free acid laid out for matching: its N, alpha carbon and
+ * carboxyl carbon, and the alpha carbon with its side chain as a molecule of its own.
+ */
+interface ResidueRef { code: string; free: string; acyl: string | null; achiral: boolean; mol: Molecule; n: AtomId; ca: AtomId; c: AtomId; side: Molecule; sideMap: Map<AtomId, AtomId> }
+let residueRefs: ResidueRef[] | null = null;
+const PROTEINOGENIC = new Set(['Ala', 'Arg', 'Asn', 'Asp', 'Cys', 'Gln', 'Glu', 'Gly', 'His', 'Ile', 'Leu', 'Lys', 'Met', 'Phe', 'Pro', 'Ser', 'Thr', 'Trp', 'Tyr', 'Val']);
+function residues(): ResidueRef[] {
+  if (residueRefs) return residueRefs;
+  residueRefs = [];
+  for (const [code, def] of Object.entries(RESIDUES)) {
+    // The amino acids of proteins only; others go by their systematic names.
+    if (!def.free || !PROTEINOGENIC.has(code)) continue;
+    let k = 1;
+    const ph = new Map<string, number>();
+    const fill = (t: string) => t.replace(/\{(\w)\}/g, (_, x: string) => String(ph.get(x) ?? (ph.set(x, k++), ph.get(x))));
+    const smi = def.special ? fill(def.special.smiles) + 'O' : def.side ? `N[C@@H](${fill(def.side)})C(=O)O` : 'NCC(=O)O';
+    const mol = parseSmiles(smi);
+    const ids = [...mol.atoms()].map((a) => a.id);
+    const [n, ca, c] = def.special ? def.special.main.map((i) => ids[i]!) : [ids[0]!, ids[1]!, ids[ids.length - 3]!];
+    const side = sideChain(mol, ca!, n!, c!);
+    residueRefs.push({ code, free: def.free, acyl: def.acyl?.replace(/^α-/, '') ?? null, achiral: !!def.achiral, mol, n: n!, ca: ca!, c: c!, ...side });
+  }
+  return residueRefs;
+}
+
+/** The alpha carbon and everything reached from it but its N and carboxyl carbon, as a molecule. */
+function sideChain(mol: Molecule, ca: AtomId, n: AtomId, c: AtomId): { side: Molecule; sideMap: Map<AtomId, AtomId>; atoms: Set<AtomId> } {
+  const atoms = new Set<AtomId>([ca]);
+  const stack = [ca];
+  while (stack.length) { const x = stack.pop()!; for (const y of mol.neighbours(x)) if (y !== n && y !== c && !atoms.has(y)) { atoms.add(y); stack.push(y); } }
+  const side = mol.clone();
+  // Each atom keeps the hydrogens it had, whether they were written ([C@@H]) or implied.
+  for (const a of side.atoms()) a.explicitHydrogens = mol.implicitHydrogens(a.id);
+  for (const a of [...side.atoms()]) if (!atoms.has(a.id)) side.removeAtom(a.id);
+  return { side, sideMap: new Map([...atoms].map((x) => [x, x])), atoms };
+}
+
+/** Unbalanced if a bracket closes before it opens or is left open. */
+const balanced = (t: string) => { let d = 0; for (const c of t) { if (c === '(') d++; else if (c === ')' && --d < 0) return false; } return d === 0; };
+
+/** The acyl groups chemists keep their own names for, by systematic name. */
+const ACYL: Record<string, string> = {
+  propanoyl: 'propionyl', butanoyl: 'butyryl', 'prop-2-enoyl': 'acryloyl', '2-methylprop-2-enoyl': 'methacryloyl', hexadecanoyl: 'palmitoyl', octadecanoyl: 'stearoyl',
+  '(Z)-octadec-9-enoyl': 'oleoyl', '2-methylpropanoyl': 'isobutyryl', '2,2-dimethylpropanoyl': 'pivaloyl',
+};
+
+/**
+ * Substituent prefixes as chemists write them: p-tolyl, mesityl, 4-methoxybenzyl, phenethyl, 4-hydroxystyryl,
+ * 2-hydroxyacetyl, acryloyl, 2-phenylacetamido, carboxymethyl, trimethylammonio, diphenylphosphaneyl.
+ */
+function chemistStyle(s: SubName): SubName {
+  const t = s.text;
+  const mk = (text: string, complex = true, di?: boolean): SubName => ({ text, complex, sortKey: sortKeyOf(text), ...(di ? { di } : {}) });
+  const TOLYL: Record<string, string> = { '2-methylphenyl': 'o-tolyl', '3-methylphenyl': 'm-tolyl', '4-methylphenyl': 'p-tolyl' };
+  if (TOLYL[t]) return mk(TOLYL[t]!, true, true);
+  if (t === '2,4,6-trimethylphenyl') return mk('mesityl', false);
+  if (t === '2-phenylethyl') return mk('phenethyl', false);
+  if (t === 'eth-1-en-1-yl') return mk('vinyl', false);
+  const vi = /^(\([EZ]\)-)?((?:[12](?:,[12])*-.+?)+)eth-1-en-1-yl$/.exec(t);
+  if (vi && balanced(vi[2]!) && !/^2-(\(.*phenyl\)|phenyl)$/.test(vi[2]!)) return mk(`${vi[1] ?? ''}${vi[2]}vinyl`);
+  // A substituted allyl keeps the name: 2-chloroallyl, 2,3,3-trichloroallyl.
+  const al = /^((?:\d+(?:,\d+)*-[a-z]+)+)prop-2-en-1-yl$/.exec(t);
+  if (al) return mk(`${al[1]}allyl`);
+  if (t === '2-hydroxy-2-oxoethyl') return mk('carboxymethyl');
+  if (t === 'amino(imino)methyl') return mk('carbamimidoyl', false);
+  if (t === '(amino(imino)methyl)amino' || t === 'carbamimidoylamino') return mk('guanidino', false);
+  if (t === 'carbamoylamino') return mk('ureido', false);
+  if (t === 'cyanoamino') return mk('cyanamido', false);
+  if (t === 'aminocarbamoyl') return mk('hydrazinecarbonyl');
+  // (Phenylamino)thioxomethyl: phenylcarbamothioyl.
+  if (t === 'aminothioxomethyl') return mk('carbamothioyl', false);
+  const ct = /^\((.+)amino\)thioxomethyl$/.exec(t) ?? /^thioxo\((.+)amino\)methyl$/.exec(t);
+  if (ct && balanced(ct[1]!)) return mk(`${ct[1]}carbamothioyl`);
+  const sa = /^\((\(.+\)|[a-z]+)sulfonyl\)amino$/.exec(t);
+  if (sa && balanced(sa[1]!)) return mk(`${sa[1]}sulfonamido`);
+  let mu = /^\((di)?([a-z]+|\(.+\))carbamoyl\)amino$/.exec(t);
+  if (mu && balanced(mu[2]!) && !/carbamoyl/.test(mu[2]!)) return mk(`${mu[1] ? '3,3-di' : '3-'}${mu[2]}ureido`);
+  if (t === 'hydroxy(oxo)-λ5-phosphanyl') return mk('hydroxyhydrophosphoryl');
+  if (t === '(p-tolyl)sulfonyl' || t === 'p-tolylsulfonyl') return mk('tosyl', false);
+  if (t === '3-hydroxy-3-oxopropyl') return mk('2-carboxyethyl');
+  if (ACYL[t]) return mk(ACYL[t]!, false);
+  if (/^(\([EZ]\)-)?3-.*prop-2-enoyl$/.test(t)) return mk(t.replace(/prop-2-enoyl$/, 'acryloyl'));
+  // (4-methoxyphenyl)methyl: 4-methoxybenzyl; (4-methoxyphenyl)methylidene: 4-methoxybenzylidene.
+  let m = /^(\([EZ]\)-)?\((.+)phenyl\)methyl(idene)?$/.exec(t);
+  if (m && balanced(m[2]!) && (!m[1] || m[3])) return mk(`${m[1] ?? ''}${m[2]}benzyl${m[3] ? 'idene' : ''}`);
+  if (t === 'phenylmethylidene') return mk('benzylidene', false);
+  m = /^(\([EZ]\)-)?\(([omp])-tolyl\)methyl(idene)?$/.exec(t);
+  if (m && (!m[1] || m[3])) return mk(`${m[1] ?? ''}${({ o: 2, m: 3, p: 4 } as Record<string, number>)[m[2]!]}-methylbenzyl${m[3] ? 'idene' : ''}`);
+  // (E)-2-(4-hydroxyphenyl)eth-1-en-1-yl: (E)-4-hydroxystyryl.
+  m = /^(\([EZ]\)-)?2-(?:\((.+)phenyl\)|phenyl)eth-1-en-1-yl$/.exec(t);
+  if (m && balanced(m[2] ?? '')) return mk(`${m[1] ?? ''}${m[2] ?? ''}styryl`, true);
+  // A substituted two-carbon acyl keeps "acetyl": 2-hydroxyacetyl, 2-phenylacetyl.
+  if (/ethanoyl$/.test(t)) return mk(t.replace(/ethanoyl$/, 'acetyl'));
+  if (/methylidene$/.test(t) && !/^(\([EZ]\)-)?methylidene$/.test(t)) return mk(t.replace(/methylidene$/, 'methylene'), s.complex);
+  if (/azaniumyl$/.test(t)) return mk(t.replace(/azaniumyl$/, 'ammonio'), t !== 'azaniumyl' && s.complex);
+  if (/phosphanyl$/.test(t) && !/λ/.test(t)) return mk(t.replace(/phosphanyl$/, 'phosphaneyl'), s.complex);
+  return s;
+}
+
+/**
+ * A ring's acyl group named from the ring: pyrazine-2-carbonyl, cyclohexanecarbonyl, 4-methoxybenzoyl,
+ * (S)-pyrrolidine-2-carbonyl. Null where the ring's name gives no such form.
+ */
+function ringCarbonyl(yl: string): string | null {
+  const m = /^(.*)phenyl$/.exec(yl);
+  if (m && balanced(m[1]!)) return `${m[1]}benzoyl`;
+  if (/ium|ide-|spiro/.test(yl)) return null;
+  const cyc = /^(.*cyclo[a-z]+)yl$/.exec(yl);
+  if (cyc && !/-\d/.test(cyc[1]!.slice(cyc[1]!.lastIndexOf('cyclo')))) return `${cyc[1]}anecarbonyl`;
+  const r = /^(.*[a-z\]])-(\d+[a-z]?'*)-yl$/.exec(yl);
+  if (!r) return null;
+  return `${r[1]}${/(furan|pyran)$/.test(r[1]!) ? '' : 'e'}-${r[2]}-carbonyl`;
+}
+
+/** The ester word for an acyl group: acetyl, acetate; octanoyl, octanoate; benzoyl, benzoate. */
+function esterWord(acyl: string): string | null {
+  if (/[()\d]/.test(acyl)) return null;
+  if (acyl === 'acetyl') return 'acetate';
+  if (acyl === 'benzoyl') return 'benzoate';
+  if (/anoyl$|enoyl$/.test(acyl)) return acyl.replace(/oyl$/, 'oate');
+  const RET: Record<string, string> = { acryloyl: 'acrylate', palmitoyl: 'palmitate', stearoyl: 'stearate', methacryloyl: 'methacrylate', formyl: 'formate', carbamoyl: 'carbamate' };
+  return RET[acyl] ?? null;
+}
+
+/** An acylamino prefix as one word: acetamido, 2-phenylacetamido, pentanamido, benzamido, pyrazine-2-carboxamido. */
+function amido(acyl: string): string | null {
+  if (/acetyl$/.test(acyl)) return acyl.replace(/acetyl$/, 'acetamido');
+  if (/benzoyl$/.test(acyl)) return acyl.replace(/benzoyl$/, 'benzamido');
+  if (/([a-z\]]-\d+[a-z]?'*-c|anec)arbonyl$/.test(acyl) && balanced(acyl)) return acyl.replace(/carbonyl$/, 'carboxamido');
+  if (/(an|en|yn)oyl$/.test(acyl)) return acyl.replace(/oyl$/, 'amido');
+  const RET: Record<string, string> = { acryloyl: 'acrylamido', palmitoyl: 'palmitamido', stearoyl: 'stearamido', methacryloyl: 'methacrylamido' };
+  return RET[acyl] ?? null;
+}
 
 const el = (mol: Molecule, id: AtomId) => mol.atom(id).element;
 
@@ -77,7 +231,8 @@ function alkoxy(R: SubName): SubName {
     const swap = (t: string) => t.replace(/(methyl|ethyl|propyl|butyl|phenyl)$/, (m) => ALKOXY[m]!);
     return { text: swap(R.text), complex: R.complex, sortKey: swap(R.sortKey) };
   }
-  return { text: `${R.complex ? `(${R.text})` : R.text}oxy`, complex: true, sortKey: `${R.sortKey}oxy` };
+  // A ring with nothing on it needs no brackets: (cyclohex-1-en-1-yloxy), (pyridin-2-yloxy).
+  return { text: `${wrapInner(R)}oxy`, complex: true, sortKey: `${R.sortKey}oxy` };
 }
 
 /**
@@ -86,6 +241,14 @@ function alkoxy(R: SubName): SubName {
  */
 const ATOM_LIKE = /^(fluoro|chloro|bromo|iodo|nitro|nitroso|cyano|oxo|thioxo|hydroxy|azido|carboxy|carboxylato|sulfo|sulfonato|sulfino|sulfinato|isocyanato|isothiocyanato|oxido|dihydroxyamino)$/;
 const TRADITIONAL = /^(tert|sec)-[a-z]+$/;
+/**
+ * A lone substituent inside a compound prefix (…oxy, …imino, …amino, …thio) is bracketed unless it is
+ * a traditional or unsubstituted ring name that cannot be misread: tert-butylamino, pyridin-2-yloxy,
+ * p-tolylimino, but (1,2,3-thiadiazol-4-yl)amino.
+ */
+function wrapInner(R: SubName): string {
+  return R.complex && !/^(tert|sec)-(butyl|pentyl)$/.test(R.text) && !(R.di && !/^\d/.test(R.text)) ? `(${R.text})` : R.text;
+}
 
 /**
  * Prefixes cited one after another with no locants between them, already in order:
@@ -94,9 +257,10 @@ const TRADITIONAL = /^(tert|sec)-[a-z]+$/;
  * read as one substituted group (chlorovinyl, methylphenyl); a multiplied prefix, or one
  * that cannot be substituted, needs none. A substituted prefix is always bracketed.
  */
-function citeRun(items: readonly { text: string; complex: boolean; n: number }[]): string {
+function citeRun(items: readonly { text: string; complex: boolean; n: number; di?: boolean }[]): string {
   return items.map(({ text, complex, n }, i) => {
     if (TRADITIONAL.test(text)) return n > 1 ? `${multiplier(n)}-${text}` : i === 0 ? text : `(${text})`;
+    if (complex && n === 1 && i === 0 && items.length === 1 && (items[0] as { di?: boolean }).di && !/^([omp]-|\d)/.test(text)) return text;
     if (complex) return `${complexMultiplier(n)}(${text})`;
     if (n > 1) return `${multiplier(n)}${text}`;
     return i === 0 || ATOM_LIKE.test(text) ? text : `(${text})`;
@@ -104,13 +268,18 @@ function citeRun(items: readonly { text: string; complex: boolean; n: number }[]
 }
 
 /** Identical prefixes counted, then sorted alphabetically: the items of a citeRun. */
-function countSubs(subs: readonly SubName[]): { text: string; complex: boolean; n: number; sortKey: string }[] {
-  const counts = new Map<string, { text: string; complex: boolean; n: number; sortKey: string }>();
-  for (const s of subs) { const e = counts.get(s.text); if (e) e.n++; else counts.set(s.text, { text: s.text, complex: s.complex, n: 1, sortKey: s.sortKey }); }
+function countSubs(subs: readonly SubName[]): { text: string; complex: boolean; n: number; sortKey: string; di?: boolean }[] {
+  const counts = new Map<string, { text: string; complex: boolean; n: number; sortKey: string; di?: boolean }>();
+  for (const s of subs) { const e = counts.get(s.text); if (e) e.n++; else counts.set(s.text, { text: s.text, complex: s.complex, n: 1, sortKey: s.sortKey, di: s.di }); }
   return [...counts.values()].sort((x, y) => x.sortKey.localeCompare(y.sortKey) || x.text.localeCompare(y.text));
 }
 
-const locVal = (l: string) => { const m = /^(\d+)([a-z]?)/.exec(l); return m ? Number(m[1]) + (m[2] ? 0.1 * (m[2].charCodeAt(0) - 96) : 0) : 0; };
+// Primed locants (the second ring of an assembly) count after every unprimed one.
+const locVal = (l: string) => { const m = /^(\d+)([a-z]?)('*)/.exec(l); return m ? Number(m[1]) + (m[2] ? 0.1 * (m[2].charCodeAt(0) - 96) : 0) + 1000 * m[3]!.length : 0; };
+/** Locants in order of citation (alphabetical), each prefix's own locants lowest first: the last numbering rule. */
+const alphaLocs = (pre: readonly { sortKey: string; text: string; at: AtomId | 'N' }[], numbering: Numbering) =>
+  pre.map((x) => ({ k: x.sortKey, t: x.text, l: locVal(numbering.get(x.at as AtomId)!) }))
+    .sort((x, y) => x.k.localeCompare(y.k) || x.t.localeCompare(y.t) || x.l - y.l).map((x) => x.l);
 const cmpVec = (a: number[], b: number[]) => { for (let i = 0; i < Math.min(a.length, b.length); i++) if (a[i] !== b[i]) return a[i]! - b[i]!; return a.length - b.length; };
 const cmpKey = (a: (number | number[])[], b: (number | number[])[]) => {
   for (let i = 0; i < a.length; i++) {
@@ -306,7 +475,7 @@ function maxMatching(an: Analysis, atoms: AtomId[]): number {
  * hydro prefixes and indicated hydrogen (P-31.1.4.2.4): every way of reading
  * the ring's double bonds as the parent's, less some removed in pairs.
  */
-function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { info: RingInfo; numberings: Numbering[] } | null {
+function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'imine' = false): { info: RingInfo; numberings: Numbering[] } | null {
   const mol = an.mol;
   const inSys = new Set(system);
   const ringNb = (a: AtomId) => mol.neighbours(a).filter((n) => inSys.has(n) && an.ringBonds.has(mol.bondBetween(a, n)!.id));
@@ -319,7 +488,10 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
   // Atoms that can carry a ring double bond in the mancude parent.
   // (A pyrylium-type O+ or S+ takes a double bond too.)
   const capable = system.filter((a) => (el(mol, a) === 'C' && ringNb(a).length <= 3) || (el(mol, a) === 'N' && ringNb(a).length === 2)
-    || ((el(mol, a) === 'O' || el(mol, a) === 'S') && mol.atom(a).charge === 1 && ringNb(a).length === 2));
+    || ((el(mol, a) === 'O' || el(mol, a) === 'S') && mol.atom(a).charge === 1 && ringNb(a).length === 2)
+    // Trivalent P, As and B and tetravalent Si and Ge as N and C are: 1H-phosphole, 1H-silole, 1H-borole.
+    || (['P', 'As', 'B', 'Si', 'Ge'].includes(el(mol, a)) && mol.atom(a).charge === 0 && ringNb(a).length === 2 && ringNb(a).some((b) => el(mol, b) === 'C' || el(mol, b) === 'N')
+      && mol.incidentBonds(a).reduce((t, b) => t + mol.bond(b).order, 0) + (an.h.get(a) ?? 0) === (['Si', 'Ge'].includes(el(mol, a)) ? 4 : 3) && mol.incidentBonds(a).every((b) => mol.bond(b).order === 1 || inSys.has(mol.otherAtom(mol.bond(b), a)))));
   const capSet = new Set(capable);
   if (double.some(([x, y]) => !capSet.has(x) || !capSet.has(y))) return null;
   const inDouble = new Set(double.flat());
@@ -349,21 +521,27 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
   // as ChemDraw names them): its place is taken by indicated hydrogen (1,9-dihydro-6H-purin-6-one),
   // by another ketone (anthracene-9,10-dione), or else by added hydrogen (quinolin-2(1H)-one).
   // Fewest added hydrogens first; each choice must still leave the parent a Kekulé structure.
-  const ketones = ketoneSuffix ? rest.filter((a) => el(mol, a) === 'C' && mol.incidentBonds(a).some((b) => {
+  const doubled = (x: string) => ketoneSuffix ? rest.filter((a) => el(mol, a) === 'C' && mol.incidentBonds(a).some((b) => {
     const bd = mol.bond(b);
-    return bd.order === 2 && el(mol, mol.otherAtom(bd, a)) === 'O' && !inSys.has(mol.otherAtom(bd, a));
+    return bd.order === 2 && el(mol, mol.otherAtom(bd, a)) === x && !inSys.has(mol.otherAtom(bd, a));
   })) : [];
+  // Thiones are the suffix only when no ketone is: 2-thioxo-...pyrimidin-4(1H)-one.
+  const oxo = doubled('O');
+  const ketones = ketoneSuffix === 'imine' ? doubled('N') : oxo.length ? oxo : doubled('S');
   if (ketones.length) {
-    let best: Hydro[] = [], fewest = Infinity;
+    // The fewest added hydrogens for each choice of indicated hydrogen (which is chosen later: a
+    // carbocycle puts it on a ketone carbon, 3H-...-3,11(2H)-dione; a heterocycle takes the fewest added).
+    const best: Hydro[] = [];
     for (const ih of choices) {
       const others = rest.filter((a) => !ketones.includes(a) && !ih.includes(a));
+      let fewest = Infinity;
       for (let size = 0; size <= Math.min(ketones.length, others.length, fewest); size++) {
         for (const added of subsets(others, size)) {
           const hydro = others.filter((a) => !added.includes(a));
           if (hydro.length % 2) continue;
           const left = capable.filter((a) => !ketones.includes(a) && !ih.includes(a) && !added.includes(a));
           if (maxMatching(an, left) * 2 !== left.length) continue;
-          if (size < fewest) { fewest = size; best = []; }
+          fewest = size;
           best.push({ ih, hydro, added, saturated: double.length === 0 });
         }
       }
@@ -374,20 +552,60 @@ function hydroParent(an: Analysis, system: AtomId[], ketoneSuffix = false): { in
   const base = { heteroN: hetero('N'), heteroO: hetero('O'), heteroS: hetero('S') };
   const monocyclic = system.every((a) => ringNb(a).length === 2);
   const hw = monocyclic ? hantzschWidman(an, system) : null;
-  for (const ct of [...parentsFor(system.map((a) => el(mol, a))), ...(hw ? [hw] : [])]) {
+  for (const ct0 of [...parentsFor(system.map((a) => el(mol, a))), ...(hw ? [hw] : [])]) {
+    // A fully saturated heteromonocycle has a name of its own: oxepane, 1,3-dithiolane, isothiazolidine, azocane.
+    const sat = monocyclic && double.length === 0 && !ct0.t.saturated ? saturatedName(ct0.t.name, system.some((a) => el(mol, a) === 'N')) : null;
+    const ct = sat ? compiledWithSaturated(ct0, sat) : ct0;
     const maps = matchSkeleton(an, system, ct);
     if (!maps.length) continue;
     const numberings: Numbering[] = [];
     // A ring with a name of its own when saturated takes the ketone as is: 1,4-dithiepan-6-one.
-    for (const m of maps) for (const style of double.length === 0 && ct.t.saturated ? plain : styles) {
-      const n = new Map(m);
-      hydroOf.set(n, style);
-      numberings.push(n);
+    const carbocyclic = system.every((a) => el(mol, a) === 'C');
+    const quiet = system.filter((a) => el(mol, a) === 'C' && ringNb(a).length === 2 && ringNb(a).every((b) => (el(mol, b) === 'O' || el(mol, b) === 'S') && mol.neighbours(b).length === 2 && !ringOxideAtoms.has(b)));
+    for (const m of maps) {
+      const list = double.length === 0 && ct.t.saturated ? plain : styles;
+      // Where a ketone takes the suffix, its indicated hydrogen goes on a ketone carbon (3H-...-3,17(2H)-dione,
+      // 1H-isoindole-1,3(2H)-dione, 1,9-dihydro-6H-purin-6-one) unless, in a heterocycle, a lower locant
+      // needs no added hydrogen (3,7-dihydro-1H-purine-2,6-dione, 1H-pyrrole-2,5-dione).
+      const lowIh = (st: Hydro) => Math.min(...st.ih.map((a) => locVal(m.get(a)!)), Infinity);
+      const atKetone = (st: Hydro) => st.ih.some((a) => ketones.includes(a));
+      const kMin = Math.min(...list.filter(atKetone).map(lowIh), Infinity);
+      // In a heterocycle, a lower locant with fewer added hydrogens wins: 7,9-dihydro-1H-purine-2,6,8(3H)-trione.
+      const nAdded = (st: Hydro) => (st.added ?? []).length;
+      const kFewest = Math.min(...list.filter(atKetone).map(nAdded), Infinity);
+      const lowerBetter = list.some((st) => lowIh(st) < kMin && nAdded(st) < kFewest);
+      const favourKetone = ketones.length > 0 && kMin < Infinity && (carbocyclic || !lowerBetter);
+      for (const style of list) {
+        // Porphyrin is named for its 21H,23H form; another tautomer has no porphyrin name here.
+        if (ct.t.name === 'porphyrin' && !['21', '23'].every((l) => [...style.hydro, ...style.ih].some((a) => m.get(a) === l))) continue;
+        const n = new Map(m);
+        hydroOf.set(n, { ...style, capable, ...(quiet.length ? { quiet } : {}) });
+        prefOf.set(n, favourKetone ? (atKetone(style) ? 0 : 1) : 0);
+        numberings.push(n);
+      }
     }
+    if (!numberings.length) continue;
     const ringCount = ct.t.locants.filter((l) => /a$/.test(l)).length / 2 + 1;
     return { info: { kind: 'template', template: ct.t, hydro: true, size: system.length, ringCount, ...base }, numberings };
   }
   return null;
+}
+
+/** The saturated name of a heteromonocycle from its mancude one, where it has one: oxepine, oxepane. */
+function saturatedName(name: string, nitrogen: boolean): string | null {
+  if (/^(pyridine|pyrimidine|pyrazine|pyridazine|pyran|thiopyran|selenopyran|furan|thiophene|pyrrole)$/.test(name)) return null;
+  const rules: [RegExp, string][] = [[/irine$/, 'iridine'], [/irene$/, 'irane'], [/ete$/, nitrogen ? 'etidine' : 'etane'], [/ole$/, nitrogen ? 'olidine' : 'olane'],
+    [/epine$/, 'epane'], [/ocine$/, 'ocane'], [/onine$/, 'onane'], [/ecine$/, 'ecane'], [/inine$/, 'inane'], [/ine$/, nitrogen ? 'inane' : 'ane']];
+  // Six-membered with only O or S: 1,4-dioxine, 1,4-dioxane.
+  for (const [re, to] of rules) if (re.test(name)) return name.replace(re, to);
+  return null;
+}
+const satCache = new Map<string, CompiledTemplate>();
+function compiledWithSaturated(ct: CompiledTemplate, saturated: string): CompiledTemplate {
+  const key = `${ct.t.name}|${saturated}`;
+  let hit = satCache.get(key);
+  if (!hit) { hit = { ...ct, t: { ...ct.t, saturated } }; satCache.set(key, hit); }
+  return hit;
 }
 
 /** How a spiro union's name is built for one numbering of it. */
@@ -481,8 +699,8 @@ function spiroText(numbering: Numbering): string {
   return `${hy}${hy && ih ? '-' : ''}${ih}spiro[${s.first}-${s.la},${s.lb}'-${s.second}]`;
 }
 
-const HW_PRIORITY = ['O', 'S', 'Se', 'N', 'P', 'Si', 'B'];
-const HW_PREFIX: Record<string, string> = { O: 'oxa', S: 'thia', Se: 'selena', N: 'aza', P: 'phospha', Si: 'sila', B: 'bora' };
+const HW_PRIORITY = ['O', 'S', 'Se', 'Te', 'N', 'P', 'As', 'Sb', 'Si', 'Ge', 'Sn', 'B'];
+const HW_PREFIX: Record<string, string> = { O: 'oxa', S: 'thia', Se: 'selena', Te: 'tellura', N: 'aza', P: 'phospha', As: 'arsa', Sb: 'stiba', Si: 'sila', Ge: 'germa', Sn: 'stanna', B: 'bora' };
 const hwCache = new Map<string, CompiledTemplate>();
 
 /**
@@ -519,7 +737,9 @@ function hantzschWidman(an: Analysis, system: AtomId[]): CompiledTemplate | null
   const names = (() => {
     const cited = HW_PRIORITY.filter((e) => order.includes(e));
     const locs = cited.flatMap((e) => order.map((x, i) => (x === e ? String(i + 1) : '')).filter(Boolean));
-    const prefix = cited.map((e) => `${multiplier(order.filter((x) => x === e).length)}${HW_PREFIX[e]}`).join('');
+    // The a of a prefix goes before a vowel: dithiazocane, dioxazaborocane.
+    // So does the a of tetra, penta: 1,2,4,6-tetrazepine, 1,2,4,5-tetroxane.
+    const prefix = cited.map((e) => `${multiplier(order.filter((x) => x === e).length)}${HW_PREFIX[e]}`.replace(/^(tetr|pent|hex|hept)a([aeiou])/, '$1$2')).reduce((acc, p) => (acc && /a$/.test(acc) && /^[aeiou]/.test(p) ? acc.slice(0, -1) : acc) + p, '');
     const last = cited[cited.length - 1]!;
     const stem = n === 3 ? (last === 'N' ? 'irine' : 'irene') : n === 4 ? 'ete' : n === 5 ? 'ole'
       : n === 6 ? (['B', 'P'].includes(last) ? 'inine' : 'ine') : n === 7 ? 'epine' : n === 8 ? 'ocine' : n === 9 ? 'onine' : 'ecine';
@@ -542,8 +762,104 @@ function hantzschWidman(an: Analysis, system: AtomId[]): CompiledTemplate | null
   return ct;
 }
 
+/** The bridge prefix of a bridged fused parent for one numbering of it: "4,7-methano". */
+const bridgeOf = new WeakMap<Numbering, string>();
+
+/**
+ * A fused parent with one or two bridges across it (P-25.4): octahydro-1H-4,7-methanoindene,
+ * 3a,4,7,7a-tetrahydro-4,7-epoxyisobenzofuran, ...-4,12-methanobenzofuro[3,2-e]isoquinoline.
+ * The bridge is one or two atoms (methano, ethano, epoxy, epithio); what is left must be a fused
+ * system with a name. Bridgeheads take locants as low as they go; bridge atoms are numbered on from
+ * the fused system's highest locant, starting beside the higher-numbered bridgehead.
+ */
+function bridgedFused(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'imine'): { info: RingInfo; numberings: Numbering[] } | null {
+  const mol = an.mol;
+  const inSys = new Set(system);
+  const ringNb = (a: AtomId, within: Set<AtomId>) => mol.neighbours(a).filter((n) => within.has(n) && an.ringBonds.has(mol.bondBetween(a, n)!.id));
+  const NAMES: Record<string, string> = { C: 'methano', O: 'epoxy', S: 'epithio', CC: 'ethano' };
+  const candidates: AtomId[][] = [];
+  for (const a of system) {
+    if (ringNb(a, inSys).length !== 2 || !['C', 'O', 'S'].includes(el(mol, a))) continue;
+    candidates.push([a]);
+    for (const b of ringNb(a, inSys)) if (b > a && el(mol, a) === 'C' && el(mol, b) === 'C' && ringNb(b, inSys).length === 2) candidates.push([a, b]);
+  }
+  const tryBridges = (bridges: AtomId[][]) => {
+    const drop = new Set(bridges.flat());
+    if (bridges.some((br) => br.some((x) => mol.incidentBonds(x).some((bd) => mol.bond(bd).order !== 1 && inSys.has(mol.otherAtom(mol.bond(bd), x)))))) return null;
+    const rest = system.filter((x) => !drop.has(x));
+    const restSet = new Set(rest);
+    if (rest.some((x) => ringNb(x, restSet).length < 2)) return null;
+    // Still one ring system, and a fused one (two rings or more).
+    const seen = new Set([rest[0]!]), st = [rest[0]!];
+    while (st.length) { const x = st.pop()!; for (const y of ringNb(x, restSet)) if (!seen.has(y)) { seen.add(y); st.push(y); } }
+    if (seen.size !== rest.length) return null;
+    const edges = rest.reduce((n, x) => n + ringNb(x, restSet).length, 0) / 2;
+    if (edges - rest.length + 1 < 2) return null;
+    const heads = bridges.map((br) => [br[0]!, br[br.length - 1]!].map((e, i) => ringNb(e, inSys).find((y) => restSet.has(y) && (br.length > 1 || i === 0 || y !== ringNb(e, inSys).find((z) => restSet.has(z))))!));
+    if (heads.some((h) => h.some((x) => x === undefined) || h[0] === h[1])) return null;
+    const subAn: Analysis = { ...an, ringSystems: an.ringSystems };
+    const fused = hydroParent(subAn, rest, ketoneSuffix);
+    if (!fused || fused.info.kind !== 'template') return null;
+    const locNum = (l: string) => Number(/^\d+/.exec(l)![0]);
+    // Lowest bridgehead locants first.
+    const key = (n: Numbering) => heads.flat().map((x) => locVal(n.get(x)!)).sort((x, y) => x - y);
+    let best: number[] | null = null;
+    const keep: Numbering[] = [];
+    for (const n of fused.numberings) {
+      const k = key(n);
+      const c = best ? cmpVec(k, best) : -1;
+      if (c < 0) { best = k; keep.length = 0; }
+      if (c <= 0) keep.push(n);
+    }
+    const out: Numbering[] = [];
+    for (const n of keep) {
+      const top = Math.max(...[...n.values()].map(locNum));
+      const m = new Map(n);
+      let next = top + 1;
+      const order = bridges.map((br, i) => ({ br, heads: heads[i]! })).sort((x, y) => Math.max(...y.heads.map((h) => locVal(n.get(h)!))) - Math.max(...x.heads.map((h) => locVal(n.get(h)!))));
+      const parts: string[] = [];
+      for (const { br, heads: hd } of order) {
+        // Start beside the higher-numbered bridgehead.
+        const hiHead = locVal(n.get(hd[0]!)!) > locVal(n.get(hd[1]!)!) ? 0 : 1;
+        const atoms = hiHead === 0 ? br : [...br].reverse();
+        for (const x of atoms) m.set(x, String(next++));
+        const word = NAMES[br.map((x) => el(mol, x)).join('')];
+        if (!word) return null;
+        parts.push(`${hd.map((h) => n.get(h)!).sort(compareLocant).join(',')}-${word}`);
+      }
+      hydroOf.set(m, hydroOf.get(n)!);
+      bridgeOf.set(m, parts.sort().join(':') + (parts.length > 1 ? '' : ''));
+      out.push(m);
+    }
+    if (!out.length) return null;
+    // Two bridges of one kind: 1,4:5,8-dimethano.
+    if (bridges.length === 2) for (const m of out) {
+      const ws = bridgeOf.get(m)!.split(':').map((w) => { const k = w.lastIndexOf('-'); return [w.slice(0, k), w.slice(k + 1)] as const; });
+      if (ws[0]![1] !== ws[1]![1]) return null;
+      ws.sort((x, y) => compareLocant(x[0].split(',')[0]!, y[0].split(',')[0]!));
+      bridgeOf.set(m, `${ws.map((w) => w[0]).join(':')}-di${ws[0]![1]}`);
+    }
+    return { info: { ...fused.info, size: system.length, ringCount: fused.info.ringCount + bridges.length }, numberings: out };
+  };
+  // The largest fused system, then the shortest bridge: 4,7-methanoindene, not 1,3-ethanopentalene.
+  let best: { r: { info: RingInfo; numberings: Numbering[] }; size: number; bridge: number } | null = null;
+  for (const c of candidates) {
+    const r = tryBridges([c]);
+    if (r && (!best || system.length - c.length > best.size || (system.length - c.length === best.size && c.length < best.bridge))) best = { r, size: system.length - c.length, bridge: c.length };
+  }
+  if (best) return best.r;
+  // Two bridges where one does not do: 1,4:5,8-dimethanonaphthalene.
+  for (let i = 0; i < candidates.length; i++) for (let j = i + 1; j < candidates.length; j++) {
+    const a = candidates[i]!, b = candidates[j]!;
+    if (a.length !== 1 || b.length !== 1 || a.some((x) => b.includes(x)) || mol.bondBetween(a[0]!, b[0]!)) continue;
+    const r = tryBridges([a, b]);
+    if (r && (!best || system.length - 2 > best.size)) best = { r, size: system.length - 2, bridge: 2 };
+  }
+  return best?.r ?? null;
+}
+
 /** `ketoneSuffix`: a ring C=O is the principal ketone, so its hydrogen is described as for pyridin-2(1H)-one. */
-function recognizeRing(an: Analysis, system: AtomId[], ketoneSuffix = false): { info: RingInfo; numberings: Numbering[] } | null {
+function recognizeRing(an: Analysis, system: AtomId[], ketoneSuffix: boolean | 'imine' = false): { info: RingInfo; numberings: Numbering[] } | null {
   const mol = an.mol;
   const hetero = (e: string) => system.some((a) => el(mol, a) === e);
   const base = { heteroN: hetero('N'), heteroO: hetero('O'), heteroS: hetero('S') };
@@ -552,15 +868,18 @@ function recognizeRing(an: Analysis, system: AtomId[], ketoneSuffix = false): { 
   // prefixes, so a ketone on it is named from that parent: pyridin-4(1H)-one.
   const ringKetone = ketoneSuffix && system.some((a) => mol.incidentBonds(a).some((b) => {
     const bd = mol.bond(b), o = mol.otherAtom(bd, a);
-    return bd.order === 2 && el(mol, o) === 'O' && !system.includes(o);
+    return bd.order === 2 && el(mol, o) === (ketoneSuffix === 'imine' ? 'N' : 'O') && !system.includes(o);
   }));
   for (const ct of templates()) {
-    if (ringKetone && ct.t.name.includes('hydro') && ct.cls.some((c) => c.endsWith('u'))) continue;
+    // Fully saturated too (tetrahydrofuran): dihydrofuran-2(3H)-one, tetrahydro-2H-pyran-2-one.
+    if (ringKetone && ct.t.name.includes('hydro')) continue;
     const n = matchTemplate(an, system, ct);
     if (n.length) return { info: { kind: 'template', template: ct.t, size: system.length, ringCount: ringCount(ct.t), ...base }, numberings: n };
   }
   const hydro = hydroParent(an, system, ketoneSuffix);
   if (hydro) return hydro;
+  const bridged = bridgedFused(an, system, ketoneSuffix);
+  if (bridged) return bridged;
   // A single ring: a cycloalkane or cycloalkene, or (too large for a Hantzsch-Widman name, as a
   // macrolide or a crown ether is) the same with its heteroatoms as replacement prefixes:
   // 1-oxacyclotetradecane, 1,4,7,10-tetraoxacyclododecane.
@@ -646,7 +965,10 @@ function vonBaeyer(an: Analysis, system: AtomId[], base: { heteroN: boolean; het
     if (uniq.length !== 2) return null;
     uniq.sort((x, y) => x.length - y.length);
     const [small, large] = uniq as [AtomId[], AtomId[]];
-    for (const s1 of [small, [...small].reverse()]) for (const l1 of [large, [...large].reverse()]) add([...s1, sp, ...l1]);
+    // Rings of one size may each come first: 1,5-dioxaspiro[5.5]undecane.
+    for (const [a1, b1] of small.length === large.length ? [[small, large], [large, small]] : [[small, large]]) {
+      for (const s1 of [a1!, [...a1!].reverse()]) for (const l1 of [b1!, [...b1!].reverse()]) add([...s1, sp, ...l1]);
+    }
     const bracket = `spiro[${small.length}.${large.length}]`;
     return { info: { kind: 'vonbaeyer' as const, bracket, size: system.length, ringCount: 2, ...base }, numberings };
   }
@@ -838,9 +1160,14 @@ function polycyclic(an: Analysis, system: AtomId[], base: { heteroN: boolean; he
 }
 
 /** Replacement prefixes for heteroatoms in a von Baeyer/spiro parent: "1-oxa-8-aza". */
-function heteroPrefix(mol: Molecule, atoms: AtomId[], numbering: Numbering): string {
+function heteroPrefix(mol: Molecule, atoms: AtomId[], numbering: Numbering, monocycle = false): string {
   const groups: [string, string][] = [['O', 'oxa'], ['S', 'thia'], ['Se', 'selena'], ['N', 'aza'], ['P', 'phospha'], ['Si', 'sila'], ['B', 'bora']];
   const parts: string[] = [];
+  // A ring of one heteroatom needs no locant for it: oxacyclohexadecan-2-one.
+  if (monocycle && atoms.filter((a) => el(mol, a) !== 'C').length === 1) {
+    const g = groups.find(([e]) => atoms.some((a) => el(mol, a) === e));
+    if (g) return g[1];
+  }
   for (const [e, word] of groups) {
     const locs = atoms.filter((a) => el(mol, a) === e).map((a) => numbering.get(a)!).sort(compareLocant);
     if (locs.length) parts.push(`${locs.join(',')}-${multiplier(locs.length)}${word}`);
@@ -891,7 +1218,7 @@ const ACID_SALT: Record<string, string> = { F: 'hydrofluoride', Cl: 'hydrochlori
 export function ionize(input: Molecule): Molecule {
   if (![...input.atoms()].some((a) => a.label === null && isMetal(a.element))) return input.clone();
   const mol = input.clone();
-  // An ion with a name of its own is left whole: permanganate, chlorochromate, aluminium hydride.
+  // An ion with a name of its own is left whole: permanganate, chlorochromate, aluminum hydride.
   const whole = new Set(input.fragments().filter((f) => f.every((a) => input.atom(a).label === null) && speciesName(input, f)).flat());
   for (const b of [...mol.bonds()]) {
     const [p, q] = [mol.atom(b.begin), mol.atom(b.end)];
@@ -975,17 +1302,17 @@ function nameMixture(mol: Molecule, frags: AtomId[][]): string {
     const kinds = (list: Ion[]) => { const c = new Map<string, number>(); for (const i of list) c.set(i.name, (c.get(i.name) ?? 0) + 1); return [...c]; };
     const ck = kinds(cations), ak = kinds(anions);
     // Beside other components the salt's own count matters: three AlH3 and a manganese atom are
-    // not "aluminium hydride · manganese". Its name is for one formula unit.
+    // not "aluminum hydride · manganese". Its name is for one formula unit.
     const gcd = (x: number, y: number): number => (y ? gcd(y, x % y) : x);
     if ((neutral.length || acids.length || waters) && [...ck, ...ak].reduce((g, [, n]) => gcd(g, n), 0) > 1) throw new OutOfScope('salt of several formula units beside other components');
     // A polyatomic anion is multiplied with bis, tris: bis(phosphate), as diphosphate is P2O7 4-.
     // So is one whose name starts with a multiplier (bis(tetrafluoroborate)); nitrate or thiocyanate takes di.
     const polyatomic = new Set(anions.filter((i) => i.simple && (i.atoms ?? 1) > 1 && (i.charge <= -2 || /^(di|tri|tetra|hexa)/.test(i.name))).map((i) => i.name));
-    // A simple cation with a simple anion needs no count, their charges say it: sodium carbonate,
-    // calcium chloride, titanium(IV) chloride. Counts are kept where an ion is an organic one
-    // (disodium propanedioate), and always when there are several kinds.
+    // One cation with one anion needs no count, their charges say it: sodium carbonate, calcium chloride,
+    // sodium malonate. Counts are kept when there are several kinds.
     const several = ck.length > 1 || ak.length > 1;
-    const countCations = several || anions.some((i) => !i.simple), countAnions = several || cations.some((i) => !i.simple);
+    // (With several kinds the counts are kept: without them the formula would be lost.)
+    const countCations = several, countAnions = several;
     const group = (list: [string, number][], counted: boolean) => list.map(([name, n]) => `${counted && n > 1 ? (/[ (\d]/.test(name) || polyatomic.has(name) ? `${complexMultiplier(n)}(${name})` : multiplier(n) + name) : name}`).join(' ');
     parts.push([group(ck, countCations), group(ak, countAnions)].filter(Boolean).join(' '));
   }
@@ -1003,7 +1330,7 @@ function subMolecule(mol: Molecule, atoms: AtomId[]): Molecule {
   return copy;
 }
 
-const SUPPORTED = new Set(['C', 'H', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'Si', 'Sn', 'B', 'P']);
+const SUPPORTED = new Set(['C', 'H', 'N', 'O', 'S', 'F', 'Cl', 'Br', 'I', 'Si', 'Sn', 'B', 'P', 'Se', 'Te', 'As', 'Sb', 'Ge', 'Pb']);
 
 /** A peptide written as a label ("H-Ala-Gly-OH" on a lone atom) or drawn out in full. */
 function peptideOf(mol: Molecule): Peptide | null {
@@ -1053,7 +1380,14 @@ function perdeuterated(input: Molecule): string | null {
   const name = whole && whole.charge === 0 ? whole.name : nameOne(plain);
   // On a name with brackets or a locant in front, the "-d" would not say plainly what it belongs to.
   if (!/^[a-z][a-z0-9, -]*$/i.test(name)) throw new OutOfScope('isotopic labelling');
-  return `${name}-d${ds.size > 1 ? ds.size : ''}`;
+  const d = (n: number) => `d${n > 1 ? n : ''}`;
+  // Deuterium on carbon and on oxygen said apart where the name has a place for each: methan-d3-ol-d, acetic-d3 acid-d.
+  const onO = [...ds].filter((x) => input.atom(input.neighbours(x)[0]!).element !== 'C').length, onC = ds.size - onO;
+  if (onO && onC) {
+    if (/ic acid$/.test(name)) return name.replace(/ic acid$/, `ic-${d(onC)} acid-${d(onO)}`);
+    if (/an-?\d*-?ol$|anol$/.test(name) && !/\d/.test(name)) return name.replace(/ol$/, '').replace(/-$/, '') + `-${d(onC)}-ol-${d(onO)}`;
+  }
+  return `${name}-${d(ds.size)}`;
 }
 
 /** A halogen substituent carrying an isotope label (a radiotracer's 18F or 125I), written (18F)fluoro. */
@@ -1063,17 +1397,89 @@ const labelledHalogen = (mol: Molecule, a: { id: AtomId; element: string; isotop
 function nameOne(input: Molecule): string {
   const deuterated = perdeuterated(input);
   if (deuterated) return deuterated;
+  // Oligonucleotides and peptides are named in full where a name can be made (residues by name:
+  // L-alanylglycine, (tert-butoxycarbonyl)-L-alanine), else by their sequence.
   const oligo = oligoOf(input);
-  if (oligo) return oligoText(oligo);
-  // Peptides get peptide names ("L-alanylglycine"), or their sequence when protected.
-  const pep = peptideOf(input);
-  // A residue name reads as L (or D); with no configuration given, name it systematically.
-  if (pep && !pep.residues.some((r) => r.stereoUnknown)) {
-    const n = peptideName(pep);
-    if (n) return n;
-    try { return nameOneSystematic(input); } catch (e) { if (e instanceof OutOfScope) return peptideText(pep); throw e; }
+  // Three units or more go by their sequence: a systematic name would run to hundreds of characters.
+  if (oligo && oligo.units.length >= 3) return oligoText(oligo);
+  const pep = oligo ? null : peptideOf(input);
+  // A sequence written as a label is named as the structure it stands for.
+  if (input.atomCount === 1 && oligo) { try { return nameOne(parseSmiles(oligoSmiles(oligo))); } catch { return oligoText(oligo); } }
+  if (input.atomCount === 1 && pep) { try { return nameOne(peptideMolecule(pep)); } catch { return peptideName(pep) ?? peptideText(pep); } }
+  const ox = oximeName(input);
+  if (ox) return ox;
+  try { return nameOneSystematic(input); } catch (e) {
+    if (!(e instanceof OutOfScope)) throw e;
+    if (oligo) return oligoText(oligo);
+    if (pep && !pep.residues.some((r) => r.stereoUnknown)) return peptideName(pep) ?? peptideText(pep);
+    throw e;
   }
-  return nameOneSystematic(input);
+}
+
+/**
+ * An oxime of a ketone or aldehyde that would be the principal group, named on it: propan-2-one oxime,
+ * (E)-benzaldehyde O-methyl oxime, (Z)-1-phenylethan-1-one O-(6-fluoropyridin-2-yl) oxime. Null otherwise.
+ */
+function oximeName(input: Molecule): string | null {
+  const mol = input.clone();
+  foldHydrogens(mol);
+  if ([...mol.atoms()].some((a) => a.x !== 0 || a.y !== 0) && fromGeometry) perceiveStereoFromGeometry(mol);
+  const rings = perceiveRings(mol);
+  const inRing = new Set(rings.flatMap((r) => r.atoms));
+  const found: { c: AtomId; n: AtomId; o: AtomId; r: AtomId | null; bond: number }[] = [];
+  for (const b of mol.bonds()) {
+    if (b.order !== 2) continue;
+    const [c, n] = el(mol, b.begin) === 'C' ? [b.begin, b.end] : [b.end, b.begin];
+    if (el(mol, c) !== 'C' || el(mol, n) !== 'N' || mol.atom(n).charge || inRing.has(n)) continue;
+    const o = mol.neighbours(n).find((x) => x !== c);
+    if (o === undefined || mol.neighbours(n).length !== 2 || el(mol, o) !== 'O' || mol.atom(o).charge || inRing.has(o)) continue;
+    const beyond = mol.neighbours(o).filter((x) => x !== n);
+    if (beyond.length > 1) continue;
+    found.push({ c, n, o, r: beyond[0] ?? null, bond: b.id });
+  }
+  if (found.length !== 1) return null;
+  const { c, n, o, r, bond } = found[0]!;
+  // The O-substituent must hang off the oxygen alone (no ring back into the rest).
+  if (r !== null) {
+    const seen = new Set<AtomId>([o]), stack = [r];
+    while (stack.length) { const x = stack.pop()!; if (x === n || x === c) return null; if (seen.has(x)) continue; seen.add(x); stack.push(...mol.neighbours(x).filter((y) => !seen.has(y))); }
+  }
+  const ez = ezLabel(mol, bond);
+  const carbonyl = mol.clone();
+  if (r !== null) {
+    const seen = new Set<AtomId>([o]), stack = [r];
+    while (stack.length) { const x = stack.pop()!; if (seen.has(x)) continue; seen.add(x); stack.push(...carbonyl.neighbours(x).filter((y) => !seen.has(y))); }
+    for (const x of seen) if (x !== o) carbonyl.removeAtom(x);
+  }
+  carbonyl.removeAtom(o);
+  const atom = carbonyl.atom(n);
+  atom.element = 'O';
+  atom.explicitHydrogens = 0;
+  for (const bd of carbonyl.bonds()) if ((bd.begin === c || bd.end === c) && bd.ez) bd.ez = null;
+  const an = analyze(carbonyl);
+  const top = SENIORITY.find((k) => an.groups.some((g) => g.kind === k));
+  if ((top !== 'ketone' && top !== 'aldehyde') || an.groups.filter((g) => g.kind === top).length !== 1 || an.groups.find((g) => g.kind === top)!.anchor !== c) return null;
+  let base: string;
+  noWholeRetained = true;
+  try { base = nameOneSystematic(carbonyl); } catch (e) { if (e instanceof OutOfScope) return null; throw e; } finally { noWholeRetained = false; }
+  // Configurations of its own would have to be merged with the oxime's.
+  if (ez && /\((?:\d+[a-z]?'*)?[RSEZrs](?:,[^)]*)?\)/.test(base)) return null;
+  let tail = ' oxime';
+  if (r !== null) {
+    const sub = nameOneSystematicSubstituent(mol, r, o);
+    if (!sub) return null;
+    tail = ` O-${/[\d(),[\]]/.test(sub.text) ? `(${sub.text})` : sub.text} oxime`;
+  }
+  return `${ez ? `(${ez})-` : ''}${base}${tail}`;
+}
+
+/** The name of a group as a prefix (methyl, 6-fluoropyridin-2-yl), from a namer over the whole molecule. */
+function nameOneSystematicSubstituent(mol: Molecule, a: AtomId, from: AtomId): SubName | null {
+  try {
+    const { bare, oxides } = withoutRingOxides(mol);
+    const namer = new Namer(analyze(bare), mol, oxides);
+    return namer.substituent(a, from);
+  } catch (e) { if (e instanceof OutOfScope) return null; throw e; }
 }
 
 /** Explicit hydrogen atoms ([H] in SMILES) folded into their atom's hydrogen count, keeping stereo that refers to them. */
@@ -1109,6 +1515,8 @@ function nameOneSystematic(input: Molecule): string {
   const onItself = charged.length === 1 && (isOnium(mol, charged[0]!.id) || isAmideAnion(mol, charged[0]!.id));
   if (!onItself && charged.some((a) => !isNamedIon(mol, a.id))) throw new OutOfScope('charged species');
   if (metals.length === 1) return organometallic(mol, metals[0]!.id);
+  const known = noWholeRetained ? null : retainedMolecule(mol);
+  if (known) return known;
   if (mol.atomCount === 1 && mol.atom([...mol.atoms()][0]!.id).element !== 'C') throw new OutOfScope('single heteroatom');
   const drawn = [...mol.atoms()].some((a) => a.x !== 0 || a.y !== 0);
   if (drawn && fromGeometry) perceiveStereoFromGeometry(mol);
@@ -1143,10 +1551,25 @@ function nameOneSystematic(input: Molecule): string {
   // silently, and no time is spent on the rest of the name once one has been given up.
   const gaveUp = cipLimits.gaveUp;
   const costly = () => { if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out'); };
-  const namer = new Namer(an, mol, oxides);
+  // A ring named with its oxides takes its amines, alcohols and thiols as prefixes:
+  // 2,6-diamino-4-(piperidin-1-yl)pyrimidine 1-oxide, 2,7-dihydroxy-...dioxaphosphinine 2-oxide.
+  let anUse = an;
+  if (oxides.size) {
+    const low = ['amine', 'alcohol', 'thiol'];
+    const top = SENIORITY.find((k) => an.groups.some((g) => g.kind === k));
+    const oxSystems = an.ringSystems.filter((sys) => sys.some((x) => oxides.has(x)));
+    const onOx = (g: Group) => oxSystems.some((sys) => sys.includes(g.anchor) || bare.neighbours(g.anchor).some((y) => sys.includes(y)));
+    if (top && low.includes(top) && an.groups.filter((g) => g.kind === top).every(onOx)) anUse = { ...an, groups: an.groups.filter((g) => !low.includes(g.kind)) };
+  }
+  const namer = new Namer(anUse, mol, oxides);
+  // ... and that ring stays the parent.
+  if (anUse !== an) namer.preferAtoms = new Set(an.ringSystems.find((sys) => sys.some((x) => oxides.has(x)))!);
   costly();
   namer.afterRanking = costly;
-  const name = namer.functionalClassName() ?? namer.name();
+  const raw = retainedRings(namer.functionalClassName() ?? namer.name());
+  // Beside a centre left unspecified, a descriptor in front would not say which centre it is.
+  const openKinds = namer.openStereoKinds([...namer.mol.atoms()].map((a) => a.id));
+  const name = frontLoneDescriptor(raw, openKinds);
   costly();
   // A configuration the name has no place for (a phosphane's P, an ammonium N) is not dropped silently.
   if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
@@ -1154,7 +1577,7 @@ function nameOneSystematic(input: Molecule): string {
   // (an acyl halide, a salt) must not drop it.
   for (const a of mol.atoms()) {
     if (a.isotope === null) continue;
-    const label = `(${a.isotope}${a.element})`;
+    const label = `-${a.isotope}${a.element}`;
     const want = [...mol.atoms()].filter((x) => x.isotope === a.isotope && x.element === a.element).length;
     if (name.split(label).length - 1 !== want) throw new OutOfScope('isotopic labelling');
   }
@@ -1164,14 +1587,14 @@ function nameOneSystematic(input: Molecule): string {
   let centres = 0, bonds = 0;
   const times: number[] = [];
   const TIMES: Record<string, number> = { bis: 2, tris: 3, tetrakis: 4, pentakis: 5, hexakis: 6, heptakis: 7, octakis: 8, nonakis: 9, decakis: 10 };
-  const group = /^\((?:\d+[a-z]?'*)?[RSEZ](?:,(?:\d+[a-z]?'*)?[RSEZ])*\)/;
+  const group = /^\((?:\d+[a-z]?'*)?[RSEZrs](?:,(?:\d+[a-z]?'*)?[RSEZrs])*\)/;
   for (let i = 0; i < name.length; i++) {
     if (name[i] === ')') { times.pop(); continue; }
     if (name[i] !== '(') continue;
     const found = group.exec(name.slice(i));
     if (found) {
       const n = times.reduce((p, q) => p * q, 1);
-      centres += n * (found[0].match(/[RS]/g) ?? []).length;
+      centres += n * (found[0].match(/[RSrs]/g) ?? []).length;
       bonds += n * (found[0].match(/[EZ]/g) ?? []).length;
       i += found[0].length - 1;
       continue;
@@ -1179,8 +1602,76 @@ function nameOneSystematic(input: Molecule): string {
     const word = /([a-z]+)$/.exec(name.slice(0, i))?.[1] ?? '';
     times.push(Object.entries(TIMES).find(([w]) => word.endsWith(w))?.[1] ?? 1);
   }
-  if (centres !== namer.rs.size || bonds !== namer.ez.size / 2) throw new OutOfScope('stereodescriptors do not add up');
+  if (centres + namer.residueCited.size !== namer.rs.size || bonds !== namer.ez.size / 2) throw new OutOfScope('stereodescriptors do not add up');
   return name;
+}
+
+/**
+ * Bridged parents chemists call by name, wherever they occur in a name: quinuclidin-3-ol, adamantan-1-ol,
+ * 1,3,5,7-tetraazaadamantane, cubane. (Numbered as their von Baeyer names are.) Not where the von Baeyer
+ * name carries a replacement prefix of its own (4-oxa-1-azabicyclo[2.2.2]octane).
+ */
+function retainedRings(name: string): string {
+  const notAfterReplacement = '(?<!(?:oxa|aza|thia|sila|bora|phospha|selena)-)';
+  return name
+    .replace(/(?<=[a-z)])-1-azabicyclo\[2\.2\.2\]octan/g, (m, i: number, all: string) => (/(oxa|aza|thia|sila|bora|phospha|selena)$/.test(all.slice(0, i)) ? m : 'quinuclidin'))
+    .replace(new RegExp(`${notAfterReplacement}(?<![a-z])1-azabicyclo\\[2\\.2\\.2\\]octan`, 'g'), 'quinuclidin')
+    .replace(/(?<![a-z\]-])tricyclo\[3\.3\.1\.1\^\{3,7\}\]decan/g, 'adamantan')
+    .replace(/(\d,\d,\d,\d-tetraaza)tricyclo\[3\.3\.1\.1\^\{3,7\}\]decan/g, '$1adamantan')
+    .replace(/(?<![a-z\]-])pentacyclo\[4\.2\.0\.0\^\{2,5\}\.0\^\{3,8\}\.0\^\{4,7\}\]octan/g, 'cuban')
+    .replace(/(quinuclidin|adamantan|cuban)(?=$|[ ),]|-\d)/g, '$1e')
+    .replace(/(quinuclidin|adamantan|cuban)e-(\d+)-(yl|ol|one|amine)/g, '$1-$2-$3');
+}
+
+/** Small molecules known by name: chloroform, benzophenone, triethylamine. Matched as whole structures. */
+const RETAINED_MOLECULES: [string, string][] = [
+  ['ClC(Cl)Cl', 'chloroform'], ['BrC(Br)Br', 'bromoform'], ['IC(I)I', 'iodoform'], ['O=C(c1ccccc1)c1ccccc1', 'benzophenone'],
+  ['O=C1C=CC(=O)C=C1', 'benzoquinone'], ['O=CC=O', 'oxalaldehyde'], ['CC(=O)C(C)=O', 'biacetyl'], ['CCN(CC)CC', 'triethylamine'],
+  ['O=C/C=C/c1ccccc1', 'cinnamaldehyde'], ['NC(=O)c1cccnc1', 'nicotinamide'], ['CCCCCCCC/C=C\\CCCCCCCC(=O)O', 'oleic acid'],
+  ['O=C(/C=C/c1ccccc1)c1ccccc1', '(E)-chalcone'], ['Cc1ccc(C)cc1', 'p-xylene'], ['Cc1cccc(C)c1', 'm-xylene'], ['Cc1ccccc1C', 'o-xylene'],
+  ['OC(=O)c1cccnc1', 'nicotinic acid'], ['C=CC(C)=C', 'isoprene'], ['Cc1ccc(cc1)C(C)C', 'p-cymene'],
+  ['Oc1cccc(O)c1', 'resorcinol'], ['Oc1ccc(O)cc1', 'hydroquinone'], ['Oc1ccccc1O', 'pyrocatechol'], ['Cc1cc(C)cc(C)c1', 'mesitylene'], ['Cc1ccccc1O', 'o-cresol'],
+  ['Cc1cccc(O)c1', 'm-cresol'], ['Cc1ccc(O)cc1', 'p-cresol'], ['CC(=O)c1ccccc1', 'acetophenone'], ['CCC(=O)c1ccccc1', 'propiophenone'],
+  ['OC(=O)CCCC(O)=O', 'glutaric acid'], ['OC(=O)CCCCC(O)=O', 'adipic acid'], ['CC(C)C(O)=O', 'isobutyric acid'], ['CC(=C)C(O)=O', 'methacrylic acid'],
+  ['OC(=O)c1ccccc1C(O)=O', 'phthalic acid'], ['OC(=O)c1cccc(c1)C(O)=O', 'isophthalic acid'], ['OC(=O)c1ccc(cc1)C(O)=O', 'terephthalic acid'],
+  ['Cc1ccccc1N', 'o-toluidine'], ['Cc1cccc(N)c1', 'm-toluidine'], ['Cc1ccc(N)cc1', 'p-toluidine'], ['Nc1ccc(cc1)-c1ccc(N)cc1', 'benzidine'],
+  ['NNC(=O)c1ccncc1', 'isonicotinohydrazide'], ['N#Cc1ccccc1C#N', 'phthalonitrile'], ['NC(=O)c1ccccc1C(N)=O', 'phthalamide'], ['N#CCC#N', 'malononitrile'], ['C=CC#N', 'acrylonitrile'], ['OC(=O)C(=O)O', 'oxalic acid'],
+];
+let retainedMols: { mol: Molecule; name: string; formula: string }[] | null = null;
+/** Set while naming the carbonyl of an oxime: its name is the systematic one. */
+let noWholeRetained = false;
+function retainedMolecule(mol: Molecule): string | null {
+  const formula = (m: Molecule) => [...m.atoms()].map((a) => a.element).sort().join('') + [...m.atoms()].reduce((n, a) => n + m.implicitHydrogens(a.id), 0);
+  retainedMols ??= RETAINED_MOLECULES.map(([smi, name]) => { const m = parseSmiles(smi); return { mol: m, name, formula: formula(m) }; });
+  const f = formula(mol);
+  for (const r of retainedMols) if (r.formula === f && sameStereoisomer(r.mol, mol, { recorded: [true, !fromGeometry || ![...mol.atoms()].some((a) => a.x || a.y)] })) return r.name;
+  return null;
+}
+
+/**
+ * A structure with one configuration in all has its descriptor in front of the whole name, wherever
+ * that centre or double bond is: (S)-3-(1-methylpyrrolidin-2-yl)pyridine, (E)-5-(4-hydroxystyryl)benzene-1,3-diol.
+ * In an ester or salt name, in front of the word that holds it.
+ */
+export function frontLoneDescriptor(name: string, open: { centre: boolean; bond: boolean } = { centre: false, bond: false }): string {
+  const all = [...name.matchAll(/\((?:\d+[a-z]?'*)?[RSEZrs](?:,(?:\d+[a-z]?'*)?[RSEZrs])*\)-?/g)];
+  if (all.length !== 1) return name;
+  // Beside an open element of its own kind, a descriptor in front would not say which one it is.
+  if (/^\([RS]\)/.test(all[0]![0]) ? open.centre : open.bond) return name;
+  // An amino acid's L or D is a configuration too.
+  if (/(^|[-( ])[DL]-[a-z]/.test(name)) return name;
+  const m = all[0]!;
+  if (!/^\([RSEZ]\)-$/.test(m[0])) return name;
+  const start = name.lastIndexOf(' ', m.index) + 1;
+  if (m.index === start) return name;
+  // Inside bis(...) it stands for two.
+  if (/(bis|tris|kis)\(/.test(name.slice(start, m.index))) return name;
+  let rest = name.slice(m.index + m[0].length);
+  let before = name.slice(start, m.index);
+  // A word bracketed only for its descriptor loses the brackets with it: (benzylidene)amino, benzylideneamino.
+  const w = /^([a-z]+)\)/.exec(rest);
+  if (w && /ylidene$/.test(w[1]!) && before.endsWith('(') && /^[a-z]/.test(rest.slice(w[0].length))) { before = before.slice(0, -1); rest = w[1] + rest.slice(w[0].length); }
+  return name.slice(0, start) + m[0] + before + rest;
 }
 
 /** Bonds plus hydrogens each element may have, by charge; what the names here are written for. */
@@ -1247,8 +1738,11 @@ function anhydrideName(mol: Molecule): string | null {
 }
 
 /** The molecule without the =O on ring S, Se, P and As atoms, and how many each carried. */
+/** Ring atoms of the molecule being named that carry an oxide (left off the ring while it is named). */
+let ringOxideAtoms: { has(a: AtomId): boolean } = new Set();
 function withoutRingOxides(mol: Molecule): { bare: Molecule; oxides: Map<AtomId, number> } {
   const oxides = new Map<AtomId, number>();
+  ringOxideAtoms = oxides;
   const drop: AtomId[] = [];
   for (const a of mol.atoms()) {
     if (!['S', 'Se', 'P', 'As'].includes(a.element) || a.charge !== 0 || mol.neighbours(a.id).length < 3 || !perceiveRingMember(mol, a.id)) continue;
@@ -1260,9 +1754,20 @@ function withoutRingOxides(mol: Molecule): { bare: Molecule; oxides: Map<AtomId,
     oxides.set(a.id, oxo.length);
     drop.push(...oxo);
   }
+  // A ring N-oxide (N+ with O- on it and two ring bonds besides): pyridine 1-oxide.
+  const neutral: AtomId[] = [];
+  for (const a of mol.atoms()) {
+    if (a.element !== 'N' || a.charge !== 1 || !perceiveRingMember(mol, a.id)) continue;
+    const ox = mol.neighbours(a.id).filter((n) => el(mol, n) === 'O' && mol.neighbours(n).length === 1 && mol.atom(n).charge === -1 && mol.bondBetween(a.id, n)!.order === 1);
+    if (ox.length !== 1 || mol.neighbours(a.id).length !== 3 || mol.bondOrderSum(a.id) !== 4) continue;
+    oxides.set(a.id, 1);
+    drop.push(ox[0]!);
+    neutral.push(a.id);
+  }
   if (!drop.length) return { bare: mol, oxides };
   const bare = mol.clone();
   for (const o of drop) bare.removeAtom(o);
+  for (const n of neutral) bare.atom(n).charge = 0;
   return { bare, oxides };
 }
 
@@ -1276,6 +1781,8 @@ function organometallic(mol: Molecule, metal: AtomId): string {
   const drawn = [...mol.atoms()].some((a) => a.x !== 0 || a.y !== 0);
   if (drawn && fromGeometry) perceiveStereoFromGeometry(mol);
   const namer = new Namer(analyze(mol));
+  // Tetravalent lead is a hydride: tetraethylplumbane.
+  if (mol.atom(metal).element === 'Pb' && nbrs.length === 4 && mol.atom(metal).charge === 0) return `${namer.groupedSubs(nbrs, metal)}plumbane`;
   return `${namer.groupedSubs(nbrs, metal)}${metalName(mol.atom(metal).element)}`;
 }
 
@@ -1392,10 +1899,16 @@ class Namer {
   readonly principal: GroupKind | null;
   readonly principalGroups: Group[];
   readonly ringByAtom = new Map<AtomId, AtomId[]>();
-  readonly rs = new Map<AtomId, 'R' | 'S'>();
+  readonly rs = new Map<AtomId, 'R' | 'S' | 'r' | 's'>();
   readonly ez = new Map<string, 'E' | 'Z'>();
   /** Stereocentres whose descriptor some name built here cites. */
   readonly cited = new Set<AtomId>();
+  /** Atoms left out of a parent's prefixes: the linker of a multiplicative name. */
+  readonly excluded = new Set<AtomId>();
+  /** The side chains of the residues in the name being built. */
+  sides: Set<AtomId>[] = [];
+  /** Stereocentres an amino acid's L or D stands for (no R or S of their own in the name). */
+  readonly residueCited = new Set<AtomId>();
   /** Called after each CIP ranking made while naming, to stop when one was given up. */
   afterRanking: () => void = () => {};
 
@@ -1410,10 +1923,12 @@ class Namer {
     // The first ranking given up ends the naming: each one costs as much again.
     const gaveUp = cipLimits.gaveUp;
     const costly = () => { if (cipLimits.gaveUp !== gaveUp) throw new OutOfScope('stereodescriptors too costly to work out'); };
-    for (const a of an.mol.atoms()) { const l = rsLabel(full, a.id); costly(); if (l) this.rs.set(a.id, l); }
+    for (const a of an.mol.atoms()) { const l = rsLabel(full, a.id) ?? pseudoLabel(full, a.id); costly(); if (l) this.rs.set(a.id, l); }
+    // A C=NH has no configuration to cite: (Z) of [H]/N=C/... is dropped.
+    const bareNH = (x: AtomId) => an.mol.atom(x).element === 'N' && an.mol.neighbours(x).length === 1;
     for (const b of an.mol.bonds()) {
       const fb = full.bondBetween(b.begin, b.end);
-      const l = fb ? ezLabel(full, fb.id) : null;
+      const l = fb && !bareNH(b.begin) && !bareNH(b.end) ? ezLabel(full, fb.id) : null;
       costly();
       if (l) { this.ez.set(`${b.begin}-${b.end}`, l); this.ez.set(`${b.end}-${b.begin}`, l); }
     }
@@ -1428,6 +1943,8 @@ class Namer {
    * parent: R-B(OH)2 boronic acids, R3P phosphanes, RBF3- borates.
    */
   functionalClassName(): string | null {
+    const nn = this.thiocarbamate() ?? this.hydroxylamine() ?? this.symmetricAmine() ?? this.sulfoximineName() ?? this.phosphorusAcidName() ?? this.inorganicEster() ?? this.hydrazineCarbonyl() ?? this.hydrazineName() ?? this.sulfaneName() ?? this.carbodiimideName() ?? this.cyanamideName();
+    if (nn) return nn;
     const mol = this.mol;
     // An onium ion or an amide base, named on its charged atom: methyltriphenylphosphonium, diisopropylamide.
     const charged = [...mol.atoms()].filter((a) => a.charge !== 0 && !isNitroAtom(mol, a.id));
@@ -1447,13 +1964,21 @@ class Namer {
         }
       }
     }
-    // A lone Si or Sn with no characteristic group to name: ethoxytrimethylsilane, tetrabutylstannane.
-    const metalloids = [...mol.atoms()].filter((a) => a.element === 'Si' || a.element === 'Sn');
-    if (metalloids.length === 1 && !this.principal && ![...mol.atoms()].some((a) => a.element === 'B' || a.element === 'P')) {
+    // A lone Si, Ge, Sn, Pb, As, Sb, Se or Te with no characteristic group to name: ethoxytrimethylsilane,
+    // tributylstannane, triphenylarsane, dimethylselane; with OH on it, trimethylsilanol.
+    const HYDRIDE: Record<string, [string, number]> = { Si: ['silane', 4], Ge: ['germane', 4], Sn: ['stannane', 4], Pb: ['plumbane', 4], As: ['arsane', 3], Sb: ['stibane', 3], Se: ['selane', 2], Te: ['tellane', 2] };
+    const metalloids = [...mol.atoms()].filter((a) => HYDRIDE[a.element]);
+    // A heterocycle elsewhere is the senior parent: 2-(diphenyl((trimethylsilyl)oxy)methyl)pyrrolidine.
+    const heterocycle = [...this.an.ringAtoms].some((a) => !['C', 'Si', 'Ge', 'Sn', 'Pb', 'As', 'Sb', 'Se', 'Te'].includes(el(mol, a)));
+    if (metalloids.length === 1 && !heterocycle && ![...mol.atoms()].some((a) => a.element === 'B' || a.element === 'P')) {
       const m = metalloids[0]!;
+      const [hydride, v] = HYDRIDE[m.element]!;
       const nb2 = mol.neighbours(m.id);
-      if (nb2.length === 4 && mol.incidentBonds(m.id).every((b) => mol.bond(b).order === 1) && !this.an.ringAtoms.has(m.id)) {
-        return `${this.centreStereo(m.id)}${this.groupedSubs(nb2, m.id)}${m.element === 'Si' ? 'silane' : 'stannane'}`;
+      const oh = nb2.filter((n) => el(mol, n) === 'O' && mol.neighbours(n).length === 1 && this.an.h.get(n) === 1 && mol.atom(n).charge === 0);
+      const ol = oh.length === 1 && (!this.principal || (this.principal === 'alcohol' && this.principalGroups.length === 1 && this.principalGroups[0]!.consumed.includes(oh[0]!)) || this.principalGroups.every((g) => g.anchor === oh[0] || g.consumed.includes(oh[0]!)));
+      if ((!this.principal || ol) && m.charge === 0 && nb2.length + (this.an.h.get(m.id) ?? 0) === v && mol.incidentBonds(m.id).every((b) => mol.bond(b).order === 1) && !this.an.ringAtoms.has(m.id)) {
+        const subs = nb2.filter((n) => !ol || n !== oh[0]);
+        return `${this.centreStereo(m.id)}${subs.length ? this.groupedSubs(subs, m.id) : ''}${ol ? `${hydride.replace(/e$/, '')}ol` : hydride}`;
       }
     }
     const centres = [...mol.atoms()].filter((a) => a.element === 'B' || a.element === 'P');
@@ -1468,12 +1993,14 @@ class Namer {
         return `${R.complex ? `(${R.text})` : R.text}boronic acid`;
       }
     }
+    // A borane with three carbon groups: tris(perfluorophenyl)borane, triethylborane.
+    if (c.element === 'B' && c.charge === 0 && carbonNbrs.length === 3 && nbrs.length === 3 && !this.an.ringAtoms.has(c.id)) return `${this.groupedSubs(carbonNbrs, c.id)}borane`;
     if (c.element === 'B' && c.charge === -1 && carbonNbrs.length === 1) {
       const fs = nbrs.filter((n) => el(mol, n) === 'F');
       if (fs.length === 3) {
         const R = this.substituent(carbonNbrs[0]!, c.id);
         // "propanoyltrifluoroborate": the way chemists write KATs, and OPSIN-parsable.
-        return `${R.complex ? `(${R.text})` : R.text}trifluoroborate`;
+        return `trifluoro(${R.text})borate`;
       }
     }
     if (c.element === 'P' && this.an.ringAtoms.has(c.id)) return null;
@@ -1497,6 +2024,393 @@ class Namer {
     return null;
   }
 
+  /**
+   * An acid of phosphorus or its ester, named as one, where nothing more senior is in the structure:
+   * methyl dihydrogen phosphate, trimethyl phosphate, (...)methyl tetrahydrogen triphosphate,
+   * diethyl benzylphosphonate, phenylphosphonic acid, dimethylphosphinic acid, triphenyl phosphite,
+   * dimethyl phosphoramidate, O,O,O-trimethyl phosphorothioate.
+   */
+  phosphorusAcidName(): string | null {
+    const mol = this.mol;
+    const ps = [...mol.atoms()].filter((a) => a.element === 'P');
+    // Oxido on the phosphorus makes it an anion of the acid: methyl phosphate, methyl hydrogen phosphate;
+    // with an onium elsewhere, an inner salt: 2-(trimethylammonio)ethyl ... phosphate.
+    const pAnion = ps.some((p) => mol.neighbours(p.id).some((o) => el(mol, o) === 'O' && mol.atom(o).charge === -1 && mol.neighbours(o).length === 1));
+    if (this.principal && ['carboxylate', 'sulfonate', 'olate', 'thiolate', 'ide', ...(pAnion ? [] : ['ium', 'iminium', 'aminium']), 'diazonium', 'acid', 'peracid', 'sulfonic', 'ester', 'sulfonateEster', 'acylHalide', 'sulfonylHalide'].includes(this.principal)) return null;
+    if (!ps.length || ps.some((p) => this.an.ringAtoms.has(p.id) || p.charge !== 0)) return null;
+    // Phosphorus atoms joined by O into one chain (a di- or triphosphate), every P with its =O.
+    const pIds = ps.map((p) => p.id);
+    const bridges = new Set<AtomId>();
+    for (const p of pIds) for (const o of mol.neighbours(p)) if (el(mol, o) === 'O' && mol.neighbours(o).filter((x) => pIds.includes(x)).length === 2) bridges.add(o);
+    if (pIds.length > 1 && bridges.size !== pIds.length - 1) return null;
+    const dbl = (p: AtomId) => mol.neighbours(p).filter((x) => mol.bondBetween(p, x)!.order === 2);
+    const esters: SubName[] = [], hs: AtomId[] = [], carbons: SubName[] = [];
+    const sEsters = new Set<number>();
+    let amino = 0, thio = false, anions = 0;
+    for (const p of pIds) {
+      const d = dbl(p);
+      if (d.length > 1 || (d.length === 1 && (mol.neighbours(d[0]!).length !== 1 || !['O', 'S'].includes(el(mol, d[0]!))))) return null;
+      if (d.length && el(mol, d[0]!) === 'S') { if (pIds.length > 1) return null; thio = true; }
+      if (pIds.length > 1 && !d.length) return null;
+      for (const x of mol.neighbours(p)) {
+        if (d.includes(x) || bridges.has(x)) continue;
+        if (mol.bondBetween(p, x)!.order !== 1) return null;
+        const e = el(mol, x);
+        if (e === 'C') { if (pIds.length > 1) return null; carbons.push(this.substituent(x, p)); continue; }
+        if (e === 'N') { if (pIds.length > 1 || mol.neighbours(x).length !== 1 || mol.atom(x).charge) return null; amino++; continue; }
+        const beyond = mol.neighbours(x).filter((y) => y !== p);
+        if (e === 'O' && mol.atom(x).charge === -1 && !beyond.length) { anions++; continue; }
+        if ((e !== 'O' && e !== 'S') || mol.atom(x).charge) return null;
+        if (!beyond.length) { if (e === 'S') return null; hs.push(x); continue; }
+        if (beyond.length !== 1 || el(mol, beyond[0]!) !== 'C' || isAcylCarbon(mol, beyond[0]!)) return null;
+        if (e === 'S') { if (pIds.length > 1) return null; sEsters.add(esters.length); }
+        esters.push(this.substituent(beyond[0]!, x));
+      }
+    }
+    for (const p of pIds) { const rs = this.rs.get(p); if (rs) return null; }
+    const n = pIds.length;
+    // Esters on two phosphorus atoms of a chain: the name would not say which is where.
+    if (n > 1 && esters.length > 1) return null;
+    const hasDbl = dbl(pIds[0]!).length === 1;
+    let acid: string;
+    if (n > 1) acid = `${multiplier(n)}phosphate`;
+    else if (!hasDbl) { if (carbons.length || amino || hs.length) return null; acid = 'phosphite'; }
+    else if (amino === 1 && !carbons.length) acid = thio ? 'phosphoramidothioate' : 'phosphoramidate';
+    else if (amino) return null;
+    else if (carbons.length === 1) acid = 'phosphonate';
+    else if (carbons.length === 2) acid = 'phosphinate';
+    else if (carbons.length) return null;
+    else acid = thio ? 'phosphorothioate' : 'phosphate';
+    // S-esters add to the sulfur count: phosphorodithioate, phosphorotrithioate.
+    const nS = (thio ? 1 : 0) + sEsters.size;
+    if (sEsters.size) { if (carbons.length || amino || n > 1 || !hasDbl) return null; acid = `phosphoro${['', '', 'di', 'tri', 'tetra'][nS]}thioate`; thio = true; }
+    const wrap = (x: SubName) => (x.complex ? `(${x.text})` : x.text);
+    const cPart = carbons.length ? citeRun(countSubs(carbons)) : '';
+    // An acid with no esters: phenylphosphonic acid, dimethylphosphinic acid, phosphoric acid.
+    if (!esters.length) {
+      if (n > 1 || thio || amino || !cPart) return null;
+      // Its anion: hydrogen phenylphosphonate, phenylphosphonate.
+      if (anions) return `${hs.length ? `${multiplier(hs.length)}hydrogen ` : ''}${carbons.length === 1 ? wrap(carbons[0]!) : cPart}${acid}`;
+      return `${carbons.length === 1 ? wrap(carbons[0]!) : cPart}${acid.replace(/ate$/, 'ic acid')}`;
+    }
+    // Each ester group with the atom it is on in a thio acid: O,O-diethyl S-(2-(ethylthio)ethyl) phosphorodithioate.
+    const tagged = esters.map((e, i) => ({ ...e, on: sEsters.has(i) ? 'S' : 'O' }));
+    const groupsBy = new Map<string, { e: typeof tagged[number]; n: number }>();
+    for (const t of tagged) { const k = `${t.on}|${t.text}`; const g = groupsBy.get(k); if (g) g.n++; else groupsBy.set(k, { e: t, n: 1 }); }
+    const words: string[] = [];
+    [...groupsBy.values()].sort((x, y) => x.e.sortKey.localeCompare(y.e.sortKey)).forEach(({ e: c, n: k }, i) => {
+      const wrapIt = c.complex && !/^(tert|sec)-/.test(c.text);
+      if (thio) { words.push(`${Array(k).fill(c.on).join(',')}-${k > 1 ? (wrapIt ? `${complexMultiplier(k)}(${c.text})` : `${multiplier(k)}${c.text}`) : wrapIt ? `(${c.text})` : c.text}`); return; }
+      words.push(k > 1 ? (wrapIt ? `${complexMultiplier(k)}(${c.text})` : `${multiplier(k)}${c.text}`) : i > 0 && c.complex ? `(${c.text})` : c.text);
+    });
+    if (hs.length) words.push(`${thio ? 'O-' : ''}${multiplier(hs.length) || ''}hydrogen`);
+    const head = carbons.length === 1 ? wrap(carbons[0]!) : cPart;
+    return `${words.join(' ')} ${head}${acid}`;
+  }
+
+  /**
+   * A hydrazine or diazene with nothing more senior on it, named as the parent: phenylhydrazine,
+   * 1,1-dimethylhydrazine, 1-phenyl-2-(propan-2-ylidene)hydrazine, (E)-1,2-diphenyldiazene.
+   */
+  /**
+   * Esters and amides of inorganic acids named by functional class: dimethyl sulfate, methyl sulfamate,
+   * R dimethylsulfamate, dimethylcarbamic chloride, trimethyl borate, 1,1,1,3,3,3-hexamethyldisiloxane.
+   */
+  inorganicEster(): string | null {
+    const mol = this.mol;
+    const below = (k: string) => !this.principal || SENIORITY.indexOf(this.principal) > SENIORITY.indexOf(k as typeof SENIORITY[number]);
+    const alkylO = (o: AtomId, from: AtomId) => {
+      const r = mol.neighbours(o).filter((y) => y !== from);
+      return el(mol, o) === 'O' && mol.atom(o).charge === 0 && !this.an.ringAtoms.has(o) && r.length === 1 && el(mol, r[0]!) === 'C' && !isAcylCarbon(mol, r[0]!) ? r[0]! : undefined;
+    };
+    const amineN = (n: AtomId, from: AtomId) => el(mol, n) === 'N' && mol.atom(n).charge === 0 && !this.an.ringAtoms.has(n)
+      && mol.incidentBonds(n).every((b) => mol.bond(b).order === 1) && mol.neighbours(n).every((y) => y === from || (el(mol, y) === 'C' && !isAcylCarbon(mol, y)));
+    const esterWords = (rs: SubName[]) => {
+      const c = countSubs(rs.sort((x, y) => x.sortKey.localeCompare(y.sortKey)));
+      return c.map((x, i) => x.n > 1 ? (x.complex ? `${complexMultiplier(x.n)}(${x.text})` : `${multiplier(x.n)}${x.text}`) : i > 0 && x.complex ? `(${x.text})` : x.text).join(' ');
+    };
+    // Sulfates and sulfamates: S(=O)2 with two of OR and NR2.
+    const sul = [...mol.atoms()].filter((a) => a.element === 'S' && a.charge === 0 && !this.an.ringAtoms.has(a.id) && mol.neighbours(a.id).length === 4
+      && mol.neighbours(a.id).filter((o) => el(mol, o) === 'O' && mol.bondBetween(a.id, o)!.order === 2 && mol.neighbours(o).length === 1).length === 2);
+    if (sul.length === 1 && below('ester')) {
+      const sAt = sul[0]!.id;
+      const xs = mol.neighbours(sAt).filter((o) => mol.bondBetween(sAt, o)!.order === 1);
+      const ors = xs.map((x) => alkylO(x, sAt)).filter((r) => r !== undefined) as AtomId[];
+      const ns = xs.filter((x) => amineN(x, sAt));
+      if (ors.length === 2) return `${esterWords(ors.map((r) => this.substituent(r, xs.find((x) => mol.neighbours(x).includes(r))!)))} sulfate`;
+      if (ors.length === 1 && ns.length === 1) {
+        const o = xs.find((x) => x !== ns[0])!;
+        const nSubs = mol.neighbours(ns[0]!).filter((y) => y !== sAt).map((y) => this.substituent(y, ns[0]!));
+        return `${this.substituent(ors[0]!, o).text} ${nSubs.length ? citeRun(countSubs(nSubs.sort((x, y) => x.sortKey.localeCompare(y.sortKey)))) : ''}sulfamate`;
+      }
+    }
+    // A carbamoyl chloride: dimethylcarbamic chloride.
+    if (this.principal === 'acylHalide' && this.principalGroups.length === 1) {
+      const g = this.principalGroups[0]!;
+      const n = mol.neighbours(g.anchor).find((y) => !g.consumed.includes(y));
+      if (n !== undefined && amineN(n, g.anchor) && g.halogen) {
+        const nSubs = mol.neighbours(n).filter((y) => y !== g.anchor).map((y) => this.substituent(y, n));
+        return `${nSubs.length ? citeRun(countSubs(nSubs.sort((x, y) => x.sortKey.localeCompare(y.sortKey)))) : ''}carbamic ${HALIDE[g.halogen] ?? 'chloride'}`;
+      }
+    }
+    // A nitrosamine: N,N-dimethylnitrous amide, N-methyl-N-phenylnitrous amide.
+    const nitroso = [...mol.atoms()].filter((n) => n.element === 'N' && n.charge === 0 && !this.an.ringAtoms.has(n.id) && mol.neighbours(n.id).length === 2
+      && mol.neighbours(n.id).some((o) => el(mol, o) === 'O' && mol.bondBetween(n.id, o)!.order === 2) && mol.neighbours(n.id).some((x) => amineN(x, n.id)));
+    if (nitroso.length === 1 && below('urea')) {
+      const n = mol.neighbours(nitroso[0]!.id).find((x) => amineN(x, nitroso[0]!.id))!;
+      const subs = mol.neighbours(n).filter((y) => y !== nitroso[0]!.id).map((y) => ({ ...this.substituent(y, n), at: 'N' as const }));
+      return `${this.prefixString(subs, new Map(), false)}nitrous amide`;
+    }
+    // A borate: trimethyl borate.
+    const bs = [...mol.atoms()].filter((a) => a.element === 'B');
+    if (bs.length === 1 && !this.principal && bs[0]!.charge === 0 && mol.neighbours(bs[0]!.id).length === 3 && !this.an.ringAtoms.has(bs[0]!.id)) {
+      const b = bs[0]!.id;
+      const rs = mol.neighbours(b).map((o) => alkylO(o, b));
+      if (rs.every((r) => r !== undefined)) return `${esterWords(rs.map((r) => this.substituent(r!, mol.neighbours(r!).find((y) => mol.neighbours(y).includes(b))!)))} borate`;
+    }
+    // A disiloxane: R3Si-O-SiR3.
+    const sis = [...mol.atoms()].filter((a) => a.element === 'Si');
+    if (sis.length === 2 && !this.principal) {
+      const [a, b] = [sis[0]!.id, sis[1]!.id];
+      const o = mol.neighbours(a).find((y) => el(mol, y) === 'O' && mol.neighbours(y).includes(b));
+      if (o !== undefined && [a, b].every((x) => mol.neighbours(x).every((y) => y === o || el(mol, y) === 'C') && mol.neighbours(x).length === 4)) {
+        const pre: Prefix[] = [a, b].flatMap((x) => mol.neighbours(x).filter((y) => y !== o).map((y) => ({ ...this.substituent(y, x), at: x })));
+        const one = (x: AtomId) => pre.filter((p) => p.at === x).map((p) => p.sortKey).sort().join(' ');
+        const [s1, s2] = one(a) <= one(b) ? [a, b] : [b, a];
+        return `${this.prefixString(pre, new Map([[s1, '1'], [o, '2'], [s2, '3']]), false)}disiloxane`;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Semicarbazides, thiosemicarbazides and carbazates, named on hydrazine: hydrazinecarboxamide,
+   * 2-(propan-2-ylidene)hydrazine-1-carbothioamide, methyl hydrazinecarboxylate.
+   */
+  hydrazineCarbonyl(): string | null {
+    const mol = this.mol;
+    const nns = [...mol.bonds()].filter((b) => b.order === 1 && el(mol, b.begin) === 'N' && el(mol, b.end) === 'N' && !this.an.ringAtoms.has(b.begin) && !this.an.ringAtoms.has(b.end));
+    if (nns.length !== 1) return null;
+    const ns = [nns[0]!.begin, nns[0]!.end];
+    if (ns.some((x) => mol.atom(x).charge !== 0 || mol.incidentBonds(x).some((b) => mol.bond(b).order !== 1 && el(mol, mol.otherAtom(mol.bond(b), x)) !== 'C'))) return null;
+    const acyls = ns.flatMap((n) => mol.neighbours(n).filter((c) => isAcylCarbon(mol, c) || (el(mol, c) === 'C' && mol.incidentBonds(c).some((b) => mol.bond(b).order === 2 && el(mol, mol.otherAtom(mol.bond(b), c)) === 'S' && mol.neighbours(mol.otherAtom(mol.bond(b), c)).length === 1))).map((c) => [n, c] as const));
+    // With two, the carbamoyl one is the parent's suffix and the other a prefix: 2-acetyl-1-methylhydrazine-1-carboxamide.
+    const amideLike = acyls.filter(([, c]) => mol.neighbours(c).some((y) => el(mol, y) === 'N' && !ns.includes(y)));
+    const esterLike = acyls.filter(([, c]) => mol.neighbours(c).some((y) => el(mol, y) === 'O' && mol.bondBetween(c, y)!.order === 1));
+    const pick = amideLike.length ? amideLike : esterLike;
+    if (!acyls.length || acyls.length > 2 || (acyls.length === 2 && pick.length !== 1)) return null;
+    const [n1, ac] = acyls.length === 2 ? pick[0]! : acyls[0]!;
+    const n2 = ns.find((x) => x !== n1)!;
+    const acN = mol.neighbours(ac).filter((x) => x !== n1);
+    const dbl = acN.find((x) => mol.bondBetween(ac, x)!.order === 2)!;
+    const x = acN.find((y) => y !== dbl);
+    if (acN.length !== 2 || x === undefined || this.an.ringAtoms.has(x) || mol.atom(x).charge !== 0) return null;
+    const thio = el(mol, dbl) === 'S';
+    // The group on the carbonyl must be the principal one, and nothing else outranks it.
+    const ours = this.principalGroups.length && this.principalGroups.every((g) => g.anchor === ac || g.consumed.includes(ac));
+    if (!ours && this.principal && SENIORITY.indexOf(this.principal) <= SENIORITY.indexOf('urea')) return null;
+    let suffix: string, alkyl = '';
+    const pre: Prefix[] = [];
+    if (el(mol, x) === 'N') {
+      if (!mol.neighbours(x).every((y) => y === ac || (el(mol, y) === 'C' && !isAcylCarbon(mol, y)))) return null;
+      suffix = thio ? 'carbothioamide' : 'carboxamide';
+      for (const y of mol.neighbours(x)) if (y !== ac) pre.push({ ...this.substituent(y, x), at: 'N' });
+    } else if (el(mol, x) === 'O' && !thio) {
+      const r = mol.neighbours(x).find((y) => y !== ac);
+      if (r === undefined) { if (!this.an.h.get(x)) return null; suffix = 'carboxylic acid'; }
+      else { if (el(mol, r) !== 'C' || isAcylCarbon(mol, r)) return null; alkyl = `${this.substituent(r, x).text} `; suffix = 'carboxylate'; }
+    } else return null;
+    for (const n of ns) for (const bd of mol.incidentBonds(n).map((b) => mol.bond(b))) {
+      const o = mol.otherAtom(bd, n);
+      if (ns.includes(o) || o === ac) continue;
+      if (el(mol, o) !== 'C' || (isAcylCarbon(mol, o) && !acyls.some(([, c]) => c === o))) return null;
+      pre.push({ ...(bd.order === 2 ? this.ylidene(o, n) : this.substituent(o, n)), at: n });
+    }
+    const onHydrazine = pre.some((p) => p.at !== 'N');
+    const numbering: Numbering = new Map([[n1, '1'], [n2, '2']]);
+    const preText = this.prefixString(pre, numbering, false);
+    const parent = `hydrazine${onHydrazine ? '-1-' : ''}${suffix}`;
+    return `${alkyl}${preText}${preText && /^[0-9([]/.test(parent) ? '-' : ''}${parent}`;
+  }
+
+  hydrazineName(): string | null {
+    const mol = this.mol;
+    const nns = [...mol.bonds()].filter((b) => el(mol, b.begin) === 'N' && el(mol, b.end) === 'N' && !this.an.ringAtoms.has(b.begin) && !this.an.ringAtoms.has(b.end));
+    if (nns.length !== 1) return null;
+    const b = nns[0]!;
+    const ns = [b.begin, b.end];
+    if (ns.some((x) => mol.atom(x).charge !== 0)) return null;
+    if (this.principal && !(this.principal === 'amine' && this.principalGroups.every((g) => g.nitrogen !== undefined ? ns.includes(g.nitrogen) : ns.some((x) => g.consumed.includes(x))))) return null;
+    if (b.order !== 1 && b.order !== 2) return null;
+    // A heterocycle on it is the senior parent: 3-hydrazineyl-6-(1H-pyrazol-1-yl)pyridazine.
+    const heteroRing = (a: AtomId) => this.ringByAtom.get(a)?.some((x) => el(mol, x) !== 'C');
+    if (b.order === 1 && ns.some((n) => mol.neighbours(n).some((o) => !ns.includes(o) && heteroRing(o)))) return null;
+    const pre: Prefix[] = [];
+    for (const n of ns) for (const bd of mol.incidentBonds(n).map((x) => mol.bond(x))) {
+      const o = mol.otherAtom(bd, n);
+      if (ns.includes(o)) continue;
+      if (bd.order === 1) { if (el(mol, o) === 'N' || el(mol, o) === 'O' || isAcylCarbon(mol, o)) return null; pre.push({ ...this.substituent(o, n), at: n }); }
+      else if (bd.order === 2 && el(mol, o) === 'C' && b.order === 1) pre.push({ ...this.ylidene(o, n), at: n });
+      else return null;
+    }
+    if (!pre.length) return null;
+    const count = (n: AtomId) => pre.filter((x) => x.at === n).length;
+    const firstKey = (n: AtomId) => pre.filter((x) => x.at === n).map((x) => x.sortKey).sort()[0] ?? '~';
+    const [n1, n2] = count(ns[0]!) > count(ns[1]!) || (count(ns[0]!) === count(ns[1]!) && firstKey(ns[0]!) <= firstKey(ns[1]!)) ? ns : [ns[1]!, ns[0]!];
+    const numbering: Numbering = new Map([[n1!, '1'], [n2!, '2']]);
+    if (b.order === 2) {
+      const ez = this.ez.get(`${b.begin}-${b.end}`);
+      return `${ez ? `(${ez})-` : ''}${this.prefixString(pre, numbering, false)}diazene`;
+    }
+    // One prefix alone needs no brackets: propan-2-ylidenehydrazine.
+    if (pre.length === 1 && !pre[0]!.text.includes('(')) return `${pre[0]!.text}hydrazine`;
+    return `${this.prefixString(pre, numbering, pre.length === 1)}hydrazine`;
+  }
+
+  /**
+   * An open-chain sulfide with nothing more senior in the structure, named on its sulfur:
+   * methyl(phenyl)sulfane, 1,2-diphenyldisulfane, 1,3-dimethyltrisulfane.
+   */
+  sulfaneName(): string | null {
+    if (this.principal) return null;
+    const mol = this.mol;
+    // A ring with N or O in it is the senior parent: 4-(methylthio)pteridine.
+    if ([...this.an.ringAtoms].some((a) => el(mol, a) === 'N' || el(mol, a) === 'O')) return null;
+    // Diselanes and ditellanes likewise: 1,2-diphenyldiselane.
+    const E = [...mol.atoms()].some((a) => a.element === 'Se') ? 'Se' : [...mol.atoms()].some((a) => a.element === 'Te') ? 'Te' : 'S';
+    const word = ({ S: 'sulfane', Se: 'selane', Te: 'tellane' } as Record<string, string>)[E]!;
+    const sulfide = (x: AtomId) => el(mol, x) === E && !this.an.ringAtoms.has(x) && mol.atom(x).charge === 0 && mol.neighbours(x).length === 2
+      && mol.incidentBonds(x).every((b) => mol.bond(b).order === 1);
+    const ss = [...mol.atoms()].filter((a) => sulfide(a.id)).map((a) => a.id);
+    if (!ss.length) return null;
+    // One chain of sulfur atoms, carbon at each end.
+    const chain = [ss.find((x) => mol.neighbours(x).filter((y) => ss.includes(y)).length <= 1)!];
+    if (chain[0] === undefined) return null;
+    while (true) { const next = mol.neighbours(chain.at(-1)!).find((y) => ss.includes(y) && !chain.includes(y)); if (next === undefined) break; chain.push(next); }
+    if (chain.length !== ss.length) return null;
+    const ends = chain.length === 1 ? mol.neighbours(chain[0]!) : [mol.neighbours(chain[0]!).find((y) => !chain.includes(y))!, mol.neighbours(chain.at(-1)!).find((y) => !chain.includes(y))!];
+    if (ends.some((c) => c === undefined || el(mol, c) !== 'C' || isAcylCarbon(mol, c) || mol.incidentBonds(c).some((b) => mol.bond(b).order === 3) || mol.incidentBonds(c).some((b) => mol.bond(b).order === 2 && el(mol, mol.otherAtom(mol.bond(b), c)) === 'S'))) return null;
+    if (chain.length === 1) return `${this.groupedSubs(ends, chain[0]!)}${word}`;
+    let subs = [{ ...this.substituent(ends[0]!, chain[0]!), at: chain[0]! }, { ...this.substituent(ends[1]!, chain.at(-1)!), at: chain.at(-1)! }];
+    if (subs[1]!.sortKey < subs[0]!.sortKey) chain.reverse();
+    subs = [{ ...this.substituent(ends[0]!, chain[0]!), at: chain[0]! }, { ...this.substituent(ends[1]!, chain.at(-1)!), at: chain.at(-1)! }];
+    const numbering: Numbering = new Map(chain.map((x, i) => [x, String(i + 1)]));
+    const first = numbering.get(subs[0]!.at)!;
+    if (first !== '1') numbering.forEach((v, k) => numbering.set(k, String(chain.length + 1 - Number(v))));
+    return `${this.prefixString(subs, numbering, false)}${multiplier(chain.length)}${word}`;
+  }
+
+  /**
+   * A thiocarbamate or dithiocarbamate S-ester with nothing more senior: S-ethyl diisobutylcarbamothioate,
+   * S-propyl butyl(ethyl)carbamothioate, 2-chloroallyl diethylcarbamodithioate.
+   */
+  thiocarbamate(): string | null {
+    if (this.principal) return null;
+    const mol = this.mol;
+    const cs = [...mol.atoms()].filter((c) => {
+      if (c.element !== 'C' || this.an.ringAtoms.has(c.id) || mol.neighbours(c.id).length !== 3) return false;
+      const nb = mol.neighbours(c.id);
+      return nb.some((x) => ['O', 'S'].includes(el(mol, x)) && mol.bondBetween(c.id, x)!.order === 2 && mol.neighbours(x).length === 1)
+        && nb.some((x) => el(mol, x) === 'N' && !this.an.ringAtoms.has(x)) && nb.some((x) => el(mol, x) === 'S' && mol.bondBetween(c.id, x)!.order === 1 && mol.neighbours(x).length === 2);
+    });
+    if (cs.length !== 1) return null;
+    const c = cs[0]!.id, nb = mol.neighbours(c);
+    const dbl = nb.find((x) => mol.bondBetween(c, x)!.order === 2)!;
+    const n = nb.find((x) => el(mol, x) === 'N')!, sx = nb.find((x) => el(mol, x) === 'S' && mol.bondBetween(c, x)!.order === 1)!;
+    if (mol.atom(n).charge || !mol.incidentBonds(n).every((b) => mol.bond(b).order === 1)) return null;
+    const r = mol.neighbours(sx).find((y) => y !== c)!;
+    if (el(mol, r) !== 'C') return null;
+    const nsubs = mol.neighbours(n).filter((y) => y !== c);
+    if (nsubs.some((y) => el(mol, y) !== 'C')) return null;
+    const R = this.substituent(r, sx);
+    const dithio = el(mol, dbl) === 'S';
+    const head = nsubs.length ? citeRun(countSubs(nsubs.map((y) => this.substituent(y, n)))) : '';
+    const alkyl = dithio ? R.text : `S-${R.complex ? `(${R.text})` : R.text}`;
+    return `${alkyl} ${head}carbamo${dithio ? 'dithioate' : 'thioate'}`;
+  }
+
+  /** An N-substituted hydroxylamine with nothing more senior: N-phenylhydroxylamine. */
+  hydroxylamine(): string | null {
+    if (this.principal) return null;
+    const mol = this.mol;
+    const ns = [...mol.atoms()].filter((a) => a.element === 'N' && a.charge === 0 && !this.an.ringAtoms.has(a.id) && mol.incidentBonds(a.id).every((b) => mol.bond(b).order === 1)
+      && mol.neighbours(a.id).some((o) => el(mol, o) === 'O' && mol.neighbours(o).length === 1 && mol.atom(o).charge === 0));
+    if (ns.length !== 1) return null;
+    const n = ns[0]!.id;
+    const cs = mol.neighbours(n).filter((x) => el(mol, x) !== 'O');
+    if (!cs.length || cs.some((x) => el(mol, x) !== 'C') || mol.neighbours(n).length !== cs.length + 1) return null;
+    const subs = countSubs(cs.map((x) => this.substituent(x, n)));
+    const text = subs.length === 1 && subs[0]!.n === 2 ? `N,N-di${subs[0]!.complex ? `(${subs[0]!.text})` : subs[0]!.text}` : subs.map((x) => `N-${x.complex ? `(${x.text})` : x.text}`).join('-');
+    return `${text}hydroxylamine`;
+  }
+
+  /** A secondary or tertiary amine with like groups and nothing more senior: dipropylamine, triphenylamine. */
+  symmetricAmine(): string | null {
+    if (this.principal !== 'amine' || this.principalGroups.length !== 1) return null;
+    const mol = this.mol, n = this.principalGroups[0]!.nitrogen!;
+    if (this.an.ringAtoms.has(n) || mol.atom(n).charge) return null;
+    const nb = mol.neighbours(n);
+    if (nb.length < 2 || nb.some((x) => el(mol, x) !== 'C')) return null;
+    const subs = nb.map((x) => this.substituent(x, n));
+    if (new Set(subs.map((x) => x.text)).size !== 1) return null;
+    const r = subs[0]!;
+    return `${r.complex ? `${complexMultiplier(nb.length)}(${r.text})` : `${multiplier(nb.length)}${r.text}`}amine`;
+  }
+
+  /** A sulfoximine with nothing more senior: imino(methyl)(phenyl)-λ6-sulfanone, methyl(methylimino)(phenyl)-λ6-sulfanone. */
+  sulfoximineName(): string | null {
+    if (this.principal) return null;
+    const mol = this.mol;
+    const ss = [...mol.atoms()].filter((a) => a.element === 'S' && !this.an.ringAtoms.has(a.id) && mol.neighbours(a.id).length === 4 && a.charge === 0);
+    if (ss.length !== 1) return null;
+    const sx = ss[0]!.id;
+    const nb = mol.neighbours(sx);
+    const o = nb.filter((x) => el(mol, x) === 'O' && mol.bondBetween(sx, x)!.order === 2 && mol.neighbours(x).length === 1);
+    const n = nb.filter((x) => el(mol, x) === 'N' && mol.bondBetween(sx, x)!.order === 2 && !this.an.ringAtoms.has(x));
+    const c = nb.filter((x) => el(mol, x) === 'C' && mol.bondBetween(sx, x)!.order === 1);
+    if (o.length !== 1 || n.length !== 1 || c.length !== 2) return null;
+    const nr = mol.neighbours(n[0]!).filter((x) => x !== sx);
+    if (nr.length > 1) return null;
+    const imino: SubName = nr.length ? (() => { const r = this.substituent(nr[0]!, n[0]!); const t = `${wrapInner(r)}imino`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; })()
+      : { text: 'imino', complex: false, sortKey: 'imino' };
+    const subs = [imino, ...c.map((x) => this.substituent(x, sx))];
+    const rs = this.rs.get(sx);
+    if (rs) this.cited.add(sx);
+    return `${rs ? `(${rs})-` : ''}${citeRun(countSubs(subs))}-λ6-sulfanone`;
+  }
+
+  /** A carbodiimide with nothing more senior: dicyclohexylmethanediimine. */
+  carbodiimideName(): string | null {
+    if (this.principal) return null;
+    const mol = this.mol;
+    const cs = [...mol.atoms()].filter((c) => c.element === 'C' && !this.an.ringAtoms.has(c.id) && mol.neighbours(c.id).length === 2
+      && mol.incidentBonds(c.id).every((b) => mol.bond(b).order === 2 && el(mol, mol.otherAtom(mol.bond(b), c.id)) === 'N'));
+    if (cs.length !== 1) return null;
+    const c = cs[0]!.id;
+    const rs = mol.neighbours(c).map((n) => mol.neighbours(n).filter((x) => x !== c));
+    if (rs.some((r) => r.length !== 1 || el(mol, r[0]!) !== 'C')) return null;
+    const subs = rs.map((r, i) => this.substituent(r[0]!, mol.neighbours(c)[i]!));
+    return `${citeRun(countSubs(subs))}methanediimine`;
+  }
+
+  /** Cyanamide and its N-substituted forms, where nothing more senior is present: N,N-dimethylcyanamide. */
+  cyanamideName(): string | null {
+    const mol = this.mol;
+    if (this.principal !== 'nitrile' && this.principal !== 'amine') return null;
+    const nitriles = this.an.groups.filter((g) => g.kind === 'nitrile');
+    // Groups junior to a nitrile are prefixes: N-(6-hydroxy-4-oxo-...-2-yl)cyanamide.
+    if (nitriles.length !== 1 || this.an.groups.some((g) => g.kind !== 'nitrile' && g.kind !== 'amine' && SENIORITY.indexOf(g.kind) < SENIORITY.indexOf('nitrile'))) return null;
+    const c = nitriles[0]!.anchor;
+    const n = mol.neighbours(c).find((x) => el(mol, x) === 'N' && mol.bondBetween(c, x)!.order === 1);
+    if (n === undefined || this.an.ringAtoms.has(n) || mol.atom(n).charge) return null;
+    if (this.an.groups.some((g) => g.kind === 'amine' && g.nitrogen !== n)) return null;
+    const subs = mol.neighbours(n).filter((x) => x !== c).map((x) => this.substituent(x, n));
+    if (!subs.length) return 'cyanamide';
+    const counted = countSubs(subs);
+    if (counted.length === 1 && counted[0]!.n === 2) return `N,N-di${counted[0]!.complex ? `(${counted[0]!.text})` : counted[0]!.text}cyanamide`;
+    return `${counted.map((x) => `N-${x.complex ? `(${x.text})` : x.text}`).join('-')}cyanamide`;
+  }
+
   /** "(R)-" for a heteroatom centre that is a stereocentre: (R)-ethyl(methyl)(phenyl)phosphane. */
   centreStereo(id: AtomId): string {
     const rs = this.rs.get(id);
@@ -1512,16 +2426,374 @@ class Namer {
   }
 
   name(): string {
+    const nitrate = this.nitrateEster();
+    if (nitrate) return nitrate;
+    const aa = this.aminoAcidName();
+    if (aa) return aa;
     if (this.principal === 'ester' || this.principal === 'sulfonateEster') return this.nameEster();
     if (this.principal === 'urea' && this.principalGroups.length === 1) return this.nameUrea(this.principalGroups[0]!);
     const guanidine = this.guanidine();
     if (guanidine) return guanidine;
     // Two ureas in one structure: there is no rule here for which is the urea and what the other is called.
     if (this.principal === 'urea') throw new OutOfScope('more than one urea');
-    const biphenyl = this.biphenyl();
-    if (biphenyl) return biphenyl;
+    const mult = this.multiplicativeName();
+    if (mult) return mult;
     const best = this.chooseParent();
     return this.withStereo(best.parent.atoms, best.numbering, this.render(best.parent, best.numbering)) + this.oxideSuffix(best.parent.atoms, best.numbering);
+  }
+
+  /**
+   * Identical units joined through a linker, named once and multiplied, where that gives the parent more
+   * principal groups (or, with none, more of the senior ring) than any single parent:
+   * (5-hydroxy-6-methylpyridine-3,4-diyl)dimethanol, 2,2'-(propane-2,2-diyl)bis(4-phenyl-4,5-dihydrooxazole),
+   * 2,2'-(ethane-1,2-diylbis(oxy))bis(ethan-1-ol), 2,2',2'',2'''-(ethane-1,2-diylbis(azanetriyl))tetraacetic acid.
+   */
+  multiplicativeName(): string | null {
+    const mol = this.mol;
+    if (this.principal && !['acid', 'carboxylate', 'amide', 'nitrile', 'aldehyde', 'ketone', 'alcohol', 'thiol', 'amine'].includes(this.principal)) return null;
+    let normal: { parent: Parent; numbering: Numbering };
+    try { normal = this.chooseParent(); } catch (e) { if (e instanceof OutOfScope) return null; throw e; }
+    const normalCount = this.principalSites(normal.parent).size;
+    // Units: for each principal site the longest chain holding it alone; or rings of one name.
+    const units: Parent[] = [];
+    if (this.principal) {
+      const chains = this.chainCandidates();
+      for (const g of this.principalGroups) {
+        const own = chains.filter((c) => { const st = this.principalSites(c); return st.size === 1 && st.has(g); });
+        own.sort((x, y) => y.atoms.length - x.atoms.length);
+        // A group's own carbon on a ring (a benzoic acid, a benzimidamide) goes with the ring.
+        const onRing = g.ownCarbon && mol.neighbours(g.anchor).some((x) => this.an.ringAtoms.has(x)) && own[0]?.atoms.length === 1;
+        if (own[0] && !onRing) units.push(own[0]);
+        else for (const r of this.ringCandidates()) if (!r.ring?.assembly && this.principalSites(r).has(g) && !units.includes(r)) units.push(r);
+      }
+    } else {
+      const senior = normal.parent;
+      if (senior.kind !== 'ring' || senior.ring?.kind !== 'template' || senior.ring.assembly) return null;
+      for (const r of this.ringCandidates()) if (!r.ring?.assembly && r.ring?.kind === 'template' && r.ring.template?.name === senior.ring.template?.name && !r.ring.hydro === !senior.ring.hydro) units.push(r);
+    }
+    const unique = units.filter((u, i) => units.findIndex((v) => v.atoms.length === u.atoms.length && v.atoms.every((x) => u.atoms.includes(x))) === i);
+    // The largest set of units of one kind.
+    const sig = (u: Parent) => `${u.kind}|${u.atoms.length}|${u.ring?.template?.name ?? ''}|${this.principalSites(u).size}`;
+    const bySig = new Map<string, Parent[]>();
+    for (const u of unique) bySig.set(sig(u), [...(bySig.get(sig(u)) ?? []), u]);
+    const distinct = [...bySig.values()].sort((x, y) => y.length - x.length)[0] ?? [];
+    if (distinct.length < 2) return null;
+    if (distinct.some((u, i) => distinct.some((v, j) => j > i && u.atoms.some((x) => v.atoms.includes(x))))) return null;
+    const perUnit = this.principal ? this.principalSites(distinct[0]!).size : 0;
+    if (this.principal && distinct.length * perUnit <= normalCount) return null;
+    // The linker: what lies on the paths between units, with whatever hangs off it.
+    const inUnit = new Map<AtomId, number>();
+    distinct.forEach((u, i) => u.atoms.forEach((x) => inUnit.set(x, i)));
+    const path = (from: AtomId[], to: Set<AtomId>): AtomId[] | null => {
+      const prev = new Map<AtomId, AtomId>(), q = [...from];
+      for (const f of from) prev.set(f, f);
+      while (q.length) {
+        const x = q.shift()!;
+        if (to.has(x)) { const out: AtomId[] = []; for (let y = prev.get(x)!; !from.includes(y); y = prev.get(y)!) out.push(y); return out; }
+        for (const y of mol.neighbours(x)) if (!prev.has(y) && (!inUnit.has(y) || to.has(y))) { prev.set(y, x); q.push(y); }
+      }
+      return null;
+    };
+    const core = new Set<AtomId>();
+    for (let i = 1; i < distinct.length; i++) {
+      const pth = path(distinct[0]!.atoms, new Set(distinct[i]!.atoms));
+      if (!pth || !pth.length) return null;
+      pth.forEach((x) => core.add(x));
+    }
+    // Everything not reached from a unit without crossing the linker core belongs to the linker.
+    const unitOf = new Map<AtomId, number>();
+    distinct.forEach((u, i) => {
+      const stack = [...u.atoms];
+      for (const x of u.atoms) unitOf.set(x, i);
+      while (stack.length) { const x = stack.pop()!; for (const y of mol.neighbours(x)) if (!core.has(y) && !unitOf.has(y)) { unitOf.set(y, i); stack.push(y); } }
+    });
+    if ([...unitOf.keys()].some((x) => core.has(x))) return null;
+    const linker = [...mol.atoms()].map((a) => a.id).filter((x) => !unitOf.has(x));
+    // The linker holds no part of a principal group (a diarylamine's N is its amine, not a linker).
+    if (this.principalGroups.some((g) => g.nitrogen !== undefined && linker.includes(g.nitrogen))) return null;
+    // Each unit hangs off the linker by one bond, from an atom of its parent.
+    const joins: { unit: number; u: AtomId; l: AtomId }[] = [];
+    for (const x of linker) for (const y of mol.neighbours(x)) if (unitOf.has(y)) joins.push({ unit: unitOf.get(y)!, u: y, l: x });
+    if (joins.length !== distinct.length || new Set(joins.map((j) => j.unit)).size !== distinct.length) return null;
+    if (joins.some((j) => !distinct[j.unit]!.atoms.includes(j.u) || mol.bondBetween(j.u, j.l)!.order !== 1)) return null;
+    // The units must be the same: each with its attachment marked.
+    const unitMol = (i: number) => {
+      const m = mol.clone();
+      for (const a of [...m.atoms()]) if (unitOf.get(a.id) !== i) m.removeAtom(a.id);
+      const j = joins.find((x) => x.unit === i)!;
+      m.addBond({ begin: j.u, end: m.addAtom({ element: 'Xe', x: 0, y: 0, explicitHydrogens: 0 }).id, order: 1 });
+      return m;
+    };
+    const ums = distinct.map((_, i) => unitMol(i));
+    const maps: Map<AtomId, AtomId>[] = [];
+    for (let i = 1; i < ums.length; i++) { const it = isomorphisms(ums[0]!, ums[i]!).next(); if (it.done) return null; maps.push(it.value); }
+    // Name the linker, then the first unit with the linker left out of its prefixes.
+    const linkerName = this.linkerName(linker, joins.map((j) => j.l));
+    if (!linkerName) return null;
+    const P = distinct[0]!, j0 = joins.find((j) => j.unit === 0)!;
+    this.excluded.add(j0.l);
+    let unitName: string, numbering: Numbering, unitPrefixes = 0;
+    try {
+      const sites = this.principalSites(P);
+      let best: { n: Numbering; key: (number | number[])[] } | null = null;
+      for (const n of P.numberings) {
+        // The unit's own groups first, then its point of attachment: 4,4'-(...)bis(chlorobenzene).
+        const key = [[...sites.values()].map((x) => locVal(n.get(x)!)).sort((x, y) => x - y),
+          this.prefixes(P, sites).filter((x) => x.at !== 'N').map((x) => locVal(n.get(x.at as AtomId)!)).sort((x, y) => x - y), locVal(n.get(j0.u)!)];
+        if (!best || cmpKey(key, best.key) < 0) best = { n, key };
+      }
+      numbering = best!.n;
+      unitPrefixes = this.prefixes(P, sites).length;
+      unitName = this.render(P, numbering);
+    } catch (e) { this.excluded.delete(j0.l); if (e instanceof OutOfScope) return null; throw e; }
+    this.excluded.delete(j0.l);
+    // Configurations in the unit's own parent, cited for every unit with primes; those in its prefixes
+    // stand for each unit inside bis(...).
+    const items: [string, string][] = [];
+    const cited0 = [...this.cited].filter((x) => unitOf.get(x) === 0);
+    distinct.forEach((_, i) => {
+      const map = i === 0 ? new Map(P.atoms.map((x) => [x, x])) : maps[i - 1]!;
+      for (const x of P.atoms) { const y = map.get(x)!; const l = this.rs.get(y); if (l) { items.push([`${numbering.get(x)}${"'".repeat(i)}`, l]); this.cited.add(y); } }
+      if (i > 0) for (const x of cited0) { const y = map.get(x); if (y !== undefined) this.cited.add(y); }
+    });
+    if ([...mol.bonds()].some((b) => this.ez.get(`${b.begin}-${b.end}`) && unitOf.has(b.begin) && P.atoms.includes(b.begin) && P.atoms.includes(b.end))) return null;
+    items.sort((x, y) => compareLocant(x[0], y[0]));
+    const stereo = items.length ? `(${items.map(([l, d]) => `${l}${d}`).join(',')})-` : '';
+    const n = distinct.length;
+    // Propanoic acid multiplied goes by its old name: 3,3'-(...diyl)dipropionic acid.
+    if (unitName === 'propanoic acid') unitName = 'propionic acid';
+    const simple = !unitPrefixes && !/[\d()[\]]/.test(unitName) && !unitName.includes('-');
+    const body = simple ? `${multiplier(n)}${unitName}` : `${complexMultiplier(n)}(${unitName})`;
+    // A one-carbon unit, or a benzene ring with nothing else on it, needs no locants: oxydibenzene.
+    const oneCarbon = (P.kind === 'chain' && P.atoms.length === 1) || unitName === 'benzene';
+    const locs = oneCarbon ? '' : `${Array.from({ length: n }, (_, i) => `${numbering.get(j0.u)}${"'".repeat(i)}`).join(',')}-`;
+    const bare = /^(oxy|thio|methylene|carbonyl|sulfonyl|sulfinyl|disulfanediyl)$/.test(linkerName);
+    return `${stereo}${locs}${bare ? linkerName : `(${linkerName})`}${body}`;
+  }
+
+  /**
+   * A linker of a multiplicative name: oxy, azanediyl, methylene, propane-2,2-diyl, ethane-1,2-diyl,
+   * ethane-1,2-diylbis(oxy), (4S,5S)-2,2-dimethyl-1,3-dioxolane-4,5-diyl. `ends` are the linker atoms
+   * the units hang from (repeated where two hang from one).
+   */
+  linkerName(atoms: AtomId[], ends: AtomId[]): string | null {
+    const mol = this.mol;
+    const inL = new Set(atoms);
+    const valence = (x: AtomId) => ends.filter((e) => e === x).length;
+    // A sulfonyl, sulfinyl or carbonyl bridge: 4,4'-sulfonyldianiline.
+    const oxo = (x: AtomId) => mol.neighbours(x).filter((y) => el(mol, y) === 'O' && mol.bondBetween(x, y)!.order === 2 && mol.neighbours(y).length === 1);
+    const centre = atoms.filter((x) => !(el(mol, x) === 'O' && mol.neighbours(x).length === 1));
+    if (centre.length === 1 && valence(centre[0]!) >= 2 && atoms.length === 1 + oxo(centre[0]!).length) {
+      const x = centre[0]!, k = oxo(x).length, e = el(mol, x);
+      if (e === 'S' && k === 2) return 'sulfonyl';
+      if (e === 'S' && k === 1) return 'sulfinyl';
+      if (e === 'C' && k === 1) return 'carbonyl';
+    }
+    // Disulfanediyl: 3,3'-disulfanediyldipropanoic acid.
+    if (atoms.length === 2 && atoms.every((x) => el(mol, x) === 'S' && valence(x) === 1 && mol.atom(x).charge === 0) && mol.bondBetween(atoms[0]!, atoms[1]!)?.order === 1) return 'disulfanediyl';
+    // Diazene-1,2-diyl, with its E or Z.
+    if (atoms.length === 2 && atoms.every((x) => el(mol, x) === 'N' && valence(x) === 1) && mol.bondBetween(atoms[0]!, atoms[1]!)?.order === 2) {
+      const ez = this.ez.get(`${atoms[0]}-${atoms[1]}`);
+      return `${ez ? `(${ez})-` : ''}diazene-1,2-diyl`;
+    }
+    if (atoms.length === 1) {
+      const x = atoms[0]!, e = el(mol, x), v = valence(x);
+      if (e === 'O' && v === 2) return 'oxy';
+      if (e === 'S' && v === 2) return 'thio';
+      if (e === 'N' && mol.atom(x).charge === 0) return v === 2 && mol.implicitHydrogens(x) === 1 ? 'azanediyl' : v === 3 ? 'azanetriyl' : null;
+      if (e === 'C' && v === 2 && mol.implicitHydrogens(x) === 2) return 'methylene';
+    }
+    // One nitrogen all the units hang from, with groups of its own: (phenylazanediyl).
+    const one = [...new Set(ends)];
+    if (one.length === 1 && el(mol, one[0]!) === 'N' && mol.atom(one[0]!).charge === 0 && valence(one[0]!) === 2) {
+      const x = one[0]!;
+      const own = mol.neighbours(x).filter((y) => inL.has(y));
+      if (own.length && own.every((y) => mol.bondBetween(x, y)!.order === 1)) return `${citeRun(countSubs(own.map((y) => this.substituent(y, x))))}azanediyl`;
+    }
+    // Heteroatom bridges at each end, the same at all: ethane-1,2-diylbis(oxy).
+    const endSet = [...new Set(ends)];
+    const bridge = endSet.every((x) => ['O', 'S', 'N'].includes(el(mol, x)) && !this.an.ringAtoms.has(x)) && new Set(endSet.map((x) => `${el(mol, x)}${valence(x)}`)).size === 1;
+    if (bridge && endSet.length >= 2) {
+      const coreAtoms = atoms.filter((x) => !endSet.includes(x));
+      const coreEnds = endSet.map((x) => mol.neighbours(x).find((y) => inL.has(y) && !endSet.includes(y)));
+      if (coreEnds.some((x) => x === undefined) || endSet.some((x) => mol.neighbours(x).filter((y) => inL.has(y)).length !== 1)) return null;
+      const coreName = this.coreDiyl(coreAtoms, coreEnds as AtomId[]);
+      if (!coreName) return null;
+      const e = el(mol, endSet[0]!), v = valence(endSet[0]!);
+      const word = e === 'O' ? 'oxy' : e === 'S' ? 'thio' : v === 1 && mol.implicitHydrogens(endSet[0]!) === 1 ? 'azanediyl' : v === 2 ? 'azanetriyl' : null;
+      if (!word) return null;
+      return `${coreName}${complexMultiplier(endSet.length)}(${word})`;
+    }
+    return this.coreDiyl(atoms, ends);
+  }
+
+  /** A ring or chain with several free valences: 1,3-dioxolane-4,5-diyl, propane-2,2-diyl, ethane-1,2-diyl. */
+  coreDiyl(atoms: AtomId[], ends: AtomId[]): string | null {
+    const mol = this.mol;
+    const inL = new Set(atoms);
+    let parent: Parent | null = null;
+    const ringSys = this.an.ringSystems.find((sys) => sys.every((x) => inL.has(x)) && ends.every((e) => sys.includes(e)));
+    if (ringSys) {
+      const r = recognizeRing(this.an, ringSys);
+      if (!r) return null;
+      parent = { kind: 'ring', atoms: ringSys, numberings: r.numberings, ring: r.info };
+    } else {
+      if (atoms.some((x) => this.an.ringAtoms.has(x) && !ends.includes(x))) { /* rings hang off: prefixes */ }
+      const carbons = atoms.filter((x) => el(mol, x) === 'C' && !this.an.ringAtoms.has(x));
+      if (!ends.every((e) => carbons.includes(e))) return null;
+      const chains = this.chainCandidates().filter((c) => c.atoms.every((x) => inL.has(x)) && ends.every((e) => c.atoms.includes(e)));
+      chains.sort((x, y) => y.atoms.length - x.atoms.length || this.unsaturationAtoms(y).mult.length - this.unsaturationAtoms(x).mult.length);
+      parent = chains[0] ?? null;
+    }
+    if (!parent) return null;
+    const pre: Prefix[] = [];
+    for (const a of parent.atoms) for (const b of mol.incidentBonds(a)) {
+      const bd = mol.bond(b), n = mol.otherAtom(bd, a);
+      if (parent.atoms.includes(n) || !inL.has(n)) continue;
+      if (bd.order === 2) { pre.push({ ...this.ylidene(n, a), at: a }); continue; }
+      if (bd.order !== 1) return null;
+      pre.push({ ...this.substituent(n, a), at: a });
+    }
+    // Ring oxides on a linker are prefixes, as on any ring substituent: 3,12-dioxido.
+    for (const x of parent.atoms) for (let i = this.oxides.get(x) ?? 0; i > 0; i--) pre.push({ text: 'oxido', complex: false, sortKey: 'oxido', at: x });
+    const { dbl, trip, mult } = this.unsaturationAtoms(parent);
+    let best: { n: Numbering; key: (number | number[])[] } | null = null;
+    for (const n of parent.numberings) {
+      const h = hydroOf.get(n);
+      const key = [(h?.ih ?? []).map((x) => locVal(n.get(x)!)).sort((x, y) => x - y), ends.map((x) => locVal(n.get(x)!)).sort((x, y) => x - y),
+        [...(h?.hydro ?? [])].map((x) => locVal(n.get(x)!)).sort((x, y) => x - y),
+        mult.map((bd) => this.bondLocant(parent!, n, bd)).sort((x, y) => x - y), pre.map((x) => locVal(n.get(x.at as AtomId)!)).sort((x, y) => x - y)];
+      if (!best || cmpKey(key, best.key) < 0) best = { n, key };
+    }
+    const n = best!.n;
+    const preText = this.prefixString(pre, n, false);
+    const hyd = this.hydrideName(parent, n, dbl, trip, false);
+    const locs = ends.map((x) => n.get(x)!).sort(compareLocant);
+    const stereo = this.stereoPrefix(parent.atoms, n);
+    const text = `${preText}${preText && /^[0-9([]/.test(hyd) ? '-' : ''}${hyd}-${locs.join(',')}-${multiplier(locs.length)}yl`;
+    return stereo ? `${stereo}-${text}` : text;
+  }
+
+  /**
+   * An alpha-amino acid whose own carboxyl is the principal group, named on the amino acid with what is
+   * on its nitrogen in front: (tert-butoxycarbonyl)-L-alanine, methylglycine, N-carbamimidoyl-N-methylglycine,
+   * methyl (tert-butoxycarbonyl)-L-phenylalanyl-L-alaninate, ((S)-3-mercapto-2-methylpropanoyl)-L-proline.
+   */
+  aminoAcidName(): string | null {
+    const cited = new Set(this.cited), resCited = new Set(this.residueCited);
+    const name = this.aminoAcidNameInner();
+    if (!name) {
+      this.cited.clear(); for (const a of cited) this.cited.add(a);
+      this.residueCited.clear(); for (const a of resCited) this.residueCited.add(a);
+    }
+    return name;
+  }
+
+  aminoAcidNameInner(): string | null {
+    const kind = this.principal;
+    if (kind !== 'acid' && kind !== 'ester' && kind !== 'carboxylate') return null;
+    const mol = this.mol;
+    const groups = this.principalGroups;
+    for (const g of groups) {
+      if (!g.ownCarbon) continue;
+      const c = g.anchor;
+      const ca = mol.neighbours(c).find((x) => el(mol, x) === 'C' && mol.bondBetween(c, x)!.order === 1);
+      if (ca === undefined) continue;
+      const res = this.residueAt(ca, c);
+      if (!res) continue;
+      const word = kind === 'acid' ? res.ref.free : res.ref.free.replace(/ic acid$/, 'ate').replace(/ine$/, 'inate').replace(/an$/, 'anate');
+      this.sides = [];
+      const body = this.residueText(res, word);
+      if (!body) continue;
+      // Every other principal group in a side chain of the residues named (glutamic acid's); another
+      // ester only as a carbamate on a nitrogen (Boc).
+      const inSide = (x: AtomId) => this.sides.some((sd) => sd.has(x));
+      if (groups.some((h) => h !== g && !inSide(h.anchor) && !(kind === 'ester' && mol.neighbours(h.anchor).some((x) => el(mol, x) === 'N')))) continue;
+      if (kind === 'ester') {
+        const alkyl = this.substituent(g.esterCarbon!, g.consumed[1]!);
+        return `${alkyl.text} ${body}`;
+      }
+      return body;
+    }
+    return null;
+  }
+
+  /** The amino acid an alpha carbon is part of, with its N and the configuration it has, if it is one with a name. */
+  residueAt(ca: AtomId, c: AtomId): { ref: ResidueRef; n: AtomId; ca: AtomId; side: Set<AtomId>; cfg: string } | null {
+    const mol = this.mol;
+    if (this.an.ringAtoms.has(c)) return null;
+    for (const n of mol.neighbours(ca)) {
+      if (el(mol, n) !== 'N' || mol.atom(n).charge !== 0 || mol.bondBetween(ca, n)!.order !== 1) continue;
+      if (!mol.incidentBonds(n).every((b) => mol.bond(b).order === 1)) continue;
+      const mine = sideChain(mol, ca, n, c);
+      for (const ref of residues()) {
+        if (ref.side.atomCount !== mine.side.atomCount) continue;
+        // Bonds from the side chain back to N (proline's ring) must be the same too.
+        const backN = (m: Molecule, atoms: Iterable<AtomId>, nn: AtomId, alpha: AtomId) => [...atoms].filter((x) => x !== alpha && m.bondBetween(x, nn)).length;
+        const refBack = backN(ref.mol, ref.sideMap.keys(), ref.n, ref.ca);
+        if (refBack !== backN(mol, mine.atoms, n, ca)) continue;
+        // Only a residue whose N is in its own ring (proline) has it in a ring.
+        if (this.an.ringAtoms.has(n) && !refBack) continue;
+        for (const map of isomorphisms(ref.side, mine.side)) {
+          if (map.get(ref.ca) !== ca) continue;
+          // Configurations: the alpha carbon gives L or D; side-chain centres must agree with it.
+          let cfg = '';
+          if (!ref.achiral) {
+            const want = rsLabel(ref.mol, ref.ca), got = this.rs.get(ca);
+            // Drawn without its configuration: the amino acid's name alone (phenylalanine).
+            if (want && !got && ![...map.values()].some((y) => this.rs.get(y)) && ![...map.keys()].some((x) => x !== ref.ca && rsLabel(ref.mol, x))) return { ref, n, ca, side: mine.atoms, cfg: '' };
+            if (!want || !got) return null;
+            const d = want !== got;
+            cfg = d ? 'D-' : 'L-';
+            for (const [x, y] of map) {
+              if (x === ref.ca) continue;
+              const w = rsLabel(ref.mol, x), gy = this.rs.get(y);
+              if ((w ?? null) === null && !gy) continue;
+              if (!w || !gy || (w !== gy) !== d) return null;
+            }
+          } else if (this.rs.get(ca)) return null;
+          return { ref, n, ca, side: mine.atoms, cfg };
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * An amino acid with what is on its nitrogen: the residue's word with prefixes for the N's groups,
+   * an aminoacyl group named as a residue in turn (L-alanyl-L-proline). Null where a group is not plain.
+   */
+  residueText(res: { ref: ResidueRef; n: AtomId; ca: AtomId; side: Set<AtomId>; cfg: string }, word: string): string | null {
+    const mol = this.mol;
+    const subs = mol.neighbours(res.n).filter((x) => x !== res.ca && !res.side.has(x));
+    const parts: { text: string; complex: boolean; sortKey: string; residue?: boolean }[] = [];
+    for (const x of subs) {
+      // An aminoacyl group: C(=O) on another amino acid's alpha carbon.
+      if (el(mol, x) === 'C' && !this.an.ringAtoms.has(x) && mol.neighbours(x).some((o) => el(mol, o) === 'O' && mol.bondBetween(x, o)!.order === 2)) {
+        const ca2 = mol.neighbours(x).find((y) => y !== res.n && el(mol, y) === 'C' && mol.bondBetween(x, y)!.order === 1);
+        const inner = ca2 === undefined ? null : this.residueAt(ca2, x);
+        if (inner && inner.ref.acyl && !inner.side.has(res.n)) {
+          const t = this.residueText(inner, inner.ref.acyl);
+          if (!t) return null;
+          parts.push({ text: t, complex: true, sortKey: sortKeyOf(t), residue: true });
+          continue;
+        }
+      }
+      try { parts.push(this.substituent(x, res.n)); } catch (e) { if (e instanceof OutOfScope) return null; throw e; }
+    }
+    for (const a of [res.ca, ...res.side]) if (this.rs.get(a)) { this.cited.add(a); this.residueCited.add(a); }
+    this.sides.push(res.side);
+    const tail = `${res.cfg}${word}`;
+    const join = (a: string, b: string) => a + (/^([DL]|[αβ])-/.test(b) ? '-' : '') + b;
+    if (!parts.length) return tail;
+    if (parts.length === 1) {
+      const p0 = parts[0]!;
+      return join(p0.residue || !p0.complex ? p0.text : `(${p0.text})`, tail);
+    }
+    if (parts.some((p) => p.residue && parts.length > 1 && false)) return null;
+    parts.sort((x, y) => x.sortKey.localeCompare(y.sortKey));
+    if (parts.length === 2 && parts[0]!.text === parts[1]!.text) return join(`N,N-${parts[0]!.complex ? `bis(${parts[0]!.text})` : `di${parts[0]!.text}`}`, tail);
+    return join(parts.map((p) => `N-${p.complex ? `(${p.text})` : p.text}`).join('-'), tail);
   }
 
   /** " 1,1-dioxide" for the parent's ring atoms that carry =O. */
@@ -1538,6 +2810,11 @@ class Namer {
     const items: [string, string][] = [];
     const inSet = new Set(atoms);
     for (const a of atoms) { const l = this.rs.get(a); if (l) { items.push([numbering.get(a)!, l]); this.cited.add(a); } }
+    // The sulfur of a sulfinic group on this skeleton: (R)-2-methylpropane-2-sulfinamide.
+    for (const g of this.principalGroups) {
+      const sx = g.sulfin ? g.consumed[0]! : undefined, l = sx !== undefined ? this.rs.get(sx) : undefined;
+      if (sx !== undefined && l && inSet.has(g.anchor)) { items.push([numbering.get(g.anchor)!, l]); this.cited.add(sx); }
+    }
     for (const b of this.mol.bonds()) {
       const l = this.ez.get(`${b.begin}-${b.end}`);
       if (!l) continue;
@@ -1558,11 +2835,23 @@ class Namer {
       items.push([numbering.get(inside)!, l]);
     }
     if (!items.length) return '';
-    // A lone descriptor goes without its locant only where nothing else in the skeleton could
-    // take it: beside a centre left unspecified, a bare "(S)" would not say which one is meant.
-    if (items.length === 1 && !this.openStereo(atoms)) return `(${items[0]![1]})`;
-    items.sort((p, q) => compareLocant(p[0], q[0]));
-    return `(${items.map(([l, d]) => `${l}${d}`).join(',')})`;
+    // A lone descriptor of its kind goes without its locant, (2S,3R,E), only where nothing else in the
+    // skeleton could take it: beside a centre left unspecified, a bare "(S)" would not say which one is meant.
+    // ... only beside one of its own kind: a lone (Z) cannot mean a centre.
+    const open = this.openStereoKinds(atoms);
+    const rs = items.filter(([, d]) => /^[RSrs]$/.test(d)).sort((p, q) => compareLocant(p[0], q[0]));
+    const ez = items.filter(([, d]) => d === 'E' || d === 'Z').sort((p, q) => compareLocant(p[0], q[0]));
+    const cite = (xs: [string, string][], openHere: boolean) => xs.map(([l, d]) => (xs.length === 1 && !openHere ? d : `${l}${d}`));
+    return `(${[...cite(rs, open.centre), ...cite(ez, open.bond)].join(',')})`;
+  }
+
+  /** Which kinds of stereo element the skeleton holds that could have a configuration but were given none. */
+  openStereoKinds(atoms: AtomId[]): { centre: boolean; bond: boolean } {
+    const inSet = new Set(atoms);
+    const centre = atoms.some((a) => this.openCentre(a));
+    let bond = false;
+    for (const b of this.mol.bonds()) if ((inSet.has(b.begin) || inSet.has(b.end)) && this.openBond(b.id)) { bond = true; break; }
+    return { centre, bond };
   }
 
   /** Does the skeleton hold a centre or double bond that could have a configuration but was given none? */
@@ -1615,15 +2904,12 @@ class Namer {
     const mol = this.mol;
     const b = mol.bond(id);
     let could = false;
-    // A double bond in a small ring has one form only. (Seven counts as large here: a reader may give
-    // a seven-membered ring's double bond a configuration.)
-    const rings = (this.#smallRings ??= perceiveRings(mol).filter((r) => r.atoms.length < 7));
+    // A double bond in a ring of fewer than eight atoms has one form only.
+    const rings = (this.#smallRings ??= perceiveRings(mol).filter((r) => r.atoms.length < 8));
     if (b.order === 2 && !this.ez.get(`${b.begin}-${b.end}`) && !rings.some((r) => r.atoms.includes(b.begin) && r.atoms.includes(b.end))) {
       const ra = mol.neighbours(b.begin).find((x) => x !== b.end), rb = mol.neighbours(b.end).find((x) => x !== b.begin);
-      // C=N-H: the hydrogen is not drawn, but the imine has two forms all the same unless its carbon is CH2.
-      const imineNH = (n: AtomId, c: AtomId) => el(mol, n) === 'N' && mol.neighbours(n).length === 1 && mol.implicitHydrogens(n) === 1 && mol.neighbours(c).length >= 2;
-      if (imineNH(b.begin, b.end) || imineNH(b.end, b.begin)) could = true;
-      else if (ra !== undefined && rb !== undefined) {
+      // C=N-H, its hydrogen not drawn, is left without a configuration, as chemists leave it.
+      if (ra !== undefined && rb !== undefined) {
         const probe = (this.#probe ??= mol.clone());
         const pb = probe.bond(b.id), before = pb.ez;
         pb.ez = { ref: [ra, rb], cis: true };
@@ -1645,7 +2931,13 @@ class Namer {
 
   /** Acyclic carbons usable in chains. */
   isChainCarbon(a: AtomId): boolean {
-    return el(this.mol, a) === 'C' && !this.an.ringAtoms.has(a) && this.mol.atom(a).charge === 0;
+    const mol = this.mol;
+    if (el(mol, a) !== 'C' || this.an.ringAtoms.has(a) || mol.atom(a).charge !== 0) return false;
+    // The carbon of an isocyanate, isothiocyanate, cyanate or thiocyanate belongs to its prefix.
+    const bs = mol.incidentBonds(a).map((b) => ({ o: mol.bond(b).order, e: el(mol, mol.otherAtom(mol.bond(b), a)) }));
+    if (bs.length === 2 && bs.every((x) => x.o === 2) && bs.some((x) => x.e === 'N') && bs.some((x) => x.e === 'O' || x.e === 'S')) return false;
+    if (bs.length === 2 && bs.some((x) => x.o === 3 && x.e === 'N') && bs.some((x) => x.o === 1 && (x.e === 'O' || x.e === 'S'))) return false;
+    return true;
   }
 
   chainCandidates(): Parent[] {
@@ -1679,11 +2971,96 @@ class Namer {
   ringCandidates(): Parent[] {
     const out: Parent[] = [];
     for (const system of this.an.ringSystems) {
-      const r = recognizeRing(this.an, system, this.principal === 'ketone');
+      const r = recognizeRing(this.an, system, this.principal === 'ketone' || (this.principal === 'imine' ? 'imine' : false));
       if (!r) throw new OutOfScope('ring system without a supported parent name');
       out.push({ kind: 'ring', atoms: system, numberings: r.numberings, ring: r.info });
     }
+    // Two of the same ring joined by a bond are one parent: 1,1'-biphenyl, 2,2'-bipyridine.
+    for (let i = 0; i < out.length; i++) for (let j = i + 1; j < out.length; j++) {
+      const asm = this.assembly(out[i]!, out[j]!);
+      if (asm) out.push(asm);
+    }
+    // Three in a row: 1,1':4',1''-terphenyl, 2,2':6',2''-terpyridine.
+    const singles = out.filter((p) => !p.ring?.assembly);
+    for (const B of singles) for (const A of singles) for (const C of singles) {
+      if (A === B || B === C || A.atoms[0]! >= C.atoms[0]!) continue;
+      const ter = this.assembly3(A, B, C);
+      if (ter) out.push(ter);
+    }
     return out;
+  }
+
+  /** A ring assembly of three identical rings in a row, as a parent: primes '' on the third ring. */
+  assembly3(A: Parent, B: Parent, C: Parent): Parent | null {
+    const mol = this.mol;
+    const t = [A, B, C].map((p) => p.ring?.template);
+    if ([A, B, C].some((p) => p.ring?.kind !== 'template' || p.ring.hydro) || t.some((x) => !x || x.name !== t[0]!.name || x.indicatedH || !x.aromatic)) return null;
+    const link = (P: Parent, Q: Parent) => {
+      const inQ = new Set(Q.atoms);
+      const ls = P.atoms.flatMap((a) => mol.neighbours(a).filter((n) => inQ.has(n)).map((n) => [a, n] as [AtomId, AtomId]));
+      return ls.length === 1 && mol.bondBetween(ls[0]![0], ls[0]![1])!.order === 1 ? ls[0]! : null;
+    };
+    const ab = link(A, B), bc = link(B, C);
+    if (!ab || !bc || link(A, C) || ab[1] === bc[0]) return null;
+    let best: number[] | null = null;
+    const numberings: Numbering[] = [];
+    for (const [P, Q, R, pq, qr] of [[A, B, C, ab, bc], [C, B, A, [bc[1], bc[0]], [ab[1], ab[0]]]] as const) {
+      for (const n1 of P.numberings) for (const n2 of Q.numberings) for (const n3 of R.numberings) {
+        const key = [locVal(n1.get(pq[0])!), locVal(n2.get(pq[1])!), locVal(n2.get(qr[0])!), locVal(n3.get(qr[1])!)];
+        const c = best ? cmpVec(key, best) : -1;
+        if (c > 0) continue;
+        if (c < 0) { best = key; numberings.length = 0; }
+        numberings.push(new Map([...n1, ...[...n2].map(([k, v]) => [k, `${v}'`] as [AtomId, string]), ...[...n3].map(([k, v]) => [k, `${v}''`] as [AtomId, string])]));
+      }
+    }
+    if (!numberings.length) return null;
+    const n0 = numberings[0]!;
+    const ends = [ab, bc].flat().map((x) => n0.get(x)!);
+    const un = ends.find((l) => !l.includes("'"))!, dbl = ends.find((l) => l.endsWith("''"))!;
+    const mids = ends.filter((l) => /[^']'$/.test(l)).sort(compareLocant);
+    // The middle ring's locant beside the unprimed ring comes first.
+    const first = n0.get(ab[0])!.includes("'") ? n0.get(bc[0])! : n0.get(ab[1])!;
+    const second = mids.find((m) => m !== first) ?? mids[1]!;
+    const body = t[0]!.name === 'benzene' ? 'phenyl' : /[[\]()]/.test(t[0]!.name) || /^\d/.test(t[0]!.name) ? `(${t[0]!.name})` : t[0]!.name;
+    const fullName = `${un},${first}:${second},${dbl}-ter${body}`;
+    const template: RingTemplate = { name: `[${fullName}]`, yl: `[${fullName}]`, smiles: '', locants: [], aromatic: true };
+    return { kind: 'ring', atoms: [...A.atoms, ...B.atoms, ...C.atoms], numberings, ring: { ...A.ring!, template, size: A.atoms.length * 3, ringCount: (A.ring!.ringCount ?? 1) * 3, assembly: true } as RingInfo };
+  }
+
+  /**
+   * A ring assembly of two identical rings joined by one single bond, as a parent: its numberings
+   * put one ring's locants unprimed and the other's primed, the joined atoms as low as they go.
+   */
+  assembly(A: Parent, B: Parent, attach?: { a: AtomId }): Parent | null {
+    const mol = this.mol;
+    const ta = A.ring?.template, tb = B.ring?.template;
+    if (A.ring?.kind !== 'template' || B.ring?.kind !== 'template' || !ta || !tb || ta.name !== tb.name || A.ring.hydro || B.ring.hydro) return null;
+    if (ta.indicatedH || !ta.aromatic) return null;
+    const inB = new Set(B.atoms);
+    const links: [AtomId, AtomId][] = [];
+    for (const a of A.atoms) for (const n of mol.neighbours(a)) if (inB.has(n)) links.push([a, n]);
+    if (links.length !== 1 || mol.bondBetween(links[0]![0], links[0]![1])!.order !== 1) return null;
+    const [la, lb] = links[0]!;
+    const numberings: Numbering[] = [];
+    let best = Infinity;
+    for (const [first, second, fa, sb] of [[A, B, la, lb], [B, A, lb, la]] as const) {
+      if (attach && !first.atoms.includes(attach.a)) continue;
+      for (const n1 of first.numberings) for (const n2 of second.numberings) {
+        const linkLocs = locVal(n1.get(fa)!) * 100 + locVal(n2.get(sb)!);
+        if (linkLocs > best) continue;
+        if (linkLocs < best) { best = linkLocs; numberings.length = 0; }
+        numberings.push(new Map([...n1, ...[...n2].map(([k, v]) => [k, `${v}'`] as [AtomId, string])]));
+      }
+    }
+    if (!numberings.length) return null;
+    const n0 = numberings[0]!;
+    const body = ta.name === 'benzene' ? 'phenyl' : /[[\]()]/.test(ta.name) || /^\d/.test(ta.name) ? `(${ta.name})` : ta.name;
+    const name = `${n0.get(la) ?? n0.get(lb)},${n0.get(la)?.endsWith("'") ? n0.get(lb) : n0.get(lb)}-bi${body}`;
+    const [l1, l2] = [n0.get(la)!, n0.get(lb)!].sort(compareLocant);
+    const fullName = `${l1},${l2}-bi${body}`;
+    void name;
+    const template: RingTemplate = { name: `[${fullName}]`, yl: `[${fullName}]`, smiles: '', locants: [], aromatic: true };
+    return { kind: 'ring', atoms: [...A.atoms, ...B.atoms], numberings, ring: { ...A.ring, template, size: A.atoms.length + B.atoms.length, ringCount: (A.ring.ringCount ?? 1) * 2, assembly: true } as RingInfo };
   }
 
   /** Where each principal group's suffix sits on a candidate parent (null if it is not on it). */
@@ -1707,15 +3084,27 @@ class Namer {
         sites.set(g, g.anchor);
       }
     }
+    // A chain holding none of its acids' own carbons carries them all as -carboxylic acid where that gives
+    // it more of them: 2-hydroxypropane-1,2,3-tricarboxylic acid.
+    if (p.kind === 'chain' && !sites.size) {
+      const ext = new Map<Group, AtomId>();
+      for (const g of this.principalGroups) {
+        if (!g.ownCarbon || inP.has(g.anchor) || !['acid', 'carboxylate', 'ester', 'amide', 'nitrile'].includes(g.kind)) continue;
+        const r = this.mol.neighbours(g.anchor).find((n) => inP.has(n));
+        if (r !== undefined) ext.set(g, r);
+      }
+      if (ext.size >= 3) { this.externalSites.add(p); return ext; }
+    }
     return sites;
   }
+  readonly externalSites = new WeakSet<Parent>();
 
   /** Atoms that belong to principal groups placed on this parent (not to be named as prefixes). */
   consumedBy(p: Parent, sites: Map<Group, AtomId>): Set<AtomId> {
     const out = new Set<AtomId>();
     for (const g of sites.keys()) {
       g.consumed.forEach((a) => out.add(a));
-      if (p.kind === 'ring' && g.ownCarbon) out.add(g.anchor);
+      if ((p.kind === 'ring' || this.externalSites.has(p)) && g.ownCarbon) out.add(g.anchor);
     }
     return out;
   }
@@ -1730,7 +3119,7 @@ class Namer {
       for (const b of mol.incidentBonds(a)) {
         const bd = mol.bond(b);
         const n = mol.otherAtom(bd, a);
-        if (inP.has(n) || consumed.has(n)) continue;
+        if (inP.has(n) || consumed.has(n) || this.excluded.has(n)) continue;
         if (bd.order === 2) { out.push({ ...this.ylidene(n, a), at: a }); continue; }
         if (bd.order !== 1) throw new OutOfScope('multiple bond leaving the parent');
         out.push({ ...this.substituent(n, a), at: a });
@@ -1747,13 +3136,19 @@ class Namer {
       const gem = [...sites.keys()].filter((o) => o.nitrogen !== undefined && locOf(o) === locAt).map((o) => o.nitrogen!);
       for (const n of mol.neighbours(g.nitrogen)) {
         if (n === anchorC || g.consumed.includes(n)) continue;
-        out.push({ ...this.substituent(n, g.nitrogen), at: 'N', nOf: locAt, nAtom: g.nitrogen, nGem: gem });
+        out.push({ ...(mol.bondBetween(g.nitrogen, n)!.order === 2 ? this.ylidene(n, g.nitrogen) : this.substituent(n, g.nitrogen)), at: 'N', nOf: locAt, nAtom: g.nitrogen, nGem: gem });
+      }
+      // On the far nitrogen of a hydrazide: N'-benzylidene, N',N'-dimethyl.
+      if (g.nPrime !== undefined) for (const n of mol.neighbours(g.nPrime)) {
+        if (n === g.nitrogen || n === g.anchor) continue;
+        const sub = mol.bondBetween(g.nPrime, n)!.order === 2 ? this.ylidene(n, g.nPrime) : this.substituent(n, g.nPrime);
+        out.push({ ...sub, at: 'N', nOf: locAt, prime: true });
       }
     }
     return out;
   }
 
-  ylidene(n: AtomId, from: AtomId): SubName { return this.remembered(`${n}=${from}`, () => this.computeYlidene(n, from)); }
+  ylidene(n: AtomId, from: AtomId): SubName { return this.remembered(`${n}=${from}`, () => chemistStyle(this.computeYlidene(n, from))); }
 
   computeYlidene(n: AtomId, from: AtomId): SubName {
     const mol = this.mol;
@@ -1772,9 +3167,28 @@ class Namer {
       // =N-R: hydroxyimino (oximes), methoxyimino, phenylimino, (dimethylamino)imino.
       const r = mol.neighbours(n).find((x) => x !== from)!;
       if (mol.bondBetween(n, r)!.order !== 1) throw new OutOfScope('ylidene substituent');
+      // =N-N=CR2: ((5-methylfuran-2-yl)methylene)hydrazineylidene.
+      if (el(mol, r) === 'N' && mol.atom(r).charge === 0 && mol.atom(n).charge === 0 && !this.an.ringAtoms.has(r) && mol.neighbours(r).length === 2) {
+        const cY = mol.neighbours(r).find((x) => x !== n && mol.bondBetween(r, x)!.order === 2 && el(mol, x) === 'C');
+        if (cY !== undefined) {
+          const Y = this.ylidene(cY, r);
+          const text = `${Y.complex ? `(${Y.text})` : Y.text}hydrazineylidene`;
+          return { text, complex: true, sortKey: sortKeyOf(text) };
+        }
+      }
+      // =N-NH-R: 2-(thiazol-2-yl)hydrazineylidene.
+      const rr = el(mol, r) === 'N' && mol.atom(r).charge === 0 && mol.atom(n).charge === 0 && mol.implicitHydrogens(r) === 1
+        ? mol.neighbours(r).filter((x) => x !== n) : [];
+      if (rr.length === 1 && mol.bondBetween(r, rr[0]!)!.order === 1 && !this.an.ringAtoms.has(r)) {
+        const R2 = this.substituent(rr[0]!, r);
+        {
+          const text = `2-${R2.complex ? `(${R2.text})` : R2.text}hydrazineylidene`;
+          return { text, complex: true, sortKey: sortKeyOf(text) };
+        }
+      }
       const R = this.substituent(r, n);
       const word = mol.atom(n).charge === 1 ? 'iminio' : 'imino';
-      const text = `${R.complex ? `(${R.text})` : R.text}${word}`;
+      const text = `${wrapInner(R)}${word}`;
       return { text, complex: true, sortKey: `${R.sortKey}${word}` };
     }
     if (e === 'C') {
@@ -1786,24 +3200,35 @@ class Namer {
       const rest = mol.neighbours(n).filter((x) => x !== from);
       if (rest.every((x) => el(mol, x) === 'C' && mol.bondBetween(n, x)!.order === 1)) {
         const text = `${this.groupedSubs(rest, n)}-λ5-phosphanylidene`;
-        return { text, complex: true, sortKey: text.replace(/[^a-z]/g, '') };
+        return { text, complex: true, sortKey: sortKeyOf(text) };
       }
     }
     throw new OutOfScope('ylidene substituent');
   }
 
+  /** A ring that must be the parent (the one named with its oxides). */
+  preferAtoms: Set<AtomId> | null = null;
+
   chooseParent(): { parent: Parent; numbering: Numbering } {
-    const candidates = [...this.ringCandidates(), ...this.chainCandidates()];
+    let candidates = [...this.ringCandidates(), ...this.chainCandidates()];
+    if (this.preferAtoms) { const pa = this.preferAtoms; const only = candidates.filter((c) => c.atoms.length === pa.size && c.atoms.every((x) => pa.has(x))); if (only.length) candidates = only; }
     let best: { parent: Parent; numbering: Numbering; key: (number | number[])[] } | null = null;
+    // The best ring and the best chain, each with how many principal groups and prefixes it has.
+    const bestOf: Record<'ring' | 'chain', { parent: Parent; numbering: Numbering; key: (number | number[])[]; count: number; pre: number } | null> = { ring: null, chain: null };
     for (const p of candidates) {
       const sites = this.principalSites(p);
       // Every principal group of the same kind must be expressible: count them.
       const count = sites.size;
       let pre: Prefix[];
       try { pre = this.prefixes(p, sites); } catch (e) { if (e instanceof OutOfScope) continue; throw e; }
+      // Ring seniority (P-44.2.1.2): a heterocycle; one with nitrogen; else the senior heteroatom (O, then S);
+      // then more rings, more ring atoms, more heteroatoms.
+      const heteroCount = p.ring ? p.atoms.filter((a) => el(this.mol, a) !== 'C').length : 0;
       const ringKey = p.ring
-        ? [-Number(p.ring.heteroN), -Number(p.ring.heteroO), -Number(p.ring.heteroS), -p.ring.ringCount, -p.ring.size]
-        : [0, 0, 0, 0, 0];
+        ? [-Number(heteroCount > 0), -Number(p.ring.heteroN), p.ring.heteroN ? 0 : -Number(p.ring.heteroO), p.ring.heteroN ? 0 : -Number(p.ring.heteroS), -p.ring.ringCount, -p.ring.size, -heteroCount,
+          // Then the greater variety of heteroatoms: thiazole before pyrazole.
+          -new Set(p.atoms.map((a) => el(this.mol, a)).filter((e) => e !== 'C')).size]
+        : [0, 0, 0, 0, 0, 0, 0, 0];
       const { mult, dbl } = this.unsaturationAtoms(p);
       const heteroAtoms = p.ring?.kind === 'vonbaeyer' || p.ring?.kind === 'cyclo' ? p.atoms.filter((a) => el(this.mol, a) !== 'C') : [];
       for (const numbering of p.numberings) {
@@ -1816,23 +3241,93 @@ class Namer {
           -dbl.length,
           heteroAtoms.map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...heteroAtoms].sort((a, b) => 'OSN'.indexOf(el(this.mol, a)) - 'OSN'.indexOf(el(this.mol, b))).map((a) => locVal(numbering.get(a)!)),
+          // A carbocyclic ketone takes its indicated hydrogen on a ketone carbon; then the fewest added hydrogens.
+          prefOf.get(numbering) ?? 0,
+          (hydroOf.get(numbering)?.added ?? []).length,
           (hydroOf.get(numbering)?.ih ?? []).map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...sites.values()].map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
+          // Ring oxides as low as they go: pyrimidine 1-oxide.
+          p.atoms.filter((a) => this.oxides.has(a)).map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           [...(hydroOf.get(numbering)?.hydro ?? []), ...(hydroOf.get(numbering)?.added ?? [])].map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           (hydroOf.get(numbering)?.added ?? []).map((a) => locVal(numbering.get(a)!)).sort((x, y) => x - y),
           mult.map((bond) => this.bondLocant(p, numbering, bond)).sort((x, y) => x - y),
           dbl.map((bond) => this.bondLocant(p, numbering, bond)).sort((x, y) => x - y),
           -pre.length,
           pre.filter((x) => x.at !== 'N').map((x) => locVal(numbering.get(x.at as AtomId)!)).sort((x, y) => x - y),
-          [...pre].filter((x) => x.at !== 'N').sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((x) => locVal(numbering.get(x.at as AtomId)!)),
+          // A group on a principal nitrogen as low as it goes: N1-(3-aminopropyl)butane-1,4-diamine,
+          // N1,N1-diethyl-2,6-dinitro-...; then alphabetical order: N1-ethyl-N3-methylmalonamide.
+          pre.filter((x) => x.at === 'N' && x.nOf !== undefined).map((x) => locVal(numbering.get(x.nOf!)!)).sort((x, y) => x - y),
+          alphaLocs(pre.filter((x) => x.at !== 'N'), numbering),
+          alphaLocs(pre.filter((x) => x.at === 'N' && x.nOf !== undefined).map((x) => ({ ...x, at: x.nOf! })), numbering),
         ];
         if (!best || cmpKey(key, best.key) < 0) best = { parent: p, numbering, key };
+        const k = p.kind === 'ring' ? 'ring' : 'chain';
+        if (!bestOf[k] || cmpKey(key, bestOf[k]!.key) < 0) bestOf[k] = { parent: p, numbering, key, count, pre: k === 'ring' ? pre.length : this.ringBranches(p.atoms) };
       }
     }
     if (!best) throw new OutOfScope('no parent hydride');
+    // A chain with as many principal groups as the ring and more groups on it is the parent:
+    // 1,2-diphenylethene, diphenylmethane, 1,2-bis(diphenylphosphaneyl)ethane.
+    const r = bestOf.ring, c = bestOf.chain;
+    if (r && c && best.parent === r.parent && c.count === 0 && r.count === 0 && c.pre >= 2 && c.pre > r.pre) return { parent: c.parent, numbering: c.numbering };
     // All principal groups must sit on the parent; otherwise the name needs prefixes for some
     // of them, which we only support for the subordinate kinds.
     return best;
+  }
+
+  /** A ring assembly as a substituent: [1,1'-biphenyl]-4-yl, 2'-(2H-tetrazol-5-yl)-[1,1'-biphenyl]-4-yl. */
+  assemblySubstituent(a: AtomId, from: AtomId, A: Parent): SubName | null {
+    const mol = this.mol;
+    const inA = new Set(A.atoms);
+    const partners = new Set<AtomId[]>();
+    for (const x of A.atoms) for (const n of mol.neighbours(x)) if (!inA.has(n) && n !== from && this.ringByAtom.has(n)) partners.add(this.ringByAtom.get(n)!);
+    const same = [...partners].filter((sys) => { const rr = recognizeRing(this.an, sys); return rr?.info.kind === 'template' && rr.info.template?.name === A.ring?.template?.name; });
+    if (same.length !== 1 || same[0]!.includes(from)) return null;
+    const Bsys = same[0]!;
+    const rb = recognizeRing(this.an, Bsys)!;
+    const B: Parent = { kind: 'ring', atoms: Bsys, numberings: rb.numberings, ring: rb.info };
+    // The other ring must end the branch: no third ring of the kind on it.
+    const inB = new Set(Bsys);
+    for (const x of Bsys) for (const n of mol.neighbours(x)) if (!inB.has(n) && !inA.has(n) && this.ringByAtom.has(n) && recognizeRing(this.an, this.ringByAtom.get(n)!)?.info.template?.name === A.ring?.template?.name) return null;
+    const asm = this.assembly(A, B, { a });
+    if (!asm) return null;
+    const both = new Set(asm.atoms);
+    if ([...both].some((x) => this.rs.get(x))) return null;
+    const pre: Prefix[] = [];
+    for (const x of both) for (const b of mol.incidentBonds(x)) {
+      const bd = mol.bond(b), n = mol.otherAtom(bd, x);
+      if (both.has(n) || (x === a && n === from)) continue;
+      if (bd.order !== 1) return null;
+      pre.push({ ...this.substituent(n, x), at: x });
+    }
+    let best: { numbering: Numbering; key: (number | number[])[] } | null = null;
+    for (const numbering of asm.numberings) {
+      const key: (number | number[])[] = [locVal(numbering.get(a)!), pre.map((x) => locVal(numbering.get(x.at as AtomId)!)).sort((x, y) => x - y),
+        alphaLocs(pre, numbering)];
+      if (!best || cmpKey(key, best.key) < 0) best = { numbering, key };
+    }
+    const preText = this.prefixString(pre, best!.numbering, false);
+    const text = `${preText}${preText ? '-' : ''}${asm.ring!.template!.name}-${best!.numbering.get(a)}-yl`;
+    return { text, complex: true, sortKey: sortKeyOf(text) };
+  }
+
+  /** How many groups off a chain hold a ring. */
+  ringBranches(chain: AtomId[]): number {
+    const mol = this.mol, inChain = new Set(chain);
+    let n = 0, direct = 0;
+    const kinds = new Set<string>();
+    for (const a of chain) for (const b of mol.neighbours(a)) {
+      if (inChain.has(b)) continue;
+      const seen = new Set<AtomId>([b]), stack = [b];
+      let ring = false;
+      while (stack.length && !ring) { const x = stack.pop()!; if (this.an.ringAtoms.has(x)) ring = true; for (const y of mol.neighbours(x)) if (!inChain.has(y) && !seen.has(y)) { seen.add(y); stack.push(y); } }
+      if (ring) { n++; direct += this.an.ringAtoms.has(b) ? 1 : 0; try { kinds.add(this.substituent(b, a).text); } catch { kinds.add(`?${b}`); } }
+    }
+    // Only like rings make the chain the parent: diphenylmethane, but 1-benzylpyrrolidine.
+    if (kinds.size > 1) return 0;
+    // A ring held directly beside one held through other atoms leaves the ring the parent:
+    // 3-(1-(phenylsulfinyl)propyl)furan.
+    return direct && direct < n ? 0 : n;
   }
 
   /** In-parent multiple bonds that become ene/yne (chains and cycloalkenes). */
@@ -1871,6 +3366,7 @@ class Namer {
   currentNumbering: Numbering | null = null;
 
   render(p: Parent, numbering: Numbering): string {
+    const mol = this.mol;
     this.currentNumbering = numbering;
     const sites = this.principalSites(p);
     const pre = this.prefixes(p, sites);
@@ -1882,7 +3378,10 @@ class Namer {
     // Retained parents (ChemDraw style).
     const retained = this.retainedParent(p, kind, sites, pre);
     const cPrefixes = pre.filter((x) => x.at !== 'N').length;
-    const features = sites.size + cPrefixes + mult.length;
+    // A two-carbon chain's double or triple bond can only be in one place.
+    // A unit of a multiplicative name also has its point of attachment to cite: bis(ethan-1-ol).
+    const features = sites.size + cPrefixes + (p.kind === 'chain' && p.atoms.length === 2 ? 0 : mult.length)
+      + (p.kind === 'chain' && p.atoms.some((a) => mol.neighbours(a).some((n) => this.excluded.has(n))) ? 1 : 0);
 
     // Locant omission: methane/ethane-like parents and monosubstituted symmetric rings.
     const symmetricRing = p.kind === 'ring' && ((p.ring!.kind === 'cyclo' && p.atoms.every((a) => el(this.mol, a) === 'C')) || p.ring!.template?.name === 'benzene');
@@ -1890,7 +3389,10 @@ class Namer {
       || (symmetricRing && features <= 1 && (p.ring!.kind !== 'cyclo' || mult.length <= 1));
 
     const manyN = [...sites.keys()].filter((g) => g.nitrogen !== undefined).length > 1;
-    const prefixText = this.prefixString(pre, numbering, omitAll, manyN);
+    let prefixText = this.prefixString(pre, numbering, omitAll, manyN, true);
+    // Every hydrogen of the parent replaced by one halogen: perbromomethane, perchloroethane.
+    if (pre.length >= 2 && !sites.size && new Set(pre.map((x) => x.text)).size === 1 && /^(fluoro|chloro|bromo|iodo)$/.test(pre[0]!.text)
+      && p.atoms.every((a) => mol.implicitHydrogens(a) === 0)) prefixText = `per${pre[0]!.text}`;
 
     let parentName: string;
     const ium = kind === 'ium' ? [] : p.atoms.filter((a) => isRingCation(this.mol, a) && this.an.ringAtoms.has(a)).map(loc).sort(compareLocant);
@@ -1902,13 +3404,19 @@ class Namer {
       if (ium.length) hydride = attachSuffix(hydride, ium.join(','), `${multiplier(ium.length)}ium`);
       if (ide.length) hydride = attachSuffix(hydride, ide.join(','), `${multiplier(ide.length)}ide`);
       parentName = this.withSuffix(p, hydride, kind, siteLocs, sites.size, omitAll);
+      // A ring anion on the atom the indicated hydrogen would be on needs none: pyrazol-1-ide.
+      const ideAt = kind === 'ide' ? siteLocs.map(String) : ide;
+      if (ideAt.length === 1) parentName = parentName.replace(new RegExp(`(^|-)${ideAt[0]}H-(?=[a-z[])`), '$1');
     }
-    const joiner = prefixText && /^[0-9(]/.test(parentName) ? '-' : '';
+    // An assembly's name is bracketed only where a locant follows it: [1,1'-biphenyl]-4-ol, 4-methyl-1,1'-biphenyl.
+    if (p.ring?.assembly && /^\[[^\]]*\]$/.test(parentName)) parentName = parentName.slice(1, -1);
+    const joiner = prefixText && /^[0-9([]/.test(parentName) ? '-' : '';
     return prefixText + joiner + parentName;
   }
 
   retainedParent(p: Parent, kind: GroupKind | null, sites: Map<Group, AtomId>, pre: Prefix[]): string | null {
     const g = [...sites.keys()][0];
+    if (g?.thiono || (g?.kind === 'ester' && g.imid)) return null;
     const benzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene';
     if (benzene && sites.size === 1) {
       const nPre = pre.length;
@@ -1921,24 +3429,76 @@ class Namer {
         case 'peracid': return 'benzoperoxoic acid';
         case 'aldehyde': return 'benzaldehyde';
         case 'nitrile': return 'benzonitrile';
-        case 'amide': return 'benzamide';
+        case 'amide': return g?.thio ? 'benzothioamide' : g?.imid ? 'benzimidamide' : g?.hydrazide ? 'benzohydrazide' : 'benzamide';
         case 'acylHalide': return `benzoyl ${HALIDE[g!.halogen!]}`;
         default: void nPre;
       }
     }
-    if (benzene && sites.size === 0 && pre.length === 1) {
+    // Picolinic, nicotinic and isonicotinic acids and their kin, substituted or not.
+    const pyridine = p.kind === 'ring' && p.ring!.template?.name === 'pyridine' && !hydroOf.get(this.currentNumbering!);
+    if (pyridine && sites.size === 1 && g?.ownCarbon && this.currentNumbering && !this.excluded.size) {
+      const stem = ({ '2': 'picolin', '3': 'nicotin', '4': 'isonicotin' } as Record<string, string>)[this.currentNumbering.get([...sites.values()][0]!)!];
+      const w: Partial<Record<GroupKind, string>> = stem ? { acid: `${stem}ic acid`, amide: g.thio || g.imid ? undefined : g.hydrazide ? `${stem}ohydrazide` : `${stem}amide`, ester: `${stem}ate`, carboxylate: `${stem}ate`, nitrile: `${stem}onitrile` } : {};
+      if (kind && w[kind]) return w[kind]!;
+    }
+    if (benzene && sites.size === 2 && g?.ownCarbon && this.currentNumbering && !this.excluded.size) {
+      const l = [...sites.values()].map((x) => this.currentNumbering!.get(x)!).sort(compareLocant).join(',');
+      const stem = ({ '1,2': 'phthal', '1,3': 'isophthal', '1,4': 'terephthal' } as Record<string, string>)[l];
+      const w: Partial<Record<GroupKind, string>> = stem ? { acid: `${stem}ic acid`, amide: g.thio || g.imid || g.hydrazide ? undefined : `${stem}amide`, nitrile: `${stem}onitrile` } : {};
+      if (kind && w[kind]) return w[kind]!;
+    }
+    if (benzene && sites.size === 0 && pre.length === 1 && !this.excluded.size) {
       const t = pre[0]!.text;
       if (t === 'methyl') { pre.length = 0; return 'toluene'; }
       if (t === 'isopropyl') { pre.length = 0; return 'cumene'; }
       if (t === 'vinyl') { pre.length = 0; return 'styrene'; }
       if (t === 'methoxy') { pre.length = 0; return 'anisole'; }
     }
+    if (p.kind === 'chain' && g?.ownCarbon) {
+      const { mult, dbl, trip } = this.unsaturationAtoms(p);
+      const ends = new Set([p.atoms[0], p.atoms[p.atoms.length - 1]]);
+      // Methacrylic and isobutyric acids and what is made from them: methyl methacrylate.
+      if (!this.excluded.size && sites.size === 1 && p.atoms.length === 3 && pre.length === 1 && pre[0]!.text === 'methyl' && this.currentNumbering?.get(pre[0]!.at as AtomId) === '2' && ends.has([...sites.values()][0]!)) {
+        const stem = mult.length === 1 && dbl.length === 1 ? 'methacryl' : !mult.length ? 'isobutyr' : null;
+        const w: Partial<Record<GroupKind, string>> = stem ? { acid: `${stem}ic acid`, ester: `${stem}ate`, carboxylate: `${stem}ate`, amide: g.thio || g.imid || g.hydrazide ? undefined : `${stem}amide`, nitrile: `${stem}onitrile` } : {};
+        if (kind && w[kind]) { pre.length = 0; return w[kind]!; }
+      }
+      // Prop-2-enoic acid and what is made from it, substituted or not: (E)-3-(3,4-dihydroxyphenyl)acrylic acid.
+      if (sites.size === 1 && p.atoms.length === 3 && mult.length === 1 && dbl.length === 1 && !dbl[0]!.includes([...sites.values()][0]!)) {
+        const w: Partial<Record<GroupKind, string>> = { acid: 'acrylic acid', amide: g.thio ? undefined : 'acrylamide', ester: 'acrylate', carboxylate: 'acrylate', nitrile: 'acrylonitrile', aldehyde: 'acrylaldehyde' };
+        if (kind && w[kind]) return w[kind]!;
+      }
+      // Propiolic acid and what is made from it: 3-phenylpropiolamide.
+      if (sites.size === 1 && p.atoms.length === 3 && mult.length === 1 && trip.length === 1 && !trip[0]!.includes([...sites.values()][0]!)) {
+        const w: Partial<Record<GroupKind, string>> = { acid: 'propiolic acid', amide: g.thio || g.imid || g.hydrazide ? undefined : 'propiolamide', ester: 'propiolate', carboxylate: 'propiolate' };
+        if (kind && w[kind]) return w[kind]!;
+      }
+      // Propionic and butyric acids and what is made from them, with nothing on the chain: ethyl propionate.
+      if (sites.size === 1 && !mult.length && (p.atoms.length === 3 || p.atoms.length === 4) && !pre.some((x) => x.at !== 'N') && ends.has([...sites.values()][0]!)) {
+        const stem = p.atoms.length === 3 ? 'propion' : 'butyr';
+        const w: Partial<Record<GroupKind, string>> = { acid: `${stem}ic acid`, amide: g.thio || g.imid || g.hydrazide ? undefined : `${stem}amide`, ester: `${stem}ate`, carboxylate: `${stem}ate`, nitrile: `${stem}onitrile`, aldehyde: `${stem}aldehyde` };
+        if (kind && w[kind]) return w[kind]!;
+      }
+      // The fatty acids by name, on an unbranched chain carrying nothing else: palmitamide, stearic acid.
+      const fatty: Record<number, string> = { 16: 'palmit', 18: 'stear' };
+      if (sites.size === 1 && !mult.length && fatty[p.atoms.length] && !pre.some((x) => x.at !== 'N') && ends.has([...sites.values()][0]!)) {
+        const stem = fatty[p.atoms.length]!;
+        const w: Partial<Record<GroupKind, string>> = { acid: `${stem}ic acid`, amide: g.thio ? undefined : `${stem}amide`, ester: `${stem}ate`, carboxylate: `${stem}ate` };
+        if (kind && w[kind]) return w[kind]!;
+      }
+      // Oxalic, malonic and succinic acids and their amides, esters and nitriles, with both ends the group.
+      if (sites.size === 2 && !mult.length && p.atoms.length >= 2 && p.atoms.length <= 4 && [...sites.values()].every((x) => ends.has(x)) && !g.thio) {
+        const stem = ['oxal', 'malon', 'succin'][p.atoms.length - 2]!;
+        const w: Partial<Record<GroupKind, string>> = { acid: `${stem}ic acid`, amide: `${stem}amide`, ester: `${stem}ate`, carboxylate: `${stem}ate`, nitrile: `${stem}onitrile` };
+        if (kind && w[kind]) return w[kind]!;
+      }
+    }
     if (p.kind === 'chain' && sites.size === 1 && g?.ownCarbon && p.atoms.length <= 2 && this.unsaturationAtoms(p).mult.length === 0) {
       const acetic = p.atoms.length === 2;
       switch (kind) {
         case 'carboxylate': return acetic ? 'acetate' : 'formate';
         case 'acid': return acetic ? 'acetic acid' : 'formic acid';
-        case 'amide': return acetic ? 'acetamide' : 'formamide';
+        case 'amide': return g.thio ? null : g.imid ? (acetic ? 'acetimidamide' : 'formimidamide') : g.hydrazide ? (acetic ? 'acetohydrazide' : 'formohydrazide') : acetic ? 'acetamide' : 'formamide';
         case 'aldehyde': return acetic ? 'acetaldehyde' : 'formaldehyde';
         case 'nitrile': return acetic ? 'acetonitrile' : null;
         case 'acylHalide': return acetic ? `acetyl ${HALIDE[g.halogen!]}` : null;
@@ -1954,15 +3514,16 @@ class Namer {
       const t = p.ring!.template!;
       const h = hydroOf.get(numbering);
       if (h?.saturated && t.saturated) return t.saturated;
-      if (h) return withHydro(t.name, h, numbering);
+      if (h) return withHydro((bridgeOf.get(numbering) ?? '') + t.name, h, numbering);
       return t.indicatedH ? `${t.indicatedH}H-${t.name}` : t.name;
     }
     const n = p.kind === 'ring' ? p.ring!.size : p.atoms.length;
     const vb = p.kind === 'ring' && p.ring!.kind === 'vonbaeyer';
-    const hetero = p.kind === 'ring' ? heteroPrefix(this.mol, p.atoms, numbering) : '';
+    const hetero = p.kind === 'ring' ? heteroPrefix(this.mol, p.atoms, numbering, p.ring!.kind === 'cyclo') : '';
     const stem = vb ? `${hetero}${p.ring!.bracket}${alkaneStem(n)}` : (p.kind === 'ring' ? `${hetero}cyclo` : '') + alkaneStem(n);
     if (!dbl.length && !trip.length) return `${stem}ane`;
     const locs = (bonds: [AtomId, AtomId][]) => bonds.map((b) => this.bondLocantText(p, numbering, b)).sort(compareLocant).join(',');
+    if (p.kind === 'chain' && n === 2) omitAll = true;
     let name = stem;
     if (dbl.length) {
       const m = multiplier(dbl.length);
@@ -1980,8 +3541,8 @@ class Namer {
   withSuffix(p: Parent, hydride: string, kind: GroupKind | null, locs: string[], count: number, omitAll: boolean): string {
     if (!kind || count === 0) return hydride;
     const m = multiplier(count);
-    const ownCarbonOnRing = p.kind === 'ring' && this.principalGroups[0]!.ownCarbon;
-    const terminal = p.kind === 'chain' && this.principalGroups[0]!.ownCarbon;
+    const ownCarbonOnRing = (p.kind === 'ring' || this.externalSites.has(p)) && this.principalGroups[0]!.ownCarbon;
+    const terminal = p.kind === 'chain' && !this.externalSites.has(p) && this.principalGroups[0]!.ownCarbon;
     // One group on benzene needs no locant: 4-methylbenzenesulfonyl chloride, 4-chlorobenzenethiol.
     const onBenzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene' && count === 1;
     const showLocs = !(omitAll || terminal || onBenzene) ? locs.join(',') : '';
@@ -1990,17 +3551,17 @@ class Namer {
       carboxylate: ['oate', 'carboxylate'],
       sulfonate: ['sulfonate', 'sulfonate'],
       diazonium: ['diazonium', 'diazonium'],
-      sulfonic: ['sulfonic acid', 'sulfonic acid'],
+      sulfonic: g.sulfin ? ['sulfinic acid', 'sulfinic acid'] : ['sulfonic acid', 'sulfonic acid'],
       sulfonateEster: ['sulfonate', 'sulfonate'],
-      sulfonylHalide: [`sulfonyl ${HALIDE[g.halogen ?? 'Cl']}`, `sulfonyl ${HALIDE[g.halogen ?? 'Cl']}`],
-      sulfonamide: ['sulfonamide', 'sulfonamide'],
+      sulfonylHalide: [`sulfonyl ${g.halogen === 'N3' ? 'azide' : HALIDE[g.halogen ?? 'Cl']}`, `sulfonyl ${g.halogen === 'N3' ? 'azide' : HALIDE[g.halogen ?? 'Cl']}`],
+      sulfonamide: g.sulfin ? ['sulfinamide', 'sulfinamide'] : ['sulfonamide', 'sulfonamide'],
       peracid: ['peroxoic acid', 'carboperoxoic acid'],
       olate: ['olate', 'olate'],
       aminium: ['aminium', 'aminium'],
       acid: ['oic acid', 'carboxylic acid'],
-      ester: ['oate', 'carboxylate'],
+      ester: g.imid ? ['imidate', 'carboximidate'] : g.thiono && g.thio ? ['edithioate', 'carbodithioate'] : g.thio || g.thiono ? ['ethioate', 'carbothioate'] : ['oate', 'carboxylate'],
       acylHalide: [`oyl ${HALIDE[g.halogen ?? 'Cl']}`, `carbonyl ${HALIDE[g.halogen ?? 'Cl']}`],
-      amide: ['amide', 'carboxamide'],
+      amide: g.thio ? ['thioamide', 'carbothioamide'] : g.imid ? ['imidamide', 'carboximidamide'] : g.hydrazide ? ['ehydrazide', 'carbohydrazide'] : ['amide', 'carboxamide'],
       urea: ['urea', 'urea'],
       ium: ['ium', 'ium'],
       ide: ['ide', 'ide'],
@@ -2008,17 +3569,18 @@ class Namer {
       thiolate: ['thiolate', 'thiolate'],
       nitrile: ['nitrile', 'carbonitrile'],
       aldehyde: ['al', 'carbaldehyde'],
-      ketone: ['one', 'one'],
+      ketone: g.thio ? ['thione', 'thione'] : ['one', 'one'],
+      imine: ['imine', 'imine'],
       alcohol: ['ol', 'ol'],
-      thiol: ['thiol', 'thiol'],
+      thiol: g.selenium ? ['selenol', 'selenol'] : ['thiol', 'thiol'],
       amine: ['amine', 'amine'],
     };
     const [chainForm, ringForm] = SUFFIX[kind];
     const num = this.currentNumbering;
-    const added = p.kind === 'ring' && kind === 'ketone' && num ? hydroOf.get(num)?.added : undefined;
+    const added = p.kind === 'ring' && (kind === 'ketone' || kind === 'imine') && num ? hydroOf.get(num)?.added : undefined;
     if (added?.length) {
       const hLocs = added.map((a) => num!.get(a)!).sort(compareLocant);
-      return attachSuffix(hydride, `${locs.join(',')}(${hLocs.map((l) => `${l}H`).join(',')})`, `${m}one`);
+      return attachSuffix(hydride, `${locs.join(',')}(${hLocs.map((l) => `${l}H`).join(',')})`, `${m}${ringForm}`);
     }
     if (ownCarbonOnRing) {
       // Carbon outside the ring: cyclohexanecarboxylic acid, pyridine-3-carboxylic acid.
@@ -2033,7 +3595,7 @@ class Namer {
   }
 
   /** `manyN`: the parent carries several amines or amides, so N locants say whose nitrogen (N1,N1-diethyl). */
-  prefixString(pre: Prefix[], numbering: Numbering, omitAll: boolean, manyN = false): string {
+  prefixString(pre: Prefix[], numbering: Numbering, omitAll: boolean, manyN = false, parent = false): string {
     // Group identical prefixes.
     const groups = new Map<string, { sub: Prefix; locs: string[] }>();
     // Two nitrogens on one carbon (an aminal, a guanidine written as a diamine) are N and N': the one
@@ -2052,7 +3614,7 @@ class Namer {
     }
     for (const x of pre) {
       const loc = x.at === 'N'
-        ? (x.nAtom !== undefined && primes.has(x.nAtom) ? `N${primes.get(x.nAtom)}` : manyN && x.nOf !== undefined ? `N${numbering.get(x.nOf)}` : 'N')
+        ? x.prime ? "N'" : (x.nAtom !== undefined && primes.has(x.nAtom) ? `N${primes.get(x.nAtom)}` : manyN && x.nOf !== undefined ? `N${numbering.get(x.nOf)}` : 'N')
         : numbering.get(x.at)!;
       const g = groups.get(x.text);
       if (g) g.locs.push(loc); else groups.set(x.text, { sub: x, locs: [loc] });
@@ -2069,7 +3631,11 @@ class Namer {
       // With no locant between them, a prefix after another goes in brackets where it could be read as
       // carrying the one before: chloro(methoxy)methane, not chloromethoxymethane.
       const bracket = sub.complex || (omitAll && out !== '' && n === 1 && !locs[0]!.startsWith('N') && !ATOM_LIKE.test(sub.text));
-      const body = bracket ? `${complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
+      const body = n > 1 && TRADITIONAL.test(sub.text) ? `${multiplier(n)}-${sub.text}`
+        : omitAll && n === 1 && pre.length === 1 && (TRADITIONAL.test(sub.text) || ((sub as { di?: boolean }).di && !/^\d/.test(sub.text) && !locs[0]!.startsWith('N') && (parent || !/^[omp]-/.test(sub.text)))) ? sub.text
+        // The first of several on a parent cited without locants: quinolin-4-yl(5-vinylquinuclidin-2-yl)methanol.
+        : omitAll && parent && n === 1 && out === '' && (sub as { di?: boolean }).di && !/^(\d|[omp]-)/.test(sub.text) && !locs[0]!.startsWith('N') ? sub.text
+        : bracket ? `${n > 1 && (sub as { di?: boolean }).di ? multiplier(n) : complexMultiplier(n)}(${sub.text})` : `${multiplier(n)}${sub.text}`;
       const nLocs = locs.filter((l) => l.startsWith('N')).sort();
       const cLocs = locs.filter((l) => !l.startsWith('N')).sort(compareLocant);
       const showC = !omitAll;
@@ -2137,11 +3703,11 @@ class Namer {
     let a = subsOf(n1), b = subsOf(n2);
     const first = (xs: SubName[]) => [...xs].sort((x, y) => x.sortKey.localeCompare(y.sortKey))[0]?.sortKey ?? '~';
     if (b.length > a.length || (b.length === a.length && first(b) < first(a))) [a, b] = [b, a];
-    if (!a.length) return 'urea';
+    if (!a.length) return g.thio ? 'thiourea' : 'urea';
     const pre: Prefix[] = [...a.map((x) => ({ ...x, at: n1 })), ...b.map((x) => ({ ...x, at: n2 }))];
     const numbering: Numbering = new Map([[n1, '1'], [n2, '3']]);
     const text = this.prefixString(pre, numbering, false);
-    return `${text}urea`;
+    return `${text}${g.thio ? 'thiourea' : 'urea'}`;
   }
 
   /**
@@ -2208,6 +3774,8 @@ class Namer {
   }
 
   nameEster(): string {
+    const onAlcohol = this.polyolEster();
+    if (onAlcohol) return onAlcohol;
     const carbonic = this.carbonicEster();
     if (carbonic) return carbonic;
     const best = this.chooseParent();
@@ -2215,21 +3783,45 @@ class Namer {
     const sites = this.principalSites(p);
     const esters = [...sites.keys()];
     if (!esters.length) throw new OutOfScope('ester not on the parent');
-    const alkyls = esters.map((g) => this.substituent(g.esterCarbon!, g.consumed[1]!));
+    // An S-ester's alkyl group says which atom it is on: S-methyl ethanethioate.
+    const thio = esters.some((g) => g.thio);
+    if (thio && esters.some((g) => !g.thio)) throw new OutOfScope('O- and S-esters together');
+    // A thiono ester's on its O (O-methyl ethanethioate); a dithioate needs no letter.
+    const thiono = esters.some((g) => g.thiono);
+    if (esters.some((g) => !!g.thiono !== thiono)) throw new OutOfScope('thiono and plain esters together');
+    const on = thiono ? (thio ? '' : 'O') : thio ? 'S' : '';
+    const alkyls = esters.map((g) => {
+      const r = this.substituent(g.esterCarbon!, g.consumed[1]!);
+      return on ? { ...r, text: `${on}-${r.complex ? `(${r.text})` : r.text}`, complex: false } : r;
+    });
     // Retained acid names give retained anion names.
     const pre = this.prefixes(p, sites);
     const carboxylic = this.principal === 'ester';
     const benzene = p.kind === 'ring' && p.ring!.template?.name === 'benzene';
     let acid: string;
-    if (carboxylic && benzene && sites.size === 1) acid = this.prefixString(pre, best.numbering, false) + 'benzoate';
-    else if (carboxylic && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && this.unsaturationAtoms(p).mult.length === 0) {
+    const imid = esters.some((g) => g.imid);
+    if (carboxylic && benzene && sites.size === 1) acid = this.prefixString(pre, best.numbering, false) + (imid ? 'benzimidate' : thiono && thio ? 'benzodithioate' : thio || thiono ? 'benzothioate' : 'benzoate');
+    else if (imid && carboxylic && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && !pre.length && this.unsaturationAtoms(p).mult.length === 0) acid = p.atoms.length === 2 ? 'acetimidate' : 'formimidate';
+    else if (carboxylic && !thio && !thiono && !imid && p.kind === 'chain' && p.atoms.length <= 2 && sites.size === 1 && this.unsaturationAtoms(p).mult.length === 0) {
       const ps = this.prefixString(pre, best.numbering, p.atoms.length === 1);
-      acid = ps + (p.atoms.length === 2 ? 'acetate' : 'formate');
+      // A haloformate: ethyl carbonochloridate.
+      const halo = p.atoms.length === 1 && pre.length === 1 ? Object.entries(HALO).find(([, w]) => w === pre[0]!.text)?.[0] : undefined;
+      acid = halo ? `carbono${HALIDE[halo]!.replace(/ide$/, 'idate')}` : ps + (p.atoms.length === 2 ? 'acetate' : 'formate');
     } else acid = this.render(p, best.numbering);
     acid = this.withStereo(p.atoms, best.numbering, acid) + this.oxideSuffix(p.atoms, best.numbering);
+    // Benzenedicarboxylates with nothing else on the ring are phthalates: benzyl butyl phthalate.
+    if (benzene && sites.size === 2 && !pre.length && esters.length === 2) {
+      const l = [...sites.values()].map((x) => best.numbering.get(x)!).sort(compareLocant).join(',');
+      const w = ({ '1,2': 'phthalate', '1,3': 'isophthalate', '1,4': 'terephthalate' } as Record<string, string>)[l];
+      if (w) acid = w;
+    }
+    if (acid === 'pyridine-3-carboxylate') acid = 'nicotinate';
+    if (acid === 'pyridine-4-carboxylate') acid = 'isonicotinate';
     const alkyl = alkyls[0]!;
     if (esters.length === 1) return `${alkyl.text} ${acid}`;
     if (new Set(alkyls.map((a) => a.text)).size === 1) return alkyl.complex ? `${complexMultiplier(esters.length)}(${alkyl.text}) ${acid}` : `${multiplier(esters.length)}${alkyl.text} ${acid}`;
+    // On a symmetric acid known by name the ester groups need no locants: ethyl methyl malonate.
+    if (/^(oxal|malon|succin|glutar|adip|phthal|isophthal|terephthal)ate$/.test(acid)) return `${[...alkyls].sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((a) => (a.complex ? `(${a.text})` : a.text)).join(' ')} ${acid}`;
     // Different alkyl groups, each with the locant of its ester: 3-ethyl 5-methyl pyridine-3,5-dicarboxylate.
     const kinds = new Map<string, { sub: SubName; locs: string[] }>();
     esters.forEach((g, i) => {
@@ -2246,9 +3838,77 @@ class Namer {
     return `${words.join(' ')} ${acid}`;
   }
 
+  /**
+   * Nitrate and nitrite esters where nothing more senior is present, named on the alcohol:
+   * methyl nitrate, isopentyl nitrite, propane-1,2,3-triyl trinitrate, (...)furan-3-yl nitrate.
+   */
+  nitrateEster(): string | null {
+    const mol = this.mol;
+    if (this.principal && !['ketone', 'alcohol', 'thiol', 'amine', 'aldehyde', 'nitrile'].includes(this.principal)) return null;
+    const found: { o: AtomId; c: AtomId; n: AtomId; kind: 'nitrate' | 'nitrite' }[] = [];
+    for (const n of mol.atoms()) {
+      if (n.element !== 'N' || this.an.ringAtoms.has(n.id)) continue;
+      const nb = mol.neighbours(n.id);
+      const bridge = nb.filter((o) => el(mol, o) === 'O' && mol.neighbours(o).length === 2 && mol.bondBetween(n.id, o)!.order === 1);
+      const ends = nb.filter((o) => el(mol, o) === 'O' && mol.neighbours(o).length === 1);
+      if (bridge.length !== 1) continue;
+      const c = mol.neighbours(bridge[0]!).find((x) => x !== n.id)!;
+      if (el(mol, c) !== 'C' || isAcylCarbon(mol, c)) continue;
+      const nitro = ends.length === 2 && ((n.charge === 1 && ends.some((o) => mol.atom(o).charge === -1)) || (n.charge === 0 && ends.every((o) => mol.bondBetween(n.id, o)!.order === 2)));
+      const nitroso = ends.length === 1 && n.charge === 0 && mol.bondBetween(n.id, ends[0]!)!.order === 2 && nb.length === 2;
+      if (nitro) found.push({ o: bridge[0]!, c, n: n.id, kind: 'nitrate' });
+      else if (nitroso) found.push({ o: bridge[0]!, c, n: n.id, kind: 'nitrite' });
+    }
+    if (!found.length || new Set(found.map((f) => f.kind)).size !== 1) return null;
+    const word = found[0]!.kind;
+    if (found.length === 1) {
+      const r = this.substituent(found[0]!.c, found[0]!.o);
+      return `${r.text} ${word}`;
+    }
+    const dropped = new Set(found.flatMap((f) => [f.o, f.n, ...mol.neighbours(f.n)]));
+    const rest = [...mol.atoms()].map((a) => a.id).filter((x) => !dropped.has(x));
+    const core = this.coreDiyl(rest, found.map((f) => f.c));
+    return core ? `${core} ${multiplier(found.length)}${word}` : null;
+  }
+
+  /**
+   * Several esters of one acid on one alcohol, named on the alcohol: propane-1,2,3-triyl trioctanoate,
+   * (...)-octahydro-2H-indeno[5,6-b]furan-5,7-diyl diacetate. Null where the acids differ or the
+   * alcohol parts are not one piece.
+   */
+  polyolEster(): string | null {
+    const mol = this.mol;
+    const esters = this.principalGroups.filter((g) => g.kind === 'ester');
+    if (esters.length < 2 || esters.length !== this.principalGroups.length) return null;
+    // Each acid part: the acyl carbon with whatever is on it but the ester oxygen.
+    const acidOf = (g: Group) => {
+      const o = g.consumed[1]!, seen = new Set<AtomId>([g.anchor]), stack = [g.anchor];
+      while (stack.length) { const x = stack.pop()!; for (const y of mol.neighbours(x)) if (y !== o && !seen.has(y)) { seen.add(y); stack.push(y); } }
+      return seen;
+    };
+    const acids = esters.map(acidOf);
+    const all = new Set(acids.flatMap((a) => [...a]));
+    if (acids.reduce((n, a) => n + a.size, 0) !== all.size) return null;
+    const rest = [...mol.atoms()].map((a) => a.id).filter((x) => !all.has(x) && !esters.some((g) => g.consumed[1] === x));
+    // The acids must be the same: name one as an acyl group and compare.
+    const acyl = esters.map((g) => { try { return this.substituent(g.anchor, g.consumed[1]!).text; } catch { return null; } });
+    if (acyl.some((a) => a === null || a !== acyl[0])) return null;
+    const ends = esters.map((g) => g.esterCarbon!);
+    if (!ends.every((e) => rest.includes(e))) return null;
+    // The alcohol part in one piece.
+    const restSet = new Set(rest), seen = new Set<AtomId>([rest[0]!]), stack = [rest[0]!];
+    while (stack.length) { const x = stack.pop()!; for (const y of mol.neighbours(x)) if (restSet.has(y) && !seen.has(y)) { seen.add(y); stack.push(y); } }
+    if (seen.size !== rest.length) return null;
+    const core = this.coreDiyl(rest, ends);
+    if (!core) return null;
+    const acid = esterWord(acyl[0]!);
+    if (!acid) return null;
+    return `${core} ${multiplier(esters.length)}${acid}`;
+  }
+
   // -------------------------------------------------------- substituents
 
-  substituent(a: AtomId, from: AtomId): SubName { return this.remembered(`${a}<${from}`, () => this.computeSubstituent(a, from)); }
+  substituent(a: AtomId, from: AtomId): SubName { return this.remembered(`${a}<${from}`, () => chemistStyle(this.computeSubstituent(a, from))); }
 
   /**
    * Each group is named once, whether it has a name or not: every candidate parent asks for the
@@ -2279,16 +3939,29 @@ class Namer {
     if (this.an.ringAtoms.has(a)) return this.ringSubstituent(a, from);
     if (HALO[e]) {
       const isotope = mol.atom(a).isotope;
-      return isotope === null ? simple(HALO[e]!) : { text: `(${isotope}${e})${HALO[e]!}`, complex: false, sortKey: HALO[e]! };
+      return isotope === null ? simple(HALO[e]!) : { text: `${HALO[e]!}-${isotope}${e}`, complex: true, sortKey: HALO[e]! };
     }
     if (e === 'O') {
       if (others.length === 0) return simple(mol.atom(a).charge === -1 ? 'oxido' : 'hydroxy');
       const r = others[0]!;
       if (isAcylCarbon(mol, r)) {
         const acyl = this.substituent(r, a);
+        if (/^2-.+acetyl$/.test(acyl.text) && balanced(acyl.text.slice(0, -6))) { const t = `${acyl.text.slice(0, -6)}acetoxy`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; }
         return acyl.text === 'acetyl' ? simple('acetoxy') : { text: `${acyl.complex ? `(${acyl.text})` : acyl.text}oxy`, complex: true, sortKey: `${acyl.sortKey}oxy` };
       }
+      if (others.length === 1 && el(mol, r) === 'C' && mol.neighbours(r).length === 2 && mol.incidentBonds(r).some((b) => mol.bond(b).order === 3)) return simple('cyanato');
+      // -O-OH hydroperoxy, -O-OR alkylperoxy: tert-butylperoxy.
+      if (el(mol, r) === 'O' && mol.atom(r).charge === 0) {
+        const far = mol.neighbours(r).filter((y) => y !== a);
+        if (!far.length) return simple('hydroperoxy');
+        if (far.length === 1 && el(mol, far[0]!) === 'C') { const t = `${wrapInner(this.substituent(far[0]!, r))}peroxy`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; }
+      }
       return alkoxy(this.substituent(r, a));
+    }
+    if (e === 'Se' && mol.atom(a).charge === 0 && mol.incidentBonds(a).every((b) => mol.bond(b).order === 1)) {
+      // -SeH hydroseleno, -Se-R methylselanyl.
+      if (!others.length) return simple('hydroseleno');
+      if (others.length === 1 && el(mol, others[0]!) === 'C') { const t = `${wrapInner(this.substituent(others[0]!, a))}selanyl`; return { text: t, complex: true, sortKey: sortKeyOf(t) }; }
     }
     if (e === 'Si' || e === 'Sn') {
       // Trialkylsilyl / trialkylstannyl, e.g. tert-butyldimethylsilyl, tributylstannyl.
@@ -2296,7 +3969,7 @@ class Namer {
       const word = e === 'Si' ? 'silyl' : 'stannyl';
       const inner = others.length ? this.groupedSubs(others, a) : '';
       const text = `${inner}${word}`;
-      return { text, complex: true, sortKey: text.replace(/^(tert|sec)-/, '').replace(/[^a-z]/g, '') };
+      return { text, complex: true, sortKey: sortKeyOf(text) };
     }
     if (e === 'P') {
       // (RO)2P(=O)- phosphoryl, (RO)2P(=S)- phosphorothioyl, R2P- phosphanyl.
@@ -2322,7 +3995,7 @@ class Namer {
       const plain = `${inner}${word}`;
       const rs = this.rs.get(a);
       if (rs) this.cited.add(a);
-      return { text: rs ? `(${rs})-${plain}` : plain, complex: true, sortKey: plain.replace(/[^a-z]/g, '') };
+      return { text: rs ? `(${rs})-${plain}` : plain, complex: true, sortKey: sortKeyOf(plain) };
     }
     if (e === 'S') {
       const oxo = others.filter((n) => el(mol, n) === 'O' && mol.bondBetween(a, n)!.order === 2).length;
@@ -2339,10 +4012,21 @@ class Namer {
       if (mol.atom(a).charge !== 0 || this.an.h.get(a)) throw new OutOfScope('sulfur substituent');
       // Oxido on a sulfur reads as =O.
       if (rest.length === 1 && el(mol, rest[0]!) === 'O' && mol.atom(rest[0]!).charge !== 0) throw new OutOfScope('sulfur substituent');
+      if (rest.length === 1 && !oxo && el(mol, rest[0]!) === 'C' && mol.neighbours(rest[0]!).length === 2 && mol.incidentBonds(rest[0]!).some((b) => mol.bond(b).order === 3)) return simple('thiocyanato');
+      // -S-S-R: methyldisulfaneyl.
+      const s2 = rest.length === 1 && !oxo ? rest[0]! : undefined;
+      if (s2 !== undefined && el(mol, s2) === 'S' && mol.atom(s2).charge === 0 && mol.neighbours(s2).length === 2 && mol.incidentBonds(s2).every((b) => mol.bond(b).order === 1)) {
+        const far = mol.neighbours(s2).find((x) => x !== a)!;
+        if (el(mol, far) === 'C') {
+          const R = this.substituent(far, s2);
+          const text = `${wrapInner(R)}disulfaneyl`;
+          return { text, complex: true, sortKey: sortKeyOf(text) };
+        }
+      }
       if (rest.length === 1) {
         const R = this.substituent(rest[0]!, a);
         const tail = oxo === 2 ? 'sulfonyl' : oxo === 1 ? 'sulfinyl' : 'thio';
-        const inner = R.complex ? `(${R.text})` : R.text;
+        const inner = wrapInner(R);
         // A sulfinyl sulfur is a stereocentre: ((S)-phenylsulfinyl).
         const rs = this.rs.get(a);
         if (rs) this.cited.add(a);
@@ -2371,7 +4055,7 @@ class Namer {
         // Open-chain ammonium as a prefix: trimethylazaniumyl, azaniumyl.
         if (!mol.incidentBonds(a).every((b) => mol.bond(b).order === 1)) throw new OutOfScope('nitrogen substituent');
         const inner = others.length ? this.groupedSubs(others, a) : '';
-        return { text: `${inner}azaniumyl`, complex: true, sortKey: `${inner}azaniumyl`.replace(/[^a-z]/g, '') };
+        return { text: `${inner}azaniumyl`, complex: true, sortKey: sortKeyOf(`${inner}azaniumyl`) };
       }
       const dbl = others.find((n) => mol.bondBetween(a, n)!.order === 2);
       if (dbl !== undefined && el(mol, dbl) === 'O' && others.length === 1) return simple('nitroso');
@@ -2398,14 +4082,33 @@ class Namer {
         return { text: `${Y.complex ? `(${Y.text})` : Y.text}amino`, complex: true, sortKey: `${Y.sortKey}amino` };
       }
       if (!mol.incidentBonds(a).every((b) => mol.bond(b).order === 1)) throw new OutOfScope('nitrogen substituent');
-      // -NH-NH2 hydrazinyl; other N, O and S neighbours are named as prefixes on amino:
+      // -NH-NH2 hydrazineyl; other N, O and S neighbours are named as prefixes on amino:
       // (phenylamino)amino, hydroxyamino, (methylsulfonyl)amino.
-      if (others.length === 1 && el(mol, others[0]!) === 'N' && mol.neighbours(others[0]!).length === 1 && mol.atom(others[0]!).charge === 0) return simple('hydrazinyl');
+      if (others.length === 1 && el(mol, others[0]!) === 'N' && mol.neighbours(others[0]!).length === 1 && mol.atom(others[0]!).charge === 0) return simple('hydrazineyl');
+      // -NH-NR2: 2,2-dimethylhydrazineyl, 2-phenylhydrazineyl.
+      const o0 = others[0]!;
+      const far = others.length === 1 && el(mol, o0) === 'N' && mol.atom(o0).charge === 0 && !this.an.ringAtoms.has(o0) && mol.incidentBonds(o0).every((b) => mol.bond(b).order === 1)
+        ? mol.neighbours(o0).filter((x) => x !== a) : [];
+      if (far.length && far.every((x) => el(mol, x) === 'C' && !isAcylCarbon(mol, x))) {
+        const subs = countSubs(far.map((x) => this.substituent(x, o0)).sort((x, y) => x.sortKey.localeCompare(y.sortKey)));
+        const text = subs.map((x) => `${Array(x.n).fill('2').join(',')}-${x.n > 1 ? (x.complex ? complexMultiplier(x.n) : multiplier(x.n)) : ''}${x.complex ? `(${x.text})` : x.text}`).join('-') + 'hydrazineyl';
+        return { text, complex: true, sortKey: sortKeyOf(text) };
+      }
+      // -NH-N=CR2: 2-(3-methylbenzylidene)hydrazineyl.
+      const hz = others.length === 1 && el(mol, o0) === 'N' && mol.atom(o0).charge === 0 && !this.an.ringAtoms.has(o0) && mol.neighbours(o0).length === 2
+        ? mol.neighbours(o0).find((x) => x !== a && el(mol, x) === 'C' && mol.bondBetween(o0, x)!.order === 2) : undefined;
+      if (hz !== undefined) {
+        const Y = this.ylidene(hz, o0);
+        const text = `2-${Y.complex ? `(${Y.text})` : Y.text}hydrazineyl`;
+        return { text, complex: true, sortKey: sortKeyOf(text) };
+      }
       const acyl = others.find((n) => isAcylCarbon(mol, n));
       if (acyl !== undefined && others.length === 1) {
         const A = this.substituent(acyl, a);
         if (A.text === 'acetyl') return simple('acetamido');
         if (A.text === 'benzoyl') return simple('benzamido');
+        const am = amido(A.text);
+        if (am) return { text: am, complex: true, sortKey: sortKeyOf(am) };
         return { text: `${A.complex ? `(${A.text})` : A.text}amino`, complex: true, sortKey: `${A.sortKey}amino` };
       }
       if (others.length === 0) return simple('amino');
@@ -2415,7 +4118,8 @@ class Namer {
         return { text: `di${s.complex ? `(${s.text})` : s.text}amino`, complex: true, sortKey: `di${s.sortKey}amino` };
       }
       const inner = subs.map((s, i) => (i < subs.length - 1 || s.complex) ? (s.complex || subs.length > 1 && i > 0 ? `(${s.text})` : s.text) : s.text).join('');
-      const wrap0 = subs[0]!.complex ? `(${subs[0]!.text})` : subs[0]!.text;
+      const s0 = subs[0]!;
+      const wrap0 = subs.length === 1 ? wrapInner(s0) : s0.complex ? `(${s0.text})` : s0.text;
       const text = subs.length === 1 ? `${wrap0}amino` : `${wrap0}(${subs[1]!.text})amino`;
       void inner;
       return { text, complex: true, sortKey: `${subs.map((s) => s.sortKey).join('')}amino` };
@@ -2433,6 +4137,14 @@ class Namer {
     const dO = bonds.find((x) => x.o === 2 && el(mol, x.n) === 'O');
     const tN = bonds.find((x) => x.o === 3 && el(mol, x.n) === 'N');
     if (tN) return simple('cyano');
+    // A thioacyl group on a chain: propanethioyl.
+    const dS = bonds.find((x) => x.o === 2 && el(mol, x.n) === 'S' && mol.neighbours(x.n).length === 1);
+    if (dS && !dO && bonds.length === 2 && bonds.some((x) => x !== dS && x.o === 1 && el(mol, x.n) === 'C' && !this.an.ringAtoms.has(x.n))) {
+      const chain = this.alkyl(a, from, 'oyl');
+      // The chain names the =S on its first carbon as 1-thioxo; the ending says it instead.
+      const bare = chain.text.replace(/-1-thioxo(?=[a-z])/, '').replace(/(^|\)-)1-thioxo(?=[a-z])/, '$1');
+      if (/anoyl$/.test(bare) && !/thioxo/.test(bare)) { const text = bare.replace(/oyl$/, 'ethioyl'); return { text, complex: chain.complex, sortKey: sortKeyOf(text) }; }
+    }
     if (dO) {
       const rest = bonds.filter((x) => x !== dO);
       if (rest.length === 0) return simple('formyl');
@@ -2445,7 +4157,7 @@ class Namer {
         const R = this.substituent(beyond[0]!, r.n);
         const ro = alkoxy(R).text;
         // A substituted alkoxy is bracketed before carbonyl: (2-hydroxyethoxy)carbonyl.
-        const alk = R.text === 'benzyl' ? 'benzyloxy' : ALKOXY[R.text] || /(yl|\))oxy$/.test(ro) ? ro : `(${ro})`;
+        const alk = R.text === 'benzyl' ? '(benzyloxy)' : ALKOXY[R.text] || /(yl|\))oxy$/.test(ro) ? ro : `(${ro})`;
         return { text: `${alk}carbonyl`, complex: true, sortKey: `${alk.replace(/^tert-/, '')}carbonyl` };
       }
       if (re === 'N' && this.an.ringAtoms.has(r.n)) {
@@ -2458,7 +4170,7 @@ class Namer {
           if (!text && m) text = R.text.slice(0, m.index) + `${t.indicatedH && !R.text.slice(0, m.index).endsWith('H-') ? '' : ''}${t.name}-${m[1]}-carbonyl`;
         }
         if (!text) text = `${R.complex ? `(${R.text})` : R.text}carbonyl`;
-        return { text, complex: true, sortKey: text.replace(/[^a-z]/g, '') };
+        return { text, complex: true, sortKey: sortKeyOf(text) };
       }
       if (re === 'N') {
         const nsubs = mol.neighbours(r.n).filter((n) => n !== a);
@@ -2467,7 +4179,7 @@ class Namer {
         // What is on the nitrogen, double-bonded as an ylidene: ((diaminomethylidene)carbamoyl), (dimethylcarbamoyl).
         const S = nsubs.map((n) => (mol.bondBetween(r.n, n)!.order === 2 ? this.ylidene(n, r.n) : this.substituent(n, r.n)));
         const text = `${citeRun(countSubs(S))}carbamoyl`;
-        return { text, complex: true, sortKey: text.replace(/[^a-z]/g, '') };
+        return { text, complex: true, sortKey: sortKeyOf(text) };
       }
       if (re === 'S' && rest.length === 1 && r.o === 1 && mol.neighbours(r.n).length === 2 && !this.an.ringAtoms.has(r.n)) {
         // C(=O)S-R hanging off something: ((methylthio)carbonyl).
@@ -2480,6 +4192,8 @@ class Namer {
         if (this.an.ringAtoms.has(r.n)) {
           const R = this.ringSubstituent(r.n, a);
           if (R.text === 'phenyl') return simple('benzoyl');
+          const c = ringCarbonyl(R.text);
+          if (c) return { text: c, complex: true, sortKey: sortKeyOf(c) };
           return { text: `${R.complex ? `(${R.text})` : R.text}carbonyl`, complex: true, sortKey: `${R.sortKey}carbonyl` };
         }
         const chain = this.alkyl(a, from, 'oyl');
@@ -2581,7 +4295,10 @@ class Namer {
     if (ending === 'yl' && sat && prefixes.length && prefixes.every((x) => x.text === 'methyl')) {
       const locs = prefixes.map((x) => numbering.get(x.at as AtomId)).sort().join(',');
       if (n === 3 && fv === 2 && locs === '2') return { text: 'tert-butyl', complex: true, sortKey: 'butyl' };
+      if (n === 4 && fv === 2 && locs === '2') return { text: 'tert-pentyl', complex: true, sortKey: 'pentyl' };
       if (n === 3 && fv === 1 && locs === '2') return { text: 'isobutyl', complex: false, sortKey: 'isobutyl' };
+      if (n === 4 && fv === 1 && locs === '3') return { text: 'isopentyl', complex: false, sortKey: 'isopentyl' };
+      if (n === 3 && fv === 1 && locs === '2,2') return { text: 'neopentyl', complex: false, sortKey: 'neopentyl' };
     }
     if (ending === 'yl' && sat && n === 1 && prefixes.length === 1 && prefixes[0]!.text === 'phenyl') return { text: 'benzyl', complex: false, sortKey: 'benzyl' };
     if (ending === 'ylidene' && n === 1 && prefixes.length === 1 && prefixes[0]!.text === 'phenyl') {
@@ -2606,7 +4323,7 @@ class Namer {
     const text = stereo ? `${stereo}-${plain}` : plain;
     // A substituent that has substituents goes in brackets: (bromomethyl)benzene.
     const complex = prefixes.length > 0 || /[0-9]/.test(text) || text.includes('(');
-    return { text, complex, sortKey: plain.replace(/^(tert|sec)-/, '').replace(/[^a-z]/g, '') };
+    return { text, complex, sortKey: sortKeyOf(plain) };
   }
 
   ringSubstituent(a: AtomId, from: AtomId, ylidene = false): SubName {
@@ -2615,6 +4332,7 @@ class Namer {
     const r = recognizeRing(this.an, system);
     if (!r) throw new OutOfScope('ring substituent without a supported name');
     const mol = this.mol;
+    if (!ylidene) { const asm = this.assemblySubstituent(a, from, { kind: 'ring', atoms: system, numberings: r.numberings, ring: r.info }); if (asm) return asm; }
     const inS = new Set(system);
     // A triple bond in the ring would be written as one more "ene" below.
     if ([...mol.bonds()].some((b) => b.order === 3 && inS.has(b.begin) && inS.has(b.end))) throw new OutOfScope('ring substituent with a triple bond');
@@ -2634,18 +4352,26 @@ class Namer {
     if (r.info.kind !== 'template' && r.info.kind !== 'spiro') for (const b of mol.bonds()) if (inS.has(b.begin) && inS.has(b.end) && b.order === 2) unsat.push([b.begin, b.end]);
     const ringP: Parent = { kind: 'ring', atoms: system, numberings: r.numberings, ring: r.info };
     for (const numbering of r.numberings) {
+      const heteros = r.info.kind === 'vonbaeyer' || r.info.kind === 'cyclo' ? system.filter((x) => el(mol, x) !== 'C') : [];
       const key: (number | number[])[] = [
+        // A von Baeyer or replacement name numbers its heteroatoms first: 2-oxa-6-azaspiro[3.3]heptan-6-yl.
+        heteros.map((x) => locVal(numbering.get(x)!)).sort((x, y) => x - y),
+        [...heteros].sort((x, y) => 'OSN'.indexOf(el(mol, x)) - 'OSN'.indexOf(el(mol, y))).map((x) => locVal(numbering.get(x)!)),
+        // Indicated hydrogen at the point of attachment where there is any: 9H-purin-9-yl.
+        (el(mol, a) === 'N' || ylidene) && (hydroOf.get(numbering)?.ih ?? []).length && !(hydroOf.get(numbering)?.ih ?? []).includes(a) ? 1 : 0,
         (hydroOf.get(numbering)?.ih ?? []).map((x) => locVal(numbering.get(x)!)).sort((x, y) => x - y),
         locVal(numbering.get(a)!),
         (hydroOf.get(numbering)?.hydro ?? []).map((x) => locVal(numbering.get(x)!)).sort((x, y) => x - y),
         unsat.map((u) => this.bondLocant(ringP, numbering, u)).sort((x, y) => x - y),
         pre.map((x) => locVal(numbering.get(x.at as AtomId)!)).sort((x, y) => x - y),
-        [...pre].sort((x, y) => x.sortKey.localeCompare(y.sortKey)).map((x) => locVal(numbering.get(x.at as AtomId)!)),
+        alphaLocs(pre, numbering),
       ];
       if (!best || cmpKey(key, best.key) < 0) best = { numbering, key, pre };
     }
     const numbering = best!.numbering;
-    const preText = this.prefixString(pre, numbering, false);
+    let preText = this.prefixString(pre, numbering, false);
+    if (pre.length >= 2 && new Set(pre.map((x) => x.text)).size === 1 && /^(fluoro|chloro|bromo|iodo)$/.test(pre[0]!.text)
+      && system.every((x) => mol.implicitHydrogens(x) === 0 && el(mol, x) === 'C')) preText = `per${pre[0]!.text}`;
     const fv = numbering.get(a)!;
     // Cationic ring nitrogens: piperidin-1-ium-4-yl.
     const iumLocs = system.filter((x) => isRingCation(mol, x)).map((x) => numbering.get(x)!).sort(compareLocant);
@@ -2661,20 +4387,30 @@ class Namer {
       // A ring atom double-bonded outwards needs a saturated position: 2,3-dihydro-...-2-ylidene.
       if (ylidene && !h && t.aromatic) throw new OutOfScope('ring ylidene substituent');
       if (h?.saturated && t.saturated) core = `${t.saturated.replace(/e$/, '')}${ium}-${fv}-yl`;
-      else if (h) core = `${withHydro(t.yl, h, numbering)}${ium}-${fv}-yl`;
+      else if (h && (el(mol, a) === 'N' || ylidene) && h.hydro.includes(a) && !h.ih.includes(a) && !ium) {
+        // Joined through a ring nitrogen that would be a hydro position: its hydrogen is added
+        // hydrogen, as low as it goes with the rest of the parent still a Kekulé structure:
+        // 3,4-dihydroquinolin-1(2H)-yl, 5,6-dihydro-[1,2,4]triazolo[4,3-a]pyrazin-7(8H)-yl, 2,3-dihydroquinazolin-4(1H)-ylidene.
+        const byLoc = (x: AtomId, y: AtomId) => compareLocant(numbering.get(x)!, numbering.get(y)!);
+        const others = h.hydro.filter((x) => x !== a).sort(byLoc);
+        const valid = h.capable ? others.filter((p) => { const left = h.capable!.filter((x) => x !== a && x !== p && !h.ih.includes(x)); return maxMatching(this.an, left) * 2 === left.length; }) : [];
+        const partner = valid[0] ?? others.find((x) => mol.bondBetween(a, x)) ?? others[0]!;
+        const rest: Hydro = { ...h, hydro: h.hydro.filter((x) => x !== a && x !== partner) };
+        core = `${withHydro((bridgeOf.get(numbering) ?? '') + t.yl, rest, numbering)}-${fv}(${numbering.get(partner)}H)-yl`;
+      } else if (h) core = `${withHydro((bridgeOf.get(numbering) ?? '') + t.yl, h, numbering)}${ium}-${fv}-yl`;
       else if (t.name === 'benzene') core = 'phenyl';
-      else if (t.name === 'morpholine' && fv === '4' && !ium) core = 'morpholino';
+      else if ((t.name === 'morpholine' || t.name === 'thiomorpholine') && fv === '4' && !ium) core = `${t.name.replace(/e$/, '')}o`;
       else core = `${t.indicatedH ? `${t.indicatedH}H-` : ''}${t.yl}${ium}-${fv}-yl`;
       if (ylidene) core += 'idene';
     } else if (r.info.kind === 'vonbaeyer') {
       const hetero = heteroPrefix(this.mol, system, numbering);
       const base2 = `${hetero}${r.info.bracket}${alkaneStem(r.info.size)}`;
       core = unsat.length
-        ? `${base2}-${unsat.map((u) => this.bondLocantText(ringP, numbering, u)).sort(compareLocant).join(',')}-${multiplier(unsat.length)}en${ium}-${fv}-yl`
+        ? `${base2}${multiplier(unsat.length) ? 'a' : ''}-${unsat.map((u) => this.bondLocantText(ringP, numbering, u)).sort(compareLocant).join(',')}-${multiplier(unsat.length)}en${ium}-${fv}-yl`
         : `${base2}an${ium}-${fv}-yl`;
       if (ylidene) core += 'idene';
     } else {
-      const hetero = heteroPrefix(this.mol, system, numbering);
+      const hetero = heteroPrefix(this.mol, system, numbering, true);
       const stem = `${hetero}cyclo${alkaneStem(r.info.size)}`;
       if (!unsat.length) core = hetero ? `${stem}an${ium}-${fv}-yl` : `${stem}yl`;
       else {
@@ -2684,10 +4420,11 @@ class Namer {
       }
       if (ylidene) core += 'idene';
     }
-    const plain = preText + (preText && /^[0-9]/.test(core) ? '-' : '') + core;
+    const plain = preText + (preText && /^[0-9[]/.test(core) ? '-' : '') + core;
     const stereo = this.stereoPrefix(system, numbering, from);
     const text = stereo ? `${stereo}-${plain}` : plain;
-    const complex = /[0-9]/.test(text) || text.includes('(');
-    return { text, complex, sortKey: plain.replace(/[^a-z]/g, '') };
+    const complex = /[0-9]/.test(text) || text.includes('(') || /^per/.test(preText);
+    // Nothing on the ring: two of them are di(1H-imidazol-1-yl), not bis.
+    return { text, complex, sortKey: sortKeyOf(plain), ...(complex && !pre.length && !stereo ? { di: true } : {}) };
   }
 }
