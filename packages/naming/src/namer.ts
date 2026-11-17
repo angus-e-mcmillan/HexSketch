@@ -168,6 +168,16 @@ function ringCarbonyl(yl: string): string | null {
   return `${r[1]}${/(furan|pyran)$/.test(r[1]!) ? '' : 'e'}-${r[2]}-carbonyl`;
 }
 
+/** The ester word for an acyl group: acetyl, acetate; octanoyl, octanoate; benzoyl, benzoate. */
+function esterWord(acyl: string): string | null {
+  if (/[()\d]/.test(acyl)) return null;
+  if (acyl === 'acetyl') return 'acetate';
+  if (acyl === 'benzoyl') return 'benzoate';
+  if (/anoyl$|enoyl$/.test(acyl)) return acyl.replace(/oyl$/, 'oate');
+  const RET: Record<string, string> = { acryloyl: 'acrylate', palmitoyl: 'palmitate', stearoyl: 'stearate', methacryloyl: 'methacrylate', formyl: 'formate' };
+  return RET[acyl] ?? null;
+}
+
 /** An acylamino prefix as one word: acetamido, 2-phenylacetamido, pentanamido, benzamido, pyrazine-2-carboxamido. */
 function amido(acyl: string): string | null {
   if (/acetyl$/.test(acyl)) return acyl.replace(/acetyl$/, 'acetamido');
@@ -3145,6 +3155,8 @@ class Namer {
   nameEster(): string {
     const carbonic = this.carbonicEster();
     if (carbonic) return carbonic;
+    const onAlcohol = this.polyolEster();
+    if (onAlcohol) return onAlcohol;
     const best = this.chooseParent();
     const p = best.parent;
     const sites = this.principalSites(p);
@@ -3181,6 +3193,41 @@ class Namer {
       return `${locs.sort(compareLocant).join(',')}-${body}`;
     });
     return `${words.join(' ')} ${acid}`;
+  }
+
+  /**
+   * Several esters of one acid on one alcohol, named on the alcohol: propane-1,2,3-triyl trioctanoate,
+   * (...)-octahydro-2H-indeno[5,6-b]furan-5,7-diyl diacetate. Null where the acids differ or the
+   * alcohol parts are not one piece.
+   */
+  polyolEster(): string | null {
+    const mol = this.mol;
+    const esters = this.principalGroups.filter((g) => g.kind === 'ester');
+    if (esters.length < 2 || esters.length !== this.principalGroups.length) return null;
+    // Each acid part: the acyl carbon with whatever is on it but the ester oxygen.
+    const acidOf = (g: Group) => {
+      const o = g.consumed[1]!, seen = new Set<AtomId>([g.anchor]), stack = [g.anchor];
+      while (stack.length) { const x = stack.pop()!; for (const y of mol.neighbours(x)) if (y !== o && !seen.has(y)) { seen.add(y); stack.push(y); } }
+      return seen;
+    };
+    const acids = esters.map(acidOf);
+    const all = new Set(acids.flatMap((a) => [...a]));
+    if (acids.reduce((n, a) => n + a.size, 0) !== all.size) return null;
+    const rest = [...mol.atoms()].map((a) => a.id).filter((x) => !all.has(x) && !esters.some((g) => g.consumed[1] === x));
+    // The acids must be the same: name one as an acyl group and compare.
+    const acyl = esters.map((g) => { try { return this.substituent(g.anchor, g.consumed[1]!).text; } catch { return null; } });
+    if (acyl.some((a) => a === null || a !== acyl[0])) return null;
+    const ends = esters.map((g) => g.esterCarbon!);
+    if (!ends.every((e) => rest.includes(e))) return null;
+    // The alcohol part in one piece.
+    const restSet = new Set(rest), seen = new Set<AtomId>([rest[0]!]), stack = [rest[0]!];
+    while (stack.length) { const x = stack.pop()!; for (const y of mol.neighbours(x)) if (restSet.has(y) && !seen.has(y)) { seen.add(y); stack.push(y); } }
+    if (seen.size !== rest.length) return null;
+    const core = this.coreDiyl(rest, ends);
+    if (!core) return null;
+    const acid = esterWord(acyl[0]!);
+    if (!acid) return null;
+    return `${core} ${multiplier(esters.length)}${acid}`;
   }
 
   // -------------------------------------------------------- substituents
