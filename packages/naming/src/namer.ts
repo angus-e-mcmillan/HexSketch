@@ -1149,11 +1149,10 @@ function nameMixture(mol: Molecule, frags: AtomId[][]): string {
     // A polyatomic anion is multiplied with bis, tris: bis(phosphate), as diphosphate is P2O7 4-.
     // So is one whose name starts with a multiplier (bis(tetrafluoroborate)); nitrate or thiocyanate takes di.
     const polyatomic = new Set(anions.filter((i) => i.simple && (i.atoms ?? 1) > 1 && (i.charge <= -2 || /^(di|tri|tetra|hexa)/.test(i.name))).map((i) => i.name));
-    // A simple cation with a simple anion needs no count, their charges say it: sodium carbonate,
-    // calcium chloride, titanium(IV) chloride. Counts are kept where an ion is an organic one
-    // (disodium propanedioate), and always when there are several kinds.
+    // One cation with one anion needs no count, their charges say it: sodium carbonate, calcium chloride,
+    // sodium malonate. Counts are kept when there are several kinds.
     const several = ck.length > 1 || ak.length > 1;
-    const countCations = several || anions.some((i) => !i.simple), countAnions = several || cations.some((i) => !i.simple);
+    const countCations = several, countAnions = several;
     const group = (list: [string, number][], counted: boolean) => list.map(([name, n]) => `${counted && n > 1 ? (/[ (\d]/.test(name) || polyatomic.has(name) ? `${complexMultiplier(n)}(${name})` : multiplier(n) + name) : name}`).join(' ');
     parts.push([group(ck, countCations), group(ak, countAnions)].filter(Boolean).join(' '));
   }
@@ -1396,7 +1395,8 @@ function nameOneSystematic(input: Molecule): string {
   namer.afterRanking = costly;
   const raw = retainedRings(namer.functionalClassName() ?? namer.name());
   // Beside a centre left unspecified, a descriptor in front would not say which centre it is.
-  const name = namer.openStereo([...namer.mol.atoms()].map((a) => a.id)) ? raw : frontLoneDescriptor(raw);
+  const openKinds = namer.openStereoKinds([...namer.mol.atoms()].map((a) => a.id));
+  const name = frontLoneDescriptor(raw, openKinds);
   costly();
   // A configuration the name has no place for (a phosphane's P, an ammonium N) is not dropped silently.
   if ([...namer.rs.keys()].some((a) => !namer.cited.has(a))) throw new OutOfScope('stereocentre the name cannot cite');
@@ -1472,9 +1472,11 @@ function retainedMolecule(mol: Molecule): string | null {
  * that centre or double bond is: (S)-3-(1-methylpyrrolidin-2-yl)pyridine, (E)-5-(4-hydroxystyryl)benzene-1,3-diol.
  * In an ester or salt name, in front of the word that holds it.
  */
-export function frontLoneDescriptor(name: string): string {
+export function frontLoneDescriptor(name: string, open: { centre: boolean; bond: boolean } = { centre: false, bond: false }): string {
   const all = [...name.matchAll(/\((?:\d+[a-z]?'*)?[RSEZrs](?:,(?:\d+[a-z]?'*)?[RSEZrs])*\)-?/g)];
   if (all.length !== 1) return name;
+  // Beside an open element of its own kind, a descriptor in front would not say which one it is.
+  if (/^\([RS]\)/.test(all[0]![0]) ? open.centre : open.bond) return name;
   // An amino acid's L or D is a configuration too.
   if (/(^|[-( ])[DL]-[a-z]/.test(name)) return name;
   const m = all[0]!;
@@ -1795,7 +1797,7 @@ class Namer {
       if (fs.length === 3) {
         const R = this.substituent(carbonNbrs[0]!, c.id);
         // "propanoyltrifluoroborate": the way chemists write KATs, and OPSIN-parsable.
-        return `${R.complex ? `(${R.text})` : R.text}trifluoroborate`;
+        return `trifluoro(${R.text})borate`;
       }
     }
     if (c.element === 'P' && this.an.ringAtoms.has(c.id)) return null;
@@ -2394,11 +2396,21 @@ class Namer {
     if (!items.length) return '';
     // A lone descriptor of its kind goes without its locant, (2S,3R,E), only where nothing else in the
     // skeleton could take it: beside a centre left unspecified, a bare "(S)" would not say which one is meant.
-    const open = this.openStereo(atoms);
+    // ... only beside one of its own kind: a lone (Z) cannot mean a centre.
+    const open = this.openStereoKinds(atoms);
     const rs = items.filter(([, d]) => d === 'R' || d === 'S').sort((p, q) => compareLocant(p[0], q[0]));
     const ez = items.filter(([, d]) => d === 'E' || d === 'Z').sort((p, q) => compareLocant(p[0], q[0]));
-    const cite = (xs: [string, string][]) => xs.map(([l, d]) => (xs.length === 1 && !open ? d : `${l}${d}`));
-    return `(${[...cite(rs), ...cite(ez)].join(',')})`;
+    const cite = (xs: [string, string][], openHere: boolean) => xs.map(([l, d]) => (xs.length === 1 && !openHere ? d : `${l}${d}`));
+    return `(${[...cite(rs, open.centre), ...cite(ez, open.bond)].join(',')})`;
+  }
+
+  /** Which kinds of stereo element the skeleton holds that could have a configuration but were given none. */
+  openStereoKinds(atoms: AtomId[]): { centre: boolean; bond: boolean } {
+    const inSet = new Set(atoms);
+    const centre = atoms.some((a) => this.openCentre(a));
+    let bond = false;
+    for (const b of this.mol.bonds()) if ((inSet.has(b.begin) || inSet.has(b.end)) && this.openBond(b.id)) { bond = true; break; }
+    return { centre, bond };
   }
 
   /** Does the skeleton hold a centre or double bond that could have a configuration but was given none? */
@@ -2710,8 +2722,10 @@ class Namer {
           -pre.length,
           pre.filter((x) => x.at !== 'N').map((x) => locVal(numbering.get(x.at as AtomId)!)).sort((x, y) => x - y),
           alphaLocs(pre.filter((x) => x.at !== 'N'), numbering),
-          // Then a group on a principal nitrogen as low as it goes: N1-(3-aminopropyl)butane-1,4-diamine.
+          // Then a group on a principal nitrogen as low as it goes: N1-(3-aminopropyl)butane-1,4-diamine;
+          // and in alphabetical order: N1-ethyl-N3-methylmalonamide.
           pre.filter((x) => x.at === 'N' && x.nOf !== undefined).map((x) => locVal(numbering.get(x.nOf!)!)).sort((x, y) => x - y),
+          alphaLocs(pre.filter((x) => x.at === 'N' && x.nOf !== undefined).map((x) => ({ ...x, at: x.nOf! })), numbering),
         ];
         if (!best || cmpKey(key, best.key) < 0) best = { parent: p, numbering, key };
         const k = p.kind === 'ring' ? 'ring' : 'chain';
