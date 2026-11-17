@@ -161,6 +161,8 @@ function chemistStyle(s: SubName): SubName {
   let m = /^(\([EZ]\)-)?\((.+)phenyl\)methyl(idene)?$/.exec(t);
   if (m && balanced(m[2]!) && (!m[1] || m[3])) return mk(`${m[1] ?? ''}${m[2]}benzyl${m[3] ? 'idene' : ''}`);
   if (t === 'phenylmethylidene') return mk('benzylidene', false);
+  m = /^(\([EZ]\)-)?\(([omp])-tolyl\)methyl(idene)?$/.exec(t);
+  if (m && (!m[1] || m[3])) return mk(`${m[1] ?? ''}${({ o: 2, m: 3, p: 4 } as Record<string, number>)[m[2]!]}-methylbenzyl${m[3] ? 'idene' : ''}`);
   // (E)-2-(4-hydroxyphenyl)eth-1-en-1-yl: (E)-4-hydroxystyryl.
   m = /^(\([EZ]\)-)?2-(?:\((.+)phenyl\)|phenyl)eth-1-en-1-yl$/.exec(t);
   if (m && balanced(m[2] ?? '')) return mk(`${m[1] ?? ''}${m[2] ?? ''}styryl`, true);
@@ -3081,13 +3083,16 @@ class Namer {
   ringBranches(chain: AtomId[]): number {
     const mol = this.mol, inChain = new Set(chain);
     let n = 0, direct = 0;
+    const kinds = new Set<string>();
     for (const a of chain) for (const b of mol.neighbours(a)) {
       if (inChain.has(b)) continue;
       const seen = new Set<AtomId>([b]), stack = [b];
       let ring = false;
       while (stack.length && !ring) { const x = stack.pop()!; if (this.an.ringAtoms.has(x)) ring = true; for (const y of mol.neighbours(x)) if (!inChain.has(y) && !seen.has(y)) { seen.add(y); stack.push(y); } }
-      if (ring) { n++; direct += this.an.ringAtoms.has(b) ? 1 : 0; }
+      if (ring) { n++; direct += this.an.ringAtoms.has(b) ? 1 : 0; try { kinds.add(this.substituent(b, a).text); } catch { kinds.add(`?${b}`); } }
     }
+    // Only like rings make the chain the parent: diphenylmethane, but 1-benzylpyrrolidine.
+    if (kinds.size > 1) return 0;
     // A ring held directly beside one held through other atoms leaves the ring the parent:
     // 3-(1-(phenylsulfinyl)propyl)furan.
     return direct && direct < n ? 0 : n;
@@ -3809,6 +3814,15 @@ class Namer {
       // -NH-NH2 hydrazineyl; other N, O and S neighbours are named as prefixes on amino:
       // (phenylamino)amino, hydroxyamino, (methylsulfonyl)amino.
       if (others.length === 1 && el(mol, others[0]!) === 'N' && mol.neighbours(others[0]!).length === 1 && mol.atom(others[0]!).charge === 0) return simple('hydrazineyl');
+      // -NH-N=CR2: 2-(3-methylbenzylidene)hydrazineyl.
+      const o0 = others[0]!;
+      const hz = others.length === 1 && el(mol, o0) === 'N' && mol.atom(o0).charge === 0 && !this.an.ringAtoms.has(o0) && mol.neighbours(o0).length === 2
+        ? mol.neighbours(o0).find((x) => x !== a && el(mol, x) === 'C' && mol.bondBetween(o0, x)!.order === 2) : undefined;
+      if (hz !== undefined) {
+        const Y = this.ylidene(hz, o0);
+        const text = `2-${Y.complex ? `(${Y.text})` : Y.text}hydrazineyl`;
+        return { text, complex: true, sortKey: sortKeyOf(text) };
+      }
       const acyl = others.find((n) => isAcylCarbon(mol, n));
       if (acyl !== undefined && others.length === 1) {
         const A = this.substituent(acyl, a);
