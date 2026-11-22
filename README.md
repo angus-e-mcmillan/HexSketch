@@ -8,11 +8,11 @@ Claude sees the drawing. Claude answers by drawing back: structures, reaction
 schemes with reagents and conditions, highlighted groups and notes, all in the
 same editor you're both working in.
 
-<p align="center">
-  <img src="docs/images/sitagliptin-scheme.png" alt="Reaction scheme drawn by HexSketch: the prositagliptin ketone, with transaminase ATA-117, PLP and iPrNH2 in DMSO/water at 40 °C, gives (R)-sitagliptin" width="820">
-</p>
-<p align="center"><sub>The enzymatic step in Merck's sitagliptin (Januvia) process, drawn by HexSketch.
-Both compounds are drawn the same way round, and the new stereocentre has its wedge.</sub></p>
+https://github.com/user-attachments/assets/3af429fc-bdcb-4fae-bc4d-4b9d913cb8ef
+
+Now supported in Codex (OpenAI), and as a standalone application (https://hexsketch.com) with LLM access provided through OpenRouter.
+
+https://github.com/user-attachments/assets/09eaabfb-8995-4fe1-8d36-1e7e4f39b898
 
 ## Add it to Claude
 
