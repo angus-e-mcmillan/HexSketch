@@ -41,51 +41,96 @@ Tools: `open_sketcher`, `read_sketcher`, `show_in_sketcher`,
 
 ## Where to submit
 
-Checked November 2026. Do them in this order: the MCP Registry first, since
-Glama, mcp.directory and PulseMCP copy from it.
+Checked November 2026. The Claude connector directory was submitted in
+November 2026 (status: claude.ai/directory/manage; mcp-review@anthropic.com).
 
-1. **The official MCP Registry** (registry.modelcontextprotocol.io). Free, not
-   reviewed. `server.json` at the repo root is ready. Install `mcp-publisher`
-   (see the registry's quickstart), then, from the repo root:
-   `mcp-publisher login github`, then `mcp-publisher publish`. The name
-   `io.github.angus-e-mcmillan/hexsketch` works with that GitHub login. After
-   the first npm publish, add the npm package to `server.json` (`packages`)
-   and `"mcpName": "io.github.angus-e-mcmillan/hexsketch"` to
-   `packages/hexsketch/package.json`, and publish again with the new version.
-2. **Claude's connector directory (Anthropic).** The listing that puts
-   HexSketch inside Claude, so the most valuable one. Submit in the Claude
-   directory portal (claude.ai/directory/manage, choose *MCP connector*; it
-   needs admin rights in a Claude organization), following
-   claude.com/docs/connectors/building/submission and its review criteria.
-   Give the longer description, the connector URL, the privacy page, and three
-   example prompts from the README ("Things to ask"). The tools already carry
-   the read-only and destructive hints that reviewers check. Questions:
-   mcp-review@anthropic.com.
-3. **Glama** (glama.ai/mcp/servers): it finds public GitHub repos with MCP
-   servers and the registry. Find HexSketch there or add the repo, then claim
-   it with the GitHub account and paste the longer description.
-4. **Smithery** (smithery.ai): add it as a remote server by its URL, with the
-   one-line description.
-5. **mcp.so**: submit the repo or the connector URL; it is reviewed before it
-   goes live. The paid "featured" option isn't needed.
-6. **mcpservers.org** (mcpservers.org/submit): free form; skip the paid option.
-7. **mcp.directory**: paste the GitHub repo URL.
-8. **PulseMCP** (pulsemcp.com): closed to submissions for now; it will take
-   HexSketch from the registry.
-9. **awesome-mcp-servers** (github.com/punkpeye/awesome-mcp-servers): a pull
-   request adding one line in alphabetical order to the science or biology
-   and chemistry section:
-   ```
-   - [angus-e-mcmillan/HexSketch](https://github.com/angus-e-mcmillan/HexSketch) 📇 ☁️ 🏠 - Chemical structure editor in the chat: draw, name and check molecules and reaction schemes with the AI (offline IUPAC names, SMILES checks, CDXML/MOL/PNG).
-   ```
-   (📇 TypeScript, ☁️ hosted, 🏠 local; check the legend at the top of their
-   README in case it has changed.)
-10. **awesome-cheminformatics** (github.com/hsiaoyi0504/awesome-cheminformatics):
-    a pull request under the visualization or drawing section:
-    ```
-    - [HexSketch](https://hexsketch.com) - Chemical structure editor in the browser with offline IUPAC naming, CDXML/MOL support and an MCP server for AI assistants.
-    ```
-11. **Reddit**: r/mcp and r/ClaudeAI for the MCP side, alongside the chemistry
-    subreddits in docs/launch.md. Lead with the demo video.
+### 1. The official MCP Registry
 
-Neither awesome list, the registry nor npm had HexSketch when checked.
+Free and not reviewed. Glama, mcp.directory and PulseMCP copy from it, so do
+it first. `.github/workflows/publish-mcp.yml` publishes `server.json`, with
+GitHub proving to the registry that the repo is ours (no token, no login).
+
+1. Merge the branch with that workflow into `main` (the Actions tab only
+   offers to run workflows that are on `main`).
+2. github.com/angus-e-mcmillan/HexSketch › **Actions** › **Publish to MCP
+   Registry** › **Run workflow** › branch `main` › **Run workflow**.
+3. When it's green, check
+   `https://registry.modelcontextprotocol.io/v0.1/servers?search=hexsketch`.
+
+From then on it runs on every version tag (`v0.1.9`, ...), alongside
+`release.yml`, with the version from `packages/hexsketch/package.json`. The
+registry takes each version once, so a re-run of the same version fails;
+that's harmless. After the first npm publish, add the npm package to
+`server.json` (`packages`) and `"mcpName": "io.github.angus-e-mcmillan/hexsketch"`
+to `packages/hexsketch/package.json`.
+
+### 2. Claude's connector directory (Anthropic)
+
+Done. Give the longer description, the connector URL, the privacy page and
+three prompts from the README ("Things to ask").
+
+### 3. Directory sites
+
+Each needs a browser and a sign-in (GitHub where offered). Use the texts from
+"The short version" and "The longer description" above.
+
+- **Glama** (glama.ai/mcp/servers). It picks up the registry entry and public
+  GitHub repos within a day or so. Search "HexSketch"; if it isn't there,
+  **Add Server** and paste the repo URL. Sign in with GitHub and **Claim**
+  it: `glama.json` at the repo root names the maintainer, which is how Glama
+  checks the claim. Then edit the description and categories (Science,
+  Chemistry). Glama also lists remote connectors (glama.ai/mcp/connectors):
+  add `https://mcp.hexsketch.com/mcp` there too, so it's scored. Copy the
+  score badge Glama shows (Markdown) for the awesome list below.
+- **Smithery** (smithery.ai). Sign in with GitHub › **Publish server** ›
+  choose the URL (remote) option › `https://mcp.hexsketch.com/mcp`. Smithery
+  connects to read the tools; no login needed as the server has none. Set
+  the name and the one-line description.
+- **mcp.so**. Sign in › **Submit** › paste the repo URL; reviewed before it
+  goes live. Skip the paid "featured" option.
+- **mcpservers.org/submit**. Free form: name, repo URL, one-line description,
+  category (Science or Other). Skip the paid option.
+- **mcp.directory**. **Submit**, paste the repo URL.
+- **PulseMCP** is closed to submissions; it takes servers from the registry.
+
+### 4. Awesome lists (pull requests)
+
+Easiest in the browser: open the "edit" link, GitHub forks the list for you,
+paste the line in the place given, **Commit changes** › **Propose changes** ›
+**Create pull request**.
+
+**awesome-mcp-servers** (for servers with a public repo).
+Edit: github.com/punkpeye/awesome-mcp-servers/edit/main/README.md. In
+*Biology, Medicine and Bioinformatics* (find `name="bio"`), add after the
+`ammawla/encode-toolkit` line (alphabetical):
+```
+- [angus-e-mcmillan/HexSketch](https://github.com/angus-e-mcmillan/HexSketch) 📇 ☁️ 🏠 🍎 🪟 🐧 - Chemical structure editor inside the chat: the AI sees what you draw and draws back molecules, reaction schemes and mechanisms, with offline IUPAC names, SMILES checks and CDXML/MOL/PNG export.
+```
+Once Glama lists HexSketch, put its badge between the link and 📇, as the
+other entries do; the maintainers merge those first. PR title:
+`Add HexSketch`. PR text: "Adds HexSketch, a chemical structure editor MCP
+server (hosted and local). Glama: <link to the Glama page>."
+
+**awesome-remote-mcp-servers** (for hosted URLs).
+Edit: github.com/punkpeye/awesome-remote-mcp-servers/edit/main/README.md. In
+*Science & Research* (find `name="science--research"`), add after the
+`FERS: structural finite-element analysis` entry and before `Ithy Research
+Library`:
+```
+- [HexSketch](https://hexsketch.com/ai) `https://mcp.hexsketch.com/mcp`
+  🔓 - Chemical structure editor in the chat: draw molecules, reaction schemes and mechanisms with the AI; offline IUPAC names, SMILES checks, CDXML/MOL export.
+```
+Once Glama lists the connector, add its badge as a line between those two,
+indented two spaces, as the other entries do.
+
+**awesome-cheminformatics**.
+Edit: github.com/hsiaoyi0504/awesome-cheminformatics/edit/master/README.md.
+Under *Applications › Visualization*, add after the `DataWarrior` line:
+```
+* [HexSketch](https://hexsketch.com) - Chemical structure editor in the browser with offline IUPAC naming, CDXML/MOL support and an MCP server that lets AI assistants draw structures and reaction schemes.
+```
+
+### 5. Reddit
+
+r/mcp and r/ClaudeAI for the MCP side, alongside the chemistry subreddits in
+docs/launch.md. Lead with the demo video.
