@@ -78,8 +78,15 @@ let catalogue: Record<string, number> | null = null;
  */
 export const VENDORS_NEEDED = 30;
 
-/** At most this many heavy atoms makes a compound a commodity, bought without a thought (hydrazine, methylamine, HCl). */
-const COMMODITY_ATOMS = 4;
+/**
+ * At most this many heavy atoms makes a compound a commodity, bought without a
+ * thought (hydrazine, methylamine, HCl, MsCl). Five rather than four because
+ * PubChem lists 29 vendors for methanesulfonyl chloride, one short of
+ * VENDORS_NEEDED, and a route was being marked down for mesylating an alcohol:
+ * at this size the vendor count says more about PubChem's records than about
+ * whether a chemist can get the bottle.
+ */
+const COMMODITY_ATOMS = 5;
 
 /** How many chemical vendors PubChem lists for a compound; null when PubChem cannot be asked. Cached in results/vendors.json. */
 export async function vendorCount(smiles: string): Promise<number | null> {

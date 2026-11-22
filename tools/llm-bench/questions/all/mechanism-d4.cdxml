@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="5.38 5.73 258.90 235.91" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="82.54 99.28"/>
+<n id="1003" p="80.61 80.95"/>
+<n id="1004" p="95.52 70.12"/>
+<n id="1005" p="93.59 51.80" NumHydrogens="0"/>
+<n id="1006" p="77.64 61.01"/>
+<n id="1007" p="61.68 51.80"/>
+<n id="1008" p="45.72 61.01" Element="8"/>
+<n id="1009" p="61.68 33.37"/>
+<n id="1010" p="45.72 24.16"/>
+<n id="1011" p="29.77 33.37" Element="8"/>
+<n id="1012" p="13.81 24.16"/>
+<n id="1013" p="45.72 5.73" Element="8"/>
+<n id="1014" p="77.64 24.16"/>
+<n id="1015" p="93.59 33.37" NumHydrogens="1"/>
+<n id="1016" p="111.12 27.68"/>
+<n id="1017" p="121.95 42.58"/>
+<n id="1018" p="111.12 57.49"/>
+<n id="1019" p="63.78 73.46" Element="35"/>
+<b id="1020" B="1002" E="1003" Order="2"/>
+<b id="1021" B="1003" E="1019"/>
+<b id="1022" B="1003" E="1004"/>
+<b id="1023" B="1004" E="1005" Display="WedgedHashEnd"/>
+<b id="1024" B="1005" E="1018"/>
+<b id="1025" B="1018" E="1017"/>
+<b id="1026" B="1017" E="1016" Order="2"/>
+<b id="1027" B="1016" E="1015"/>
+<b id="1028" B="1005" E="1015"/>
+<b id="1029" B="1015" E="1014" Display="WedgeBegin"/>
+<b id="1030" B="1014" E="1009"/>
+<b id="1031" B="1009" E="1010"/>
+<b id="1032" B="1010" E="1013" Order="2"/>
+<b id="1033" B="1010" E="1011"/>
+<b id="1034" B="1011" E="1012"/>
+<b id="1035" B="1009" E="1007"/>
+<b id="1036" B="1007" E="1008" Order="2"/>
+<b id="1037" B="1007" E="1006"/>
+<b id="1038" B="1005" E="1006"/>
+</fragment>
+<fragment id="1039">
+<n id="1040" p="104.80 223.16"/>
+<n id="1041" p="87.97 215.67"/>
+<n id="1042" p="86.04 197.34"/>
+<n id="1043" p="69.21 189.85" NumHydrogens="0"/>
+<n id="1044" p="69.21 208.27"/>
+<n id="1045" p="53.25 217.48"/>
+<n id="1046" p="53.25 235.91" Element="8"/>
+<n id="1047" p="37.30 208.27"/>
+<n id="1048" p="21.34 217.48"/>
+<n id="1049" p="5.38 208.27" Element="8" Charge="-1" NumHydrogens="0"><t><s font="3" size="11.00" face="97">O-</s></t></n>
+<n id="1050" p="21.34 235.91" Element="8"/>
+<n id="1051" p="37.30 189.85"/>
+<n id="1052" p="53.25 180.63" NumHydrogens="1"/>
+<n id="1053" p="57.08 162.61"/>
+<n id="1054" p="75.41 160.69"/>
+<n id="1055" p="82.90 177.52"/>
+<n id="1056" p="73.06 226.50" Element="35"/>
+<b id="1057" B="1040" E="1041" Order="2"/>
+<b id="1058" B="1041" E="1056"/>
+<b id="1059" B="1041" E="1042"/>
+<b id="1060" B="1042" E="1043" Display="WedgedHashEnd"/>
+<b id="1061" B="1043" E="1055"/>
+<b id="1062" B="1055" E="1054"/>
+<b id="1063" B="1054" E="1053" Order="2"/>
+<b id="1064" B="1053" E="1052"/>
+<b id="1065" B="1043" E="1052"/>
+<b id="1066" B="1052" E="1051" Display="WedgeBegin"/>
+<b id="1067" B="1051" E="1047"/>
+<b id="1068" B="1047" E="1048"/>
+<b id="1069" B="1048" E="1050" Order="2"/>
+<b id="1070" B="1048" E="1049"/>
+<b id="1071" B="1047" E="1045"/>
+<b id="1072" B="1045" E="1046" Order="2"/>
+<b id="1073" B="1045" E="1044"/>
+<b id="1074" B="1043" E="1044"/>
+</fragment>
+<fragment id="1075">
+<n id="1076" p="258.90 223.16"/>
+<n id="1077" p="242.07 215.67"/>
+<n id="1078" p="240.14 197.34"/>
+<n id="1079" p="223.31 189.85" NumHydrogens="0"/>
+<n id="1080" p="223.31 208.27"/>
+<n id="1081" p="207.35 217.48"/>
+<n id="1082" p="207.35 235.91" Element="8"/>
+<n id="1083" p="191.40 208.27"/>
+<n id="1084" p="191.40 189.85"/>
+<n id="1085" p="207.35 180.63" NumHydrogens="1"/>
+<n id="1086" p="211.19 162.61"/>
+<n id="1087" p="229.51 160.69"/>
+<n id="1088" p="237.00 177.52"/>
+<n id="1089" p="227.16 226.50" Element="35"/>
+<b id="1090" B="1076" E="1077" Order="2"/>
+<b id="1091" B="1077" E="1089"/>
+<b id="1092" B="1077" E="1078"/>
+<b id="1093" B="1078" E="1079" Display="WedgedHashEnd"/>
+<b id="1094" B="1079" E="1088"/>
+<b id="1095" B="1088" E="1087"/>
+<b id="1096" B="1087" E="1086" Order="2"/>
+<b id="1097" B="1086" E="1085"/>
+<b id="1098" B="1079" E="1085"/>
+<b id="1099" B="1085" E="1084" Display="WedgeBegin"/>
+<b id="1100" B="1084" E="1083"/>
+<b id="1101" B="1083" E="1081"/>
+<b id="1102" B="1081" E="1082" Order="2"/>
+<b id="1103" B="1081" E="1080"/>
+<b id="1104" B="1079" E="1080"/>
+</fragment>
+<arrow id="1109" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="224.82 52.51 0" Tail3D="142.21 52.51 0"/>
+<t id="1105" p="175.86 33.01" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">NaCl, DMSO,&#10;125 °C</s></t>
+<t id="1106" p="245.09 56.51" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1107" p="0.00 131.87" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Give the mechanism as each intermediate in order, ending with the product. [5]</s></t>
+<t id="1108" p="0.00 150.87" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<arrow id="1110" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="171.13 198.30 0" Tail3D="125.07 198.30 0"/>
+</page></CDXML>

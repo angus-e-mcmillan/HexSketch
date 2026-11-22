@@ -35,9 +35,16 @@ of this page is that convention, which `paper.ts` follows.
 
 ## The file name gives the type
 
-`reaction-…`, `multistep-…`, `mechanism-…`, `retrosynthesis-…`,
+`reaction-…`, `multistep-…`, `mechanism-…`, `retrosynthesis-…`, `route-…`,
 `structure-…`, `analysis-…` or `hazard-…` (e.g. `reaction-2.cdxml`). Results
 are reported for each type.
+
+The suffix says which set a question belongs to, and so where it came from:
+plain numbers (`reaction-1`) are the paper, `-c` the candidates being tried
+out, `-h` and `-r` the harder questions (`-r` the ten a chemist drew in
+ChemDraw), and `-d` the exam, taken from the Chemistry by Design dataset --
+see [../README.md](../README.md#chemistry-by-design) for the citation and for
+the three checks a question from it has to pass.
 
 | Type | The chemist asks | The answer you draw |
 |---|---|---|

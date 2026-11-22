@@ -724,9 +724,426 @@ export const HARD: Spec[] = [
 ];
 
 /**
- * The sets a run can ask for. `all` is the paper and the harder questions
- * together: the first measures whether a model can carry a drug-sized molecule
- * through a transformation, the second whether it knows the chemistry, and a
- * benchmark that is to tell models apart wants both in one score.
+ * The exam, in questions/exam/: the question types the paper is thinnest on,
+ * drawn from Chemistry by Design (CbyD), a curated dataset of published total
+ * and process syntheses (Williams et al., arXiv:2611.24996, CC-BY 4.0).
+ *
+ * Every reaction here is a step a chemist published, and the answer is the
+ * product they drew: the chemistry is not invented, so what a model gets wrong
+ * is its own. Each step was checked before it was written down -- the atoms
+ * balance, and every stereocentre the step does not touch has the same
+ * configuration in the product as in the starting material (a chain where the
+ * dataset's own drawings disagreed on a centre was dropped, not patched).
+ *
+ * The questions are picked to lean on drawing rather than recall: molecules at
+ * the size where bookkeeping fails (a group dropped, a fluorine lost, a
+ * protecting group quietly removed), stereocentres that must be carried, and
+ * answers that are several structures rather than one.
  */
-export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, all: [...PAPER, ...HARD] };
+export const EXAM: Spec[] = [
+  // --------------------------------------------------------------- multistep
+  {
+    // Ritlecitinib (Pfizer). Three selectivities in a row: the acid takes the Boc
+    // and leaves the Cbz, the freed amine goes to C4 of the dichloride, and the
+    // hydrogenolysis takes the Cbz and the chloride together.
+    id: 'multistep-d1',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['C[C@H]1CC[C@@H](NC(=O)OC(C)(C)C)CN1C(=O)OCc1ccccc1', '?'], arrows: [{ reagents: 'i. 4 M HCl, dioxane/CH2Cl2, 0 °C → rt\nii. 2,4-dichloro-7H-pyrrolo[2,3-d]pyrimidine, DIPEA, n-BuOH, 140 °C\niii. H2 (1 atm), 10% Pd/C, MeOH/THF, 25–45 °C' }] },
+    answer: { sequence: ['C[C@H]1CC[C@@H](N)CN1C(=O)OCc1ccccc1', 'C[C@H]1CC[C@@H](Nc2nc(Cl)nc3[nH]ccc23)CN1C(=O)OCc1ccccc1', 'C[C@H]1CC[C@@H](Nc2ncnc3[nH]ccc23)CN1'] },
+  },
+  {
+    // Larotrectinib (Loxo). The aryl amine is acylated, not the ring nitrogens,
+    // and the carbamate is then displaced by the pyrrolidinol to the urea.
+    id: 'multistep-d2',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['O=[N+]([O-])c1cnn2ccc(N3CCC[C@@H]3c3cc(F)ccc3F)nc12', '?'], arrows: [{ reagents: 'i. H2 (1 atm), 5% Pt/C, MeOH\nii. phenyl chloroformate, K2CO3, 2-MeTHF/H2O\niii. (S)-pyrrolidin-3-ol, EtOH; then H2SO4' }] },
+    answer: { sequence: ['Nc1cnn2ccc(N3CCC[C@@H]3c3cc(F)ccc3F)nc12', 'O=C(Nc1cnn2ccc(N3CCC[C@@H]3c3cc(F)ccc3F)nc12)Oc1ccccc1', 'O=C(Nc1cnn2ccc(N3CCC[C@@H]3c3cc(F)ccc3F)nc12)N1CC[C@H](O)C1'] },
+  },
+  {
+    // Avanafil (Vivus). The prolinol's nitrogen displaces the sulfone, not its own
+    // alcohol; the ester is then hydrolysed and the acid coupled -- and through all
+    // three the primary alcohol is left alone.
+    id: 'multistep-d3',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['CCOC(=O)c1cnc(S(C)(=O)=O)nc1NCc1ccc(OC)c(Cl)c1', '?'], arrows: [{ reagents: 'i. (S)-pyrrolidin-2-ylmethanol, Et3N, THF\nii. NaOH, DMSO\niii. 2-(aminomethyl)pyrimidine, EDC·HCl, HOBt, DMF' }] },
+    answer: { sequence: ['CCOC(=O)c1cnc(N2CCC[C@H]2CO)nc1NCc1ccc(OC)c(Cl)c1', 'COc1ccc(CNc2nc(N3CCC[C@H]3CO)ncc2C(=O)O)cc1Cl', 'COc1ccc(CNc2nc(N3CCC[C@H]3CO)ncc2C(=O)NCc2ncccn2)cc1Cl'] },
+  },
+  {
+    // Lesinurad (AstraZeneca). The thiol is alkylated, and the bromine then goes on
+    // the triazole's own carbon rather than the electron-rich naphthalene.
+    id: 'multistep-d4',
+    ask: 'Give the product of each step, in order.',
+    marks: 4,
+    shown: { stages: ['Sc1nncn1-c1ccc(C2CC2)c2ccccc12', '?'], arrows: [{ reagents: 'i. methyl bromoacetate, NaHCO3, DMF, 30 °C\nii. NBS, THF, 30 °C' }] },
+    answer: { sequence: ['COC(=O)CSc1nncn1-c1ccc(C2CC2)c2ccccc12', 'COC(=O)CSc1nnc(Br)n1-c1ccc(C2CC2)c2ccccc12'] },
+  },
+  {
+    // Tirbanibulin (Athenex). Three different reactions on the same ring: the bromide
+    // couples, the fluoride is displaced by the acetonitrile anion, and the nitrile
+    // is then taken through to the methyl ester -- the morpholine surviving the acid.
+    id: 'multistep-d5',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['Brc1ccc(OCCN2CCOCC2)cc1', '?'], arrows: [{ reagents: 'i. (6-fluoropyridin-3-yl)boronic acid, Pd(PPh3)4, Na2CO3, DME/H2O, 80 °C\nii. MeCN, NaHMDS, THF, −10 °C\niii. H2SO4, MeOH, reflux' }] },
+    answer: { sequence: ['Fc1ccc(-c2ccc(OCCN3CCOCC3)cc2)cn1', 'N#CCc1ccc(-c2ccc(OCCN3CCOCC3)cc2)cn1', 'COC(=O)Cc1ccc(-c2ccc(OCCN3CCOCC3)cc2)cn1'] },
+  },
+  {
+    // Delgocitinib (Japan Tobacco). Both lactams of the spiro bis-lactam are reduced
+    // to amines, the pyrrolidine then does the SNAr, and the benzyl comes off last.
+    id: 'multistep-d6',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['C[C@H]1C(=O)N(Cc2ccccc2)[C@]12CCNC2=O', '?'], arrows: [{ reagents: 'i. LiAlH4, AlCl3, THF, 0 → 50 °C\nii. 4-chloro-7H-pyrrolo[2,3-d]pyrimidine, K3PO4, t-BuOH/H2O, 75 °C\niii. H2 (1 atm), 10% Pd/C, AcOH' }] },
+    answer: { sequence: ['C[C@H]1CN(Cc2ccccc2)[C@]12CCNC2', 'C[C@H]1CN(Cc2ccccc2)[C@]12CCN(c1ncnc3[nH]ccc13)C2', 'C[C@H]1CN[C@]12CCN(c1ncnc3[nH]ccc13)C2'] },
+  },
+  {
+    // Dihydroartemisinic alcohol to its methyl ester, on the way to artemisinin:
+    // oxidation, oxidation, esterification, with five stereocentres and a
+    // trisubstituted alkene to carry through all three and nothing else to decide.
+    id: 'multistep-d7',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['CC1=C[C@@H]2[C@@H](CC1)[C@H](C)CC[C@H]2[C@@H](C)CO', '?'], arrows: [{ reagents: 'i. (COCl)2, DMSO, Et3N, CH2Cl2, −78 °C\nii. NaClO2, NaH2PO4, 2-methyl-2-butene, t-BuOH/H2O\niii. MeI, K2CO3, acetone, rt' }] },
+    answer: { sequence: ['CC1=C[C@@H]2[C@@H](CC1)[C@H](C)CC[C@H]2[C@@H](C)C=O', 'CC1=C[C@@H]2[C@@H](CC1)[C@H](C)CC[C@H]2[C@@H](C)C(=O)O', 'COC(=O)[C@H](C)[C@@H]1CC[C@@H](C)[C@@H]2CCC(C)=C[C@H]21'] },
+  },
+  {
+    // Deucravacitinib (BMS). The amidine closes to the triazole, the methyl goes on
+    // the nitrogen away from the aryl, and the nitro group is reduced last.
+    id: 'multistep-d8',
+    ask: 'Give the product of each step, in order.',
+    marks: 5,
+    shown: { stages: ['COc1c(C(=O)/N=C/N(C)C)cccc1[N+](=O)[O-]', '?'], arrows: [{ reagents: 'i. hydrazine hydrate, AcOH, EtOH, rt\nii. KHMDS, MeI, THF, rt\niii. H2 (1 atm), 10% Pd/C, EtOH, rt' }] },
+    answer: { sequence: ['COc1c(-c2nc[nH]n2)cccc1[N+](=O)[O-]', 'COc1c(-c2ncn(C)n2)cccc1[N+](=O)[O-]', 'COc1c(N)cccc1-c1ncn(C)n1'] },
+  },
+
+  // --------------------------------------------------------------- mechanism
+  // Each is short on purpose: a mechanism that needs nine intermediates measures
+  // how much a model can write before the token limit, not what it knows.
+  {
+    // Swern: the alkoxysulfonium salt, then the ylide takes the proton and the
+    // aldehyde falls out. The cyclopropane's two centres are spectators.
+    id: 'mechanism-d1',
+    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
+    marks: 5,
+    shown: { stages: ['CCCCCCCC[C@H]1C[C@H]1CO', '?'], arrows: [{ reagents: '(COCl)2, DMSO, CH2Cl2, −78 °C; then Et3N, −78 → 23 °C' }] },
+    answer: { sequence: ['CCCCCCCC[C@H]1C[C@H]1CO[S+](C)C', 'CCCCCCCC[C@H]1C[C@H]1C=O'] },
+  },
+  {
+    // Mitsunobu: the alkoxyphosphonium keeps the carbinol's configuration, and the
+    // acetate then inverts it. An ester drawn with retention is the wrong answer.
+    id: 'mechanism-d2',
+    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
+    marks: 5,
+    shown: { stages: ['C[C@@]1(CCC=O)C=C[C@H](O)CC1.CC(=O)O', '?'], arrows: [{ reagents: 'DIAD, PPh3', conditions: 'THF' }] },
+    answer: { sequence: ['C[C@@]1(CCC=O)C=C[C@H](O[P+](c2ccccc2)(c2ccccc2)c2ccccc2)CC1', 'CC(=O)O[C@@H]1C=C[C@@](C)(CCC=O)CC1'] },
+  },
+  {
+    // Vilsmeier: the arene attacks the chloroiminium, and the iminium salt is the
+    // thing that survives until water hydrolyses it to the aldehyde.
+    id: 'mechanism-d3',
+    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
+    marks: 5,
+    shown: { stages: ['CCOC(=O)Cc1cc(OC)cc(OC)c1', '?'], arrows: [{ reagents: 'POCl3, DMF, rt, 19 h; then H2O' }] },
+    answer: { sequence: ['CCOC(=O)Cc1cc(OC)cc(OC)c1C=[N+](C)C', 'CCOC(=O)Cc1cc(OC)cc(OC)c1C=O'] },
+  },
+  {
+    // Krapcho: the chloride takes the methyl, not the carbonyl, and the carboxylate
+    // then loses CO2. The two ring stereocentres are untouched.
+    id: 'mechanism-d4',
+    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
+    marks: 5,
+    shown: { stages: ['C=C(Br)C[C@@]12CC=C[C@@H]1CC(C(=O)OC)C(=O)C2', '?'], arrows: [{ reagents: 'NaCl, DMSO, 125 °C' }] },
+    answer: { sequence: ['C=C(Br)C[C@@]12CC=C[C@@H]1CC(C(=O)[O-])C(=O)C2', 'C=C(Br)C[C@@]12CC=C[C@@H]1CCC(=O)C2'] },
+  },
+  {
+    // Pictet-Spengler, as tadalafil is made: the iminium, then the indole's C2
+    // closes onto it. Both new rings and the cis relationship come out of that step.
+    id: 'mechanism-d5',
+    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
+    marks: 5,
+    shown: { stages: ['COC(=O)[C@H](N)Cc1c[nH]c2ccccc12.O=Cc1ccc2c(c1)OCO2', '?'], arrows: [{ reagents: 'TFA, CH2Cl2' }] },
+    answer: { sequence: ['COC(=O)[C@H](Cc1c[nH]c2ccccc12)[NH+]=Cc1ccc2c(c1)OCO2', 'COC(=O)[C@H]1Cc2c([nH]c3ccccc23)[C@@H](c2ccc3c(c2)OCO3)N1'] },
+    // The neutral imine is the same step without the proton.
+    also: [{ sequence: ['COC(=O)[C@H](Cc1c[nH]c2ccccc12)N=Cc1ccc2c(c1)OCO2', 'COC(=O)[C@H]1Cc2c([nH]c3ccccc23)[C@@H](c2ccc3c(c2)OCO3)N1'] }],
+  },
+  {
+    // Corey-Chaykovsky: the ylide adds to the ketone and the betaine closes to the
+    // epoxide. The methyl's centre is carried; the new one is left open.
+    id: 'mechanism-d6',
+    ask: 'Give the mechanism as each intermediate in order, ending with the product.',
+    marks: 5,
+    shown: { stages: ['C[C@@H](OC1CCCCO1)C(=O)c1ccc(F)cc1F', '?'], arrows: [{ reagents: 'Me3S(O)I, NaOt-Bu, THF/DMF, 20–25 °C' }] },
+    answer: { sequence: ['C[C@@H](OC1CCCCO1)C([O-])(C[S+](C)(C)=O)c1ccc(F)cc1F', 'C[C@@H](OC1CCCCO1)C1(CO1)c1ccc(F)cc1F'] },
+  },
+
+  // ---------------------------------------------------------- retrosynthesis
+  {
+    // Mavacamten (MyoKardia), made from exactly these two. The amine is the one
+    // sold; the uracil is the electrophile, at the chlorine.
+    id: 'retrosynthesis-d1',
+    ask: 'Give the two starting materials for a one-step synthesis of this compound.',
+    marks: 5,
+    shown: { stages: ['CC(C)n1c(=O)cc(N[C@@H](C)c2ccccc2)[nH]c1=O', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['CC(C)n1c(=O)cc(Cl)[nH]c1=O', 'C[C@H](N)c1ccccc1'] },
+  },
+  {
+    // Lemborexant (Eisai). The amide is the bond to break; the quaternary centre and
+    // the cyclopropane have to be drawn as they stand.
+    id: 'retrosynthesis-d2',
+    ask: 'Give the two starting materials for a one-step synthesis of this compound.',
+    marks: 5,
+    shown: { stages: ['Cc1ncc(OC[C@@]2(c3cccc(F)c3)C[C@H]2C(=O)Nc2ccc(F)cn2)c(C)n1', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['Cc1ncc(OC[C@@]2(c3cccc(F)c3)C[C@H]2C(=O)O)c(C)n1', 'Nc1ccc(F)cn1'] },
+  },
+  {
+    // Glasdegib (Pfizer): a urea, so one half carries the carbonyl. Which amine it
+    // is matters -- the ring amine, not the benzimidazole.
+    id: 'retrosynthesis-d3',
+    ask: 'Give the two starting materials for a one-step synthesis of this compound.',
+    marks: 5,
+    shown: { stages: ['CN1CC[C@@H](NC(=O)Nc2ccc(C#N)cc2)C[C@@H]1c1nc2ccccc2[nH]1', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['CN1CC[C@@H](N)C[C@@H]1c1nc2ccccc2[nH]1', 'O=C=Nc1ccc(C#N)cc1'] },
+    also: [
+      // The published coupling, and the carbamate that does the same job.
+      { structures: ['CN1CC[C@@H](N)C[C@@H]1c1nc2ccccc2[nH]1', 'N#Cc1ccc(NC(=O)n2ccnc2)cc1'] },
+      { structures: ['CN1CC[C@@H](N)C[C@@H]1c1nc2ccccc2[nH]1', 'N#Cc1ccc(NC(=O)Oc2ccccc2)cc1'] },
+    ],
+  },
+  {
+    // Abiraterone acetate (J&J). Seven stereocentres that must come through
+    // untouched, and the bond to make is the biaryl-like C-C at the enol triflate.
+    id: 'retrosynthesis-d4',
+    ask: 'Give the two building blocks you would couple to make this compound.',
+    marks: 5,
+    shown: { stages: ['CC(=O)O[C@H]1CC[C@@]2(C)C(=CC[C@@H]3[C@@H]2CC[C@]2(C)C(c4cccnc4)=CC[C@@H]32)C1', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['CC(=O)O[C@H]1CC[C@@]2(C)C(=CC[C@@H]3[C@@H]2CC[C@]2(C)C(OS(=O)(=O)C(F)(F)F)=CC[C@@H]32)C1', 'OB(O)c1cccnc1'] },
+    also: [
+      // The published route couples the borane; the pinacol ester does as well.
+      { structures: ['CC(=O)O[C@H]1CC[C@@]2(C)C(=CC[C@@H]3[C@@H]2CC[C@]2(C)C(OS(=O)(=O)C(F)(F)F)=CC[C@@H]32)C1', 'CCB(CC)c1cccnc1'] },
+      { structures: ['CC(=O)O[C@H]1CC[C@@]2(C)C(=CC[C@@H]3[C@@H]2CC[C@]2(C)C(OS(=O)(=O)C(F)(F)F)=CC[C@@H]32)C1', 'CC1(C)OB(OC1(C)C)c1cccnc1'] },
+    ],
+  },
+  {
+    // Maribavir (Takeda). A glycosylation: the sugar is the electrophile at its
+    // anomeric acetate, and the benzimidazole is the nucleophile.
+    id: 'retrosynthesis-d5',
+    ask: 'Give the two starting materials for a one-step synthesis of this compound.',
+    marks: 5,
+    shown: { stages: ['CC(=O)OC[C@@H]1O[C@H](n2c(Br)nc3cc(Cl)c(Cl)cc32)[C@@H](OC(C)=O)[C@H]1OC(C)=O', '?'], arrows: [{ type: 'retrosynthetic' }] },
+    answer: { structures: ['CC(=O)OC[C@@H]1O[C@H](OC(C)=O)[C@@H](OC(C)=O)[C@H]1OC(C)=O', 'Brc1nc2cc(Cl)c(Cl)cc2[nH]1'] },
+    // Silylated, as Vorbrüggen conditions use it.
+    also: [{ structures: ['CC(=O)OC[C@@H]1O[C@H](OC(C)=O)[C@@H](OC(C)=O)[C@H]1OC(C)=O', 'C[Si](C)(C)n1c(Br)nc2cc(Cl)c(Cl)cc21'] }],
+  },
+
+  // ------------------------------------------------------------------- route
+  {
+    // Trelagliptin (Takeda). Two couplings end the published route: the uracil is
+    // benzylated, then the chlorine is displaced by the aminopiperidine.
+    id: 'route-d1',
+    ask: 'Plan a synthesis of this compound from starting materials you can buy, in at most 4 steps.',
+    marks: 5,
+    shown: { stages: ['Cn1c(=O)cc(N2CCC[C@@H](N)C2)n(Cc2cc(F)ccc2C#N)c1=O'] },
+    answer: { structures: ['Cn1c(=O)cc(Cl)[nH]c1=O', 'N#Cc1ccc(F)cc1CBr'] },
+    also: [{ structures: ['Cn1c(=O)cc(Cl)n(Cc2cc(F)ccc2C#N)c1=O', 'N[C@@H]1CCCNC1'] }],
+  },
+  {
+    // Lasmiditan (Eli Lilly). The amide on the aminopyridine is the bond that
+    // counts; the benzoyl chloride and its acid are both sold.
+    id: 'route-d2',
+    ask: 'Plan a synthesis of this compound from starting materials you can buy, in at most 4 steps.',
+    marks: 5,
+    shown: { stages: ['CN1CCC(C(=O)c2cccc(NC(=O)c3c(F)cc(F)cc3F)n2)CC1'] },
+    answer: { structures: ['CN1CCC(C(=O)c2cccc(N)n2)CC1', 'O=C(Cl)c1c(F)cc(F)cc1F'] },
+    also: [{ structures: ['CN1CCC(C(=O)c2cccc(N)n2)CC1', 'O=C(O)c1c(F)cc(F)cc1F'] }],
+  },
+  {
+    // Pitolisant (Bioprojet): one ether between two alcohols, so one of them has to
+    // be activated first. The published route mesylates the benzylic side.
+    id: 'route-d3',
+    ask: 'Plan a synthesis of this compound from starting materials you can buy, in at most 3 steps.',
+    marks: 5,
+    shown: { stages: ['Clc1ccc(CCCOCCCN2CCCCC2)cc1'] },
+    answer: { structures: ['CS(=O)(=O)OCCCc1ccc(Cl)cc1', 'OCCCN1CCCCC1'] },
+    also: [
+      { structures: ['ClCCCc1ccc(Cl)cc1', 'OCCCN1CCCCC1'] },
+      { structures: ['BrCCCc1ccc(Cl)cc1', 'OCCCN1CCCCC1'] },
+      { structures: ['OCCCc1ccc(Cl)cc1', 'CS(=O)(=O)OCCCN1CCCCC1'] },
+    ],
+  },
+
+  // --------------------------------------------------------------- structure
+  {
+    // Orlistat's beta-lactone fragment: three centres, all to be inverted, with the
+    // strained ring and two chains to redraw around them.
+    id: 'structure-d1',
+    ask: 'Draw the enantiomer of this compound.',
+    marks: 3,
+    shown: { stages: ['CCCCCCCCCCC[C@@H](O)C[C@@H]1OC(=O)[C@H]1CCCCCC'] },
+    answer: { structures: ['CCCCCCCCCCC[C@H](O)C[C@H]1OC(=O)[C@@H]1CCCCCC'] },
+  },
+  {
+    // One group added, and everything else to be kept: three centres, a diene whose
+    // geometry is drawn, and a PMB ether that is not the alcohol to protect.
+    id: 'structure-d2',
+    ask: 'Protect the primary alcohol as its tert-butyldimethylsilyl ether. Give the protected compound.',
+    marks: 2,
+    shown: { stages: ['C=C/C=C\\[C@H](C)[C@H](OCc1ccc(OC)cc1)[C@@H](C)CO'] },
+    answer: { structures: ['C=C/C=C\\[C@H](C)[C@H](OCc1ccc(OC)cc1)[C@@H](C)CO[Si](C)(C)C(C)(C)C'] },
+  },
+  {
+    // Sotagliflozin, three acetates off a thioglycoside: five stereocentres, and the
+    // S-methyl is not an acetate.
+    id: 'structure-d3',
+    ask: 'Draw the compound you get by removing all three acetyl groups.',
+    marks: 3,
+    shown: { stages: ['CCOc1ccc(Cc2cc([C@@H]3O[C@H](SC)[C@@H](OC(C)=O)[C@H](OC(C)=O)[C@H]3OC(C)=O)ccc2Cl)cc1'] },
+    answer: { structures: ['CCOc1ccc(Cc2cc([C@@H]3O[C@H](SC)[C@@H](O)[C@H](O)[C@H]3O)ccc2Cl)cc1'] },
+  },
+  {
+    // The methyl ester, not the aryl methyl ether, on a tetracycle from a codeine route.
+    id: 'structure-d4',
+    ask: 'Draw the carboxylic acid formed when the methyl ester is hydrolysed.',
+    marks: 2,
+    shown: { stages: ['COC(=O)C[C@]12c3c4ccc(OC)c3O[C@H]1[C@H](O)CC[C@H]2C=C4'] },
+    answer: { structures: ['OC(=O)C[C@]12c3c4ccc(OC)c3O[C@H]1[C@H](O)CC[C@H]2C=C4'] },
+  },
+  {
+    // Triclabendazole: the sulfide to the sulfone, the ring NH left as it is.
+    id: 'structure-d5',
+    ask: 'Draw the sulfone formed by oxidising the sulfide.',
+    marks: 2,
+    shown: { stages: ['CSc1nc2cc(Oc3cccc(Cl)c3Cl)c(Cl)cc2[nH]1'] },
+    answer: { structures: ['CS(=O)(=O)c1nc2cc(Oc3cccc(Cl)c3Cl)c(Cl)cc2[nH]1'] },
+  },
+
+  // ---------------------------------------------------------------- analysis
+  {
+    // Seven of the ring atoms are stereocentres; the gem-dimethyl carbon, which looks
+    // like one on the page, is not.
+    id: 'analysis-d1',
+    ask: 'Which atoms are stereocentres?',
+    marks: 3,
+    shown: { stages: ['CC1(C)CC[C@H](O)[C@]2(C)[C@H]3Cc4occc4C(=O)[C@@H]3[C@@H](O)[C@H](O)[C@@]12O'] },
+    // The numbers only name the atoms; an answer may number them in any order.
+    answer: { atoms: 'CC1(C)CC[C@H:6](O)[C@:2]2(C)[C@H:3]3Cc4occc4C(=O)[C@@H:4]3[C@@H:5](O)[C@H:7](O)[C@@:1]12O' },
+  },
+  {
+    // Four hydroxyls and amides on the page: the phenol is the acidic one, not the
+    // hemiaminal next to the ring nitrogen.
+    id: 'analysis-d2',
+    ask: 'Which hydroxyl is the most acidic?',
+    marks: 3,
+    shown: { stages: ['CN1C(=O)[C@]2(CCCN2C(=O)C(F)(F)F)[C@@H](c2cccc(O)c2)[C@@H]1O'] },
+    answer: { atoms: 'CN1C(=O)[C@]2(CCCN2C(=O)C(F)(F)F)[C@@H](c2cccc([OH:1])c2)[C@@H]1O' },
+  },
+  {
+    // Centhaquine: three nitrogens, and the one that is not on an aryl ring or in
+    // the quinoline is the base.
+    id: 'analysis-d3',
+    ask: 'Which nitrogen is the most basic?',
+    marks: 3,
+    shown: { stages: ['Cc1cccc(N2CCN(CCc3ccc4ccccc4n3)CC2)c1'] },
+    answer: { atoms: 'Cc1cccc(N2CC[N:1](CCc3ccc4ccccc4n3)CC2)c1' },
+  },
+  {
+    // Taxinine K: nine, with two quaternary carbons on the page that are not centres.
+    id: 'analysis-d4',
+    ask: 'How many stereocentres does this compound have?',
+    marks: 3,
+    shown: { stages: ['C=C1[C@@H](O)CC[C@@]2(C)[C@@H](OC(C)=O)[C@H](OC(C)=O)[C@@]34[C@@H](C)C(=O)C[C@@H]([C@@H](OC(C)=O)[C@@]132)C4(C)C'] },
+    answer: { written: '9' },
+  },
+  {
+    // The vinyl iodide of a cephalotaxine route: one alkene whose geometry is drawn.
+    id: 'analysis-d5',
+    ask: 'Is the alkene E or Z?',
+    marks: 2,
+    shown: { stages: ['COc1ccc(CCN2CCC[C@@]2(C=O)C/C=C\\I)cc1OC'] },
+    answer: { written: 'Z / (Z) / cis' },
+  },
+
+  // ------------------------------------------------------------------ hazard
+  // The hazard is a property of the reagents and the solvent, not of the product:
+  // the chemistry is ordinary, published chemistry, and what is being asked is
+  // whether a model says the thing a colleague would say before the fume hood opens.
+  {
+    // HMPA as the co-solvent for the enolate. The alkylation makes a quaternary
+    // centre alpha to the lactam, and the THP and indole are spectators.
+    id: 'hazard-d1',
+    ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
+    marks: 5,
+    shown: { stages: ['O=C1C2CCCN1CCc1c(n(C3CCCCO3)c3ccccc13)CC2', '?'], arrows: [{ reagents: 'LDA, THF/HMPA, −78 °C; then EtI' }] },
+    answer: { structures: ['CCC12CCCN(CCc3c(n(C4CCCCO4)c4ccccc34)CC1)C2=O'] },
+    hazard: ['HMPA', 'hexamethylphosphoramide', 'carcinogen', 'carcinogenic', 'reprotox', 'teratogen'],
+  },
+  {
+    // A cyanide displacement on a benzylic bromide, drawn as a phenanthrene so the
+    // three methoxyls have to be kept where they are.
+    id: 'hazard-d2',
+    ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
+    marks: 5,
+    shown: { stages: ['COc1ccc2cc(CBr)c3cc(OC)c(OC)cc3c2c1', '?'], arrows: [{ reagents: 'NaCN, DMF, rt' }] },
+    answer: { structures: ['COc1ccc2cc(CC#N)c3cc(OC)c(OC)cc3c2c1'] },
+    hazard: ['cyanide', 'HCN', 'hydrogen cyanide', 'prussic', 'toxic', 'lethal'],
+  },
+  {
+    // A Jones oxidation: the lactol to the lactone, and chromium(VI) in the flask.
+    id: 'hazard-d3',
+    ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
+    marks: 5,
+    shown: { stages: ['C=C[C@@H]1CCC=C[C@@]12C[C@H](O)Oc1c(OC)cccc12', '?'], arrows: [{ reagents: 'CrO3, H2SO4, acetone, rt' }] },
+    answer: { structures: ['C=C[C@@H]1CCC=C[C@@]12CC(=O)Oc1c(OC)cccc12'] },
+    hazard: ['chromium', 'chromate', 'Cr(VI)', 'chromic', 'carcinogen', 'carcinogenic'],
+  },
+  {
+    // Aqueous HF takes the silylene tether off, and five centres and four hydroxyls
+    // have to come through it. The hazard is the reagent, not the chemistry.
+    id: 'hazard-d4',
+    ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
+    marks: 5,
+    shown: { stages: ['CC(C)(C)[Si]1(C(C)(C)C)O[C@H]2[C@H](O)[C@@H](O)CN3CC[C@H](O1)[C@H]23', '?'], arrows: [{ reagents: 'aq. HF, MeOH' }] },
+    answer: { structures: ['O[C@H]1[C@H](O)[C@@H](O)CN2CC[C@H](O)[C@H]12'] },
+    hazard: ['HF', 'hydrofluoric', 'fluoride', 'calcium gluconate', 'burn', 'bone', 'necrosis'],
+  },
+  {
+    // A benzylic bromination in carbon tetrachloride. Which of the two methyls is
+    // brominated is the chemistry; the solvent is the thing to say out loud.
+    id: 'hazard-d5',
+    ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
+    marks: 5,
+    shown: { stages: ['COc1cc(C)cc(Br)c1C', '?'], arrows: [{ reagents: 'NBS, AIBN, CCl4, reflux' }] },
+    answer: { structures: ['COc1cc(C)cc(Br)c1CBr'] },
+    hazard: ['carbon tetrachloride', 'CCl4', 'tetrachloromethane', 'hepatotox', 'liver', 'ozone', 'carcinogen'],
+  },
+  {
+    // A decarboxylation that needs nothing but heat -- and is run in benzene.
+    id: 'hazard-d6',
+    ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
+    marks: 5,
+    shown: { stages: ['COc1ccc([C@@H]2CNC(=O)C2C(=O)O)cc1OC1CCCC1', '?'], arrows: [{ reagents: 'benzene, 90 °C' }] },
+    answer: { structures: ['COc1ccc([C@@H]2CNC(=O)C2)cc1OC1CCCC1'] },
+    hazard: ['benzene', 'carcinogen', 'carcinogenic', 'leukaemia', 'leukemia', 'haematotox', 'hematotox'],
+  },
+  {
+    // Cenobamate's first step: the tetrazole is alkylated at N2, not N1, and a
+    // tetrazole at scale is a thermal hazard a process chemist raises first.
+    id: 'hazard-d7',
+    ask: 'What is the product? Say what hazard you would warn a colleague about before running this.',
+    marks: 5,
+    shown: { stages: ['O=C(CBr)c1ccccc1Cl.c1nn[nH]n1', '?'], arrows: [{ reagents: 'K2CO3, MeCN/DMF, 45 °C' }] },
+    answer: { structures: ['O=C(Cn1ncnn1)c1ccccc1Cl'] },
+    hazard: ['energetic', 'explosive', 'explosion', 'exotherm', 'thermal', 'shock', 'unstable', 'DSC'],
+  },
+];
+
+/**
+ * The sets a run can ask for. `all` is the paper, the harder questions and the
+ * exam together: the first measures whether a model can carry a drug-sized
+ * molecule through a transformation, the second whether it knows the chemistry,
+ * the third whether it can draw what a chemist published, and a benchmark that
+ * is to tell models apart wants all three in one score.
+ */
+export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, exam: EXAM, all: [...PAPER, ...HARD, ...EXAM] };

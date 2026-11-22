@@ -21,8 +21,12 @@ The paper is 100 marks over seven types of question (`questions/`); `--set hard`
 is 29 harder questions: ten reactions from a chemist's own ChemDraw drawings,
 taken from published total and process syntheses, with the products they drew
 as the answers; six more ending at a drug whose structure PubChem confirms; and
-the rest on less common chemistry. `--set all` is the two together, 55
-questions and 214 marks. Each run
+the rest on less common chemistry. `--set exam` is 39 questions and 170 marks
+on the types the paper is thinnest on -- eight multistep sequences, six
+mechanisms, five retrosyntheses, three routes, five structures, five analyses
+and seven hazards -- every one of them a step somebody published, taken from
+[Chemistry by Design](#chemistry-by-design) and checked before it was written
+down. `--set all` is the three together, 94 questions and 384 marks. Each run
 reports the **score** in each condition (marks for right answers, overall and
 per type), and for every answer, automatically:
 
@@ -55,6 +59,40 @@ npm run llm-bench:prep
 
 checks them and writes `questions.jsonl`, and `questions/questions.html` to
 proofread them.
+
+### Chemistry by Design
+
+The `exam` set is drawn from **Chemistry by Design (CbyD)**, an expert-curated,
+machine-readable dataset of published total and process syntheses from the
+Njardarson group -- 3,502 routes and some 56,000 mapped steps, CC-BY 4.0:
+
+> Williams, R. E.; Tran, S. B. A.; Leatherwood, H. M.; Roh, J.; Wolff, A.;
+> Federice, J. G.; Lauta, N. R.; Yu, K.; Nick, S. J.; Jončev, Z.; Schwaller, P.;
+> Coley, C. W.; Njardarson, J. T. *Chemistry by Design (CbyD): A
+> Machine-Readable Dataset of Expert-Curated Total Synthesis Routes.* arXiv
+> **2026**, [arXiv:2611.24996](https://arxiv.org/abs/2611.24996).
+> Dataset: <https://github.com/chemistry-by-design/cbyd>.
+
+A question is not lifted from the dataset unaltered: a step is picked because
+it tests one thing, the reagents are written as a chemist would write them over
+an arrow, and the answer is the product the authors drew. Three checks were run
+over every candidate before it became a question, and are worth repeating if
+more are added:
+
+- **The atoms balance.** Each product is its reactants plus or minus what the
+  reagents add or take away.
+- **No centre moves by accident.** Every stereocentre the step does not touch
+  has the same configuration in the product as in the starting material --
+  compared as spatial configuration, not as a CIP letter, since a letter can
+  flip when a substituent's priority changes without any centre moving.
+- **A molecule appears in one question only**, across every set
+  (`llm-bench:author` warns).
+
+Two chains were dropped rather than patched: an oliceridine endgame, whose
+drawings disagree on the configuration of a quaternary centre from one step to
+the next, and a triclabendazole methylation whose product carries a methyl the
+drug does not have. Both look like dataset slips rather than chemistry, and are
+worth reporting upstream.
 
 ## What the runs have settled
 
