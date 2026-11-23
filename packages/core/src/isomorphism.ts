@@ -19,8 +19,17 @@ export function sameStructure(a: Molecule, b: Molecule): boolean {
  * Every atom mapping a -> b under the same labelling as sameStructure. Lazy,
  * so callers can stop at the first mapping that satisfies extra conditions
  * (matching stereodescriptors, for instance).
+ *
+ * `effort` caps the assignments the search will try. Proving two structures the SAME is quick --
+ * the first mapping found ends it -- but proving them DIFFERENT means exhausting the search, and on
+ * two seventy-atom molecules that agree nearly everywhere that took three minutes: longer than the
+ * answer being marked took to write, and the benchmark marks thousands of answers. The cap is on
+ * assignments rather than on a clock so that the same pair always compares the same way, whatever
+ * the machine is doing; over it, the search stops and the pair reads as different. Generous enough
+ * that no structure this project draws comes near it: the ninety-atom diazonamide answers settle in
+ * a few thousand.
  */
-export function* isomorphisms(a: Molecule, b: Molecule): Generator<Map<AtomId, AtomId>> {
+export function* isomorphisms(a: Molecule, b: Molecule, effort = 200_000): Generator<Map<AtomId, AtomId>> {
   if (a.atomCount !== b.atomCount || a.bondCount !== b.bondCount) return;
   const label = (m: Molecule, id: AtomId) => {
     const x = m.atom(id);
@@ -59,6 +68,7 @@ export function* isomorphisms(a: Molecule, b: Molecule): Generator<Map<AtomId, A
     return ca === cb;
   };
 
+  let tried = 0;
   function* solve(k: number): Generator<Map<AtomId, AtomId>> {
     if (k === ordered.length) { yield new Map(map); return; }
     const x = ordered[k]!;
@@ -66,6 +76,7 @@ export function* isomorphisms(a: Molecule, b: Molecule): Generator<Map<AtomId, A
     const candidates = mappedNeighbour !== undefined ? b.neighbours(map.get(mappedNeighbour)!) : bIds;
     for (const y of candidates) {
       if (used.has(y) || la.get(x) !== lb.get(y) || !consistent(x, y)) continue;
+      if (++tried > effort) return;
       map.set(x, y); used.add(y);
       yield* solve(k + 1);
       map.delete(x); used.delete(y);
