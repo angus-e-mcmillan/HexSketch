@@ -26,9 +26,12 @@ on the types the paper is thinnest on -- eight multistep sequences, six
 mechanisms, five retrosyntheses, three routes, five structures, five analyses
 and seven hazards -- every one of them a step somebody published, taken from
 [Chemistry by Design](#chemistry-by-design) and checked before it was written
-down. `--set all` is the three together, 94 questions and 384 marks. Each run
-reports the **score** in each condition (marks for right answers, overall and
-per type), and for every answer, automatically:
+down. `--set scale` is 23 draw-the-product reactions and 92 marks at the size
+where bookkeeping fails: fifteen mined forward reactions whose products run from
+52 to 90 heavy atoms, and eight peptides, built rather than mined and the
+questions the drawing helps most with. `--set all` is the four together, 117
+questions and 476 marks. Each run reports the **score** in each condition (marks
+for right answers, overall and per type), and for every answer, automatically:
 
 | Measure | The question it answers |
 |---|---|
@@ -96,14 +99,52 @@ worth reporting upstream.
 
 ## What the runs have settled
 
+Three things are measured, not one: **quality**, **cost** and **time**. Reading
+only the score hides what HexSketch does, because the score is the measure it
+moves least. The short version, over every run below: HexSketch does not make a
+model cleverer. It stops a model spending its budget parsing. Where the budget
+was the binding constraint the quality moves; where it was not, the cost and the
+time do, and the quality holds.
+
+- **On a free model the three move together, and the drawing decides whether
+  there is an answer at all.** The eight peptide questions of `--set scale`,
+  one repeat, all eight answers measured a condition:
+
+  | | typed | with HexSketch |
+  |---|---:|---:|
+  | nemotron-3.5-super-vl:free, score | 12.0 / 32 | **32.0 / 32** |
+  | answers right | 38% | **100%** |
+  | cut off with no answer | 4 of 8 | **0** |
+  | output tokens a question | 28372 | **11995** |
+  | median time | 293 s | **103 s** |
+  | nemotron-3.5-lightning:free, score | 12.0 / 32 | 12.0 / 32 |
+  | answers right | 38% | 38% |
+  | names matching their structure | 0% | **50%** |
+  | cut off with no answer | 2 of 8 | **0** |
+  | output tokens a question | 24442 | **5645** |
+  | median time | 154 s | **28 s** |
+
+  Super-vl answers every question instead of two in five. Lightning answers
+  exactly as many, in 77% fewer tokens and a fifth of the time. Typed, both
+  spend their whole budget *thinking* about a three-hundred-character peptide
+  SMILES; given the drawing described, neither has to parse anything.
+- **Which condition is compared decides whether HexSketch costs tokens or saves
+  them, and the difference is a link.** Through OpenRouter (`smiles` against
+  `hexsketch`) the drawing arrives described in the prompt -- a name, a formula,
+  a scheme -- and costs nothing to read: hence the figures above. In Claude Code
+  (`cc-plain` against `cc-drawn`) the model is handed a *link* and has to call
+  HexSketch to see the drawing at all, so the same questions cost Opus 1532
+  output tokens a question typed against 7945 drawn, and 17 s against 105 s.
+  Both are real; they answer different questions. Quote the pair that matches
+  how the chemist works.
 - **One repeat cannot tell a ten-mark difference from noise.** The same
   condition, settings and model scored 95 / 100 and 80 / 100 in two runs an
   hour apart: a question answered twice before spent its whole budget and
   answered nothing. Any claim about a score needs the default three repeats
   and the range the report prints. Token, time and orientation figures are
   means over every question and move far less.
-- **At equal settings HexSketch does not change the score. It changes
-  everything about how the score is reached.** Three repeats of the drug-scale
+- **At equal settings HexSketch does not change the score of a model that was
+  coping anyway. It changes everything about how the score is reached.** Three repeats of the drug-scale
   paper on the free model, 78 answers a condition: 88.7 / 100 (86–90) with
   HexSketch against 90.3 (86–94) without. The ranges overlap, so there is no
   score difference to report, in either direction. What does separate, as means
@@ -115,6 +156,26 @@ worth reporting upstream.
   (An earlier single run read 95 against 91, and was quoted here as a win. One
   repeat cannot measure that, as the bullet above says: three can, and it is a
   tie.)
+- **On Claude's models the score moves only for Opus, and only on bookkeeping.**
+  One repeat each of `--set exam` (39 questions, 170 marks) and `--set scale`
+  (23, 92), typed against drawn: Haiku 137.5 -> 128.0 and 68.0 -> 72.0, Sonnet
+  150.0 -> 142.5 and 76.0 -> 72.0, Opus 136.0 -> 155.0 and 68.0 -> 88.0. Pooling
+  the three models' answers on `scale` separates the two kinds of question in it:
+  the mined reactions, where the answer is the substrate with one group changed,
+  go 35/45 typed to 36/45 drawn, while the peptides go 18/24 to 22/24. Only
+  Opus converts the drawing into marks across the board, and what it converts
+  are the questions where several structures must be carried through several
+  steps: `exam` multistep 30 -> 39 of 39.
+- **A question whose answer is the substrate with one group changed does not
+  test drawing, however large the substrate.** Haiku answers the fifteen mined
+  draw-the-product questions 11 of 15 in both conditions, at up to ninety heavy
+  atoms. SMILES is complete, lossless and trivially editable, so the model does
+  text surgery on the string and never reads the structure; a longer string is
+  not a harder edit. What defeats that is a transformation whose product cannot
+  be written by local editing -- a ring closure, which renumbers the SMILES.
+  Opus answers the peptide cyclisation and the disulfide closure wrongly typed
+  and rightly drawn, and they are two of the three questions the drawing rescues
+  for it.
 - **Difficulty comes from the size of the molecule, not the cleverness of the
   question.** Sixteen questions on migration selectivity, kinetic enolates and
   the rest scored 56 / 63 on a free model, and every mark dropped was a token
