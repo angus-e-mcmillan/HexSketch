@@ -1,6 +1,6 @@
 {
   "run": "2026-11-23-nvidia-nemotron-3.5-super-vl-free",
-  "date": "2026-11-23T17:29:58.115Z",
+  "date": "2026-11-23T18:24:40.741Z",
   "model": "nvidia/nemotron-3.5-super-vl:free",
   "served": [
     "nvidia/nemotron-3.5-super-vl:free"
@@ -26,42 +26,42 @@
       "reaction": 8
     }
   },
-  "commit": "37d97c4",
-  "failedRuns": 2,
+  "commit": "95aa4f8",
+  "failedRuns": 0,
   "totalCost": 0,
   "conditions": {
     "smiles": {
-      "score": 8,
+      "score": 12,
       "scoreRange": [
-        8,
-        8
+        12,
+        12
       ],
       "outOf": 32,
       "byType": {
         "reaction": {
-          "score": 8,
+          "score": 12,
           "outOf": 32
         }
       },
       "correct": {
-        "rate": 0.2857142857142857,
-        "n": 7
+        "rate": 0.375,
+        "n": 8
       },
       "stereo": {
         "rate": 0,
-        "n": 7
+        "n": 8
       },
       "valid": {
-        "rate": 0.42857142857142855,
-        "n": 7
+        "rate": 0.5,
+        "n": 8
       },
       "consistent": {
-        "rate": 0.2857142857142857,
-        "n": 7
+        "rate": 0.375,
+        "n": 8
       },
       "preserved": {
         "rate": 1,
-        "n": 3
+        "n": 4
       },
       "flagged": {
         "rate": null,
@@ -69,68 +69,68 @@
       },
       "oriented": {
         "rate": 0,
-        "n": 3
+        "n": 4
       },
       "refused": 0,
       "cutOff": 4,
       "cost": 0,
-      "tokens": 28747,
-      "reasoning": 28661,
-      "prompt": 236.71428571428572,
+      "tokens": 28372.125,
+      "reasoning": 28278.625,
+      "prompt": 234.625,
       "cachedPrompt": 0,
-      "seconds": 301.832,
+      "seconds": 292.515,
       "toolCalls": 0
     },
     "hexsketch": {
-      "score": 28,
+      "score": 32,
       "scoreRange": [
-        28,
-        28
+        32,
+        32
       ],
       "outOf": 32,
       "byType": {
         "reaction": {
-          "score": 28,
+          "score": 32,
           "outOf": 32
         }
       },
       "correct": {
         "rate": 1,
-        "n": 7
+        "n": 8
       },
       "stereo": {
         "rate": 0,
-        "n": 7
+        "n": 8
       },
       "valid": {
         "rate": 1,
-        "n": 7
+        "n": 8
       },
       "consistent": {
         "rate": 1,
-        "n": 7
+        "n": 8
       },
       "preserved": {
         "rate": 1,
-        "n": 5
+        "n": 6
       },
       "flagged": {
         "rate": null,
         "n": 0
       },
       "oriented": {
-        "rate": 0.6,
-        "n": 5
+        "rate": 0.6666666666666666,
+        "n": 6
       },
       "refused": 0,
       "cutOff": 0,
       "cost": 0,
-      "tokens": 12876.142857142857,
-      "reasoning": 12272.142857142857,
-      "prompt": 31599.714285714286,
-      "cachedPrompt": 25396.571428571428,
-      "seconds": 106.612,
-      "toolCalls": 1.2857142857142858
+      "tokens": 11995.25,
+      "reasoning": 11385.5,
+      "prompt": 30094.625,
+      "cachedPrompt": 23848,
+      "seconds": 102.69,
+      "toolCalls": 1.25
     }
   },
   "perQuestion": [
@@ -284,15 +284,15 @@
       "type": "reaction",
       "marks": 4,
       "smiles": {
-        "right": 0,
-        "of": 0,
+        "right": 1,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 220,
+        "outputTokens": 25748,
+        "thinkingTokens": 25602,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 214.083,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -325,16 +325,16 @@
         "toolCalls": 0
       },
       "hexsketch": {
-        "right": 0,
-        "of": 0,
+        "right": 1,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 19559,
+        "outputTokens": 5829,
+        "thinkingTokens": 5179,
         "cost": 0,
-        "seconds": 0,
-        "toolCalls": 0
+        "seconds": 58.963,
+        "toolCalls": 1
       }
     },
     {
