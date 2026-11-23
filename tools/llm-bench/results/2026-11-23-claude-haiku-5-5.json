@@ -1,0 +1,573 @@
+{
+  "run": "2026-11-23-claude-haiku-5-5",
+  "date": "2026-11-23T06:24:54.802Z",
+  "model": "claude-haiku-5-5",
+  "served": [
+    "claude-haiku-5-5"
+  ],
+  "providers": [
+    "Claude Code"
+  ],
+  "settings": {
+    "provider": null,
+    "effort": "medium",
+    "maxTokens": 32000,
+    "likeWebsite": null,
+    "maxRounds": 12,
+    "repeats": 1,
+    "timeoutSeconds": 600,
+    "temperature": "default"
+  },
+  "questions": {
+    "hash": "af1033a9816d",
+    "count": 15,
+    "marks": 60,
+    "types": {
+      "reaction": 15
+    }
+  },
+  "commit": "bf784fe",
+  "failedRuns": 0,
+  "totalCost": 0.17316118,
+  "conditions": {
+    "cc-plain": {
+      "score": 44,
+      "scoreRange": [
+        44,
+        44
+      ],
+      "outOf": 60,
+      "byType": {
+        "reaction": {
+          "score": 44,
+          "outOf": 60
+        }
+      },
+      "correct": {
+        "rate": 0.7333333333333333,
+        "n": 15
+      },
+      "stereo": {
+        "rate": 0.13333333333333333,
+        "n": 15
+      },
+      "valid": {
+        "rate": 1,
+        "n": 15
+      },
+      "consistent": {
+        "rate": 0.13333333333333333,
+        "n": 15
+      },
+      "preserved": {
+        "rate": 0.9230769230769231,
+        "n": 13
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": 0.6923076923076923,
+        "n": 13
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.0029009193333333337,
+      "tokens": 4958.266666666666,
+      "reasoning": 0,
+      "prompt": 4031.4,
+      "cachedPrompt": 2022.6,
+      "seconds": 18.659,
+      "toolCalls": 0
+    },
+    "cc-drawn": {
+      "score": 44,
+      "scoreRange": [
+        44,
+        44
+      ],
+      "outOf": 60,
+      "byType": {
+        "reaction": {
+          "score": 44,
+          "outOf": 60
+        }
+      },
+      "correct": {
+        "rate": 0.7333333333333333,
+        "n": 15
+      },
+      "stereo": {
+        "rate": 0.06666666666666667,
+        "n": 15
+      },
+      "valid": {
+        "rate": 1,
+        "n": 15
+      },
+      "consistent": {
+        "rate": 0.9333333333333333,
+        "n": 15
+      },
+      "preserved": {
+        "rate": 0.9230769230769231,
+        "n": 13
+      },
+      "flagged": {
+        "rate": null,
+        "n": 0
+      },
+      "oriented": {
+        "rate": 0.7692307692307693,
+        "n": 13
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.008643159333333334,
+      "tokens": 7849.466666666666,
+      "reasoning": 0,
+      "prompt": 69455.06666666667,
+      "cachedPrompt": 48273.26666666667,
+      "seconds": 37.317,
+      "toolCalls": 3.533333333333333
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "reaction-s1",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4065,
+        "outputTokens": 3136,
+        "thinkingTokens": 0,
+        "cost": 0.0019312599999999997,
+        "seconds": 15.059,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 88284,
+        "outputTokens": 6372,
+        "thinkingTokens": 0,
+        "cost": 0.008513280000000002,
+        "seconds": 28.902,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s2",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4048,
+        "outputTokens": 3451,
+        "thinkingTokens": 0,
+        "cost": 0.00208536,
+        "seconds": 18.659,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 87998,
+        "outputTokens": 8341,
+        "thinkingTokens": 0,
+        "cost": 0.00957719,
+        "seconds": 38.039,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s3",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4085,
+        "outputTokens": 2331,
+        "thinkingTokens": 0,
+        "cost": 0.00153276,
+        "seconds": 13.255,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 66897,
+        "outputTokens": 8823,
+        "thinkingTokens": 0,
+        "cost": 0.00977952,
+        "seconds": 37.317,
+        "toolCalls": 4
+      }
+    },
+    {
+      "id": "reaction-s4",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4026,
+        "outputTokens": 3159,
+        "thinkingTokens": 0,
+        "cost": 0.00193496,
+        "seconds": 17.615,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 61825,
+        "outputTokens": 11918,
+        "thinkingTokens": 0,
+        "cost": 0.01089079,
+        "seconds": 49.205,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s5",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3975,
+        "outputTokens": 6644,
+        "thinkingTokens": 0,
+        "cost": 0.00366726,
+        "seconds": 30.514,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 51640,
+        "outputTokens": 5193,
+        "thinkingTokens": 0,
+        "cost": 0.00573088,
+        "seconds": 25.089,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s6",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3975,
+        "outputTokens": 4088,
+        "thinkingTokens": 0,
+        "cost": 0.00238926,
+        "seconds": 19.554,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 56036,
+        "outputTokens": 7441,
+        "thinkingTokens": 0,
+        "cost": 0.00726478,
+        "seconds": 32.061,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s7",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4017,
+        "outputTokens": 3672,
+        "thinkingTokens": 0,
+        "cost": 0.00218966,
+        "seconds": 18.207,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 71624,
+        "outputTokens": 9070,
+        "thinkingTokens": 0,
+        "cost": 0.01010685,
+        "seconds": 35.88,
+        "toolCalls": 4
+      }
+    },
+    {
+      "id": "reaction-s8",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4005,
+        "outputTokens": 5176,
+        "thinkingTokens": 0,
+        "cost": 0.0032654900000000002,
+        "seconds": 24.709,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 62020,
+        "outputTokens": 8275,
+        "thinkingTokens": 0,
+        "cost": 0.008789850000000002,
+        "seconds": 38.946,
+        "toolCalls": 4
+      }
+    },
+    {
+      "id": "reaction-s9",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4057,
+        "outputTokens": 19486,
+        "thinkingTokens": 0,
+        "cost": 0.01043089,
+        "seconds": 77.056,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 110864,
+        "outputTokens": 8253,
+        "thinkingTokens": 0,
+        "cost": 0.009481779999999999,
+        "seconds": 41.692,
+        "toolCalls": 5
+      }
+    },
+    {
+      "id": "reaction-s10",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4065,
+        "outputTokens": 3205,
+        "thinkingTokens": 0,
+        "cost": 0.00196576,
+        "seconds": 17.702,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 63018,
+        "outputTokens": 7697,
+        "thinkingTokens": 0,
+        "cost": 0.010351929999999999,
+        "seconds": 39.51,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s11",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4027,
+        "outputTokens": 6123,
+        "thinkingTokens": 0,
+        "cost": 0.0034171600000000002,
+        "seconds": 28.38,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 49629,
+        "outputTokens": 5810,
+        "thinkingTokens": 0,
+        "cost": 0.00591705,
+        "seconds": 27.233,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s12",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4012,
+        "outputTokens": 5042,
+        "thinkingTokens": 0,
+        "cost": 0.00319989,
+        "seconds": 25.91,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 69928,
+        "outputTokens": 9688,
+        "thinkingTokens": 0,
+        "cost": 0.01050035,
+        "seconds": 38.821,
+        "toolCalls": 4
+      }
+    },
+    {
+      "id": "reaction-s13",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4035,
+        "outputTokens": 3877,
+        "thinkingTokens": 0,
+        "cost": 0.00229576,
+        "seconds": 19.806,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 46943,
+        "outputTokens": 4456,
+        "thinkingTokens": 0,
+        "cost": 0.00486682,
+        "seconds": 20.32,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s14",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4068,
+        "outputTokens": 3145,
+        "thinkingTokens": 0,
+        "cost": 0.0019363599999999998,
+        "seconds": 17.55,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 61219,
+        "outputTokens": 8135,
+        "thinkingTokens": 0,
+        "cost": 0.00809567,
+        "seconds": 30.855,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "reaction-s15",
+      "type": "reaction",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 4011,
+        "outputTokens": 1839,
+        "thinkingTokens": 0,
+        "cost": 0.00127196,
+        "seconds": 11.555,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 93901,
+        "outputTokens": 8270,
+        "thinkingTokens": 0,
+        "cost": 0.00978065,
+        "seconds": 41.086,
+        "toolCalls": 5
+      }
+    }
+  ]
+}
