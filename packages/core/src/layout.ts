@@ -465,7 +465,8 @@ function longestPathEnd(mol: Molecule, fragment: AtomId[]): AtomId {
 /**
  * Move branches until no two atoms sit on top of each other: mirror one about a rotatable
  * bond where that helps, and where no mirror image does (two crowded neighbours pointing at
- * the same spot), swing it 30 degrees aside. Each clash is taken in turn, the worst first; one
+ * the same spot), swing it 30 degrees aside. Where none of that helps, turn further round, and
+ * turn a branch about its bond to a ring. Each clash is taken in turn, the worst first; one
  * that nothing helps is left, and the rest are still dealt with.
  */
 function resolveClashes(mol: Molecule, fragment: AtomId[], pos: Map<AtomId, P>, L: number): void {
@@ -494,32 +495,54 @@ function resolveClashes(mol: Molecule, fragment: AtomId[], pos: Map<AtomId, P>, 
     if (!worst) return;
     const [a, b] = worst;
     const path = shortestPath(mol, a, b);
-    let best: { gain: number; apply: () => void } | null = null;
-    for (let i = 0; i + 1 < path.length; i++) {
-      const u = path[i]!, v = path[i + 1]!;
-      if (mol.bondBetween(u, v)!.order !== 1 || inRing(mol, u, v)) continue;
-      // The smaller side moves; the pivot is the atom it hangs from.
-      const sideV = sideOf(mol, v, u), sideU = sideOf(mol, u, v);
-      const [side, pivot, first] = sideV.size <= sideU.size ? [sideV, u, v] : [sideU, v, u];
-      const before = crowding(side);
-      const saved = new Map([...side].map((id) => [id, pos.get(id)!]));
-      const restore = () => { for (const [id, q] of saved) pos.set(id, q); };
-      const consider = (move: () => void, cost: number) => {
-        move();
-        const gain = before - crowding(side) - cost;
-        restore();
-        if (gain > 1e-6 && (!best || gain > best.gain)) best = { gain, apply: move };
-      };
-      consider(() => mirror(side, pos.get(pivot)!, pos.get(first)!, pos), 0);
-      // A swing bends the angle at the pivot, so it costs something and each bond swings once. Only
-      // a single atom or a ring swings: swinging a branch would put a kink in a chain.
-      const key = `${pivot}-${first}`;
-      if ((side.size === 1 || ringAtoms.has(first)) && !swung.has(key)) for (const turn of [Math.PI / 6, -Math.PI / 6]) {
-        consider(() => { rotate(side, pos.get(pivot)!, turn, pos); swung.add(key); }, 0.04);
-        swung.delete(key);
+    /**
+     * The moves to try, the ones nearest a chemist's hand first: a mirror about a rotatable bond,
+     * or a 30 degree swing of a single atom or of a ring. Only where none of those helps does
+     * `wide` allow the rest -- turning further round, and turning a whole branch about its bond to
+     * a ring -- so every drawing the first set could straighten comes out exactly as it did.
+     */
+    const search = (wide: boolean): { gain: number; apply: () => void } | null => {
+      let best: { gain: number; apply: () => void } | null = null;
+      for (let i = 0; i + 1 < path.length; i++) {
+        const u = path[i]!, v = path[i + 1]!;
+        if (mol.bondBetween(u, v)!.order !== 1 || inRing(mol, u, v)) continue;
+        // The smaller side moves; the pivot is the atom it hangs from.
+        const sideV = sideOf(mol, v, u), sideU = sideOf(mol, u, v);
+        const [side, pivot, first] = sideV.size <= sideU.size ? [sideV, u, v] : [sideU, v, u];
+        const before = crowding(side);
+        const saved = new Map([...side].map((id) => [id, pos.get(id)!]));
+        const restore = () => { for (const [id, q] of saved) pos.set(id, q); };
+        const consider = (move: () => void, cost: number) => {
+          move();
+          const gain = before - crowding(side) - cost;
+          restore();
+          if (gain > 1e-6 && (!best || gain > best.gain)) best = { gain, apply: move };
+        };
+        consider(() => mirror(side, pos.get(pivot)!, pos.get(first)!, pos), 0);
+        // A swing bends the angle at the pivot, so it costs something and each bond swings once.
+        // A single atom or a ring swings; with `wide`, so does a branch hanging off a ring atom. A
+        // substituent turns about its bond to a ring freely and rigidly, and the pivot's own angles
+        // are held by the ring, so swinging it puts no kink in a chain. Without that, a clash the
+        // branch's own first atom is in cannot be moved at all: that atom lies on the mirror axis,
+        // so no mirror image shifts it, and a substituent that childDirections aimed across a
+        // fused cage stayed exactly on top of the atom it landed on.
+        const key = `${pivot}-${first}`;
+        const offRing = wide && ringAtoms.has(pivot) && !ringAtoms.has(first) && !inRing(mol, pivot, first);
+        if ((side.size === 1 || ringAtoms.has(first) || offRing) && !swung.has(key)) {
+          for (const away of wide ? [30, 60, 90, 120] : [30]) for (const sign of [1, -1]) {
+            consider(() => { rotate(side, pos.get(pivot)!, sign * away * DEG, pos); swung.add(key); }, 0.04 * (away / 30));
+            swung.delete(key);
+          }
+        }
       }
-    }
-    if (best) (best as { apply: () => void }).apply();
+      return best;
+    };
+    // The wider moves are for atoms genuinely drawn on top of each other, not for a pair merely
+    // sitting closer than is comfortable. Turning a branch 90 degrees to open up half a bond
+    // length buys nothing and costs the conventional angles, so crowding this side of a real
+    // overlap is left as the first set of moves leaves it.
+    const best = search(false) ?? (least < 0.4 * L ? search(true) : null);
+    if (best) best.apply();
     else stuck.add(`${a}-${b}`);
   }
 }

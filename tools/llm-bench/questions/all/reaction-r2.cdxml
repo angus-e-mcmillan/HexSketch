@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="5.56 5.73 209.01 215.44" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="5.56 5.73 209.01 210.77" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
@@ -53,27 +53,27 @@
 <b id="1046" B="1028" E="1029" Order="2"/>
 </fragment>
 <fragment id="1047">
-<n id="1048" p="101.30 206.22" Element="17"/>
-<n id="1049" p="101.30 187.80"/>
-<n id="1050" p="117.26 178.59"/>
-<n id="1051" p="117.26 160.16"/>
-<n id="1052" p="101.30 150.95"/>
-<n id="1053" p="101.30 132.52" Element="9"/>
-<n id="1054" p="85.34 160.16"/>
-<n id="1055" p="69.39 150.95" Element="17"/>
-<n id="1056" p="85.34 178.59"/>
-<n id="1057" p="69.39 187.80" NumHydrogens="1"/>
-<n id="1058" p="53.43 178.59" Element="8"/>
-<n id="1059" p="37.47 187.80"/>
-<n id="1060" p="37.47 206.22"/>
-<n id="1061" p="21.52 215.44"/>
-<n id="1062" p="5.56 206.22"/>
-<n id="1063" p="5.56 187.80" Element="7"/>
-<n id="1064" p="21.52 178.59"/>
-<n id="1065" p="21.52 160.16" Element="7" Charge="1" NumHydrogens="0"><t><s font="3" size="11.00" face="97">N+</s></t></n>
-<n id="1066" p="37.47 150.95" Element="8" Charge="-1" NumHydrogens="0"><t><s font="3" size="11.00" face="97">O-</s></t></n>
-<n id="1067" p="5.56 150.95" Element="8"/>
-<n id="1068" p="69.39 206.22"/>
+<n id="1048" p="101.30 137.07" Element="17"/>
+<n id="1049" p="101.30 155.50"/>
+<n id="1050" p="117.26 164.71"/>
+<n id="1051" p="117.26 183.13"/>
+<n id="1052" p="101.30 192.35"/>
+<n id="1053" p="101.30 210.77" Element="9"/>
+<n id="1054" p="85.34 183.13"/>
+<n id="1055" p="69.39 192.35" Element="17"/>
+<n id="1056" p="85.34 164.71"/>
+<n id="1057" p="69.39 155.50" NumHydrogens="1"/>
+<n id="1058" p="53.43 164.71" Element="8"/>
+<n id="1059" p="37.47 155.50"/>
+<n id="1060" p="37.47 137.07"/>
+<n id="1061" p="21.52 127.86"/>
+<n id="1062" p="5.56 137.07"/>
+<n id="1063" p="5.56 155.50" Element="7"/>
+<n id="1064" p="21.52 164.71"/>
+<n id="1065" p="21.52 183.13" Element="7" Charge="1" NumHydrogens="0"><t><s font="3" size="11.00" face="97">N+</s></t></n>
+<n id="1066" p="37.47 192.35" Element="8" Charge="-1" NumHydrogens="0"><t><s font="3" size="11.00" face="97">O-</s></t></n>
+<n id="1067" p="5.56 192.35" Element="8"/>
+<n id="1068" p="69.39 137.07"/>
 <b id="1069" B="1048" E="1049"/>
 <b id="1070" B="1049" E="1056" Order="2"/>
 <b id="1071" B="1056" E="1054"/>
@@ -84,7 +84,7 @@
 <b id="1076" B="1052" E="1053"/>
 <b id="1077" B="1054" E="1055"/>
 <b id="1078" B="1056" E="1057"/>
-<b id="1079" B="1057" E="1068" Display="WedgeBegin"/>
+<b id="1079" B="1057" E="1068" Display="WedgedHashBegin"/>
 <b id="1080" B="1057" E="1058"/>
 <b id="1081" B="1058" E="1059"/>
 <b id="1082" B="1059" E="1064" Order="2"/>

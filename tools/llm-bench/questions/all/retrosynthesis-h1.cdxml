@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="4.95 5.55 280.70 273.11" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="4.95 5.55 293.40 273.11" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
@@ -18,16 +18,16 @@
 <n id="1012" p="107.37 73.00"/>
 <n id="1013" p="124.90 67.30" Element="16"/>
 <n id="1014" p="130.59 84.83" Element="8"/>
-<n id="1015" p="142.42 61.61" Element="8"/>
-<n id="1016" p="119.20 49.78" Element="7"/>
+<n id="1015" p="119.20 49.78" Element="8"/>
+<n id="1016" p="142.42 61.61" Element="7"/>
 <n id="1017" p="103.54 91.02"/>
 <n id="1018" p="86.02 96.71"/>
 <n id="1019" p="49.11 107.60" Element="7"/>
 <n id="1020" p="30.68 107.60"/>
 <n id="1021" p="19.85 122.51"/>
 <n id="1022" p="4.95 111.68" Element="9"/>
-<n id="1023" p="9.02 137.41" Element="9"/>
-<n id="1024" p="34.76 133.34" Element="9"/>
+<n id="1023" p="34.76 133.34" Element="9"/>
+<n id="1024" p="9.02 137.41" Element="9"/>
 <n id="1025" p="24.99 90.08"/>
 <n id="1026" p="23.94 51.61"/>
 <n id="1027" p="23.94 33.19"/>
@@ -71,8 +71,8 @@
 <n id="1064" p="109.55 254.69"/>
 <n id="1065" p="125.51 245.48"/>
 <n id="1066" p="134.72 261.43" Element="9"/>
-<n id="1067" p="141.46 236.26" Element="9"/>
-<n id="1068" p="116.29 229.52" Element="9"/>
+<n id="1067" p="116.29 229.52" Element="9"/>
+<n id="1068" p="141.46 236.26" Element="9"/>
 <n id="1069" p="109.55 273.11" Element="8"/>
 <n id="1070" p="77.64 273.11" Element="8"/>
 <n id="1071" p="45.72 254.69"/>
@@ -95,18 +95,18 @@
 <b id="1088" B="1065" E="1066"/>
 </fragment>
 <fragment id="1089">
-<n id="1090" p="280.70 227.05" Element="7"/>
-<n id="1091" p="264.74 217.84" Element="7"/>
-<n id="1092" p="248.78 227.05"/>
-<n id="1093" p="248.78 245.48"/>
-<n id="1094" p="232.83 254.69"/>
-<n id="1095" p="216.87 245.48"/>
-<n id="1096" p="200.91 254.69" Element="16"/>
-<n id="1097" p="191.70 238.73" Element="8"/>
-<n id="1098" p="184.96 263.90" Element="8"/>
-<n id="1099" p="210.13 270.64" Element="7"/>
-<n id="1100" p="216.87 227.05"/>
-<n id="1101" p="232.83 217.84"/>
+<n id="1090" p="293.40 227.05" Element="7"/>
+<n id="1091" p="277.45 217.84" Element="7"/>
+<n id="1092" p="261.49 227.05"/>
+<n id="1093" p="261.49 245.48"/>
+<n id="1094" p="245.53 254.69"/>
+<n id="1095" p="229.58 245.48"/>
+<n id="1096" p="213.62 254.69" Element="16"/>
+<n id="1097" p="204.41 238.73" Element="8"/>
+<n id="1098" p="222.83 270.64" Element="8"/>
+<n id="1099" p="197.66 263.90" Element="7"/>
+<n id="1100" p="229.58 227.05"/>
+<n id="1101" p="245.53 217.84"/>
 <b id="1102" B="1090" E="1091"/>
 <b id="1103" B="1091" E="1092"/>
 <b id="1104" B="1092" E="1101" Order="2"/>

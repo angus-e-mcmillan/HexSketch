@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="13.81 5.55 285.65 258.18" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="13.81 5.55 285.65 249.15" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
@@ -64,33 +64,33 @@
 <b id="1057" B="1038" E="1039"/>
 </fragment>
 <fragment id="1058">
-<n id="1059" p="61.68 175.26" Element="8"/>
-<n id="1060" p="45.72 184.48"/>
-<n id="1061" p="29.77 175.26" Element="8"/>
-<n id="1062" p="29.77 156.84"/>
-<n id="1063" p="45.72 202.90"/>
-<n id="1064" p="61.68 212.11"/>
-<n id="1065" p="77.64 202.90"/>
-<n id="1066" p="77.64 184.48"/>
-<n id="1067" p="93.59 175.26"/>
-<n id="1068" p="109.55 184.48"/>
-<n id="1069" p="109.55 202.90"/>
-<n id="1070" p="125.51 212.11" Element="17"/>
-<n id="1071" p="93.59 212.11"/>
-<n id="1072" p="93.59 230.54" Element="17"/>
-<n id="1073" p="61.68 230.54"/>
-<n id="1074" p="77.64 239.75"/>
-<n id="1075" p="77.64 258.18" Element="8"/>
-<n id="1076" p="93.59 230.54" Element="8"/>
-<n id="1077" p="109.55 239.75"/>
-<n id="1078" p="125.51 230.54"/>
-<n id="1079" p="141.46 239.75"/>
-<n id="1080" p="157.42 248.97" Element="7"/>
-<n id="1081" p="45.72 239.75"/>
-<n id="1082" p="45.72 258.18"/>
-<n id="1083" p="29.77 230.54" Element="7"/>
-<n id="1084" p="29.77 212.11"/>
-<n id="1085" p="13.81 202.90"/>
+<n id="1059" p="45.72 193.88" Element="8"/>
+<n id="1060" p="45.72 212.30"/>
+<n id="1061" p="29.77 221.51" Element="8"/>
+<n id="1062" p="13.81 212.30"/>
+<n id="1063" p="61.68 221.51"/>
+<n id="1064" p="77.64 212.30"/>
+<n id="1065" p="77.64 193.88"/>
+<n id="1066" p="61.68 184.66"/>
+<n id="1067" p="61.68 166.24"/>
+<n id="1068" p="77.64 157.03"/>
+<n id="1069" p="93.59 166.24"/>
+<n id="1070" p="109.55 157.03" Element="17"/>
+<n id="1071" p="93.59 184.66"/>
+<n id="1072" p="112.02 184.66" Element="17"/>
+<n id="1073" p="93.59 221.51"/>
+<n id="1074" p="109.55 212.30"/>
+<n id="1075" p="109.55 193.88" Element="8"/>
+<n id="1076" p="125.51 221.51" Element="8"/>
+<n id="1077" p="141.46 212.30"/>
+<n id="1078" p="157.42 221.51"/>
+<n id="1079" p="173.38 212.30"/>
+<n id="1080" p="189.33 203.09" Element="7"/>
+<n id="1081" p="93.59 239.94"/>
+<n id="1082" p="109.55 249.15"/>
+<n id="1083" p="77.64 249.15" Element="7"/>
+<n id="1084" p="61.68 239.94"/>
+<n id="1085" p="45.72 249.15"/>
 <b id="1086" B="1059" E="1060" Order="2"/>
 <b id="1087" B="1060" E="1063"/>
 <b id="1088" B="1063" E="1084" Order="2"/>
