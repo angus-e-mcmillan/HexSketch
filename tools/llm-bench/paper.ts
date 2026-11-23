@@ -1169,6 +1169,15 @@ export const EXAM: Spec[] = [
  * hydrolysis that flips three centres elsewhere in the chain, and an oliceridine reduction found
  * earlier. Where a product is written in the substrate's atom order the unchanged stereochemistry
  * is compared directly, string against string, which is what caught them.
+ *
+ * The last eight are peptides, and they are built rather than mined: Chemistry by Design is total
+ * synthesis, so it holds no peptide chemistry worth asking about. Built is better here anyway --
+ * a peptide is made of known pieces, so the substrate and the product are both generated from the
+ * same residue list and are right by construction, and each was then named back through HexSketch
+ * as a check. They are in this set for a reason beyond size: HexSketch names a linear peptide by
+ * its sequence (L-alanylglycyl-L-phenylalanyl-...), so a model handed the drawing is handed the
+ * residues in order, where a model handed the SMILES has to count them off a 300-character string.
+ * If the drawing is worth anything, it is worth the most here.
  */
 export const SCALE: Spec[] = [
   {
@@ -1305,6 +1314,78 @@ export const SCALE: Spec[] = [
     marks: 4,
     shown: { stages: ['C=CCOC(=O)N[C@H]1CS[C@@H]2c3c(OC(C)=O)c(C)c4c(c3[C@H](COC1=O)N1[C@@H]2[C@H]2c3c(cc(C)c(OC)c3OCC=C)C[C@@H]([C@@H]1C#N)N2C(=O)OCC(Cl)(Cl)Cl)OCO4', '?'], arrows: [{ reagents: 'Zn, AcOH', conditions: 'Et2O, rt' }] },
     answer: { structures: ['C=CCOC(=O)N[C@H]1CS[C@@H]2c3c(OC(C)=O)c(C)c4c(c3[C@H](COC1=O)N1[C@@H]2[C@@H]2N[C@@H](Cc3cc(C)c(OC)c(OCC=C)c32)[C@@H]1C#N)OCO4'] },
+  },
+  {
+    // An Fmoc comes off an octapeptide methyl ester. Every residue has to come back, in order, with
+    // the ester untouched: the only change is one carbamate.
+    id: 'reaction-p1',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N(C(=O)OCC1c2ccccc2-c2ccccc21)[C@@H](Cc1ccccc1)C(=O)N[C@@H](C(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)NCC(=O)N[C@@H]([C@@H](C)CC)C(=O)OC', '?'], arrows: [{ reagents: 'piperidine (20% in DMF)', conditions: 'rt, 20 min' }] },
+    answer: { structures: ['N[C@@H](Cc1ccccc1)C(=O)N[C@@H](C(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)NCC(=O)N[C@@H]([C@@H](C)CC)C(=O)OC'] },
+  },
+  {
+    // A decapeptide methyl ester saponified. Nothing else is an ester, so the question is purely
+    // whether a hundred-odd atoms come back with one methyl gone.
+    id: 'reaction-p2',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@@H]([C@@H](C)O)C(=O)N[C@@H](CC(N)=O)C(=O)N[C@@H](CCSC)C(=O)N[C@@H](CCC(N)=O)C(=O)N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](C(C)C)C(=O)NCC(=O)OC', '?'], arrows: [{ reagents: 'LiOH', conditions: 'THF/H2O, 0 °C' }] },
+    answer: { structures: ['N[C@@H](Cc1c[nH]c2ccccc12)C(=O)N[C@@H]([C@@H](C)O)C(=O)N[C@@H](CC(N)=O)C(=O)N[C@@H](CCSC)C(=O)N[C@@H](CCC(N)=O)C(=O)N[C@@H](C)C(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](C(C)C)C(=O)NCC(=O)O'] },
+  },
+  {
+    // Hydrogenolysis takes the Cbz and the benzyl ester together: two groups off one nonapeptide, and
+    // the Tyr phenol and the Met thioether both survive it.
+    id: 'reaction-p3',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N(C(=O)OCc1ccccc1)[C@@H](Cc1ccc(O)cc1)C(=O)NCC(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CCSC)C(=O)N[C@@H](C)C(=O)N[C@@H](CO)C(=O)N[C@@H](C(C)C)C(=O)OCc1ccccc1', '?'], arrows: [{ reagents: 'H2 (1 atm), 10% Pd/C', conditions: 'MeOH, rt' }] },
+    answer: { structures: ['N[C@@H](Cc1ccc(O)cc1)C(=O)NCC(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CCSC)C(=O)N[C@@H](C)C(=O)N[C@@H](CO)C(=O)N[C@@H](C(C)C)C(=O)O'] },
+  },
+  {
+    // The global deprotection of a peptide carrying Boc on a lysine and tert-butyl on an aspartate, a
+    // serine and a tyrosine: four groups go at once, and HexSketch draws every one abbreviated.
+    id: 'reaction-p4',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N[C@@H](CCCCNC(=O)OC(C)(C)C)C(=O)N[C@@H](CC(=O)OC(C)(C)C)C(=O)N[C@@H](COC(C)(C)C)C(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](Cc1ccc(OC(C)(C)C)cc1)C(=O)NCC(=O)N[C@@H](C(C)C)C(=O)O', '?'], arrows: [{ reagents: 'TFA/H2O/TIS (95:2.5:2.5)', conditions: 'rt, 2 h' }] },
+    answer: { structures: ['N[C@@H](CCCCN)C(=O)N[C@@H](CC(=O)O)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)NCC(=O)N[C@@H](C(C)C)C(=O)O'] },
+  },
+  {
+    // Which carbamate the acid takes: the Boc on the N-terminus goes and the Cbz on the lysine side
+    // chain stays, on the same molecule.
+    id: 'reaction-p5',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N(C(=O)OC(C)(C)C)[C@@H](CCCCNC(=O)OCc1ccccc1)C(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](C(C)C)C(=O)NCC(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CO)C(=O)OC', '?'], arrows: [{ reagents: '4 M HCl in dioxane', conditions: '0 °C to rt' }] },
+    answer: { structures: ['N[C@@H](CCCCNC(=O)OCc1ccccc1)C(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](C(C)C)C(=O)NCC(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CO)C(=O)OC'] },
+  },
+  {
+    // One amide made between a pentapeptide ester and an Fmoc amino acid. The answer is both pieces
+    // joined the right way round -- the acid to the free amine, not to the serine hydroxyl.
+    id: 'reaction-p6',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N[C@@H](C(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CO)C(=O)NCC(=O)OC.N(C(=O)OCC1c2ccccc2-c2ccccc21)[C@@H](Cc1ccccc1)C(=O)O', '?'], arrows: [{ reagents: 'HATU, DIPEA', conditions: 'DMF, rt' }] },
+    answer: { structures: ['N(C(=O)OCC1c2ccccc2-c2ccccc21)[C@@H](Cc1ccccc1)C(=O)N[C@@H](C(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CO)C(=O)NCC(=O)OC'] },
+  },
+  {
+    // A head-to-tail macrolactamisation: the heptapeptide closes to the cyclic peptide and loses water.
+    // Same atoms bar one oxygen, one bond made, and no end left to draw.
+    id: 'reaction-p7',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N[C@@H](Cc1ccccc1)C(=O)NCC(=O)N[C@@H](C(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccc(O)cc1)C(=O)O', '?'], arrows: [{ reagents: 'HATU, DIPEA (0.5 mM)', conditions: 'DMF, rt' }] },
+    answer: { structures: ['N%91[C@@H](Cc1ccccc1)C(=O)NCC(=O)N[C@@H](C(C)C)C(=O)N[C@@H](C)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CO)C(=O)N[C@@H](Cc1ccc(O)cc1)C%91=O'] },
+  },
+  {
+    // Two cysteines oxidised to the disulfide, closing a loop inside the chain: the trap is drawing two
+    // separate thiols, or oxidising the methionine that is not there.
+    id: 'reaction-p8',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['N[C@@H](C)C(=O)N[C@@H](CS)C(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](C(C)C)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CS)C(=O)N[C@@H]([C@@H](C)O)C(=O)O', '?'], arrows: [{ reagents: 'I2', conditions: 'AcOH/H2O' }] },
+    answer: { structures: ['N[C@@H](C)C(=O)N[C@@H](CS%92)C(=O)NCC(=O)N[C@@H](Cc1ccccc1)C(=O)N[C@@H](C(C)C)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CS%92)C(=O)N[C@@H]([C@@H](C)O)C(=O)O'] },
   },
 ];
 
