@@ -29,5 +29,19 @@
  "O=C(Cl)c1c(F)cc(F)cc1F": 54,
  "N[C@@H]1CCCNC1": 55,
  "N#Cc1ccc(F)cc1CBr": 72,
- "Cn1c(=O)cc(Cl)[nH]c1=O": 80
+ "Cn1c(=O)cc(Cl)[nH]c1=O": 80,
+ "C1CCNCC1": 34,
+ "CN(OC)C(=O)C1CCN(C)CC1": 50,
+ "OC(=O)C1CCN(C)CC1": 69,
+ "Brc1cccc(Br)n1": 83,
+ "NC(=O)c1c(F)cc(F)cc1F": 53,
+ "CC(C)(C)OC(=O)N[C@@H]1CCCNC1": 64,
+ "CN1C(=O)C=C(Cl)NC1=O": 80,
+ "CN1C(=O)NC(Cl)=CC1=O": 80,
+ "N1CCC[C@@H](NC(=O)OC(C)(C)C)C1": 64,
+ "BrCc1cc(F)ccc1C#N": 72,
+ "ClCCCN1CCCCC1": 42,
+ "Nc1cccc(Br)n1": 80,
+ "CN1CCC(C(=O)O)CC1": 69,
+ "N1CCC[C@@H](N)C1": 55
 }

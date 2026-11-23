@@ -1,0 +1,1323 @@
+{
+  "run": "2026-11-22-claude-sonnet-5-5",
+  "date": "2026-11-22T21:16:54.129Z",
+  "model": "claude-sonnet-5-5",
+  "served": [
+    "claude-sonnet-5-5"
+  ],
+  "providers": [
+    "Claude Code"
+  ],
+  "settings": {
+    "provider": null,
+    "effort": "medium",
+    "maxTokens": 32000,
+    "likeWebsite": null,
+    "maxRounds": 12,
+    "repeats": 1,
+    "timeoutSeconds": 600,
+    "temperature": "default"
+  },
+  "questions": {
+    "hash": "511f366fe2e1",
+    "count": 39,
+    "marks": 170,
+    "types": {
+      "multistep": 8,
+      "mechanism": 6,
+      "retrosynthesis": 5,
+      "route": 3,
+      "structure": 5,
+      "analysis": 5,
+      "hazard": 7
+    }
+  },
+  "commit": "98fba4c",
+  "failedRuns": 0,
+  "totalCost": 3.231974300000002,
+  "conditions": {
+    "cc-plain": {
+      "score": 150,
+      "scoreRange": [
+        150,
+        150
+      ],
+      "outOf": 170,
+      "byType": {
+        "multistep": {
+          "score": 34,
+          "outOf": 39
+        },
+        "mechanism": {
+          "score": 25,
+          "outOf": 30
+        },
+        "retrosynthesis": {
+          "score": 20,
+          "outOf": 25
+        },
+        "route": {
+          "score": 10,
+          "outOf": 15
+        },
+        "structure": {
+          "score": 12,
+          "outOf": 12
+        },
+        "analysis": {
+          "score": 14,
+          "outOf": 14
+        },
+        "hazard": {
+          "score": 35,
+          "outOf": 35
+        }
+      },
+      "correct": {
+        "rate": 0.8717948717948718,
+        "n": 39
+      },
+      "stereo": {
+        "rate": 0.02564102564102564,
+        "n": 39
+      },
+      "valid": {
+        "rate": 1,
+        "n": 37
+      },
+      "consistent": {
+        "rate": 0.4166666666666667,
+        "n": 12
+      },
+      "preserved": {
+        "rate": 0.9583333333333334,
+        "n": 24
+      },
+      "flagged": {
+        "rate": 1,
+        "n": 7
+      },
+      "oriented": {
+        "rate": 0.45454545454545453,
+        "n": 22
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.01789241794871795,
+      "tokens": 1149.179487179487,
+      "reasoning": 0,
+      "prompt": 3102.230769230769,
+      "cachedPrompt": 1539.5641025641025,
+      "seconds": 11.185,
+      "toolCalls": 0
+    },
+    "cc-drawn": {
+      "score": 142.5,
+      "scoreRange": [
+        142.5,
+        142.5
+      ],
+      "outOf": 170,
+      "byType": {
+        "multistep": {
+          "score": 29,
+          "outOf": 39
+        },
+        "mechanism": {
+          "score": 25,
+          "outOf": 30
+        },
+        "retrosynthesis": {
+          "score": 20,
+          "outOf": 25
+        },
+        "route": {
+          "score": 7.5,
+          "outOf": 15
+        },
+        "structure": {
+          "score": 12,
+          "outOf": 12
+        },
+        "analysis": {
+          "score": 14,
+          "outOf": 14
+        },
+        "hazard": {
+          "score": 35,
+          "outOf": 35
+        }
+      },
+      "correct": {
+        "rate": 0.8461538461538461,
+        "n": 39
+      },
+      "stereo": {
+        "rate": 0.02564102564102564,
+        "n": 39
+      },
+      "valid": {
+        "rate": 0.9459459459459459,
+        "n": 37
+      },
+      "consistent": {
+        "rate": 0.75,
+        "n": 12
+      },
+      "preserved": {
+        "rate": 0.9583333333333334,
+        "n": 24
+      },
+      "flagged": {
+        "rate": 1,
+        "n": 7
+      },
+      "oriented": {
+        "rate": 0.6190476190476191,
+        "n": 21
+      },
+      "refused": 0,
+      "cutOff": 0,
+      "cost": 0.06497871794871794,
+      "tokens": 2673.5897435897436,
+      "reasoning": 0,
+      "prompt": 29262.46153846154,
+      "cachedPrompt": 20204.615384615383,
+      "seconds": 27.679,
+      "toolCalls": 1.2564102564102564
+    }
+  },
+  "perQuestion": [
+    {
+      "id": "multistep-d1",
+      "type": "multistep",
+      "marks": 5,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3199,
+        "outputTokens": 1280,
+        "thinkingTokens": 0,
+        "cost": 0.0194963,
+        "seconds": 12.895,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 26286,
+        "outputTokens": 2815,
+        "thinkingTokens": 0,
+        "cost": 0.0652076,
+        "seconds": 33.681,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-d2",
+      "type": "multistep",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3166,
+        "outputTokens": 2083,
+        "thinkingTokens": 0,
+        "cost": 0.027394300000000003,
+        "seconds": 17.9,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 26594,
+        "outputTokens": 3650,
+        "thinkingTokens": 0,
+        "cost": 0.074501,
+        "seconds": 37.831,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-d3",
+      "type": "multistep",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3156,
+        "outputTokens": 1169,
+        "thinkingTokens": 0,
+        "cost": 0.0182143,
+        "seconds": 11.325,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 26150,
+        "outputTokens": 2940,
+        "thinkingTokens": 0,
+        "cost": 0.06622170000000001,
+        "seconds": 28.644,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-d4",
+      "type": "multistep",
+      "marks": 4,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3099,
+        "outputTokens": 667,
+        "thinkingTokens": 0,
+        "cost": 0.0129663,
+        "seconds": 7.175,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25243,
+        "outputTokens": 2264,
+        "thinkingTokens": 0,
+        "cost": 0.056488899999999995,
+        "seconds": 24.738,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-d5",
+      "type": "multistep",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3148,
+        "outputTokens": 774,
+        "thinkingTokens": 0,
+        "cost": 0.0142323,
+        "seconds": 8.137,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25149,
+        "outputTokens": 2434,
+        "thinkingTokens": 0,
+        "cost": 0.0579065,
+        "seconds": 27.679,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-d6",
+      "type": "multistep",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3169,
+        "outputTokens": 1593,
+        "thinkingTokens": 0,
+        "cost": 0.0225063,
+        "seconds": 17.81,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 39195,
+        "outputTokens": 5026,
+        "thinkingTokens": 0,
+        "cost": 0.0905194,
+        "seconds": 44.849,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "multistep-d7",
+      "type": "multistep",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3160,
+        "outputTokens": 651,
+        "thinkingTokens": 0,
+        "cost": 0.0130503,
+        "seconds": 9.366,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25358,
+        "outputTokens": 2441,
+        "thinkingTokens": 0,
+        "cost": 0.0586214,
+        "seconds": 25.991,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "multistep-d8",
+      "type": "multistep",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3133,
+        "outputTokens": 1005,
+        "thinkingTokens": 0,
+        "cost": 0.0164823,
+        "seconds": 11.151,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25290,
+        "outputTokens": 2620,
+        "thinkingTokens": 0,
+        "cost": 0.0601589,
+        "seconds": 27.528,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "mechanism-d1",
+      "type": "mechanism",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3102,
+        "outputTokens": 1331,
+        "thinkingTokens": 0,
+        "cost": 0.019618299999999998,
+        "seconds": 13.118,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24663,
+        "outputTokens": 2497,
+        "thinkingTokens": 0,
+        "cost": 0.056908400000000005,
+        "seconds": 27.694,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "mechanism-d2",
+      "type": "mechanism",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3095,
+        "outputTokens": 1387,
+        "thinkingTokens": 0,
+        "cost": 0.0201503,
+        "seconds": 13.007,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25310,
+        "outputTokens": 3203,
+        "thinkingTokens": 0,
+        "cost": 0.0664004,
+        "seconds": 31.511,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "mechanism-d3",
+      "type": "mechanism",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3083,
+        "outputTokens": 2198,
+        "thinkingTokens": 0,
+        "cost": 0.028212300000000003,
+        "seconds": 19.711,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24608,
+        "outputTokens": 3212,
+        "thinkingTokens": 0,
+        "cost": 0.0638735,
+        "seconds": 30.349,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "mechanism-d4",
+      "type": "mechanism",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3087,
+        "outputTokens": 1009,
+        "thinkingTokens": 0,
+        "cost": 0.0163383,
+        "seconds": 10.073,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25172,
+        "outputTokens": 2556,
+        "thinkingTokens": 0,
+        "cost": 0.059226299999999996,
+        "seconds": 27.36,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "mechanism-d5",
+      "type": "mechanism",
+      "marks": 5,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3106,
+        "outputTokens": 1187,
+        "thinkingTokens": 0,
+        "cost": 0.0181943,
+        "seconds": 12.858,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 67746,
+        "outputTokens": 5629,
+        "thinkingTokens": 0,
+        "cost": 0.1342275,
+        "seconds": 51.786,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "mechanism-d6",
+      "type": "mechanism",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3099,
+        "outputTokens": 1081,
+        "thinkingTokens": 0,
+        "cost": 0.0171063,
+        "seconds": 10.924,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25175,
+        "outputTokens": 3003,
+        "thinkingTokens": 0,
+        "cost": 0.0636147,
+        "seconds": 33.091,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "retrosynthesis-d1",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3051,
+        "outputTokens": 894,
+        "thinkingTokens": 0,
+        "cost": 0.0150443,
+        "seconds": 8.88,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24787,
+        "outputTokens": 2279,
+        "thinkingTokens": 0,
+        "cost": 0.0551035,
+        "seconds": 27.639,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "retrosynthesis-d2",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3078,
+        "outputTokens": 1315,
+        "thinkingTokens": 0,
+        "cost": 0.0193623,
+        "seconds": 12.119,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 26072,
+        "outputTokens": 2534,
+        "thinkingTokens": 0,
+        "cost": 0.061740500000000004,
+        "seconds": 26.646,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "retrosynthesis-d3",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3074,
+        "outputTokens": 523,
+        "thinkingTokens": 0,
+        "cost": 0.014990899999999998,
+        "seconds": 7.207,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25754,
+        "outputTokens": 2090,
+        "thinkingTokens": 0,
+        "cost": 0.0562859,
+        "seconds": 26.079,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "retrosynthesis-d4",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3092,
+        "outputTokens": 704,
+        "thinkingTokens": 0,
+        "cost": 0.013308299999999999,
+        "seconds": 8.751,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25966,
+        "outputTokens": 2160,
+        "thinkingTokens": 0,
+        "cost": 0.0827549,
+        "seconds": 23.979,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "retrosynthesis-d5",
+      "type": "retrosynthesis",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3090,
+        "outputTokens": 1152,
+        "thinkingTokens": 0,
+        "cost": 0.017780300000000002,
+        "seconds": 11.185,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 26590,
+        "outputTokens": 2756,
+        "thinkingTokens": 0,
+        "cost": 0.0911212,
+        "seconds": 30.956,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "route-d1",
+      "type": "route",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3151,
+        "outputTokens": 1620,
+        "thinkingTokens": 0,
+        "cost": 0.0227043,
+        "seconds": 13.048,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24760,
+        "outputTokens": 3114,
+        "thinkingTokens": 0,
+        "cost": 0.06332209999999999,
+        "seconds": 31.393,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "route-d2",
+      "type": "route",
+      "marks": 5,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3150,
+        "outputTokens": 1716,
+        "thinkingTokens": 0,
+        "cost": 0.023660300000000002,
+        "seconds": 14.475,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 43891,
+        "outputTokens": 724,
+        "thinkingTokens": 0,
+        "cost": 0.030641200000000004,
+        "seconds": 11.243,
+        "toolCalls": 3
+      }
+    },
+    {
+      "id": "route-d3",
+      "type": "route",
+      "marks": 5,
+      "cc-plain": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3130,
+        "outputTokens": 882,
+        "thinkingTokens": 0,
+        "cost": 0.0152403,
+        "seconds": 9.525,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 0,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24011,
+        "outputTokens": 2183,
+        "thinkingTokens": 0,
+        "cost": 0.0517025,
+        "seconds": 24.485,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "structure-d1",
+      "type": "structure",
+      "marks": 3,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3048,
+        "outputTokens": 1670,
+        "thinkingTokens": 0,
+        "cost": 0.0227923,
+        "seconds": 14.958,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 40195,
+        "outputTokens": 1885,
+        "thinkingTokens": 0,
+        "cost": 0.0592289,
+        "seconds": 21.618,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "structure-d2",
+      "type": "structure",
+      "marks": 2,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3069,
+        "outputTokens": 724,
+        "thinkingTokens": 0,
+        "cost": 0.013416299999999999,
+        "seconds": 9.298,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 42062,
+        "outputTokens": 3639,
+        "thinkingTokens": 0,
+        "cost": 0.085364,
+        "seconds": 40.889,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "structure-d3",
+      "type": "structure",
+      "marks": 3,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3095,
+        "outputTokens": 653,
+        "thinkingTokens": 0,
+        "cost": 0.0128103,
+        "seconds": 7.072,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 42223,
+        "outputTokens": 2213,
+        "thinkingTokens": 0,
+        "cost": 0.0658122,
+        "seconds": 23.94,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "structure-d4",
+      "type": "structure",
+      "marks": 2,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3070,
+        "outputTokens": 534,
+        "thinkingTokens": 0,
+        "cost": 0.011520299999999999,
+        "seconds": 6.899,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 39199,
+        "outputTokens": 1983,
+        "thinkingTokens": 0,
+        "cost": 0.0815164,
+        "seconds": 24.571,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "structure-d5",
+      "type": "structure",
+      "marks": 2,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3053,
+        "outputTokens": 466,
+        "thinkingTokens": 0,
+        "cost": 0.010772299999999999,
+        "seconds": 6.961,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 42690,
+        "outputTokens": 3953,
+        "thinkingTokens": 0,
+        "cost": 0.0901736,
+        "seconds": 50.552,
+        "toolCalls": 2
+      }
+    },
+    {
+      "id": "analysis-d1",
+      "type": "analysis",
+      "marks": 3,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3109,
+        "outputTokens": 935,
+        "thinkingTokens": 0,
+        "cost": 0.0156863,
+        "seconds": 9.401,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24754,
+        "outputTokens": 2234,
+        "thinkingTokens": 0,
+        "cost": 0.054634600000000005,
+        "seconds": 26.127,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "analysis-d2",
+      "type": "analysis",
+      "marks": 3,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3109,
+        "outputTokens": 339,
+        "thinkingTokens": 0,
+        "cost": 0.0097263,
+        "seconds": 5.764,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24845,
+        "outputTokens": 1788,
+        "thinkingTokens": 0,
+        "cost": 0.0503865,
+        "seconds": 19.536,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "analysis-d3",
+      "type": "analysis",
+      "marks": 3,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3085,
+        "outputTokens": 628,
+        "thinkingTokens": 0,
+        "cost": 0.0125203,
+        "seconds": 7.978,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24390,
+        "outputTokens": 1809,
+        "thinkingTokens": 0,
+        "cost": 0.0491743,
+        "seconds": 19.886,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "analysis-d4",
+      "type": "analysis",
+      "marks": 3,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3076,
+        "outputTokens": 912,
+        "thinkingTokens": 0,
+        "cost": 0.015324299999999999,
+        "seconds": 10.258,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25680,
+        "outputTokens": 2096,
+        "thinkingTokens": 0,
+        "cost": 0.0562059,
+        "seconds": 22.94,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "analysis-d5",
+      "type": "analysis",
+      "marks": 2,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3027,
+        "outputTokens": 362,
+        "thinkingTokens": 0,
+        "cost": 0.0096283,
+        "seconds": 6.681,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24289,
+        "outputTokens": 1680,
+        "thinkingTokens": 0,
+        "cost": 0.0477143,
+        "seconds": 19.044,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "hazard-d1",
+      "type": "hazard",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3093,
+        "outputTokens": 1687,
+        "thinkingTokens": 0,
+        "cost": 0.0231423,
+        "seconds": 18.03,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 26046,
+        "outputTokens": 2788,
+        "thinkingTokens": 0,
+        "cost": 0.0641063,
+        "seconds": 31.365,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "hazard-d2",
+      "type": "hazard",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3086,
+        "outputTokens": 1400,
+        "thinkingTokens": 0,
+        "cost": 0.0202443,
+        "seconds": 13.872,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25046,
+        "outputTokens": 2514,
+        "thinkingTokens": 0,
+        "cost": 0.0583803,
+        "seconds": 25.097,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "hazard-d3",
+      "type": "hazard",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3096,
+        "outputTokens": 1509,
+        "thinkingTokens": 0,
+        "cost": 0.0213743,
+        "seconds": 14.916,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25119,
+        "outputTokens": 2626,
+        "thinkingTokens": 0,
+        "cost": 0.0596285,
+        "seconds": 27.744,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "hazard-d4",
+      "type": "hazard",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3106,
+        "outputTokens": 1885,
+        "thinkingTokens": 0,
+        "cost": 0.0251743,
+        "seconds": 18.604,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25378,
+        "outputTokens": 2871,
+        "thinkingTokens": 0,
+        "cost": 0.06298580000000001,
+        "seconds": 32.236,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "hazard-d5",
+      "type": "hazard",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3069,
+        "outputTokens": 1835,
+        "thinkingTokens": 0,
+        "cost": 0.024526300000000004,
+        "seconds": 18.41,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 24273,
+        "outputTokens": 2749,
+        "thinkingTokens": 0,
+        "cost": 0.058305199999999995,
+        "seconds": 29.574,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "hazard-d6",
+      "type": "hazard",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3080,
+        "outputTokens": 1776,
+        "thinkingTokens": 0,
+        "cost": 0.023980300000000003,
+        "seconds": 17.682,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25510,
+        "outputTokens": 2839,
+        "thinkingTokens": 0,
+        "cost": 0.06298709999999999,
+        "seconds": 32.223,
+        "toolCalls": 1
+      }
+    },
+    {
+      "id": "hazard-d7",
+      "type": "hazard",
+      "marks": 5,
+      "cc-plain": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 3098,
+        "outputTokens": 1282,
+        "thinkingTokens": 0,
+        "cost": 0.0191123,
+        "seconds": 14.33,
+        "toolCalls": 0
+      },
+      "cc-drawn": {
+        "right": 1,
+        "of": 1,
+        "refused": 0,
+        "cutOff": 0,
+        "promptTokens": 25767,
+        "outputTokens": 2473,
+        "thinkingTokens": 0,
+        "cost": 0.06101809999999999,
+        "seconds": 30.608,
+        "toolCalls": 1
+      }
+    }
+  ]
+}
