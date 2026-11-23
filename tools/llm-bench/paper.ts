@@ -1145,10 +1145,174 @@ export const EXAM: Spec[] = [
 ];
 
 /**
+ * The draw-the-product tranche, in questions/scale/: fifteen forward reactions whose products run
+ * from 52 to 90 heavy atoms, each a step somebody published, from Chemistry by Design.
+ *
+ * It exists because the exam did not do the job it was built for. Over Haiku, Sonnet and Opus the
+ * exam's 39 questions came out 97 answers right typed against 98 drawn -- the drawing was worth one
+ * answer in 117 -- and 23 of them were answered correctly by every model in both conditions. The
+ * reason is visible in the sizes: the exam's largest answer is 34 heavy atoms, and this benchmark's
+ * own finding is that what models come apart on is carrying twenty-five heavy atoms through a
+ * transformation. A question about one small molecule, or about which atom is the most basic, has
+ * nothing to carry, so a drawing cannot help with it and only adds overhead.
+ *
+ * So these are chosen the other way round: one substrate, a transformation that is mostly
+ * bookkeeping, and a molecule big enough that the bookkeeping is the whole difficulty. A Pinnick
+ * oxidation is not a hard reaction -- but a Pinnick on ninety atoms carrying two Cbz groups, an
+ * Fmoc, a MOM, two benzyl ethers and three azoles asks whether a model can put ninety atoms back
+ * on the page with one group changed. That is the question HexSketch should be able to help with,
+ * and if it cannot help here it cannot help anywhere.
+ *
+ * Checked as the exam's questions were, and three candidates were dropped rather than patched
+ * because the dataset's own drawings disagreed with themselves about a centre the step does not
+ * touch: a pibrentasvir amidation that turns both prolines from (S) to (R), a discodermolide acetal
+ * hydrolysis that flips three centres elsewhere in the chain, and an oliceridine reduction found
+ * earlier. Where a product is written in the substrate's atom order the unchanged stereochemistry
+ * is compared directly, string against string, which is what caught them.
+ */
+export const SCALE: Spec[] = [
+  {
+    // Diazonamide A (Nicolaou, 2003). A Pinnick on ninety heavy atoms: the aldehyde goes to the acid and
+    // nothing else moves -- two Cbz, an Fmoc, a MOM, two benzyl ethers, three azoles and four centres.
+    id: 'reaction-s1',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['COCn1cc2c3c(cccc31)-c1cccc3c1N(Cc1ccccc1)C[C@@]3(c1cc(C[C@@H](C=O)NC(=O)OCc3ccccc3)ccc1OCc1ccccc1)c1oc([C@@H](NC(=O)OCC3c4ccccc4-c4ccccc43)C(C)C)nc1-c1ncc-2o1', '?'], arrows: [{ reagents: 'NaClO2, NaH2PO4, resorcinol', conditions: 'DMSO/H2O' }] },
+    answer: { structures: ['COCn1cc2c3c(cccc31)-c1cccc3c1N(Cc1ccccc1)C[C@@]3(c1cc(C[C@H](NC(=O)OCc3ccccc3)C(=O)O)ccc1OCc1ccccc1)c1oc([C@@H](NC(=O)OCC3c4ccccc4-c4ccccc43)C(C)C)nc1-c1ncc-2o1'] },
+  },
+  {
+    // Enigmazole A (Smith, 2015). Petasis methylenation: the lactone carbonyl becomes an exocyclic alkene,
+    // and the TMS, TIPS and TBDPS ethers all have to come through it.
+    id: 'reaction-s2',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['COc1ccc(CO[C@@H](CCC[C@@H]2CC(=O)O[C@H](C[C@H](O[Si](C(C)C)(C(C)C)C(C)C)[C@H](C)C[C@@H](C)CO[Si](c3ccccc3)(c3ccccc3)C(C)(C)C)O2)C[C@H](O[Si](C)(C)C)c2coc(/C=C(/C)[C@@H](C)OC)n2)cc1', '?'], arrows: [{ reagents: 'Cp2TiMe2', conditions: 'toluene/THF, 100 °C' }] },
+    answer: { structures: ['C=C1C[C@@H](CCC[C@@H](C[C@H](O[Si](C)(C)C)c2coc(/C=C(/C)[C@@H](C)OC)n2)OCc2ccc(OC)cc2)O[C@@H](C[C@H](O[Si](C(C)C)(C(C)C)C(C)C)[C@H](C)C[C@@H](C)CO[Si](c2ccccc2)(c2ccccc2)C(C)(C)C)O1'] },
+  },
+  {
+    // Vineomycin B2 (Toshima, 2013). The aldehyde to the acid, with four sugars, two enones and a
+    // chloroacetate to keep -- and the chloroacetate is not the thing the chlorite touches.
+    id: 'reaction-s3',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['COc1c(C[C@](C)(CC=O)O[C@H]2CC[C@H](O[C@H]3C=CC(=O)[C@H](C)O3)[C@H](C)O2)ccc2c1C(=O)c1ccc([C@H]3C[C@@H](OC(=O)CCl)[C@H](O[C@@H]4CC[C@@H](O[C@@H]5C=CC(=O)[C@@H](C)O5)[C@@H](C)O4)[C@@H](C)O3)c(OC)c1C2=O', '?'], arrows: [{ reagents: 'NaClO2, NaH2PO4, 2-methyl-2-butene', conditions: 't-BuOH/THF/H2O, rt' }] },
+    answer: { structures: ['COc1c(C[C@](C)(CC(=O)O)O[C@H]2CC[C@H](O[C@H]3C=CC(=O)[C@H](C)O3)[C@H](C)O2)ccc2c1C(=O)c1ccc([C@H]3C[C@@H](OC(=O)CCl)[C@H](O[C@@H]4CC[C@@H](O[C@@H]5C=CC(=O)[C@@H](C)O5)[C@@H](C)O4)[C@@H](C)O3)c(OC)c1C2=O'] },
+  },
+  {
+    // Diazonamide A (MacMillan, 2011). Ozonolysis of the enal's alkene back to the aldehyde: the question is
+    // which carbon is lost, with a thioester, a TIPS ether and a trifluoroacetamide looking on.
+    id: 'reaction-s4',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['CCSC(=O)CNC(=O)C(NC(=O)[C@H](Cc1ccc2c(c1)[C@]1(/C=C/C=O)c3cccc(OCc4ccccc4)c3N(C(=O)C(F)(F)F)[C@@H]1O2)NC(=O)[C@@H](O[Si](C(C)C)(C(C)C)C(C)C)C(C)C)C(C)C', '?'], arrows: [{ reagents: 'O3', conditions: 'CH2Cl2/MeOH, −78 °C' }] },
+    answer: { structures: ['CCSC(=O)CNC(=O)C(NC(=O)[C@H](Cc1ccc2c(c1)[C@]1(C=O)c3cccc(OCc4ccccc4)c3N(C(=O)C(F)(F)F)[C@@H]1O2)NC(=O)[C@@H](O[Si](C(C)C)(C(C)C)C(C)C)C(C)C)C(C)C'] },
+  },
+  {
+    // (S)-Gossypol (Meyers, 1998). Both oxazolines are hydrolysed to amino esters at once, and the biaryl's
+    // axis of chirality is not drawn, so only the two centres in the auxiliaries are.
+    id: 'reaction-s5',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['COCc1c(OC)c(OC)c(C(C)C)c2cc(C3=N[C@@H](C(C)(C)C)CO3)c(-c3c(C4=N[C@@H](C(C)(C)C)CO4)cc4c(C(C)C)c(OC)c(OC)c(COC)c4c3OC)c(OC)c12', '?'], arrows: [{ reagents: 'TFA', conditions: 'THF/H2O' }] },
+    answer: { structures: ['COCc1c(OC)c(OC)c(C(C)C)c2cc(C(=O)OC[C@@H](N)C(C)(C)C)c(-c3c(C(=O)OC[C@@H](N)C(C)(C)C)cc4c(C(C)C)c(OC)c(OC)c(COC)c4c3OC)c(OC)c12'] },
+  },
+  {
+    // Hypocrellin A (Kozlowski, 2008). A Wacker on both allyl groups, to two methyl ketones; the eight
+    // methoxyls, two esters and two benzyl ethers are there to be miscounted.
+    id: 'reaction-s6',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['C=CCc1cc2c(-c3c(OC)c(C(=O)OC)c(OC)c4c(OCc5ccccc5)c(OC)c(CC=C)cc34)c(OC)c(C(=O)OC)c(OC)c2c(OCc2ccccc2)c1OC', '?'], arrows: [{ reagents: 'PdCl2, CuCl, O2', conditions: 'DMF/H2O' }] },
+    answer: { structures: ['COC(=O)c1c(OC)c(-c2c(OC)c(C(=O)OC)c(OC)c3c(OCc4ccccc4)c(OC)c(CC(C)=O)cc23)c2cc(CC(C)=O)c(OC)c(OCc3ccccc3)c2c1OC'] },
+  },
+  {
+    // Ouabagenin (Deslongchamps, 2008). Which hydroxyls acetylate: the two secondary ones do, the two
+    // tertiary ones do not, and a TBDPS ether and an aryl ester are already in place.
+    id: 'reaction-s7',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['COc1ccc(C(=O)O[C@@H]2C[C@H](O)C[C@@]3(O)CCC4[C@H]([C@H](O)C[C@]5(C)[C@@H](CO[Si](c6ccccc6)(c6ccccc6)C(C)(C)C)CC[C@]45O)[C@@]23COC(C)=O)cc1', '?'], arrows: [{ reagents: 'Ac2O, pyridine, DMAP', conditions: 'CH2Cl2, 40 °C' }] },
+    answer: { structures: ['COc1ccc(C(=O)O[C@@H]2C[C@H](OC(C)=O)C[C@@]3(O)CCC4[C@H]([C@H](OC(C)=O)C[C@]5(C)[C@@H](CO[Si](c6ccccc6)(c6ccccc6)C(C)(C)C)CC[C@]45O)[C@@]23COC(C)=O)cc1'] },
+  },
+  {
+    // Actinorhodin (Suzuki, 2019). Both aldehydes of a C2-symmetric dimer to acids at once -- the symmetry
+    // makes it easy to write one and forget the other.
+    id: 'reaction-s8',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['COc1cc(-c2cc(OC)c3cc4c(c(OCc5ccccc5)c3c2OC)[C@@H](C)O[C@H](CC=O)C4)c(OC)c2c(OCc3ccccc3)c3c(cc12)C[C@@H](CC=O)O[C@@H]3C', '?'], arrows: [{ reagents: 'NaClO2, NaH2PO4', conditions: 'THF/t-BuOH/H2O' }] },
+    answer: { structures: ['COc1cc(-c2cc(OC)c3cc4c(c(OCc5ccccc5)c3c2OC)[C@@H](C)O[C@H](CC(=O)O)C4)c(OC)c2c(OCc3ccccc3)c3c(cc12)C[C@@H](CC(=O)O)O[C@@H]3C'] },
+  },
+  {
+    // Dictyostatin (Leighton, 2013). A macrolactonisation: the seco acid closes to the 22-membered ring, so
+    // the answer is the same atoms with one bond made and water lost.
+    id: 'reaction-s9',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['C=C/C=C\\[C@H](C)[C@@H](O)[C@H](C)[C@@H](CC[C@@H](C)C[C@H](C)[C@@H](O[Si](C)(C)C(C)(C)C)[C@@H](C)/C=C\\C(=O)C[C@H](O[Si](C)(C)C(C)(C)C)[C@@H](C)/C=C/C=C\\C(=O)O)O[Si](C(C)C)(C(C)C)C(C)C', '?'], arrows: [{ reagents: '2-methyl-6-nitrobenzoic anhydride, DMAP, Et3N', conditions: 'toluene' }] },
+    answer: { structures: ['C=C/C=C\\[C@@H](C)[C@@H]1OC(=O)/C=C\\C=C\\[C@@H](C)[C@@H](O[Si](C)(C)C(C)(C)C)CC(=O)/C=C\\[C@H](C)[C@H](O[Si](C)(C)C(C)(C)C)[C@@H](C)C[C@@H](C)CC[C@@H](O[Si](C(C)C)(C(C)C)C(C)C)[C@@H]1C'] },
+  },
+  {
+    // Avermectin A1a (Danishefsky, 1989). The hydride takes the acetate off the far sugar and leaves the
+    // macrolactone alone: a selectivity question wrapped round sixty-three atoms.
+    id: 'reaction-s10',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['CC[C@H](C)[C@H]1O[C@]2(C=C[C@@H]1C)C[C@@H]1C[C@@H](C/C=C(\\C)[C@@H](O[C@H]3C[C@H](OC)[C@@H](O[C@H]4C[C@H](OC)[C@@H](OC(C)=O)[C@H](C)O4)[C@H](C)O3)[C@@H](C)/C=C/C=C3\\CO[C@@H]4[C@H](OC)C(C)=C[C@@H](C(=O)O1)[C@]34O)O2', '?'], arrows: [{ reagents: 'LiEt3BH', conditions: 'THF, −78 °C' }] },
+    answer: { structures: ['CC[C@H](C)[C@H]1O[C@]2(C=C[C@@H]1C)C[C@@H]1C[C@@H](C/C=C(\\C)[C@@H](O[C@H]3C[C@H](OC)[C@@H](O[C@H]4C[C@H](OC)[C@@H](O)[C@H](C)O4)[C@H](C)O3)[C@@H](C)/C=C/C=C3\\CO[C@@H]4[C@H](OC)C(C)=C[C@@H](C(=O)O1)[C@]34O)O2'] },
+  },
+  {
+    // Enigmazole A (Fuwa, 2024). The dioxolane is hydrolysed back to the ketone; the phosphate diester, the
+    // acetate and the oxazole stay as they are.
+    id: 'reaction-s11',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['CO[C@H](C)/C(C)=C\\c1nc([C@@H]2C[C@@H](OC(C)=O)CCC[C@@H]3CC4(C[C@H](C[C@H](OP(=O)(OC5c6ccccc6-c6ccccc65)OC5c6ccccc6-c6ccccc65)[C@@H](C)C[C@H](C)C(=O)O2)O3)OCCO4)co1', '?'], arrows: [{ reagents: 'CSA', conditions: 'acetone, 60 °C' }] },
+    answer: { structures: ['CO[C@H](C)/C(C)=C\\c1nc([C@@H]2C[C@@H](OC(C)=O)CCC[C@@H]3CC(=O)C[C@H](C[C@H](OP(=O)(OC4c5ccccc5-c5ccccc54)OC4c5ccccc5-c5ccccc54)[C@@H](C)C[C@H](C)C(=O)O2)O3)co1'] },
+  },
+  {
+    // Epothilone B (Carreira, 2001). The terminal alkene is dihydroxylated and the trisubstituted one is not,
+    // and the new carbinol is drawn open, so either face is accepted.
+    id: 'reaction-s12',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['C=CC[C@H](O[Si](C)(C)C(C)(C)C)C(C)(C)C(=O)[C@@H](C)[C@@H](OC(=O)OCC(Cl)(Cl)Cl)[C@@H](C)CCC[C@@]1(C)OC1C[C@H](O[Si](CC)(CC)CC)/C(C)=C/c1csc(C)n1', '?'], arrows: [{ reagents: 'OsO4, NMO', conditions: 'THF/t-BuOH/H2O, rt' }] },
+    answer: { structures: ['CC[Si](CC)(CC)O[C@@H](CC1O[C@]1(C)CCC[C@H](C)[C@H](OC(=O)OCC(Cl)(Cl)Cl)[C@H](C)C(=O)C(C)(C)[C@H](CC(O)CO)O[Si](C)(C)C(C)(C)C)/C(C)=C/c1csc(C)n1'] },
+  },
+  {
+    // Euonyminol octaacetate (Inoue, 2021). A dihydroxylation on a cage carrying three TBS ethers, a TBDPS,
+    // a MOM and an acetonide: the bookkeeping is the question, the facial choice the chemistry.
+    id: 'reaction-s13',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['COCO[C@@H]1C2[C@H]3OC(C)(C)O[C@H]3[C@]3(CO[Si](C)(C)C(C)(C)C)[C@@H](O[Si](C)(C)C(C)(C)C)[C@@H](O[Si](C)(C)C(C)(C)C)C=C(C)[C@@]13O[C@@]2(C)CO[Si](c1ccccc1)(c1ccccc1)C(C)(C)C', '?'], arrows: [{ reagents: 'OsO4, pyridine; then NaHSO3', conditions: '50 °C' }] },
+    answer: { structures: ['COCO[C@@H]1C2[C@H]3OC(C)(C)O[C@H]3[C@]3(CO[Si](C)(C)C(C)(C)C)[C@@H](O[Si](C)(C)C(C)(C)C)[C@@H](O[Si](C)(C)C(C)(C)C)[C@H](O)[C@](C)(O)[C@@]13O[C@@]2(C)CO[Si](c1ccccc1)(c1ccccc1)C(C)(C)C'] },
+  },
+  {
+    // Amphidinolide C2 (Ferrie, 2022). Three TBS ethers come off together and the acetate, both ketones and
+    // the macrolactone survive: the trap is taking the acetate off too.
+    id: 'reaction-s14',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['C=C(CCCC)[C@@H](OC(C)=O)/C(C)=C/C=C/[C@H]1OC(=O)C[C@@H]2O[C@H](C[C@H]2C)[C@H](O[Si](C)(C)C(C)(C)C)[C@H](O[Si](C)(C)C(C)(C)C)C(=C)/C=C(\\C)[C@@H](C)[C@@H](O[Si](C)(C)C(C)(C)C)CC(=O)[C@@H](C)CC(=O)C[C@H]2CC[C@H]1O2', '?'], arrows: [{ reagents: 'HF·pyridine', conditions: 'THF/pyridine, rt' }] },
+    answer: { structures: ['C=C(CCCC)[C@@H](OC(C)=O)/C(C)=C/C=C/[C@H]1OC(=O)C[C@@H]2O[C@H](C[C@H]2C)[C@H](O)[C@H](O)C(=C)/C=C(\\C)[C@@H](C)[C@@H](O)CC(=O)[C@@H](C)CC(=O)C[C@H]2CC[C@H]1O2'] },
+  },
+  {
+    // Ecteinascidin 743 (Fukuyama, 2002). Zinc removes the Troc and frees the amine, leaving the Alloc, the
+    // acetate, the lactone and the nitrile -- four groups a reduction could plausibly have touched.
+    id: 'reaction-s15',
+    ask: 'What is the product, with its stereochemistry?',
+    marks: 4,
+    shown: { stages: ['C=CCOC(=O)N[C@H]1CS[C@@H]2c3c(OC(C)=O)c(C)c4c(c3[C@H](COC1=O)N1[C@@H]2[C@H]2c3c(cc(C)c(OC)c3OCC=C)C[C@@H]([C@@H]1C#N)N2C(=O)OCC(Cl)(Cl)Cl)OCO4', '?'], arrows: [{ reagents: 'Zn, AcOH', conditions: 'Et2O, rt' }] },
+    answer: { structures: ['C=CCOC(=O)N[C@H]1CS[C@@H]2c3c(OC(C)=O)c(C)c4c(c3[C@H](COC1=O)N1[C@@H]2[C@@H]2N[C@@H](Cc3cc(C)c(OC)c(OCC=C)c32)[C@@H]1C#N)OCO4'] },
+  },
+];
+
+/**
  * The sets a run can ask for. `all` is the paper, the harder questions and the
  * exam together: the first measures whether a model can carry a drug-sized
  * molecule through a transformation, the second whether it knows the chemistry,
  * the third whether it can draw what a chemist published, and a benchmark that
  * is to tell models apart wants all three in one score.
  */
-export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, exam: EXAM, all: [...PAPER, ...HARD, ...EXAM] };
+export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, exam: EXAM, scale: SCALE, all: [...PAPER, ...HARD, ...EXAM, ...SCALE] };
