@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="0.77 5.73 292.16 437.03" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="0.77 5.73 292.16 601.45" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
@@ -247,9 +247,103 @@
 <b id="1233" B="1215" E="1214"/>
 <b id="1234" B="1213" E="1214"/>
 </fragment>
-<t id="1235" p="0.00 75.58" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Plan a synthesis of this compound from starting materials you can buy, in at most 3 steps. [5]</s></t>
-<t id="1236" p="0.00 94.58" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
-<t id="1237" p="0.00 200.09" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
-<t id="1238" p="0.00 284.79" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
-<t id="1239" p="0.00 369.49" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
+<fragment id="1235">
+<n id="1236" p="116.77 489.12" Element="8"/>
+<n id="1237" p="100.81 479.90"/>
+<n id="1238" p="84.86 489.12"/>
+<n id="1239" p="68.90 479.90"/>
+<n id="1240" p="52.94 489.12"/>
+<n id="1241" p="52.94 507.54"/>
+<n id="1242" p="36.99 516.76"/>
+<n id="1243" p="21.03 507.54"/>
+<n id="1244" p="5.07 516.76" Element="17"/>
+<n id="1245" p="21.03 489.12"/>
+<n id="1246" p="36.99 479.90"/>
+<b id="1247" B="1236" E="1237"/>
+<b id="1248" B="1237" E="1238"/>
+<b id="1249" B="1238" E="1239"/>
+<b id="1250" B="1239" E="1240"/>
+<b id="1251" B="1240" E="1246" Order="2"/>
+<b id="1252" B="1246" E="1245"/>
+<b id="1253" B="1245" E="1243" Order="2"/>
+<b id="1254" B="1243" E="1244"/>
+<b id="1255" B="1243" E="1242"/>
+<b id="1256" B="1242" E="1241" Order="2"/>
+<b id="1257" B="1240" E="1241"/>
+</fragment>
+<fragment id="1258">
+<n id="1259" p="260.25 489.12" Element="17"/>
+<n id="1260" p="244.29 479.90"/>
+<n id="1261" p="228.34 489.12"/>
+<n id="1262" p="212.38 479.90"/>
+<n id="1263" p="196.42 489.12" Element="7"/>
+<n id="1264" p="196.42 507.54"/>
+<n id="1265" p="180.47 516.76"/>
+<n id="1266" p="164.51 507.54"/>
+<n id="1267" p="164.51 489.12"/>
+<n id="1268" p="180.47 479.90"/>
+<b id="1269" B="1259" E="1260"/>
+<b id="1270" B="1260" E="1261"/>
+<b id="1271" B="1261" E="1262"/>
+<b id="1272" B="1262" E="1263"/>
+<b id="1273" B="1263" E="1268"/>
+<b id="1274" B="1268" E="1267"/>
+<b id="1275" B="1267" E="1266"/>
+<b id="1276" B="1266" E="1265"/>
+<b id="1277" B="1265" E="1264"/>
+<b id="1278" B="1263" E="1264"/>
+</fragment>
+<fragment id="1279">
+<n id="1280" p="116.77 573.82" Element="8"/>
+<n id="1281" p="100.81 564.60"/>
+<n id="1282" p="84.86 573.82"/>
+<n id="1283" p="68.90 564.60"/>
+<n id="1284" p="52.94 573.82"/>
+<n id="1285" p="52.94 592.24"/>
+<n id="1286" p="36.99 601.45"/>
+<n id="1287" p="21.03 592.24"/>
+<n id="1288" p="5.07 601.45" Element="17"/>
+<n id="1289" p="21.03 573.82"/>
+<n id="1290" p="36.99 564.60"/>
+<b id="1291" B="1280" E="1281"/>
+<b id="1292" B="1281" E="1282"/>
+<b id="1293" B="1282" E="1283"/>
+<b id="1294" B="1283" E="1284"/>
+<b id="1295" B="1284" E="1290" Order="2"/>
+<b id="1296" B="1290" E="1289"/>
+<b id="1297" B="1289" E="1287" Order="2"/>
+<b id="1298" B="1287" E="1288"/>
+<b id="1299" B="1287" E="1286"/>
+<b id="1300" B="1286" E="1285" Order="2"/>
+<b id="1301" B="1284" E="1285"/>
+</fragment>
+<fragment id="1302">
+<n id="1303" p="260.25 573.82" Element="35"/>
+<n id="1304" p="244.29 564.60"/>
+<n id="1305" p="228.34 573.82"/>
+<n id="1306" p="212.38 564.60"/>
+<n id="1307" p="196.42 573.82" Element="7"/>
+<n id="1308" p="196.42 592.24"/>
+<n id="1309" p="180.47 601.45"/>
+<n id="1310" p="164.51 592.24"/>
+<n id="1311" p="164.51 573.82"/>
+<n id="1312" p="180.47 564.60"/>
+<b id="1313" B="1303" E="1304"/>
+<b id="1314" B="1304" E="1305"/>
+<b id="1315" B="1305" E="1306"/>
+<b id="1316" B="1306" E="1307"/>
+<b id="1317" B="1307" E="1312"/>
+<b id="1318" B="1312" E="1311"/>
+<b id="1319" B="1311" E="1310"/>
+<b id="1320" B="1310" E="1309"/>
+<b id="1321" B="1309" E="1308"/>
+<b id="1322" B="1307" E="1308"/>
+</fragment>
+<t id="1323" p="0.00 75.58" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Plan a synthesis of this compound from starting materials you can buy, in at most 3 steps. [5]</s></t>
+<t id="1324" p="0.00 94.58" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1325" p="0.00 200.09" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
+<t id="1326" p="0.00 284.79" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
+<t id="1327" p="0.00 369.49" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
+<t id="1328" p="0.00 470.02" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
+<t id="1329" p="0.00 554.72" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
 </page></CDXML>

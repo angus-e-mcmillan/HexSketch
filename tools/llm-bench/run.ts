@@ -233,12 +233,22 @@ const recordsFile = new URL('records.jsonl', outDir);
 // A run stopped part-way carries on where it left off (--run <name>); failed runs are tried again.
 // Only answers to this run's questions, conditions and repeats count.
 const wanted = new Set(jobs.map((j) => j.key));
-if (existsSync(recordsFile)) for (const l of readFileSync(recordsFile, 'utf8').split('\n').filter(Boolean)) { const r = JSON.parse(l) as RunRecord; if (!r.error && wanted.has(r.key)) done.set(r.key, r); }
+/**
+ * Answers this run is not asking for (--only, --types, fewer repeats), kept and written back
+ * untouched. Without this, narrowing a run to one question threw away every other answer it
+ * had: an --only re-run of a question that timed out cost a whole run of the model again.
+ */
+const other: RunRecord[] = [];
+if (existsSync(recordsFile)) for (const l of readFileSync(recordsFile, 'utf8').split('\n').filter(Boolean)) {
+  const r = JSON.parse(l) as RunRecord;
+  if (!wanted.has(r.key)) other.push(r);
+  else if (!r.error) done.set(r.key, r);
+}
 const todo = jobs.filter((j) => !done.has(j.key));
 if (done.size) console.log(`${done.size} already done, ${todo.length} to go`);
 let next = 0, finished = 0, spent = [...done.values()].reduce((s, r) => s + r.cost, 0);
 const records: RunRecord[] = [...done.values()];
-writeFileSync(recordsFile, records.length ? records.map((r) => JSON.stringify(r)).join('\n') + '\n' : '');
+writeFileSync(recordsFile, [...other, ...records].map((r) => JSON.stringify(r)).join('\n') + (other.length || records.length ? '\n' : ''));
 await Promise.all(Array.from({ length: Math.max(1, Number(opt.concurrency)) }, async () => {
   while (next < todo.length) {
     const job = todo[next++]!;
@@ -266,7 +276,7 @@ for (const r of ok) {
   // A route earns its marks in parts (route.ts); any other answer all or nothing.
   r.marks = r.route ? Math.round(r.route.score * byId.get(r.id)!.marks * 10) / 10 : r.correct ? byId.get(r.id)!.marks : 0;
 }
-writeFileSync(recordsFile, records.map((r) => JSON.stringify(r)).join('\n') + '\n');
+writeFileSync(recordsFile, [...other, ...records].map((r) => JSON.stringify(r)).join('\n') + '\n');
 
 // ------------------------------------------------------------------ summary
 

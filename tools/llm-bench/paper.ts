@@ -966,11 +966,16 @@ export const EXAM: Spec[] = [
     ask: 'Plan a synthesis of this compound from starting materials you can buy, in at most 3 steps.',
     marks: 5,
     shown: { stages: ['Clc1ccc(CCCOCCCN2CCCCC2)cc1'] },
+    // Either half may carry the leaving group, and a chloride or a bromide does
+    // the job a mesylate does: Sonnet made the compound in one step from the
+    // alcohol and 1-chloro-3-piperidinopropane, which is this disconnection.
     answer: { structures: ['CS(=O)(=O)OCCCc1ccc(Cl)cc1', 'OCCCN1CCCCC1'] },
     also: [
       { structures: ['ClCCCc1ccc(Cl)cc1', 'OCCCN1CCCCC1'] },
       { structures: ['BrCCCc1ccc(Cl)cc1', 'OCCCN1CCCCC1'] },
       { structures: ['OCCCc1ccc(Cl)cc1', 'CS(=O)(=O)OCCCN1CCCCC1'] },
+      { structures: ['OCCCc1ccc(Cl)cc1', 'ClCCCN1CCCCC1'] },
+      { structures: ['OCCCc1ccc(Cl)cc1', 'BrCCCN1CCCCC1'] },
     ],
   },
 
