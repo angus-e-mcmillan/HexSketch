@@ -1,25 +1,25 @@
 # 2026-11-23-claude-haiku-5-5
 
-claude-haiku-5-5 (served as claude-haiku-5-5, via Claude Code), effort medium, 1 repeat of 15 questions worth 60 marks. Total cost $0.17.
+claude-haiku-5-5 (served as claude-haiku-5-5, via Claude Code), effort medium, 1 repeat of 23 questions worth 92 marks. Total cost $0.26.
 
 | | Claude Code, no tools | Claude Code with HexSketch, question drawn |
 |---|---|---|
-| **Score** | **44.0 / 60** | **44.0 / 60** |
-| reaction | 44.0 / 60 | 44.0 / 60 |
-| Correct | 73% (15) | 73% (15) |
-| Right compound, wrong stereochemistry | 13% (15) | 7% (15) |
-| Valid structures | 100% (15) | 100% (15) |
-| Name matches structure | 13% (15) | 93% (15) |
-| Unchanged part kept | 92% (13) | 92% (13) |
+| **Score** | **68.0 / 92** | **72.0 / 92** |
+| reaction | 68.0 / 92 | 72.0 / 92 |
+| Correct | 74% (23) | 78% (23) |
+| Right compound, wrong stereochemistry | 9% (23) | 4% (23) |
+| Valid structures | 91% (23) | 100% (23) |
+| Name matches structure | 22% (23) | 91% (23) |
+| Unchanged part kept | 89% (19) | 95% (19) |
 | Hazard flagged | – | – |
-| Drawn the same way round | 69% (13) | 77% (13) |
+| Drawn the same way round | 50% (18) | 58% (19) |
 | Refused | 0 | 0 |
 | Cut off at the token limit, no answer | 0 | 0 |
 | cost / question | $0.003 | $0.009 |
-| input tokens / question (from cache) | 4031 (2023) | 69455 (48273) |
-| output tokens / question (thinking) | 4958 (0) | 7849 (0) |
-| median time | 19 s | 37 s |
-| tool calls / question | 0.0 | 3.5 |
+| input tokens / question (from cache) | 4025 (1993) | 69795 (49149) |
+| output tokens / question (thinking) | 4896 (0) | 7799 (0) |
+| median time | 19 s | 31 s |
+| tool calls / question | 0.0 | 3.4 |
 
 Score: marks for answers that are right, averaged over the repeats. Each measure is the share of the answers it applies to (how many in brackets).
 
@@ -27,6 +27,14 @@ Score: marks for answers that are right, averaged over the repeats. Each measure
 
 | Question | Marks | Claude Code, no tools: right · tokens out · $ · s | Claude Code with HexSketch, question drawn: right · tokens out · $ · s |
 |---|---|---|---|
+| reaction-p1 | 4 | 0/1 · 8896 · 0.005 · 36 | 1/1 · 5259 · 0.006 · 21 |
+| reaction-p2 | 4 | 1/1 · 1979 · 0.001 · 10 | 1/1 · 4989 · 0.006 · 21 |
+| reaction-p3 | 4 | 0/1 · 10239 · 0.005 · 44 | 1/1 · 6605 · 0.007 · 27 |
+| reaction-p4 | 4 | 1/1 · 4189 · 0.002 · 19 | 1/1 · 5118 · 0.006 · 22 |
+| reaction-p5 | 4 | 1/1 · 3857 · 0.003 · 19 | 1/1 · 20032 · 0.020 · 80 |
+| reaction-p6 | 4 | 1/1 · 4933 · 0.003 · 24 | 1/1 · 5233 · 0.006 · 24 |
+| reaction-p7 | 4 | 1/1 · 2125 · 0.001 · 14 | 0/1 · 6341 · 0.005 · 25 |
+| reaction-p8 | 4 | 1/1 · 2022 · 0.002 · 11 | 1/1 · 8049 · 0.011 · 30 |
 | reaction-s1 | 4 | 1/1 · 3136 · 0.002 · 15 | 1/1 · 6372 · 0.009 · 29 |
 | reaction-s2 | 4 | 1/1 · 3451 · 0.002 · 19 | 1/1 · 8341 · 0.010 · 38 |
 | reaction-s3 | 4 | 1/1 · 2331 · 0.002 · 13 | 1/1 · 8823 · 0.010 · 37 |
