@@ -43,5 +43,7 @@
  "ClCCCN1CCCCC1": 42,
  "Nc1cccc(Br)n1": 80,
  "CN1CCC(C(=O)O)CC1": 69,
- "N1CCC[C@@H](N)C1": 55
+ "N1CCC[C@@H](N)C1": 55,
+ "O=C1C=C(Cl)NC(=O)N1C": 80,
+ "Cc1cc(F)ccc1C#N": 77
 }
