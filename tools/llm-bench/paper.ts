@@ -1054,7 +1054,10 @@ export const THIN_TYPES: Spec[] = [
     answer: { atoms: 'Cc1cccc(N2CC[N:1](CCc3ccc4ccccc4n3)CC2)c1' },
   },
   {
-    // Taxinine K: nine, with two quaternary carbons on the page that are not centres.
+    // Taxinine K: nine. Confirmed two ways -- the nine markers in the SMILES, and HexSketch's own
+    // CIP namer, which independently assigns nine descriptors:
+    // (1R,2R,3R,4R,7S,9R,10R,11R,14R)-...-4,14,15,15-tetramethyl-... C15 is the trap, a
+    // quaternary carbon bearing two methyls, so it is not a centre and must not be counted.
     id: 'analysis-d4',
     ask: 'How many stereocentres does this compound have?',
     marks: 3,
