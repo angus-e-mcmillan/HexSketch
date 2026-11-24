@@ -25,8 +25,14 @@ import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
 export type Condition = 'smiles' | 'name' | 'molfile' | 'selfies' | 'hexsketch' | 'cc-plain' | 'cc-hexsketch' | 'cc-drawn';
-/** The two conditions an OpenRouter run compares: the question typed, and the question drawn on hexsketch.com. */
-export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
+/**
+ * The three conditions an OpenRouter run compares: the question with the structures as SMILES, with
+ * them named, and drawn on hexsketch.com. Two typed channels rather than one, because SMILES alone
+ * is not how most chemists would hand a structure over, and which typed channel you pick changes
+ * the answer -- see README.md, "The channel the structure arrives on". `molfile` and `selfies` are
+ * still available with --conditions; both were measured and both are worse than either default.
+ */
+export const CONDITIONS: Condition[] = ['smiles', 'name', 'hexsketch'];
 export const ALL_CONDITIONS: Condition[] = ['smiles', 'name', 'molfile', 'selfies', 'hexsketch', 'cc-plain', 'cc-hexsketch', 'cc-drawn'];
 /**
  * The Claude Code conditions: the model runs inside Claude Code itself
@@ -80,12 +86,15 @@ const SELFIES: Record<string, string> = JSON.parse(readFileSync(new URL('selfies
 const asSelfies = (smiles: string): string => SELFIES[smiles] ?? smiles;
 
 /** A structure as HexSketch's namer says it; its SMILES where no name can be given. */
-async function named(smiles: string): Promise<string> {
+async function named(smiles: string): Promise<Given> {
   try {
     const n = await name(smiles);
-    return n.name ? n.name : smiles;
-  } catch { return smiles; }
+    return n.name ? { text: n.name, label: 'Name' } : { text: smiles, label: 'SMILES' };
+  } catch { return { text: smiles, label: 'SMILES' }; }
 }
+
+/** A structure as it is handed over, and the word for what it is: a name where one can be given. */
+type Given = { text: string; label: string };
 
 /** A structure as a molfile: every atom and bond spelled out, nothing to parse, far more to read. */
 async function asMolfile(smiles: string): Promise<string> {
@@ -102,15 +111,22 @@ export async function opening(q: Question, c: Condition): Promise<Opening> {
     // simply not having to read a SMILES. A name is what HexSketch's namer would say (a peptide's
     // name is its sequence); a molfile spells out every atom and bond, so nothing has to be parsed
     // but there is far more to read.
-    const given = c === 'smiles' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn'
-      ? q.given
-      : await Promise.all(q.given.map((s) => (c === 'name' ? named(s) : c === 'selfies' ? Promise.resolve(asSelfies(s)) : asMolfile(s))));
-    const label = c === 'name' ? 'Name' : c === 'molfile' ? 'Molfile' : c === 'selfies' ? 'SELFIES' : 'SMILES';
+    // Each structure carries the word for what it is, so the one structure in the paper that cannot
+    // be named (reaction-r5) is handed over as a SMILES and says so, rather than being announced as
+    // a name it does not have.
+    const given: Given[] = c === 'smiles' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn'
+      ? q.given.map((text) => ({ text, label: 'SMILES' }))
+      : await Promise.all(q.given.map(async (s) => (c === 'name'
+        ? named(s)
+        : c === 'selfies' ? { text: asSelfies(s), label: 'SELFIES' } : { text: await asMolfile(s), label: 'Molfile' })));
     // A molfile is many lines, so it starts on its own; everything else keeps the one-line form the
     // other conditions have always used, so a run can still be compared with the runs before it.
     const sep = c === 'molfile' ? ':\n' : ': ';
     const between = c === 'molfile' ? '\n\n' : '\n';
-    if (given.length) parts.push(given.length === 1 && !q.scheme.length ? `${label}: ${given[0]}` : given.map((s, i) => `Structure ${i + 1}${sep}${s}`).join(between));
+    const only = given.length === 1 && !q.scheme.length ? given[0] : undefined;
+    if (given.length) parts.push(only
+      ? `${only.label}: ${only.text}`
+      : given.map((g, i) => `Structure ${i + 1}${sep}${g.text}`).join(between));
     if (q.scheme.length) parts.push(q.scheme.join('\n'));
     parts.push(end);
     return { system: PLAIN_SYSTEM, user: parts.join('\n\n'), tools: [] };

@@ -7,6 +7,7 @@ for any model, or inside Claude Code, for Claude's own:
 | Condition | How the question reaches the model | How it answers |
 |---|---|---|
 | Without HexSketch (`smiles`) | The chemist's question, the structures as SMILES, and the reagents and conditions written out. No tools. | In text |
+| Without HexSketch, named (`name`) | The same, with each structure as its name instead of its SMILES -- the other typed channel a chemist would really use. No tools. | In text |
 | With HexSketch (`hexsketch`) | As on hexsketch.com: the question in the chat beside the editor, which holds the drawing. HexSketch's own system prompt, all its tools, and the drawing as HexSketch describes it. | In the chat, and by drawing in the editor (`show_in_sketcher`) |
 | Claude Code, typed (`cc-plain`) | In Claude Code with nothing attached: the same words as `smiles`. | In text |
 | Claude Code, drawn (`cc-drawn`) | In Claude Code with HexSketch's connector and nothing else: the chemist's words and a link to their drawing, which the model reads through HexSketch. | In text, drawing with `render_structure` |
@@ -17,23 +18,37 @@ this checkout. Either way the benchmark measures HexSketch as it is.
 
 ### The channel the structure arrives on
 
-`smiles` is one way a chemist hands a structure to a model, and not the likeliest
-one. Three more conditions change only that -- same question, same words, same
-marking:
+`smiles` is one way a chemist hands a structure to a model, and not the only
+likely one, so the exam asks every question down **two** typed channels and
+compares both against the drawing. `name` changes nothing but the notation:
 
-| Condition | The structures as | How a chemist would come by it |
-|---|---|---|
-| `name` | a name: `H-Trp-Thr-Asn-Met-Gln-Ala-Phe-Leu-Val-Gly-OMe`, or `methyl (2S)-...` | typed from the bottle, or copied out of an ELN |
-| `molfile` | a V2000 molfile | pasted from ChemDraw's clipboard |
-| `selfies` | SELFIES | nobody does this; it is here because every SELFIES string decodes to a valid molecule, and that is worth testing |
+| Condition | The structures as | How a chemist would come by it | In the exam |
+|---|---|---|---|
+| `smiles` | SMILES | exported from software | default |
+| `name` | a name: `H-Trp-...-Gly-OMe`, or `(2R,6R)-2-((2S,3R,5R)-6-...` | typed from the bottle, or copied out of an ELN | default |
+| `molfile` | a V2000 molfile | pasted from ChemDraw's clipboard | `--conditions` |
+| `selfies` | SELFIES | nobody does this; it is here because every SELFIES string decodes to a valid molecule | `--conditions` |
 
-Naming is HexSketch's own (`name_structure`), so a question is only asked in the
-`name` condition when the name reads back as the structure; `selfies.json` holds
-every structure in the paper encoded and round-tripped. Neither tells the model
-anything the drawing does not. They are there because the baseline HexSketch is
-measured against should be the channel the chemist would really have used, and
-on the peptides that is not SMILES: seven of the eight peptide substrates have a
-sequence name *shorter* than their SMILES.
+Naming is HexSketch's own (`name_structure`). **135 of the 136 structures in
+`--set all` can be named** -- only `reaction-r5` cannot, and it is handed over
+as a SMILES and labelled as one. `selfies.json` holds every structure encoded
+and round-tripped.
+
+A name is not the shortcut the peptides made it look. Across the whole exam it
+is *longer* than the SMILES it replaces -- mean 86 characters against 62, and
+**longer in 119 of 135 cases**:
+
+| | mean SMILES | mean name | longest name |
+|---|---:|---:|---:|
+| `--set all`, 135 nameable structures | 62 | **86** | 413 |
+
+Peptides are the exception that misled me: their names are sequences, and seven
+of the eight peptide substrates name *shorter* than their SMILES. A drug-scale
+mined reaction does the opposite -- `reaction-r4` is 251 characters of SMILES
+and 413 of name, `reaction-s10` 213 against 393. So `name` is not a uniformly
+cheaper channel; it is a *different* one, cheap where the compound has a
+systematic short name and dearer where it does not. Running both is the only way
+to know which the drawing is being compared against.
 
 ## What is measured
 
@@ -371,7 +386,7 @@ npm run llm-bench -- --model MODEL_ID --provider anthropic --repeats 1
 |---|---|---|
 | `--model` | required | OpenRouter model id, or a Claude Code one (`claude-haiku-5-5`) |
 | `--provider` | any | Pin one provider, with no fallbacks |
-| `--conditions` | `smiles,hexsketch`, or `cc-plain,cc-drawn` in Claude Code | Any of `smiles`, `name`, `selfies`, `molfile`, `hexsketch`, `cc-plain`, `cc-hexsketch`, `cc-drawn` |
+| `--conditions` | `smiles,name,hexsketch`, or `cc-plain,cc-drawn` in Claude Code | Any of `smiles`, `name`, `selfies`, `molfile`, `hexsketch`, `cc-plain`, `cc-hexsketch`, `cc-drawn` |
 | `--repeats` | 3 | Passes through the questions |
 | `--types` | all | e.g. `reaction,mechanism` |
 | `--only` | | Question ids, e.g. `reaction-1` |
