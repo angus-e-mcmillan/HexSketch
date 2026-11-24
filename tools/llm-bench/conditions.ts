@@ -23,10 +23,10 @@ import { analyze, compare, convert, drawingSummary, link, name, readStructure, v
 import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
-export type Condition = 'smiles' | 'hexsketch' | 'cc-plain' | 'cc-hexsketch' | 'cc-drawn';
+export type Condition = 'smiles' | 'name' | 'molfile' | 'hexsketch' | 'cc-plain' | 'cc-hexsketch' | 'cc-drawn';
 /** The two conditions an OpenRouter run compares: the question typed, and the question drawn on hexsketch.com. */
 export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
-export const ALL_CONDITIONS: Condition[] = ['smiles', 'hexsketch', 'cc-plain', 'cc-hexsketch', 'cc-drawn'];
+export const ALL_CONDITIONS: Condition[] = ['smiles', 'name', 'molfile', 'hexsketch', 'cc-plain', 'cc-hexsketch', 'cc-drawn'];
 /**
  * The Claude Code conditions: the model runs inside Claude Code itself
  * (claude -p), on the subscription Claude Code runs on rather than through
@@ -53,6 +53,8 @@ export const CLAUDE_CODE_PAIR: Condition[] = ['cc-plain', 'cc-drawn'];
 /** What each condition is called in a report, so four columns can be told apart. */
 export const CONDITION_NAME: Record<Condition, string> = {
   smiles: 'Without HexSketch',
+  name: 'Without HexSketch, structures named',
+  molfile: 'Without HexSketch, structures as molfiles',
   hexsketch: 'With HexSketch',
   'cc-plain': 'Claude Code, no tools',
   'cc-hexsketch': 'Claude Code with HexSketch',
@@ -65,13 +67,38 @@ const PLAIN_SYSTEM = 'You are an expert chemist helping a colleague. Answer thei
 export interface Opening { system: string; user: string; tools: FunctionTool[] }
 
 /** What the model is given first, in each condition. */
+/** A structure as HexSketch's namer says it; its SMILES where no name can be given. */
+async function named(smiles: string): Promise<string> {
+  try {
+    const n = await name(smiles);
+    return n.name ? n.name : smiles;
+  } catch { return smiles; }
+}
+
+/** A structure as a molfile: every atom and bond spelled out, nothing to parse, far more to read. */
+async function asMolfile(smiles: string): Promise<string> {
+  try { return await convert(smiles, 'mol'); } catch { return smiles; }
+}
+
 export async function opening(q: Question, c: Condition): Promise<Opening> {
   const end = ANSWER_FORMAT[q.key.kind];
   // As a chemist using HexSketch from Claude Code asks: their words, and a link to what they drew.
   if (c === 'cc-drawn' && q.drawing) return { system: PLAIN_SYSTEM, user: `${q.ask}\n\nMy drawing in HexSketch: ${await link(q.drawing, { format: 'cdxml' })}\n\n${end}`, tools: [] };
-  if (c === 'smiles' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn') {
+  if (c === 'smiles' || c === 'name' || c === 'molfile' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn') {
     const parts = [q.ask];
-    if (q.given.length) parts.push(q.given.length === 1 && !q.scheme.length ? `SMILES: ${q.given[0]}` : q.given.map((s, i) => `Structure ${i + 1}: ${s}`).join('\n'));
+    // The same question in a different notation, to find out how much of what HexSketch saves is
+    // simply not having to read a SMILES. A name is what HexSketch's namer would say (a peptide's
+    // name is its sequence); a molfile spells out every atom and bond, so nothing has to be parsed
+    // but there is far more to read.
+    const given = c === 'smiles' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn'
+      ? q.given
+      : await Promise.all(q.given.map((s) => (c === 'name' ? named(s) : asMolfile(s))));
+    const label = c === 'name' ? 'Name' : c === 'molfile' ? 'Molfile' : 'SMILES';
+    // A molfile is many lines, so it starts on its own; everything else keeps the one-line form the
+    // other conditions have always used, so a run can still be compared with the runs before it.
+    const sep = c === 'molfile' ? ':\n' : ': ';
+    const between = c === 'molfile' ? '\n\n' : '\n';
+    if (given.length) parts.push(given.length === 1 && !q.scheme.length ? `${label}: ${given[0]}` : given.map((s, i) => `Structure ${i + 1}${sep}${s}`).join(between));
     if (q.scheme.length) parts.push(q.scheme.join('\n'));
     parts.push(end);
     return { system: PLAIN_SYSTEM, user: parts.join('\n\n'), tools: [] };

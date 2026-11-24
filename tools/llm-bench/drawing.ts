@@ -204,10 +204,24 @@ function describeScheme(arrows: Arrow[], given: Fragment[], captions: Caption[],
     }).sort((p, q) => p.y - q.y);
     const above = near.filter((c) => captionBox(c, style).cy < y).map((c) => unwrap(c.text));
     const below = near.filter((c) => captionBox(c, style).cy >= y).map((c) => unwrap(c.text));
+    // A scheme too wide for the page wraps, so a stage can sit on the row above its arrow rather
+    // than beside it. Beside first, then the row above for the tail and the row below for the head:
+    // without that, a decapeptide and its arrow land on separate rows and the tail reads "?" while
+    // the head picks up the structure, which told a model the substrate was the product.
+    const wrapped = (end: Pt) => {
+      const before = end === a.tail;
+      const rows = given.filter((f) => (before ? f.box.cy < y - L : f.box.cy > y + L));
+      if (!rows.length) return null;
+      const pick = before
+        ? rows.reduce((b, f) => (f.box.cy > b.box.cy || (f.box.cy === b.box.cy && f.box.cx > b.box.cx) ? f : b))
+        : rows.reduce((b, f) => (f.box.cy < b.box.cy || (f.box.cy === b.box.cy && f.box.cx < b.box.cx) ? f : b));
+      return pick;
+    };
     const side = (end: Pt) => {
       const fs = fragmentsAt(given, a, end, L);
       if (fs.length) return fs.map(nameOf).join(' + ');
-      return captions.some((c) => /^\?+$/.test(c.text.trim()) && Math.hypot(c.x - end.x, c.y - end.y) < L * 3) ? '?' : '?';
+      const near = wrapped(end);
+      return near ? nameOf(near) : '?';
     };
     const arrow = isRetro(a) ? '⇒' : isEquilibrium(a) ? '⇌' : '→';
     const notes = [above.length ? `above the arrow: ${above.join('; ')}` : '', below.length ? `below it: ${below.join('; ')}` : ''].filter(Boolean).join('; ');
@@ -220,8 +234,13 @@ function describeScheme(arrows: Arrow[], given: Fragment[], captions: Caption[],
 function fragmentsAt(given: Fragment[], a: Arrow, end: Pt, L: number): Fragment[] {
   const other = end === a.tail ? a.head : a.tail;
   const dir = Math.sign(end.x - other.x) || 1;
+  // Only what shares the arrow's row. Left and right mean nothing between rows, and a stage on the
+  // row above would otherwise be picked up by whichever end happened to be nearer it; the caller
+  // resolves those by reading order instead.
+  const y = (a.tail.y + a.head.y) / 2;
+  const sameRow = given.filter((f) => f.box.y0 - L * 1.5 <= y && y <= f.box.y1 + L * 1.5);
   let nearest: Fragment | null = null, d = L * 4;
-  for (const f of given) {
+  for (const f of sameRow) {
     const dist = Math.hypot(Math.max(f.box.x0 - end.x, 0, end.x - f.box.x1), Math.max(f.box.y0 - end.y, 0, end.y - f.box.y1));
     if (dist < d) { d = dist; nearest = f; }
   }
@@ -230,7 +249,7 @@ function fragmentsAt(given: Fragment[], a: Arrow, end: Pt, L: number): Fragment[
   // Only what stands on this end's side of the arrow: the target of a retrosynthesis is not also its answer.
   const m = { x: (a.tail.x + a.head.x) / 2 };
   if ((n.box.cx - m.x) * dir <= 0) return [];
-  return given.filter((f) => f === n || ((f.box.cx - end.x) * dir > 0 && f.box.y0 < n.box.y1 && f.box.y1 > n.box.y0 && Math.abs(f.box.cx - n.box.cx) < L * 10))
+  return sameRow.filter((f) => f === n || ((f.box.cx - end.x) * dir > 0 && f.box.y0 < n.box.y1 && f.box.y1 > n.box.y0 && Math.abs(f.box.cx - n.box.cx) < L * 10))
     .sort((p, q) => p.box.cx - q.box.cx);
 }
 
