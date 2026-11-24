@@ -4,7 +4,7 @@
  */
 import { writeFileSync } from 'node:fs';
 import { link, render } from '../../packages/agent/src/index.ts';
-import { CONDITION_NAME, opening, type Condition } from './conditions.ts';
+import { CONDITION_NAME, CONDITIONS, opening, type Condition } from './conditions.ts';
 import type { Key, Question } from './questions.ts';
 import type { RunRecord } from './run.ts';
 
@@ -42,6 +42,8 @@ h1 small,h2 small{font-weight:normal;color:#5b6875;font-size:.75em;margin-left:.
 .q{border:1px solid #d9dfe5;border-radius:8px;padding:16px 20px;margin:18px 0}
 .d{background:#fff;border:1px solid #e6eaee;padding:8px;overflow:auto;min-height:60px}.d svg{max-width:100%;height:auto}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px}@media(max-width:820px){.cols{grid-template-columns:1fr}}
+/* The prompts row holds one column per condition, however many that is, rather than always two. */
+.cols.sent{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f5f7;padding:10px;border-radius:6px;font-size:.82em;max-height:420px;overflow:auto}
 h3{margin:0 0 6px;font-size:.8em;text-transform:uppercase;letter-spacing:.05em;color:#5b6875}
 .open{margin:8px 0 0}.open a{font-size:.85em;color:#1f4e79}
@@ -52,18 +54,24 @@ h3{margin:0 0 6px;font-size:.8em;text-transform:uppercase;letter-spacing:.05em;c
 details summary{cursor:pointer;color:#1f4e79;font-size:.85em}
 </style>`;
 
-/** questions/questions.html: each question's drawing, what each condition sends, and the key. */
+/**
+ * questions/questions.html: each question's drawing, what each condition sends, and the key.
+ *
+ * Every condition a run compares by default gets a column, so the page shows the question as each
+ * channel really puts it -- the structures as SMILES, as names, and as HexSketch describes the
+ * drawing. It used to show the first and the last only, which was fine while those were the only
+ * two, and quietly hid a third once `name` became a default.
+ */
 export async function writeQuestionsPage(file: URL, questions: Question[], warnings: Map<string, string[]>): Promise<void> {
   const parts: string[] = [];
   for (const q of questions) {
-    const [plain, hex] = await Promise.all([opening(q, 'smiles'), opening(q, 'hexsketch')]);
+    const sent = await Promise.all(CONDITIONS.map(async (c) => [c, await opening(q, c)] as const));
     const w = warnings.get(q.id) ?? [];
     parts.push(`<section class="q" id="${esc(q.id)}"><h2>${esc(q.id)} <small>${q.type} · ${q.marks} marks${q.hazard ? ` · hazard: ${esc(q.hazard.join(', '))}` : ''}</small></h2>
 ${w.length ? `<ul class="warn">${w.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
 <div class="cols"><div><h3>In the editor</h3><div class="d">${await svg(q.drawing, 'nothing drawn')}</div>${await openIn(q.drawing)}</div>
 <div><h3>Answer (${q.key.kind})</h3>${await keyCell(q.key)}${'also' in q.key && q.key.also?.length ? `<p>Also accepted: ${q.key.also.length}</p>` : ''}</div></div>
-<div class="cols"><div><h3>Without HexSketch, the model receives</h3><pre>${esc(plain.user)}</pre></div>
-<div><h3>With HexSketch, the model receives</h3><pre>${esc(hex.user)}</pre></div></div></section>`);
+<div class="cols sent">${sent.map(([c, o]) => `<div><h3>${CONDITION_NAME[c]}, the model receives</h3><pre>${esc(o.user)}</pre></div>`).join('')}</div></section>`);
   }
   writeFileSync(file, `<!doctype html><meta charset="utf-8"><title>Benchmark questions</title>${STYLE}<h1>Benchmark questions <small>${questions.length}</small></h1>${parts.join('\n')}`);
 }
