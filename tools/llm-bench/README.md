@@ -17,11 +17,15 @@ this checkout. Either way the benchmark measures HexSketch as it is.
 
 ## What is measured
 
+**The exam is `--set all`: 117 questions and 476 marks over eight types.** That
+is the one to run. The four sets it is made of are kept because past runs quote
+them and because each answers a narrower question, and they are described next.
+
 The paper is 100 marks over seven types of question (`questions/`); `--set hard`
 is 29 harder questions: ten reactions from a chemist's own ChemDraw drawings,
 taken from published total and process syntheses, with the products they drew
 as the answers; six more ending at a drug whose structure PubChem confirms; and
-the rest on less common chemistry. `--set exam` is 39 questions and 170 marks
+the rest on less common chemistry. `--set types` is 39 questions and 170 marks
 on the types the paper is thinnest on -- eight multistep sequences, six
 mechanisms, five retrosyntheses, three routes, five structures, five analyses
 and seven hazards -- every one of them a step somebody published, taken from
@@ -157,7 +161,7 @@ time do, and the quality holds.
   repeat cannot measure that, as the bullet above says: three can, and it is a
   tie.)
 - **On Claude's models the score moves only for Opus, and only on bookkeeping.**
-  One repeat each of `--set exam` (39 questions, 170 marks) and `--set scale`
+  One repeat each of `--set types` (39 questions, 170 marks) and `--set scale`
   (23, 92), typed against drawn: Haiku 137.5 -> 128.0 and 68.0 -> 72.0, Sonnet
   150.0 -> 142.5 and 76.0 -> 72.0, Opus 136.0 -> 155.0 and 68.0 -> 88.0. Pooling
   the three models' answers on `scale` separates the two kinds of question in it:

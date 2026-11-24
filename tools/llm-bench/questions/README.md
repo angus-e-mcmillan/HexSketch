@@ -42,7 +42,7 @@ are reported for each type.
 The suffix says which set a question belongs to, and so where it came from:
 plain numbers (`reaction-1`) are the paper, `-c` the candidates being tried
 out, `-h` and `-r` the harder questions (`-r` the ten a chemist drew in
-ChemDraw), and `-d` the exam, taken from the Chemistry by Design dataset --
+ChemDraw), and `-d` the thin-types set, taken from the Chemistry by Design dataset --
 see [../README.md](../README.md#chemistry-by-design) for the citation and for
 the three checks a question from it has to pass.
 

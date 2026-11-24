@@ -724,7 +724,7 @@ export const HARD: Spec[] = [
 ];
 
 /**
- * The exam, in questions/exam/: the question types the paper is thinnest on,
+ * The thin types, in questions/types/: the question types the paper was thinnest on,
  * drawn from Chemistry by Design (CbyD), a curated dataset of published total
  * and process syntheses (Williams et al., arXiv:2611.24996, CC-BY 4.0).
  *
@@ -740,7 +740,7 @@ export const HARD: Spec[] = [
  * protecting group quietly removed), stereocentres that must be carried, and
  * answers that are several structures rather than one.
  */
-export const EXAM: Spec[] = [
+export const THIN_TYPES: Spec[] = [
   // --------------------------------------------------------------- multistep
   {
     // Ritlecitinib (Pfizer). Three selectivities in a row: the acid takes the Boc
@@ -1390,10 +1390,20 @@ export const SCALE: Spec[] = [
 ];
 
 /**
- * The sets a run can ask for. `all` is the paper, the harder questions and the
- * exam together: the first measures whether a model can carry a drug-sized
- * molecule through a transformation, the second whether it knows the chemistry,
- * the third whether it can draw what a chemist published, and a benchmark that
- * is to tell models apart wants all three in one score.
+ * The sets a run can ask for. **`all` is the exam**: all four below together,
+ * 117 questions and 476 marks over eight types of question, and the one to run
+ * unless there is a reason not to. The others are the parts it is made of, kept
+ * because past runs quote them and because each answers a narrower question:
+ *
+ *   (none)   the paper, 26 questions: can a model carry a drug-sized molecule
+ *            through a transformation at all
+ *   hard     29: does it know the chemistry, on reactions a chemist drew
+ *   types    39: the types the paper was thin on, from Chemistry by Design
+ *   scale    23: draw the product, at the size where bookkeeping fails --
+ *            fifteen mined reactions of 52 to 90 heavy atoms and eight peptides
+ *
+ * The peptides live in `scale` with the mined reactions rather than in a set of
+ * their own: they are the same question asked of the same ability, and the runs
+ * report them apart only because that is where the drawing earns its marks.
  */
-export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, exam: EXAM, scale: SCALE, all: [...PAPER, ...HARD, ...EXAM, ...SCALE] };
+export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, types: THIN_TYPES, scale: SCALE, all: [...PAPER, ...HARD, ...THIN_TYPES, ...SCALE] };
