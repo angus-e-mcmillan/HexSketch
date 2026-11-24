@@ -150,21 +150,57 @@ time do, and the quality holds.
   token figures do not, because a run that stops at 32000 output tokens has hit
   a ceiling, not a sample. Two SELFIES runs failed outright and are not counted.
 
-  Read the row that matters: **cut off with no answer.** SELFIES and molfile do
-  not score zero because the model gets the chemistry wrong. They score zero
+  Read the row that matters: **cut off with no answer.** On this model SELFIES
+  and molfile do not score zero because the chemistry is wrong. They score zero
   because every run spends the whole 32000-token budget thinking and never
-  writes an answer. A molfile is seventeen times the length of the name of the
-  same peptide, and SELFIES is a notation the model has barely seen. Both are
-  the failure the typed SMILES condition already shows four times in eight,
-  taken to its limit.
+  writes an answer: a molfile of that decapeptide is seventeen times the length
+  of its name. It is the failure the typed SMILES condition already shows four
+  times in eight, taken to its limit. (The second model below shows SELFIES
+  failing the other way, so take this as this model's mechanism, not SELFIES'.)
 
-  So the gap HexSketch shows over SMILES is half parsing cost: **the name closes
-  half of it** -- 16 to 24 of 32, for 16% fewer tokens -- which is what a
-  chemist typing `H-Trp-Thr-Asn-Met-Gln-Ala-Phe-Leu-Val-Gly-OMe` gets for
-  nothing. The half that remains is not parsing, because the name is *shorter*
-  than the SMILES. It is that the drawing also carries the scheme, the formula
-  and an orientation: 20% of named answers come back drawn the same way round
-  as the question against 67% given the drawing.
+  A second free model, `nemotron-3.5-lightning:free`, same questions, same
+  settings, and it agrees about everything except the score:
+
+  | | SELFIES | molfile | SMILES | name | HexSketch |
+  |---|---:|---:|---:|---:|---:|
+  | score | 0.0 / 32 | 0.0 / 32 | 8.0 / 32 | 0.0 / 32 | 8.0 / 32 |
+  | cut off with no answer | **0** | 5 of 8 | 4 of 8 | 2 of 8 | **0** |
+  | valid structures | 50% | 13% | 25% | 75% | **88%** |
+  | names matching their structure | 38% | 13% | 13% | 0% | **75%** |
+  | output tokens a question | 12885 | 30001 | 29494 | 26390 | **5177** |
+  | median time | 64 s | 152 s | 153 s | 143 s | **29 s** |
+
+  **So the `name` result does not replicate, and I should not have led on it.**
+  On super-vl naming closes half the gap; on lightning it scores zero. Two
+  single repeats, two models, opposite directions -- which is the regime the
+  caveat below describes, and the honest reading is that one repeat cannot tell
+  these apart. A plausible reason they differ: turning
+  `H-Trp-Thr-...-OMe` into a structure needs the model to *know* peptide
+  nomenclature, which super-vl evidently does and lightning does not, so a name
+  is a cheap channel only for a model that can already read it. A drawing needs
+  no such knowledge. That wants testing with repeats before it is believed.
+
+  SELFIES on lightning also undercuts my explanation of its zero: it was not
+  cut off once, took 12885 tokens and 64 s -- the fastest condition in either
+  run -- and still scored nothing. On super-vl SELFIES fails by running out of
+  budget; on lightning it parses quickly and answers wrong. Either way it is the
+  worst channel tested, and for a question it has nothing to recommend it.
+
+  What does hold across both models, and is not a one-repeat score:
+
+  - **No answer is ever cut off with HexSketch** (0 of 8 twice) against 4 of 8
+    typed, twice.
+  - **Output tokens fall by half or more**: 27366 to 14403 on super-vl, 29494 to
+    5177 on lightning -- 82%.
+  - **Time falls with them**: 267 s to 98 s, and 153 s to 29 s.
+  - **The structures come back readable**: valid 50% to 100% and 25% to 88%,
+    names matching their structure 13% to 75% on both.
+  - **A molfile is the worst thing you can paste into a cheap model.** 0 / 32
+    twice, 5 and 8 runs cut off, for 5494 input tokens a question.
+
+  Which is the two-sided result worth having: the drawing made the stronger free
+  model *better* (16 to 32 of 32) and the weaker one *much cheaper and five
+  times faster at the same score*. Neither needed to become cleverer.
 - **Which condition is compared decides whether HexSketch costs tokens or saves
   them, and the difference is a link.** Through OpenRouter (`smiles` against
   `hexsketch`) the drawing arrives described in the prompt -- a name, a formula,
