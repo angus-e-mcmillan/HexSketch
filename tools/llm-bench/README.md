@@ -15,6 +15,26 @@ Through OpenRouter, the tools run here exactly as the website runs them,
 against a stand-in editor; in Claude Code, HexSketch's connector runs from
 this checkout. Either way the benchmark measures HexSketch as it is.
 
+### The channel the structure arrives on
+
+`smiles` is one way a chemist hands a structure to a model, and not the likeliest
+one. Three more conditions change only that -- same question, same words, same
+marking:
+
+| Condition | The structures as | How a chemist would come by it |
+|---|---|---|
+| `name` | a name: `H-Trp-Thr-Asn-Met-Gln-Ala-Phe-Leu-Val-Gly-OMe`, or `methyl (2S)-...` | typed from the bottle, or copied out of an ELN |
+| `molfile` | a V2000 molfile | pasted from ChemDraw's clipboard |
+| `selfies` | SELFIES | nobody does this; it is here because every SELFIES string decodes to a valid molecule, and that is worth testing |
+
+Naming is HexSketch's own (`name_structure`), so a question is only asked in the
+`name` condition when the name reads back as the structure; `selfies.json` holds
+every structure in the paper encoded and round-tripped. Neither tells the model
+anything the drawing does not. They are there because the baseline HexSketch is
+measured against should be the channel the chemist would really have used, and
+on the peptides that is not SMILES: seven of the eight peptide substrates have a
+sequence name *shorter* than their SMILES.
+
 ## What is measured
 
 **The exam is `--set all`: 117 questions and 476 marks over eight types.** That
@@ -110,28 +130,41 @@ model cleverer. It stops a model spending its budget parsing. Where the budget
 was the binding constraint the quality moves; where it was not, the cost and the
 time do, and the quality holds.
 
-- **On a free model the three move together, and the drawing decides whether
-  there is an answer at all.** The eight peptide questions of `--set scale`,
-  one repeat, all eight answers measured a condition:
+- **On a free model the three move together, and the channel the structure
+  arrives on decides whether there is an answer at all.** The eight peptide
+  questions of `--set scale`, one repeat, five ways of handing over the same
+  substrate, on `nemotron-3.5-super-vl:free`:
 
-  | | typed | with HexSketch |
-  |---|---:|---:|
-  | nemotron-3.5-super-vl:free, score | 12.0 / 32 | **32.0 / 32** |
-  | answers right | 38% | **100%** |
-  | cut off with no answer | 4 of 8 | **0** |
-  | output tokens a question | 28372 | **11995** |
-  | median time | 293 s | **103 s** |
-  | nemotron-3.5-lightning:free, score | 12.0 / 32 | 12.0 / 32 |
-  | answers right | 38% | 38% |
-  | names matching their structure | 0% | **50%** |
-  | cut off with no answer | 2 of 8 | **0** |
-  | output tokens a question | 24442 | **5645** |
-  | median time | 154 s | **28 s** |
+  | | SELFIES | molfile | SMILES | name | HexSketch |
+  |---|---:|---:|---:|---:|---:|
+  | score | 0.0 / 32 | 0.0 / 32 | 16.0 / 32 | 24.0 / 32 | **32.0 / 32** |
+  | answers right | 0% | 0% | 50% | 75% | **100%** |
+  | cut off with no answer | 6 of 6 | 8 of 8 | 4 of 8 | 1 of 8 | **0** |
+  | valid structures | – | – | 50% | 88% | **100%** |
+  | drawn the same way round | – | – | 0% | 20% | **67%** |
+  | output tokens a question | 32000 | 32000 | 27366 | 22885 | **14403** |
+  | median time | 318 s | 283 s | 267 s | 191 s | **98 s** |
+  | the substrate, in characters | 930 | 7231 | 431 | 344 | – |
 
-  Super-vl answers every question instead of two in five. Lightning answers
-  exactly as many, in 77% fewer tokens and a fifth of the time. Typed, both
-  spend their whole budget *thinking* about a three-hundred-character peptide
-  SMILES; given the drawing described, neither has to parse anything.
+  One repeat, so the scores carry the caveat below; the cut-off counts and the
+  token figures do not, because a run that stops at 32000 output tokens has hit
+  a ceiling, not a sample. Two SELFIES runs failed outright and are not counted.
+
+  Read the row that matters: **cut off with no answer.** SELFIES and molfile do
+  not score zero because the model gets the chemistry wrong. They score zero
+  because every run spends the whole 32000-token budget thinking and never
+  writes an answer. A molfile is seventeen times the length of the name of the
+  same peptide, and SELFIES is a notation the model has barely seen. Both are
+  the failure the typed SMILES condition already shows four times in eight,
+  taken to its limit.
+
+  So the gap HexSketch shows over SMILES is half parsing cost: **the name closes
+  half of it** -- 16 to 24 of 32, for 16% fewer tokens -- which is what a
+  chemist typing `H-Trp-Thr-Asn-Met-Gln-Ala-Phe-Leu-Val-Gly-OMe` gets for
+  nothing. The half that remains is not parsing, because the name is *shorter*
+  than the SMILES. It is that the drawing also carries the scheme, the formula
+  and an orientation: 20% of named answers come back drawn the same way round
+  as the question against 67% given the drawing.
 - **Which condition is compared decides whether HexSketch costs tokens or saves
   them, and the difference is a link.** Through OpenRouter (`smiles` against
   `hexsketch`) the drawing arrives described in the prompt -- a name, a formula,
@@ -302,7 +335,7 @@ npm run llm-bench -- --model MODEL_ID --provider anthropic --repeats 1
 |---|---|---|
 | `--model` | required | OpenRouter model id, or a Claude Code one (`claude-haiku-5-5`) |
 | `--provider` | any | Pin one provider, with no fallbacks |
-| `--conditions` | `smiles,hexsketch`, or `cc-plain,cc-drawn` in Claude Code | Any of `smiles`, `hexsketch`, `cc-plain`, `cc-hexsketch`, `cc-drawn` |
+| `--conditions` | `smiles,hexsketch`, or `cc-plain,cc-drawn` in Claude Code | Any of `smiles`, `name`, `selfies`, `molfile`, `hexsketch`, `cc-plain`, `cc-hexsketch`, `cc-drawn` |
 | `--repeats` | 3 | Passes through the questions |
 | `--types` | all | e.g. `reaction,mechanism` |
 | `--only` | | Question ids, e.g. `reaction-1` |
