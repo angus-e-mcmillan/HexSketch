@@ -718,7 +718,7 @@ export const HARD: Spec[] = [
     id: 'reaction-r10',
     ask: 'What is the product?',
     marks: 4,
-    shown: { stages: ['ClC1=C(C(=CC=C1)\C=C(\C(C)=O)C(OC)=O)Cl.C\C(=C\C(OCCC#N)=O)N', '?'], arrows: [{ reagents: 'n-propanol, reflux' }] },
+    shown: { stages: ['ClC1=C(C(=CC=C1)\\C=C(\\C(C)=O)C(OC)=O)Cl.C\\C(=C\\C(OCCC#N)=O)N', '?'], arrows: [{ reagents: 'n-propanol, reflux' }] },
     answer: { structures: ['O=C(C1=C(NC(=C(C1C2=C(C(=CC=C2)Cl)Cl)C(OCCC#N)=O)C)C)OC'] },
   },
 ];
