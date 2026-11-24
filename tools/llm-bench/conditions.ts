@@ -19,14 +19,15 @@
  * The comparison that matters there is cc-plain against cc-drawn: the question
  * typed, and the question drawn in HexSketch the way a chemist hands it over.
  */
+import { readFileSync } from 'node:fs';
 import { analyze, compare, convert, drawingSummary, link, name, readStructure, validate } from '../../packages/agent/src/index.ts';
 import { findStructure, pageTools, prepare, prepareSteps, safetyOf, textOf, PAGE_INSTRUCTIONS, SHOWN_NEXT, type FunctionTool, type Show } from '../../packages/hexsketch/src/toolkit.ts';
 import { ANSWER_FORMAT, type Question } from './questions.ts';
 
-export type Condition = 'smiles' | 'name' | 'molfile' | 'hexsketch' | 'cc-plain' | 'cc-hexsketch' | 'cc-drawn';
+export type Condition = 'smiles' | 'name' | 'molfile' | 'selfies' | 'hexsketch' | 'cc-plain' | 'cc-hexsketch' | 'cc-drawn';
 /** The two conditions an OpenRouter run compares: the question typed, and the question drawn on hexsketch.com. */
 export const CONDITIONS: Condition[] = ['smiles', 'hexsketch'];
-export const ALL_CONDITIONS: Condition[] = ['smiles', 'name', 'molfile', 'hexsketch', 'cc-plain', 'cc-hexsketch', 'cc-drawn'];
+export const ALL_CONDITIONS: Condition[] = ['smiles', 'name', 'molfile', 'selfies', 'hexsketch', 'cc-plain', 'cc-hexsketch', 'cc-drawn'];
 /**
  * The Claude Code conditions: the model runs inside Claude Code itself
  * (claude -p), on the subscription Claude Code runs on rather than through
@@ -55,6 +56,7 @@ export const CONDITION_NAME: Record<Condition, string> = {
   smiles: 'Without HexSketch',
   name: 'Without HexSketch, structures named',
   molfile: 'Without HexSketch, structures as molfiles',
+  selfies: 'Without HexSketch, structures as SELFIES',
   hexsketch: 'With HexSketch',
   'cc-plain': 'Claude Code, no tools',
   'cc-hexsketch': 'Claude Code with HexSketch',
@@ -67,6 +69,16 @@ const PLAIN_SYSTEM = 'You are an expert chemist helping a colleague. Answer thei
 export interface Opening { system: string; user: string; tools: FunctionTool[] }
 
 /** What the model is given first, in each condition. */
+/**
+ * A structure as SELFIES, from the table built beside this file. SELFIES exists so that every
+ * string decodes to a valid molecule, which is a property for a model writing a structure rather
+ * than one reading it: it runs 3.7 times longer than the same SMILES here, and no chemist sends it.
+ * It is offered to find out whether a notation a model cannot misread is easier or harder to read.
+ * Rebuild the table when the questions change; a structure missing from it falls back to its SMILES.
+ */
+const SELFIES: Record<string, string> = JSON.parse(readFileSync(new URL('selfies.json', import.meta.url), 'utf8'));
+const asSelfies = (smiles: string): string => SELFIES[smiles] ?? smiles;
+
 /** A structure as HexSketch's namer says it; its SMILES where no name can be given. */
 async function named(smiles: string): Promise<string> {
   try {
@@ -84,7 +96,7 @@ export async function opening(q: Question, c: Condition): Promise<Opening> {
   const end = ANSWER_FORMAT[q.key.kind];
   // As a chemist using HexSketch from Claude Code asks: their words, and a link to what they drew.
   if (c === 'cc-drawn' && q.drawing) return { system: PLAIN_SYSTEM, user: `${q.ask}\n\nMy drawing in HexSketch: ${await link(q.drawing, { format: 'cdxml' })}\n\n${end}`, tools: [] };
-  if (c === 'smiles' || c === 'name' || c === 'molfile' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn') {
+  if (c === 'smiles' || c === 'name' || c === 'molfile' || c === 'selfies' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn') {
     const parts = [q.ask];
     // The same question in a different notation, to find out how much of what HexSketch saves is
     // simply not having to read a SMILES. A name is what HexSketch's namer would say (a peptide's
@@ -92,8 +104,8 @@ export async function opening(q: Question, c: Condition): Promise<Opening> {
     // but there is far more to read.
     const given = c === 'smiles' || c === 'cc-plain' || c === 'cc-hexsketch' || c === 'cc-drawn'
       ? q.given
-      : await Promise.all(q.given.map((s) => (c === 'name' ? named(s) : asMolfile(s))));
-    const label = c === 'name' ? 'Name' : c === 'molfile' ? 'Molfile' : 'SMILES';
+      : await Promise.all(q.given.map((s) => (c === 'name' ? named(s) : c === 'selfies' ? Promise.resolve(asSelfies(s)) : asMolfile(s))));
+    const label = c === 'name' ? 'Name' : c === 'molfile' ? 'Molfile' : c === 'selfies' ? 'SELFIES' : 'SMILES';
     // A molfile is many lines, so it starts on its own; everything else keeps the one-line form the
     // other conditions have always used, so a run can still be compared with the runs before it.
     const sep = c === 'molfile' ? ':\n' : ': ';
