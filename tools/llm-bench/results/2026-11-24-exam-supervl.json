@@ -1,6 +1,6 @@
 {
   "run": "2026-11-24-exam-supervl",
-  "date": "2026-11-25T00:17:17.055Z",
+  "date": "2026-11-25T00:38:21.903Z",
   "model": "nvidia/nemotron-3.5-super-vl:free",
   "served": [
     "nvidia/nemotron-3.5-super-vl:free"
@@ -33,15 +33,15 @@
       "hazard": 10
     }
   },
-  "commit": "e8dce91",
-  "failedRuns": 13,
+  "commit": "7690287",
+  "failedRuns": 0,
   "totalCost": 0,
   "conditions": {
     "smiles": {
-      "score": 256.5,
+      "score": 261.5,
       "scoreRange": [
-        256.5,
-        256.5
+        261.5,
+        261.5
       ],
       "outOf": 476,
       "byType": {
@@ -50,7 +50,7 @@
           "outOf": 212
         },
         "multistep": {
-          "score": 25,
+          "score": 30,
           "outOf": 59
         },
         "mechanism": {
@@ -79,53 +79,53 @@
         }
       },
       "correct": {
-        "rate": 0.584070796460177,
-        "n": 113
+        "rate": 0.5726495726495726,
+        "n": 117
       },
       "stereo": {
         "rate": 0,
-        "n": 113
+        "n": 117
       },
       "valid": {
-        "rate": 0.6306306306306306,
-        "n": 111
+        "rate": 0.6260869565217392,
+        "n": 115
       },
       "consistent": {
-        "rate": 0.4246575342465753,
-        "n": 73
+        "rate": 0.4189189189189189,
+        "n": 74
       },
       "preserved": {
-        "rate": 0.9782608695652174,
-        "n": 46
+        "rate": 0.9791666666666666,
+        "n": 48
       },
       "flagged": {
         "rate": 0.2727272727272727,
         "n": 11
       },
       "oriented": {
-        "rate": 0.45652173913043476,
-        "n": 46
+        "rate": 0.4583333333333333,
+        "n": 48
       },
       "refused": 0,
-      "cutOff": 41,
+      "cutOff": 43,
       "cost": 0,
-      "tokens": 22005.62831858407,
-      "reasoning": 21934.097345132745,
-      "prompt": 172.16814159292036,
+      "tokens": 22135.589743589742,
+      "reasoning": 22064.79487179487,
+      "prompt": 171.54700854700855,
       "cachedPrompt": 0,
       "seconds": 216.217,
       "toolCalls": 0
     },
     "name": {
-      "score": 202,
+      "score": 221,
       "scoreRange": [
-        202,
-        202
+        221,
+        221
       ],
       "outOf": 476,
       "byType": {
         "reaction": {
-          "score": 88,
+          "score": 100,
           "outOf": 212
         },
         "multistep": {
@@ -137,7 +137,7 @@
           "outOf": 40
         },
         "retrosynthesis": {
-          "score": 25,
+          "score": 30,
           "outOf": 45
         },
         "route": {
@@ -145,7 +145,7 @@
           "outOf": 15
         },
         "structure": {
-          "score": 13,
+          "score": 15,
           "outOf": 26
         },
         "analysis": {
@@ -158,41 +158,41 @@
         }
       },
       "correct": {
-        "rate": 0.4722222222222222,
-        "n": 108
+        "rate": 0.47863247863247865,
+        "n": 117
       },
       "stereo": {
-        "rate": 0.009259259259259259,
-        "n": 108
+        "rate": 0.008547008547008548,
+        "n": 117
       },
       "valid": {
-        "rate": 0.5754716981132075,
-        "n": 106
+        "rate": 0.5739130434782609,
+        "n": 115
       },
       "consistent": {
-        "rate": 0.5223880597014925,
-        "n": 67
+        "rate": 0.527027027027027,
+        "n": 74
       },
       "preserved": {
-        "rate": 0.9523809523809523,
-        "n": 42
+        "rate": 0.9555555555555556,
+        "n": 45
       },
       "flagged": {
-        "rate": 0.6,
-        "n": 10
+        "rate": 0.5454545454545454,
+        "n": 11
       },
       "oriented": {
-        "rate": 0.21951219512195122,
-        "n": 41
+        "rate": 0.22727272727272727,
+        "n": 44
       },
       "refused": 0,
-      "cutOff": 45,
+      "cutOff": 49,
       "cost": 0,
-      "tokens": 23222.722222222223,
-      "reasoning": 23161.49074074074,
-      "prompt": 165.2685185185185,
+      "tokens": 23356.863247863246,
+      "reasoning": 23296.495726495727,
+      "prompt": 165.52991452991452,
       "cachedPrompt": 0,
-      "seconds": 246.14249999999998,
+      "seconds": 246.853,
       "toolCalls": 0
     },
     "hexsketch": {
@@ -785,15 +785,15 @@
         "toolCalls": 0
       },
       "name": {
-        "right": 0,
-        "of": 0,
+        "right": 1,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 121,
+        "outputTokens": 24862,
+        "thinkingTokens": 24830,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 238.745,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -1072,15 +1072,15 @@
         "toolCalls": 0
       },
       "name": {
-        "right": 0,
-        "of": 0,
+        "right": 1,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 167,
+        "outputTokens": 21169,
+        "thinkingTokens": 21056,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 221.716,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -1195,15 +1195,15 @@
         "toolCalls": 0
       },
       "name": {
-        "right": 0,
-        "of": 0,
+        "right": 1,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 154,
+        "outputTokens": 13558,
+        "thinkingTokens": 13395,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 126.656,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -2221,14 +2221,14 @@
       },
       "name": {
         "right": 0,
-        "of": 0,
+        "of": 1,
         "refused": 0,
-        "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "cutOff": 1,
+        "promptTokens": 352,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 285.812,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -2741,15 +2741,15 @@
       "type": "multistep",
       "marks": 5,
       "smiles": {
-        "right": 0,
-        "of": 0,
+        "right": 1,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 189,
+        "outputTokens": 21463,
+        "thinkingTokens": 21382,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 178.948,
         "toolCalls": 0
       },
       "name": {
@@ -2836,14 +2836,14 @@
       },
       "name": {
         "right": 0,
-        "of": 0,
+        "of": 1,
         "refused": 0,
-        "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "cutOff": 1,
+        "promptTokens": 229,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 375.973,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -3070,14 +3070,14 @@
       "marks": 5,
       "smiles": {
         "right": 0,
-        "of": 0,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 156,
+        "outputTokens": 17765,
+        "thinkingTokens": 17646,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 150.783,
         "toolCalls": 0
       },
       "name": {
@@ -3111,14 +3111,14 @@
       "marks": 5,
       "smiles": {
         "right": 0,
-        "of": 0,
+        "of": 1,
         "refused": 0,
-        "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "cutOff": 1,
+        "promptTokens": 145,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 374.963,
         "toolCalls": 0
       },
       "name": {
@@ -3409,15 +3409,15 @@
         "toolCalls": 0
       },
       "name": {
-        "right": 0,
-        "of": 0,
+        "right": 1,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 122,
+        "outputTokens": 31579,
+        "thinkingTokens": 31541,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 280.233,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -3942,15 +3942,15 @@
         "toolCalls": 0
       },
       "name": {
-        "right": 0,
-        "of": 0,
+        "right": 1,
+        "of": 1,
         "refused": 0,
         "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "promptTokens": 106,
+        "outputTokens": 5531,
+        "thinkingTokens": 5427,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 71.707,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -4025,14 +4025,14 @@
       },
       "name": {
         "right": 0,
-        "of": 0,
+        "of": 1,
         "refused": 0,
-        "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "cutOff": 1,
+        "promptTokens": 135,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 282.107,
         "toolCalls": 0
       },
       "hexsketch": {
@@ -4218,14 +4218,14 @@
       "marks": 2,
       "smiles": {
         "right": 0,
-        "of": 0,
+        "of": 1,
         "refused": 0,
-        "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "cutOff": 1,
+        "promptTokens": 126,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 300.448,
         "toolCalls": 0
       },
       "name": {
@@ -4804,14 +4804,14 @@
       },
       "name": {
         "right": 0,
-        "of": 0,
+        "of": 1,
         "refused": 0,
-        "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "cutOff": 1,
+        "promptTokens": 132,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 262.97,
         "toolCalls": 0
       },
       "hexsketch": {

@@ -138,13 +138,76 @@ worth reporting upstream.
 
 ## What the runs have settled
 
-Three things are measured, not one: **quality**, **cost** and **time**. Reading
-only the score hides what HexSketch does, because the score is the measure it
-moves least. The short version, over every run below: HexSketch does not make a
-model cleverer. It stops a model spending its budget parsing. Where the budget
-was the binding constraint the quality moves; where it was not, the cost and the
-time do, and the quality holds.
+Three things are measured, not one: **quality**, **cost** and **time**. The
+short version: HexSketch does not make a model cleverer, it stops a model
+spending its budget parsing. Where the budget was the binding constraint the
+quality moves too, and on the full exam below it moves a long way; where it was
+not, the cost and the time move and the quality holds. Which of those a run
+shows depends on how much of the model's budget the question was eating, so read
+the cut-off row before the score.
 
+- **The whole exam, one free model, three channels.** 117 questions, 476 marks,
+  every question answered in every condition, nothing failed:
+
+  | | SMILES | name | HexSketch |
+  |---|---:|---:|---:|
+  | score | 261.5 / 476 | 221.0 / 476 | **363.5 / 476** |
+  | answers right | 57% | 48% | **77%** |
+  | cut off with no answer | 43 of 117 | 49 of 117 | **9 of 117** |
+  | valid structures | 63% | 57% | **92%** |
+  | names matching their structure | 42% | 53% | **84%** |
+  | drawn the same way round | 46% | 23% | **90%** |
+  | output tokens a question | 22136 | 23357 | **14237** |
+  | median time | 216 s | 247 s | **135 s** |
+
+  `nemotron-3.5-super-vl:free`, effort medium, one repeat, so read the score
+  with the caveat below. The cut-off counts are not a sample: 32000 output
+  tokens is a ceiling.
+
+  **Naming is the worst of the three, not the middle one.** It loses 40 marks to
+  SMILES and costs 6% more tokens and 14% more time. Across this exam a name
+  averages 86 characters against the SMILES' 62, and `reaction-r4`'s name runs
+  to 413. The peptides, where a name is a sequence and shorter, are the special
+  case; I generalised from them twice before the full exam contradicted it.
+
+  **The gap is not about big molecules**, which was my first guess and was
+  wrong. Cut off with no answer, by the size of the substrate:
+
+  | substrate | SMILES | name | HexSketch |
+  |---|---:|---:|---:|
+  | under 25 heavy atoms | 37/60 right, 18 cut off | 36/60, 16 | **49/60, 4** |
+  | 25-39 | 18/29, 11 | 14/29, 14 | **22/29, 1** |
+  | 40 and over | 13/28, 14 | 8/28, 19 | **20/28, 4** |
+
+  Size makes it worse and does not cause it: typed, this model spends its whole
+  budget on a *twenty-atom* molecule nearly a third of the time. What the
+  drawing removes is not reading a long string, it is the thinking the string
+  sets off.
+
+  By type, two results want a chemist's eye:
+
+  | type | marks | SMILES | name | HexSketch |
+  |---|---:|---:|---:|---:|
+  | hazard | 50 | 10.0 | 15.0 | **45.0** |
+  | route | 15 | **12.5** | 5.0 | 7.5 |
+  | retrosynthesis | 45 | 30.0 | 30.0 | 30.0 |
+  | analysis | 29 | 29.0 | 26.0 | 29.0 |
+
+  **Hazard is the widest gap in the exam** -- the warning is given in 27% of
+  typed answers against 100% -- but most of it is the budget again: six of the
+  seven drug-scale hazard questions are cut off typed, while the three small
+  ones (`hazard-1`, `hazard-2`, `hazard-h1`) tie across all three conditions. So
+  the honest claim is that a model which has spent its budget parsing cannot
+  warn you about what it was parsing, not that the drawing confers chemical
+  caution.
+
+  **Route is the one type where the drawing loses**, 12.5 against 7.5, and it is
+  the one type with no structure to read: the model plans a synthesis from a
+  target. It is three questions and 15 marks, and one of the two HexSketch
+  losses (`route-d1`) was itself cut off, so this is noise until there are
+  repeats -- but it is the right place to look for a cost the drawing imposes,
+  since fetching and drawing is work that a question needing no structure read
+  cannot repay.
 - **On a free model the three move together, and the channel the structure
   arrives on decides whether there is an answer at all.** The eight peptide
   questions of `--set scale`, one repeat, five ways of handing over the same
@@ -231,9 +294,13 @@ time do, and the quality holds.
   answered nothing. Any claim about a score needs the default three repeats
   and the range the report prints. Token, time and orientation figures are
   means over every question and move far less.
-- **At equal settings HexSketch does not change the score of a model that was
-  coping anyway. It changes everything about how the score is reached.** Three repeats of the drug-scale
-  paper on the free model, 78 answers a condition: 88.7 / 100 (86–90) with
+- **On questions a model was coping with anyway the score does not move, and
+  everything about how it is reached does.** This is the other half of the exam
+  result above, and the reason the two do not contradict each other: there the
+  questions were eating the model's whole budget and the score moved 100 marks,
+  here they are not and it does not move at all. Three repeats of the drug-scale
+  paper on the free model -- 26 questions a chemist would call routine, 78
+  answers a condition: 88.7 / 100 (86–90) with
   HexSketch against 90.3 (86–94) without. The ranges overlap, so there is no
   score difference to report, in either direction. What does separate, as means
   over every answer: 9.0k output tokens a question against 15.6k, 75 s against
