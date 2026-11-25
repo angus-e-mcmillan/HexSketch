@@ -47,5 +47,15 @@
  "O=C1C=C(Cl)NC(=O)N1C": 80,
  "Cc1cc(F)ccc1C#N": 77,
  "Cc1ccc(cc1)S(=O)(=O)Cl": 61,
- "ClC(=O)c1c(F)cc(F)cc1F": 54
+ "ClC(=O)c1c(F)cc(F)cc1F": 54,
+ "CC(C)(C)OC(=O)OC(C)(C)C": 40,
+ "O=C(O)c1c(F)cc(F)cc1F": 75,
+ "CON(C)C(=O)C1CCN(C)CC1": 50,
+ "N1CCCCC1": 34,
+ "O=C(Cl)c2c(F)cc(F)cc2F": 54,
+ "O=CC1CCN(C)CC1": 48,
+ "N3CCC[C@@H](N)C3": 54,
+ "O=C1NC(=O)C=C(Cl)N1": 77,
+ "BrCc2cc(F)ccc2C#N": 72,
+ "CCOC(=O)CCc1ccc(Cl)cc1": 53
 }
