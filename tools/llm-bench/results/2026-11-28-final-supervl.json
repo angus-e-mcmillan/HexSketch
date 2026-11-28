@@ -1,6 +1,6 @@
 {
   "run": "2026-11-28-final-supervl",
-  "date": "2026-11-28T19:19:58.219Z",
+  "date": "2026-11-28T19:23:53.297Z",
   "model": "nvidia/nemotron-3.5-super-vl:free",
   "served": [
     "nvidia/nemotron-3.5-super-vl:free"
@@ -33,8 +33,8 @@
       "hazard": 7
     }
   },
-  "commit": "15ac1f8",
-  "failedRuns": 1,
+  "commit": "9ca9227",
+  "failedRuns": 0,
   "totalCost": 0,
   "conditions": {
     "smiles": {
@@ -158,16 +158,16 @@
         }
       },
       "correct": {
-        "rate": 0.5147058823529411,
-        "n": 68
+        "rate": 0.5072463768115942,
+        "n": 69
       },
       "stereo": {
-        "rate": 0.014705882352941176,
-        "n": 68
+        "rate": 0.014492753623188406,
+        "n": 69
       },
       "valid": {
-        "rate": 0.5970149253731343,
-        "n": 67
+        "rate": 0.5882352941176471,
+        "n": 68
       },
       "consistent": {
         "rate": 0.5813953488372093,
@@ -186,13 +186,13 @@
         "n": 30
       },
       "refused": 0,
-      "cutOff": 27,
+      "cutOff": 28,
       "cost": 0,
-      "tokens": 23843.691176470587,
-      "reasoning": 23772.852941176472,
-      "prompt": 161.48529411764707,
+      "tokens": 23961.898550724636,
+      "reasoning": 23892.08695652174,
+      "prompt": 161.68115942028984,
       "cachedPrompt": 0,
-      "seconds": 205.86,
+      "seconds": 207.747,
       "toolCalls": 0
     },
     "hexsketch": {
@@ -2098,14 +2098,14 @@
       },
       "name": {
         "right": 0,
-        "of": 0,
+        "of": 1,
         "refused": 0,
-        "cutOff": 0,
-        "promptTokens": 0,
-        "outputTokens": 0,
-        "thinkingTokens": 0,
+        "cutOff": 1,
+        "promptTokens": 175,
+        "outputTokens": 32000,
+        "thinkingTokens": 32000,
         "cost": 0,
-        "seconds": 0,
+        "seconds": 211.488,
         "toolCalls": 0
       },
       "hexsketch": {

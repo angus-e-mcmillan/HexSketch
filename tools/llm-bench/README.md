@@ -217,14 +217,14 @@ shows depends on how much of the model's budget the question was eating, so read
 the cut-off row before the score.
 
 - **The exam, one free model, three channels.** `--set final`: 69 questions, 285
-  marks, every question asked in all three conditions.
+  marks, every question asked in all three conditions, all 207 answered.
 
   | | SMILES | name | HexSketch |
   |---|---:|---:|---:|
   | score | 150.5 / 285 | 136.5 / 285 | **225.0 / 285** |
   | answers right | 54% | 51% | **81%** |
-  | cut off with no answer | 27 of 69 | 27 of 68 | **2 of 69** |
-  | valid structures | 60% | 60% | **97%** |
+  | cut off with no answer | 27 of 69 | 28 of 69 | **2 of 69** |
+  | valid structures | 60% | 59% | **97%** |
   | names matching their structure | 47% | 58% | **95%** |
   | drawn the same way round | 41% | 30% | **86%** |
   | hazard flagged, unasked | 43% | 57% | **100%** |
@@ -245,16 +245,16 @@ the cut-off row before the score.
   questions that went were the ones every condition could answer.
 
   **The two typed channels have converged.** On `all` naming cost 40 marks
-  against SMILES; here it costs 14, and both are cut off 27 times. Which typed
-  channel you pick matters less than whether the model has budget left, and on
-  this exam neither typed channel has.
+  against SMILES; here it costs 14, and they are cut off 27 and 28 times out of
+  69. Which typed channel you pick matters less than whether the model has
+  budget left, and on this exam neither typed channel has.
 
   By size of the largest structure the question hands over:
 
   | substrate | SMILES | name | HexSketch |
   |---|---|---|---|
   | under 25 heavy atoms (40 q) | 98/168 marks, 13 cut off | 96/168, 13 | **127/168, 1** |
-  | 25-39 (18 q) | 41/73, 7 | 29/68, 7 | **54/73, 1** |
+  | 25-39 (18 q) | 41/73, 7 | 29/73, 8 | **54/73, 1** |
   | 40 and over (11 q) | 12/44, 7 | 12/44, 7 | **44/44, 0** |
 
   **At 40 heavy atoms and over the drawing scores full marks and the typed

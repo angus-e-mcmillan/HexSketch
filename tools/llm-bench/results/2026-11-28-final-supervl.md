@@ -1,6 +1,6 @@
 # 2026-11-28-final-supervl
 
-nvidia/nemotron-3.5-super-vl:free (served as nvidia/nemotron-3.5-super-vl:free, via Nvidia), effort medium, 1 repeat of 69 questions worth 285 marks. Total cost $0.00. 1 runs failed (not measured): run again with --run 2026-11-28-final-supervl.
+nvidia/nemotron-3.5-super-vl:free (served as nvidia/nemotron-3.5-super-vl:free, via Nvidia), effort medium, 1 repeat of 69 questions worth 285 marks. Total cost $0.00.
 
 | | Without HexSketch | Without HexSketch, structures named | With HexSketch |
 |---|---|---|---|
@@ -13,19 +13,19 @@ nvidia/nemotron-3.5-super-vl:free (served as nvidia/nemotron-3.5-super-vl:free, 
 | structure | 9.0 / 16 | 13.0 / 16 | 16.0 / 16 |
 | analysis | 14.0 / 14 | 11.0 / 14 | 14.0 / 14 |
 | hazard | 15.0 / 35 | 20.0 / 35 | 25.0 / 35 |
-| Correct | 54% (69) | 51% (68) | 81% (69) |
-| Right compound, wrong stereochemistry | 0% (69) | 1% (68) | 0% (69) |
-| Valid structures | 60% (68) | 60% (67) | 97% (68) |
+| Correct | 54% (69) | 51% (69) | 81% (69) |
+| Right compound, wrong stereochemistry | 0% (69) | 1% (69) | 0% (69) |
+| Valid structures | 60% (68) | 59% (68) | 97% (68) |
 | Name matches structure | 47% (43) | 58% (43) | 95% (43) |
 | Unchanged part kept | 97% (30) | 100% (31) | 96% (51) |
 | Hazard flagged | 43% (7) | 57% (7) | 100% (7) |
 | Drawn the same way round | 41% (29) | 30% (30) | 86% (49) |
 | Refused | 0 | 0 | 0 |
-| Cut off at the token limit, no answer | 27 | 27 | 2 |
+| Cut off at the token limit, no answer | 27 | 28 | 2 |
 | cost / question | $0.000 | $0.000 | $0.000 |
-| input tokens / question (from cache) | 169 (0) | 161 (0) | 31880 (23754) |
-| output tokens / question (thinking) | 23837 (23774) | 23844 (23773) | 13709 (13229) |
-| median time | 205 s | 206 s | 80 s |
+| input tokens / question (from cache) | 169 (0) | 162 (0) | 31880 (23754) |
+| output tokens / question (thinking) | 23837 (23774) | 23962 (23892) | 13709 (13229) |
+| median time | 205 s | 208 s | 80 s |
 | tool calls / question | 0.0 | 0.0 | 1.3 |
 
 Score: marks for answers that are right, averaged over the repeats. Each measure is the share of the answers it applies to (how many in brackets).
@@ -78,7 +78,7 @@ Score: marks for answers that are right, averaged over the repeats. Each measure
 | retrosynthesis-3 | 5 | 1/1 · 25579 · 0.000 · 173 | 1/1 · 7162 · 0.000 · 44 | 1/1 · 3530 · 0.000 · 23 |
 | retrosynthesis-d1 | 5 | 1/1 · 23067 · 0.000 · 247 | 0/1 (1 cut off) · 32000 · 0.000 · 268 | 1/1 · 5499 · 0.000 · 39 |
 | retrosynthesis-d3 | 5 | 1/1 · 14926 · 0.000 · 121 | 1/1 · 25925 · 0.000 · 203 | 1/1 · 5183 · 0.000 · 40 |
-| retrosynthesis-d4 | 5 | 1/1 · 21702 · 0.000 · 179 | 0/0 · 0 · 0.000 · 0 | 0/1 · 8318 · 0.000 · 66 |
+| retrosynthesis-d4 | 5 | 1/1 · 21702 · 0.000 · 179 | 0/1 (1 cut off) · 32000 · 0.000 · 211 | 0/1 · 8318 · 0.000 · 66 |
 | retrosynthesis-d5 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 222 | 0/1 (1 cut off) · 32000 · 0.000 · 255 | 1/1 · 12947 · 0.000 · 86 |
 | retrosynthesis-h1 | 5 | 1/1 · 11513 · 0.000 · 97 | 0/1 · 18112 · 0.000 · 120 | 1/1 · 6513 · 0.000 · 49 |
 | route-d1 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 226 | 1/1 · 25955 · 0.000 · 185 | 0/1 (1 cut off) · 32000 · 0.000 · 254 |
