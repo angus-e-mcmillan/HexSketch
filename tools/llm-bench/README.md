@@ -216,7 +216,70 @@ not, the cost and the time move and the quality holds. Which of those a run
 shows depends on how much of the model's budget the question was eating, so read
 the cut-off row before the score.
 
-- **The whole exam, one free model, three channels.** 117 questions, 476 marks,
+- **The exam, one free model, three channels.** `--set final`: 69 questions, 285
+  marks, every question asked in all three conditions.
+
+  | | SMILES | name | HexSketch |
+  |---|---:|---:|---:|
+  | score | 150.5 / 285 | 136.5 / 285 | **225.0 / 285** |
+  | answers right | 54% | 51% | **81%** |
+  | cut off with no answer | 27 of 69 | 27 of 68 | **2 of 69** |
+  | valid structures | 60% | 60% | **97%** |
+  | names matching their structure | 47% | 58% | **95%** |
+  | drawn the same way round | 41% | 30% | **86%** |
+  | hazard flagged, unasked | 43% | 57% | **100%** |
+  | output tokens a question | 23837 | 23844 | **13709** |
+  | median time | 205 s | 206 s | **80 s** |
+  | cost | $0.00 | $0.00 | $0.00 |
+
+  `nemotron-3.5-super-vl:free`, effort medium, one repeat, so read the score
+  with the caveat below; the cut-off counts are not a sample, because 32000
+  output tokens is a ceiling. The HexSketch column's input tokens are 31880 a
+  question against 169 typed -- the system prompt, the tools and the drawing --
+  of which 23754 come from cache. On a paid model that input is what the drawing
+  costs, and it is the figure to watch when the model is not free.
+
+  **Deduplicating the exam did not shrink the gap, it widened it.** On `all`,
+  SMILES took 55% of the marks and HexSketch 76%; on `final`, with every
+  repeated reaction and every faulty drawing gone, it is 53% against 79%. The
+  questions that went were the ones every condition could answer.
+
+  **The two typed channels have converged.** On `all` naming cost 40 marks
+  against SMILES; here it costs 14, and both are cut off 27 times. Which typed
+  channel you pick matters less than whether the model has budget left, and on
+  this exam neither typed channel has.
+
+  By size of the largest structure the question hands over:
+
+  | substrate | SMILES | name | HexSketch |
+  |---|---|---|---|
+  | under 25 heavy atoms (40 q) | 98/168 marks, 13 cut off | 96/168, 13 | **127/168, 1** |
+  | 25-39 (18 q) | 41/73, 7 | 29/68, 7 | **54/73, 1** |
+  | 40 and over (11 q) | 12/44, 7 | 12/44, 7 | **44/44, 0** |
+
+  **At 40 heavy atoms and over the drawing scores full marks and the typed
+  channels score a quarter**, and seven of the eleven questions are cut off
+  typed. But the first band is the one that settles the mechanism: a question on
+  *under twenty-five* heavy atoms is still cut off thirteen times in forty typed,
+  against once in forty drawn. So size makes this worse without causing it -- what the drawing
+  removes is not the reading of a long string, it is the thinking the string
+  sets off.
+
+  By type, two reversals from the `all` run:
+
+  | type | marks | SMILES | name | HexSketch |
+  |---|---:|---:|---:|---:|
+  | mechanism | 25 | 10.0 | **0.0** | 10.0 |
+  | route | 15 | 2.5 | 7.5 | **10.0** |
+
+  **Route now goes the other way.** On `all` it was the one type the drawing
+  lost, 12.5 to 7.5, and the reading offered was that fetching and drawing is
+  work a route question cannot repay. On `final` the same three route questions
+  give 2.5 / 7.5 / 10.0. Three questions and one repeat each way: this says the
+  earlier result was noise, not that the drawing helps routes. **Naming scores zero on all five mechanisms**, where SMILES and
+  HexSketch each take 10 of 25 -- the one place the channel choice between the
+  two typed forms clearly matters, and five questions, so also not settled.
+- **The 117-question `all` run that preceded it, for comparison.** 476 marks,
   every question answered in every condition, nothing failed:
 
   | | SMILES | name | HexSketch |
@@ -271,13 +334,13 @@ the cut-off row before the score.
   warn you about what it was parsing, not that the drawing confers chemical
   caution.
 
-  **Route is the one type where the drawing loses**, 12.5 against 7.5, and it is
-  the one type with no structure to read: the model plans a synthesis from a
-  target. It is three questions and 15 marks, and one of the two HexSketch
-  losses (`route-d1`) was itself cut off, so this is noise until there are
-  repeats -- but it is the right place to look for a cost the drawing imposes,
-  since fetching and drawing is work that a question needing no structure read
-  cannot repay.
+  **Route is the one type where the drawing loses here**, 12.5 against 7.5. It
+  is the one type whose answer is not a structure: the model is handed a target
+  and plans a synthesis, so there is almost no bookkeeping for the drawing to
+  take off its hands. (It is handed a target structure, so "nothing to read" --
+  which an earlier draft of this file claimed -- is wrong.) It is three
+  questions and 15 marks, and one of the two HexSketch losses (`route-d1`) was
+  itself cut off. The `final` run above reverses it, which settles it as noise.
 - **On a free model the three move together, and the channel the structure
   arrives on decides whether there is an answer at all.** The eight peptide
   questions of `--set scale`, one repeat, five ways of handing over the same

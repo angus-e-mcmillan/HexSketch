@@ -1,11 +1,11 @@
 # 2026-11-28-final-supervl
 
-nvidia/nemotron-3.5-super-vl:free (served as nvidia/nemotron-3.5-super-vl:free, via Nvidia), effort medium, 1 repeat of 69 questions worth 285 marks. Total cost $0.00. 8 runs failed (not measured): run again with --run 2026-11-28-final-supervl.
+nvidia/nemotron-3.5-super-vl:free (served as nvidia/nemotron-3.5-super-vl:free, via Nvidia), effort medium, 1 repeat of 69 questions worth 285 marks. Total cost $0.00. 1 runs failed (not measured): run again with --run 2026-11-28-final-supervl.
 
 | | Without HexSketch | Without HexSketch, structures named | With HexSketch |
 |---|---|---|---|
-| **Score** | **146.5 / 285** | **136.5 / 285** | **221.0 / 285** |
-| reaction | 56.0 / 116 | 60.0 / 116 | 96.0 / 116 |
+| **Score** | **150.5 / 285** | **136.5 / 285** | **225.0 / 285** |
+| reaction | 60.0 / 116 | 60.0 / 116 | 100.0 / 116 |
 | multistep | 15.0 / 34 | 15.0 / 34 | 25.0 / 34 |
 | mechanism | 10.0 / 25 | 0.0 / 25 | 10.0 / 25 |
 | retrosynthesis | 25.0 / 30 | 10.0 / 30 | 25.0 / 30 |
@@ -13,19 +13,19 @@ nvidia/nemotron-3.5-super-vl:free (served as nvidia/nemotron-3.5-super-vl:free, 
 | structure | 9.0 / 16 | 13.0 / 16 | 16.0 / 16 |
 | analysis | 14.0 / 14 | 11.0 / 14 | 14.0 / 14 |
 | hazard | 15.0 / 35 | 20.0 / 35 | 25.0 / 35 |
-| Correct | 53% (68) | 56% (63) | 81% (68) |
-| Right compound, wrong stereochemistry | 0% (68) | 2% (63) | 0% (68) |
-| Valid structures | 60% (67) | 63% (62) | 97% (67) |
-| Name matches structure | 48% (42) | 60% (42) | 95% (42) |
-| Unchanged part kept | 97% (29) | 100% (30) | 96% (50) |
-| Hazard flagged | 43% (7) | 67% (6) | 100% (7) |
-| Drawn the same way round | 43% (28) | 30% (30) | 85% (48) |
+| Correct | 54% (69) | 51% (68) | 81% (69) |
+| Right compound, wrong stereochemistry | 0% (69) | 1% (68) | 0% (69) |
+| Valid structures | 60% (68) | 60% (67) | 97% (68) |
+| Name matches structure | 47% (43) | 58% (43) | 95% (43) |
+| Unchanged part kept | 97% (30) | 100% (31) | 96% (51) |
+| Hazard flagged | 43% (7) | 57% (7) | 100% (7) |
+| Drawn the same way round | 41% (29) | 30% (30) | 86% (49) |
 | Refused | 0 | 0 | 0 |
-| Cut off at the token limit, no answer | 27 | 23 | 2 |
+| Cut off at the token limit, no answer | 27 | 27 | 2 |
 | cost / question | $0.000 | $0.000 | $0.000 |
-| input tokens / question (from cache) | 168 (0) | 161 (0) | 31703 (24039) |
-| output tokens / question (thinking) | 23870 (23808) | 23408 (23335) | 13464 (12986) |
-| median time | 206 s | 203 s | 79 s |
+| input tokens / question (from cache) | 169 (0) | 161 (0) | 31880 (23754) |
+| output tokens / question (thinking) | 23837 (23774) | 23844 (23773) | 13709 (13229) |
+| median time | 205 s | 206 s | 80 s |
 | tool calls / question | 0.0 | 0.0 | 1.3 |
 
 Score: marks for answers that are right, averaged over the repeats. Each measure is the share of the answers it applies to (how many in brackets).
@@ -54,24 +54,24 @@ Score: marks for answers that are right, averaged over the repeats. Each measure
 | reaction-p3 | 4 | 0/1 · 27184 · 0.000 · 221 | 1/1 · 29544 · 0.000 · 209 | 1/1 · 9137 · 0.000 · 64 |
 | reaction-p5 | 4 | 0/1 (1 cut off) · 32000 · 0.000 · 238 | 0/1 · 22038 · 0.000 · 208 | 1/1 · 12150 · 0.000 · 81 |
 | reaction-p7 | 4 | 1/1 · 15581 · 0.000 · 118 | 1/1 · 24111 · 0.000 · 170 | 1/1 · 11379 · 0.000 · 78 |
-| reaction-p8 | 4 | 0/0 · 0 · 0.000 · 0 | 1/1 · 21533 · 0.000 · 162 | 1/1 · 6803 · 0.000 · 47 |
+| reaction-p8 | 4 | 1/1 · 21604 · 0.000 · 148 | 1/1 · 21533 · 0.000 · 162 | 1/1 · 6803 · 0.000 · 47 |
 | reaction-r7 | 4 | 0/1 (1 cut off) · 32000 · 0.000 · 255 | 0/1 (1 cut off) · 32000 · 0.000 · 256 | 0/1 · 25076 · 0.000 · 189 |
 | reaction-r10 | 4 | 1/1 · 27128 · 0.000 · 205 | 1/1 · 31499 · 0.000 · 244 | 1/1 · 30306 · 0.000 · 292 |
 | reaction-s2 | 4 | 0/1 (1 cut off) · 32000 · 0.000 · 301 | 0/1 (1 cut off) · 32000 · 0.000 · 222 | 1/1 · 18693 · 0.000 · 147 |
 | reaction-s3 | 4 | 1/1 · 21451 · 0.000 · 187 | 0/1 (1 cut off) · 32000 · 0.000 · 250 | 1/1 · 9014 · 0.000 · 96 |
 | reaction-s4 | 4 | 0/1 (1 cut off) · 32000 · 0.000 · 327 | 0/1 (1 cut off) · 32000 · 0.000 · 256 | 1/1 · 11300 · 0.000 · 88 |
 | reaction-s10 | 4 | 0/1 (1 cut off) · 32000 · 0.000 · 235 | 0/1 (1 cut off) · 32000 · 0.000 · 256 | 1/1 · 34820 · 0.000 · 275 |
-| reaction-s12 | 4 | 0/1 (1 cut off) · 32000 · 0.000 · 235 | 0/1 (1 cut off) · 32000 · 0.000 · 261 | 0/0 · 0 · 0.000 · 0 |
+| reaction-s12 | 4 | 0/1 (1 cut off) · 32000 · 0.000 · 235 | 0/1 (1 cut off) · 32000 · 0.000 · 261 | 1/1 · 30387 · 0.000 · 228 |
 | reaction-s14 | 4 | 0/1 (1 cut off) · 32000 · 0.000 · 281 | 0/1 (1 cut off) · 32000 · 0.000 · 251 | 1/1 · 4697 · 0.000 · 35 |
 | multistep-2 | 5 | 1/1 · 26493 · 0.000 · 256 | 1/1 · 26898 · 0.000 · 187 | 1/1 · 13843 · 0.000 · 102 |
-| multistep-d2 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 292 | 0/0 · 0 · 0.000 · 0 | 1/1 · 32471 · 0.000 · 236 |
+| multistep-d2 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 292 | 0/1 (1 cut off) · 32000 · 0.000 · 259 | 1/1 · 32471 · 0.000 · 236 |
 | multistep-d3 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 314 | 0/1 (1 cut off) · 32000 · 0.000 · 229 | 0/1 · 24414 · 0.000 · 166 |
 | multistep-d4 | 4 | 0/1 · 19824 · 0.000 · 159 | 0/1 (1 cut off) · 32000 · 0.000 · 233 | 0/1 (1 cut off) · 32000 · 0.000 · 250 |
 | multistep-d5 | 5 | 1/1 · 30008 · 0.000 · 231 | 1/1 · 19450 · 0.000 · 176 | 1/1 · 15549 · 0.000 · 115 |
-| multistep-d6 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 289 | 0/0 · 0 · 0.000 · 0 | 1/1 · 33016 · 0.000 · 266 |
+| multistep-d6 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 289 | 0/1 (1 cut off) · 32000 · 0.000 · 268 | 1/1 · 33016 · 0.000 · 266 |
 | multistep-h1 | 5 | 1/1 · 17557 · 0.000 · 135 | 1/1 · 8799 · 0.000 · 64 | 1/1 · 4792 · 0.000 · 39 |
-| mechanism-2 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 234 | 0/0 · 0 · 0.000 · 0 | 1/1 · 23705 · 0.000 · 214 |
-| mechanism-d1 | 5 | 1/1 · 13000 · 0.000 · 97 | 0/0 · 0 · 0.000 · 0 | 1/1 · 7994 · 0.000 · 54 |
+| mechanism-2 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 234 | 0/1 · 18643 · 0.000 · 144 | 1/1 · 23705 · 0.000 · 214 |
+| mechanism-d1 | 5 | 1/1 · 13000 · 0.000 · 97 | 0/1 (1 cut off) · 32000 · 0.000 · 296 | 1/1 · 7994 · 0.000 · 54 |
 | mechanism-d3 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 255 | 0/1 · 23324 · 0.000 · 195 | 0/1 · 21006 · 0.000 · 148 |
 | mechanism-d4 | 5 | 1/1 · 25628 · 0.000 · 223 | 0/1 (1 cut off) · 32000 · 0.000 · 269 | 0/1 · 20343 · 0.000 · 153 |
 | mechanism-d5 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 262 | 0/1 (1 cut off) · 32000 · 0.000 · 258 | 0/1 · 24564 · 0.000 · 165 |
@@ -98,7 +98,7 @@ Score: marks for answers that are right, averaged over the repeats. Each measure
 | analysis-h1 | 3 | 1/1 · 5042 · 0.000 · 35 | 1/1 · 8674 · 0.000 · 66 | 1/1 · 6511 · 0.000 · 53 |
 | hazard-2 | 5 | 1/1 · 25461 · 0.000 · 206 | 1/1 · 23968 · 0.000 · 209 | 0/1 · 7842 · 0.000 · 52 |
 | hazard-d2 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 269 | 0/1 (1 cut off) · 32000 · 0.000 · 288 | 1/1 · 1691 · 0.000 · 15 |
-| hazard-d3 | 5 | 1/1 · 26402 · 0.000 · 190 | 0/0 · 0 · 0.000 · 0 | 1/1 · 9619 · 0.000 · 80 |
+| hazard-d3 | 5 | 1/1 · 26402 · 0.000 · 190 | 0/1 (1 cut off) · 32000 · 0.000 · 233 | 1/1 · 9619 · 0.000 · 80 |
 | hazard-d5 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 264 | 0/1 (1 cut off) · 32000 · 0.000 · 249 | 0/1 · 26404 · 0.000 · 185 |
 | hazard-d6 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 282 | 1/1 · 24790 · 0.000 · 200 | 1/1 · 16536 · 0.000 · 151 |
 | hazard-d7 | 5 | 0/1 (1 cut off) · 32000 · 0.000 · 251 | 1/1 · 30820 · 0.000 · 246 | 1/1 · 23903 · 0.000 · 177 |
