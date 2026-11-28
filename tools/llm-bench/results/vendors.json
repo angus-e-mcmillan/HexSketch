@@ -57,5 +57,9 @@
  "N3CCC[C@@H](N)C3": 54,
  "O=C1NC(=O)C=C(Cl)N1": 77,
  "BrCc2cc(F)ccc2C#N": 72,
- "CCOC(=O)CCc1ccc(Cl)cc1": 53
+ "CCOC(=O)CCc1ccc(Cl)cc1": 53,
+ "O=C(O)CCc1ccc(Cl)cc1": 78,
+ "N#Cc1c(C)cc(F)cc1": 78,
+ "O=C1N(C)C(=O)C=C(Cl)[NH]1": 81,
+ "[NH]3C[C@H](NC(=O)OC(C)(C)C)CCC3": 64
 }
