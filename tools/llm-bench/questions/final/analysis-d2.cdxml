@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="4.95 5.73 112.75 279.39" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/><color r="1" g="0.9569" b="0.6588"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="111.13 22.04"/>
+<n id="1003" p="95.18 31.25" Element="7"/>
+<n id="1004" p="93.25 49.58" NumHydrogens="1"/>
+<n id="1005" p="106.94 61.90" Element="8"/>
+<n id="1006" p="75.23 53.41" NumHydrogens="1"/>
+<n id="1007" p="77.15 71.73"/>
+<n id="1008" p="93.99 79.22"/>
+<n id="1009" p="95.91 97.55"/>
+<n id="1010" p="112.75 105.04" Element="8"/>
+<n id="1011" p="81.01 108.38"/>
+<n id="1012" p="64.17 100.88"/>
+<n id="1013" p="62.25 82.56"/>
+<n id="1014" p="66.02 37.45" NumHydrogens="0"/>
+<n id="1015" p="53.69 51.14" Element="7"/>
+<n id="1016" p="39.99 63.47"/>
+<n id="1017" p="22.47 57.78"/>
+<n id="1018" p="16.78 75.30" Element="9"/>
+<n id="1019" p="18.64 39.75" Element="9"/>
+<n id="1020" p="4.95 52.08" Element="9"/>
+<n id="1021" p="43.83 81.49" Element="8"/>
+<n id="1022" p="36.86 43.65"/>
+<n id="1023" p="38.78 25.32"/>
+<n id="1024" p="56.80 21.49"/>
+<n id="1025" p="78.35 23.76"/>
+<n id="1026" p="74.51 5.73" Element="8"/>
+<b id="1027" B="1002" E="1003"/>
+<b id="1028" B="1003" E="1025"/>
+<b id="1029" B="1025" E="1026" Order="2"/>
+<b id="1030" B="1025" E="1014" Display="WedgedHashEnd"/>
+<b id="1031" B="1014" E="1024"/>
+<b id="1032" B="1024" E="1023"/>
+<b id="1033" B="1023" E="1022"/>
+<b id="1034" B="1022" E="1015"/>
+<b id="1035" B="1014" E="1015"/>
+<b id="1036" B="1015" E="1016"/>
+<b id="1037" B="1016" E="1021" Order="2"/>
+<b id="1038" B="1016" E="1017"/>
+<b id="1039" B="1017" E="1020"/>
+<b id="1040" B="1017" E="1019"/>
+<b id="1041" B="1017" E="1018"/>
+<b id="1042" B="1014" E="1006"/>
+<b id="1043" B="1006" E="1007" Display="WedgedHashBegin"/>
+<b id="1044" B="1007" E="1013" Order="2"/>
+<b id="1045" B="1013" E="1012"/>
+<b id="1046" B="1012" E="1011" Order="2"/>
+<b id="1047" B="1011" E="1009"/>
+<b id="1048" B="1009" E="1010"/>
+<b id="1049" B="1009" E="1008" Order="2"/>
+<b id="1050" B="1007" E="1008"/>
+<b id="1051" B="1006" E="1004"/>
+<b id="1052" B="1003" E="1004"/>
+<b id="1053" B="1004" E="1005" Display="WedgeBegin"/>
+</fragment>
+<fragment id="1054">
+<n id="1055" p="111.13 193.05"/>
+<n id="1056" p="95.18 202.26" Element="7"/>
+<n id="1057" p="93.25 220.58" NumHydrogens="1"/>
+<n id="1058" p="106.94 232.91" Element="8"/>
+<n id="1059" p="75.23 224.42" NumHydrogens="1"/>
+<n id="1060" p="77.15 242.74"/>
+<n id="1061" p="93.99 250.23"/>
+<n id="1062" p="95.91 268.56"/>
+<n id="1063" p="112.75 276.05" Element="8" NumHydrogens="1" highlightColor="19"/>
+<n id="1064" p="81.01 279.39"/>
+<n id="1065" p="64.17 271.89"/>
+<n id="1066" p="62.25 253.57"/>
+<n id="1067" p="66.02 208.46" NumHydrogens="0"/>
+<n id="1068" p="53.69 222.15" Element="7"/>
+<n id="1069" p="39.99 234.48"/>
+<n id="1070" p="22.47 228.79"/>
+<n id="1071" p="16.78 246.31" Element="9"/>
+<n id="1072" p="18.64 210.76" Element="9"/>
+<n id="1073" p="4.95 223.09" Element="9"/>
+<n id="1074" p="43.83 252.50" Element="8"/>
+<n id="1075" p="36.86 214.66"/>
+<n id="1076" p="38.78 196.33"/>
+<n id="1077" p="56.80 192.50"/>
+<n id="1078" p="78.35 194.77"/>
+<n id="1079" p="74.51 176.74" Element="8"/>
+<b id="1080" B="1055" E="1056"/>
+<b id="1081" B="1056" E="1078"/>
+<b id="1082" B="1078" E="1079" Order="2"/>
+<b id="1083" B="1078" E="1067" Display="WedgedHashEnd"/>
+<b id="1084" B="1067" E="1077"/>
+<b id="1085" B="1077" E="1076"/>
+<b id="1086" B="1076" E="1075"/>
+<b id="1087" B="1075" E="1068"/>
+<b id="1088" B="1067" E="1068"/>
+<b id="1089" B="1068" E="1069"/>
+<b id="1090" B="1069" E="1074" Order="2"/>
+<b id="1091" B="1069" E="1070"/>
+<b id="1092" B="1070" E="1073"/>
+<b id="1093" B="1070" E="1072"/>
+<b id="1094" B="1070" E="1071"/>
+<b id="1095" B="1067" E="1059"/>
+<b id="1096" B="1059" E="1060" Display="WedgedHashBegin"/>
+<b id="1097" B="1060" E="1066" Order="2"/>
+<b id="1098" B="1066" E="1065"/>
+<b id="1099" B="1065" E="1064" Order="2"/>
+<b id="1100" B="1064" E="1062"/>
+<b id="1101" B="1062" E="1063"/>
+<b id="1102" B="1062" E="1061" Order="2"/>
+<b id="1103" B="1060" E="1061"/>
+<b id="1104" B="1059" E="1057"/>
+<b id="1105" B="1056" E="1057"/>
+<b id="1106" B="1057" E="1058" Display="WedgeBegin"/>
+</fragment>
+<t id="1107" p="0.00 143.01" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Which hydroxyl is the most acidic? [3]</s></t>
+<t id="1108" p="0.00 162.01" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+</page></CDXML>

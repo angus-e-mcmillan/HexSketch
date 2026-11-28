@@ -15,6 +15,13 @@ async function svg(input: string | null | undefined, empty = 'nothing to draw'):
   try { return String((await render(input, { padding: 10, abbreviate: true })).data); } catch (e) { return `<p class="none">${esc((e as Error).message)}</p>`; }
 }
 
+/** A model's answer: one structure, or several steps with an arrow between each, drawn step by step. */
+async function drawAnswer(answer: string | null | undefined): Promise<string> {
+  const stages = (answer ?? '').split(/\s*>>\s*/).filter(Boolean);
+  if (stages.length < 3) return svg(stages.join('>>'), 'no answer');
+  return `<div class="d seq">${(await Promise.all(stages.map((st) => svg(st)))).join('<span class="arrow">→</span>')}</div>`;
+}
+
 /** The drawing as a link that opens it in HexSketch, to check it by hand (on a phone, one tap). */
 async function openIn(input: string | null | undefined): Promise<string> {
   if (!input) return '';
@@ -32,6 +39,13 @@ export const keyText = (k: Key): string =>
 const keyCell = async (k: Key) => {
   const s = keySmiles(k);
   if (!s) return `<p class="written">${esc(keyText(k))}</p>`;
+  // A sequence is several steps, and a reaction SMILES holds one arrow: drawn whole, `a>>b>>c` came
+  // back as "Not a valid SMILES" on every multistep and mechanism key. So each stage is drawn on its
+  // own, with an arrow between.
+  if (k.kind === 'sequence') {
+    const stages = await Promise.all(k.stages.map((st) => svg(st.join('.'))));
+    return `<div class="d seq">${stages.join('<span class="arrow">→</span>')}</div>`;
+  }
   const marked = k.kind === 'atoms' ? '<p>The atom marked :1 in this SMILES:</p>' : k.kind === 'ranking' ? '<p>The atoms in order, marked :1, :2, … in this SMILES:</p>' : '';
   return `<div class="d">${await svg(s)}</div>${marked ? `${marked}<p><code>${esc(s)}</code></p>` : ''}`;
 };
@@ -50,6 +64,7 @@ h3{margin:0 0 6px;font-size:.8em;text-transform:uppercase;letter-spacing:.05em;c
 .none{color:#8a96a3;font-style:italic}.written{font-size:1.3em;font-weight:600;margin:8px 0}.warn{color:#b3261e}
 .m{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}.m span{font-size:.75em;border-radius:4px;padding:1px 7px;background:#eef1f4}
 .m .y{background:#e4f1e6;color:#2f6b3a}.m .n{background:#fbeceb;color:#b3261e}
+.seq{display:flex;flex-wrap:wrap;align-items:center;gap:6px}.seq .arrow{font-size:1.6em;color:#55606b}
 .a{border-top:1px solid #eef1f4;padding-top:10px;margin-top:10px}
 details summary{cursor:pointer;color:#1f4e79;font-size:.85em}
 </style>`;
@@ -86,7 +101,7 @@ export async function writeReport(file: URL, run: string, questions: Question[],
       const rs = records.filter((r) => r.id === q.id && r.condition === c).sort((a, b) => a.repeat - b.repeat);
       const answers: string[] = [];
       for (const r of rs) {
-        const picture = c === 'hexsketch' && r.drawn ? await svg(r.drawn) : keySmiles(q.key) !== null ? await svg(r.answer?.replace(/\s*>>\s*/g, '>>'), 'no answer') : `<p class="written">${esc(r.answer ?? 'no answer')}</p>`;
+        const picture = c === 'hexsketch' && r.drawn ? await svg(r.drawn) : keySmiles(q.key) !== null ? await drawAnswer(r.answer) : `<p class="written">${esc(r.answer ?? 'no answer')}</p>`;
         answers.push(`<div class="a"><b>Repeat ${r.repeat}</b>${c === 'hexsketch' ? ` <small>(${r.drawn ? 'the editor at the end' : 'the answer; nothing drawn'})</small>` : ''}
 <div class="m"><span class="${r.marks ? 'y' : 'n'}">${r.marks ?? 0} / ${q.marks} marks</span>${r.refused ? `<span class="n" title="${esc(r.refusal ?? '')}">refused</span>` : ''}${r.cutOff ? '<span class="n" title="Stopped at the output-token limit before answering">cut off</span>' : ''}${mark('correct', r.correct)}${r.stereo ? '<span class="n">stereo wrong</span>' : ''}${mark('valid', r.valid)}${mark('name', r.consistent)}${mark('kept', r.preserved)}${mark('hazard', r.flagged)}${mark('orientation', r.oriented)}${r.route ? `<span class="${r.route.valid ? 'y' : 'n'}" title="${esc(r.route.why ?? '')}">route ${r.route.valid ? 'valid' : `invalid: ${esc(r.route.why ?? '')}`}</span>${r.route.buyable === null ? '<span title="PubChem could not be reached; the mark is given">on sale: not checked</span>' : mark(r.route.buyable === false ? `on sale (fewest: ${r.route.notSold.map((x) => r.route!.vendors[x] ?? 0).join(', ')} vendors)` : 'on sale (30+ vendors each)', r.route.buyable)}${mark('accepted disconnection', r.route.accepted)}${r.route.pending ? '<span class="n">for the chemist to grade</span>' : r.route.approved !== null ? mark('chemist', r.route.approved) : ''}` : ''}<span>${r.tools.length} tool calls</span><span>${r.tokens.completion} tokens out (${r.tokens.reasoning} thinking)</span><span>$${r.cost.toFixed(3)}</span><span>${(r.ms / 1000).toFixed(0)} s</span></div>
 <div class="d">${picture}</div>

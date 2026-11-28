@@ -19,7 +19,7 @@ import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { readStructure, scheme, type SchemeArrow, type Structure } from '../../packages/agent/src/index.ts';
 import { depict } from '../../packages/render/src/index.ts';
-import { cloneObjects, DEFAULT_STYLE, makeCaption, Molecule, objectPoints, smilesAtomMaps, writeCdxml, writeSmiles, type AtomId, type DocObject } from '../../packages/core/src/index.ts';
+import { cloneObjects, DEFAULT_STYLE, ezLabel, makeCaption, Molecule, objectPoints, perceiveStereoFromGeometry, sameStereoisomer, smilesAtomMaps, writeCdxml, writeSmiles, type AtomId, type DocObject } from '../../packages/core/src/index.ts';
 import { readQuestionDrawing } from './drawing.ts';
 import { PAPERS, type Answer, type Spec } from './paper.ts';
 import { questionsDir } from './questions.ts';
@@ -31,8 +31,12 @@ const HIGHLIGHT = '#fff4a8';
 /** Stands in for the answer in the question: drawn, then replaced by "?". */
 const UNKNOWN = '[Xe]';
 
-// Drawn out, not abbreviated: the reader takes each structure's SMILES from the drawing as it stands.
-const read = (smiles: string) => readStructure(smiles);
+// Drawn as a chemist draws it, protecting groups abbreviated (TIPS, TBS, Boc, Cbz, Fmoc, Trt...):
+// written out, a TIPS ether is nine carbons and a silicon crowding the page, and the clashes and
+// crossed bonds on the largest questions were mostly that. The reader expands every label again,
+// so the SMILES and name conditions, the check below and the marking still see every atom; atoms
+// with map numbers are never abbreviated, so a question about an atom still points at it.
+const drawn = (smiles: string) => readStructure(smiles, { abbreviate: true });
 const bounds = (s: Pick<Structure, 'mol' | 'objects'>) => depict(s.mol, style, s.objects).bounds;
 
 /** One block of drawing: its structures and objects, with the top left at (0, 0). */
@@ -50,7 +54,7 @@ function blockOf(s: Pick<Structure, 'mol' | 'objects'>): Block {
 
 /** Structures side by side, as a set of building blocks is drawn. */
 async function row(smiles: string[]): Promise<Block> {
-  const pieces = await Promise.all(smiles.map(read));
+  const pieces = await Promise.all(smiles.map(drawn));
   const mol = new Molecule();
   const objects: DocObject[] = [];
   let x = 0, height = 0;
@@ -69,7 +73,7 @@ async function row(smiles: string[]): Promise<Block> {
 /** The stages of a scheme with arrows between them; "?" is drawn as a question mark. */
 async function stages(list: string[], arrows: SchemeArrow[] | undefined, like?: Molecule): Promise<Block> {
   if (list.length === 1) return row(list[0]!.split('.'));
-  const s = await scheme({ stages: list.map((x) => (x === '?' ? UNKNOWN : x)), arrows }, { ...(like ? { like } : {}) });
+  const s = await scheme({ stages: list.map((x) => (x === '?' ? UNKNOWN : x)), arrows }, { abbreviate: true, ...(like ? { like } : {}) });
   const blank = [...s.mol.atoms()].filter((a) => a.element === 'Xe');
   if (blank.length) {
     const x = blank.reduce((t, a) => t + a.x, 0) / blank.length, y = blank.reduce((t, a) => t + a.y, 0) / blank.length;
@@ -131,7 +135,9 @@ class Page {
 const answerSmiles = async (a: Answer): Promise<string[]> => {
   if ('written' in a) return [];
   const list = 'sequence' in a ? a.sequence : 'structures' in a ? a.structures : ['atoms' in a ? a.atoms : a.ranking];
-  return Promise.all(list.flatMap((x) => x.split('.')).map(async (x) => writeSmiles((await readStructure(x.replace(/:\d+\]/g, ']'), { format: 'smiles' })).mol)));
+  // The spec's own SMILES, map numbers aside. Not re-written through a laid-out molecule: that
+  // writes back whatever geometry the layout happened to give a double bond the spec left open.
+  return list.flatMap((x) => x.split('.')).map((x) => x.replace(/:\d+\]/g, ']'));
 };
 
 async function draw(spec: Spec): Promise<string> {
@@ -148,11 +154,46 @@ async function draw(spec: Spec): Promise<string> {
     if (b) page.block(b);
   }
   if (spec.hazard?.length) page.caption(`Hazard: ${spec.hazard.join(', ')}`);
+  openUnstated(page.mol);
   return writeCdxml(page.mol, style, page.objects);
 }
 
-/** The one structure a route question shows: its target. */
-const read0 = (spec: Spec) => readStructure(spec.shown.stages[0]!.split('.')[0]!);
+/**
+ * A double bond whose geometry the spec does not state is drawn crossed, as a chemist marks
+ * "E/Z not specified".
+ *
+ * Drawn plain, it would say one: every double bond on a page points its substituents somewhere,
+ * and the reader takes that as E or Z. On the question side that hands the drawing a fact the
+ * SMILES and the name never had -- an oxime drawn E tells the model which group migrates in the
+ * Beckmann -- and on the answer side it turns the key into a demand: an iminium the spec left
+ * open came back E, and a typed answer with no geometry was marked as the wrong stereoisomer.
+ */
+function openUnstated(mol: Molecule): void {
+  const seen = mol.clone();
+  perceiveStereoFromGeometry(seen);
+  for (const b of mol.bonds()) if (b.order === 2 && !b.ez && ezLabel(seen, b.id)) b.display = 'either';
+}
+
+/**
+ * Whether two SMILES are the same compound, stereochemistry included, by matching atom to atom.
+ * Not by comparing written SMILES: that string depends on the order the atoms were met, and a
+ * protecting group drawn as a label and expanded again by the reader comes back with its atoms in
+ * a different order -- the same Fmoc, numbered differently -- so a string comparison refused
+ * sixteen questions that were drawn exactly right.
+ */
+const same = async (a: string, b: string) =>
+  sameStereoisomer((await readStructure(a)).mol, (await readStructure(b)).mol, { recorded: [true, true] });
+/** Two lists as sets of compounds: what each has that the other does not. */
+async function unmatched(want: string[], got: string[]): Promise<{ missing: string[]; extra: string[] }> {
+  const left = [...got];
+  const missing: string[] = [];
+  for (const w of want) {
+    let hit = -1;
+    for (let i = 0; i < left.length && hit < 0; i++) if (await same(w, left[i]!)) hit = i;
+    if (hit < 0) missing.push(w); else left.splice(hit, 1);
+  }
+  return { missing, extra: left };
+}
 
 /** What the reader makes of the drawing, against what the spec meant. */
 async function check(spec: Spec, xml: string): Promise<string[]> {
@@ -162,26 +203,28 @@ async function check(spec: Spec, xml: string): Promise<string[]> {
   if (question.ask !== spec.ask) bad.push(`asks "${question.ask}", not "${spec.ask}"`);
   if (question.marks !== spec.marks) bad.push(`${question.marks} marks, not ${spec.marks}`);
   const shown = spec.shown.stages.filter((s) => s !== '?').flatMap((s) => s.split('.'));
-  const wanted = await Promise.all(shown.map(async (s) => writeSmiles((await read(s)).mol)));
-  const got = await Promise.all(question.given.map(async (s) => writeSmiles((await readStructure(s)).mol)));
-  for (const s of wanted) { const i = got.indexOf(s); if (i < 0) bad.push(`the question does not show ${s}`); else got.splice(i, 1); }
-  for (const s of got) bad.push(`the question shows ${s}, which the spec does not`);
+  const seen = await unmatched(shown, question.given);
+  for (const s of seen.missing) bad.push(`the question does not show ${s}`);
+  for (const s of seen.extra) bad.push(`the question shows ${s}, which the spec does not`);
   const want = await answerSmiles(spec.answer);
   const key = question.key;
   // A route question's answer is the couplings the chemist accepts, the first drawn under "Answer" and the rest under "Also accept".
   if (key.kind === 'route') {
-    const canon = async (list: string[]) => (await Promise.all(list.map(async (x) => writeSmiles((await readStructure(x)).mol)))).sort().join(' + ');
-    const meant = await Promise.all([spec.answer, ...(spec.also ?? [])].map((a) => canon('structures' in a ? a.structures : [])));
-    const read = await Promise.all(key.accepted.map(canon));
-    if (meant.join(' | ') !== read.join(' | ')) bad.push(`the accepted couplings read as ${read.join(' | ')}, not ${meant.join(' | ')}`);
-    if (writeSmiles((await readStructure(key.target)).mol) !== writeSmiles((await read0(spec)).mol)) bad.push('the target is not the structure shown');
+    const meant = [spec.answer, ...(spec.also ?? [])].map((a) => ('structures' in a ? a.structures : []));
+    if (meant.length !== key.accepted.length) bad.push(`${key.accepted.length} accepted couplings, not ${meant.length}`);
+    for (const [i, m] of meant.entries()) {
+      const r = await unmatched(m, key.accepted[i] ?? []);
+      if (r.missing.length || r.extra.length) bad.push(`coupling ${i + 1} reads as ${(key.accepted[i] ?? []).join(' + ')}, not ${m.join(' + ')}`);
+    }
+    if (!(await same(key.target, spec.shown.stages[0]!.split('.')[0]!))) bad.push('the target is not the structure shown');
     return bad;
   }
   const have = key.kind === 'structure' ? [key.smiles] : key.kind === 'structures' ? key.smiles
     : key.kind === 'sequence' ? key.stages.flat() : key.kind === 'atoms' || key.kind === 'ranking' ? [key.smiles.replace(/:\d+\]/g, ']')] : [];
-  const plain = await Promise.all(have.map(async (s) => writeSmiles((await readStructure(s)).mol)));
-  if (want.length && (plain.length !== want.length || want.some((s, i) => s !== plain[i]))) {
-    bad.push(`the answer reads as ${plain.join(' , ')}, not ${want.join(' , ')}`);
+  if (want.length) {
+    let ok = have.length === want.length;
+    for (let i = 0; ok && i < want.length; i++) ok = await same(want[i]!, have[i]!);
+    if (!ok) bad.push(`the answer reads as ${have.join(' , ')}, not ${want.join(' , ')}`);
   }
   if ('written' in spec.answer && key.kind !== 'number' && key.kind !== 'term') bad.push(`"${spec.answer.written}" read as a ${key.kind}`);
   if ('atoms' in spec.answer && key.kind !== 'atoms') bad.push(`the highlighted atoms read as a ${key.kind}`);

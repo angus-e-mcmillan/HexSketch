@@ -1,97 +1,85 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="0.77 5.55 208.93 188.18" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="0.77 0.82 208.93 176.23" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
 <fragment id="1001">
-<n id="1002" p="112.77 27.40"/>
-<n id="1003" p="94.75 23.57"/>
-<n id="1004" p="76.72 19.74" Element="8"/>
-<n id="1005" p="64.39 33.43"/>
-<n id="1006" p="46.37 29.60" Element="7"/>
-<n id="1007" p="32.68 41.93"/>
-<n id="1008" p="16.72 32.72"/>
-<n id="1009" p="0.77 41.93"/>
-<n id="1010" p="0.77 60.35"/>
-<n id="1011" p="16.72 69.57"/>
-<n id="1012" p="20.55 14.69"/>
-<n id="1013" p="32.68 60.35"/>
-<n id="1014" p="38.88 12.77"/>
-<n id="1015" p="70.09 50.96" Element="8"/>
-<n id="1016" p="90.91 41.59"/>
-<n id="1017" p="98.58 5.55"/>
-<b id="1018" B="1002" E="1003"/>
-<b id="1019" B="1003" E="1017"/>
-<b id="1020" B="1003" E="1016"/>
-<b id="1021" B="1003" E="1004"/>
-<b id="1022" B="1004" E="1005"/>
-<b id="1023" B="1005" E="1015" Order="2"/>
-<b id="1024" B="1005" E="1006"/>
-<b id="1025" B="1006" E="1014"/>
-<b id="1026" B="1014" E="1012"/>
-<b id="1027" B="1012" E="1008"/>
-<b id="1028" B="1008" E="1009" Order="2"/>
-<b id="1029" B="1009" E="1010"/>
-<b id="1030" B="1010" E="1011" Order="2"/>
-<b id="1031" B="1011" E="1013"/>
-<b id="1032" B="1013" E="1007" Order="2"/>
-<b id="1033" B="1008" E="1007"/>
-<b id="1034" B="1006" E="1007"/>
+<n id="1002" p="64.39 21.48" NodeType="Nickname"><t><s font="3" size="11.00" face="97">Boc</s></t></n>
+<n id="1003" p="46.37 17.65" Element="7"/>
+<n id="1004" p="32.68 29.98"/>
+<n id="1005" p="16.72 20.77"/>
+<n id="1006" p="0.77 29.98"/>
+<n id="1007" p="0.77 48.41"/>
+<n id="1008" p="16.72 57.62"/>
+<n id="1009" p="20.55 2.75"/>
+<n id="1010" p="32.68 48.41"/>
+<n id="1011" p="38.88 0.82"/>
+<b id="1012" B="1002" E="1003"/>
+<b id="1013" B="1003" E="1011"/>
+<b id="1014" B="1011" E="1009"/>
+<b id="1015" B="1009" E="1005"/>
+<b id="1016" B="1005" E="1006" Order="2"/>
+<b id="1017" B="1006" E="1007"/>
+<b id="1018" B="1007" E="1008" Order="2"/>
+<b id="1019" B="1008" E="1010"/>
+<b id="1020" B="1010" E="1004" Order="2"/>
+<b id="1021" B="1005" E="1004"/>
+<b id="1022" B="1003" E="1004"/>
 </fragment>
-<fragment id="1035">
-<n id="1036" p="76.72 138.35" Element="8"/>
-<n id="1037" p="64.39 152.04"/>
-<n id="1038" p="46.37 148.21" Element="7"/>
-<n id="1039" p="32.68 160.54"/>
-<n id="1040" p="16.72 151.33"/>
-<n id="1041" p="0.77 160.54"/>
-<n id="1042" p="0.77 178.97"/>
-<n id="1043" p="16.72 188.18"/>
-<n id="1044" p="20.55 133.31"/>
-<n id="1045" p="32.68 178.97"/>
-<n id="1046" p="38.88 131.38"/>
-<n id="1047" p="70.09 169.57" Element="8"/>
-<b id="1048" B="1036" E="1037"/>
-<b id="1049" B="1037" E="1047" Order="2"/>
-<b id="1050" B="1037" E="1038"/>
-<b id="1051" B="1038" E="1046"/>
-<b id="1052" B="1046" E="1044"/>
-<b id="1053" B="1044" E="1040"/>
-<b id="1054" B="1040" E="1041" Order="2"/>
-<b id="1055" B="1041" E="1042"/>
-<b id="1056" B="1042" E="1043" Order="2"/>
-<b id="1057" B="1043" E="1045"/>
-<b id="1058" B="1045" E="1039" Order="2"/>
-<b id="1059" B="1040" E="1039"/>
-<b id="1060" B="1038" E="1039"/>
+<fragment id="1023">
+<n id="1024" p="76.72 126.40" Element="8"/>
+<n id="1025" p="64.39 140.09"/>
+<n id="1026" p="46.37 136.26" Element="7"/>
+<n id="1027" p="32.68 148.59"/>
+<n id="1028" p="16.72 139.38"/>
+<n id="1029" p="0.77 148.59"/>
+<n id="1030" p="0.77 167.02"/>
+<n id="1031" p="16.72 176.23"/>
+<n id="1032" p="20.55 121.36"/>
+<n id="1033" p="32.68 167.02"/>
+<n id="1034" p="38.88 119.43"/>
+<n id="1035" p="70.09 157.62" Element="8"/>
+<b id="1036" B="1024" E="1025"/>
+<b id="1037" B="1025" E="1035" Order="2"/>
+<b id="1038" B="1025" E="1026"/>
+<b id="1039" B="1026" E="1034"/>
+<b id="1040" B="1034" E="1032"/>
+<b id="1041" B="1032" E="1028"/>
+<b id="1042" B="1028" E="1029" Order="2"/>
+<b id="1043" B="1029" E="1030"/>
+<b id="1044" B="1030" E="1031" Order="2"/>
+<b id="1045" B="1031" E="1033"/>
+<b id="1046" B="1033" E="1027" Order="2"/>
+<b id="1047" B="1028" E="1027"/>
+<b id="1048" B="1026" E="1027"/>
 </fragment>
-<fragment id="1061">
-<n id="1062" p="201.43 131.38"/>
-<n id="1063" p="208.93 148.21" Element="7"/>
-<n id="1064" p="195.23 160.54"/>
-<n id="1065" p="179.28 151.33"/>
-<n id="1066" p="163.32 160.54"/>
-<n id="1067" p="163.32 178.97"/>
-<n id="1068" p="179.28 188.18"/>
-<n id="1069" p="195.23 178.97"/>
-<n id="1070" p="183.11 133.31"/>
-<b id="1071" B="1062" E="1070"/>
-<b id="1072" B="1070" E="1065"/>
-<b id="1073" B="1065" E="1066" Order="2"/>
-<b id="1074" B="1066" E="1067"/>
-<b id="1075" B="1067" E="1068" Order="2"/>
-<b id="1076" B="1068" E="1069"/>
-<b id="1077" B="1069" E="1064" Order="2"/>
-<b id="1078" B="1065" E="1064"/>
-<b id="1079" B="1064" E="1063"/>
-<b id="1080" B="1062" E="1063"/>
+<fragment id="1049">
+<n id="1050" p="201.43 119.43"/>
+<n id="1051" p="208.93 136.26" Element="7"/>
+<n id="1052" p="195.23 148.59"/>
+<n id="1053" p="179.28 139.38"/>
+<n id="1054" p="163.32 148.59"/>
+<n id="1055" p="163.32 167.02"/>
+<n id="1056" p="179.28 176.23"/>
+<n id="1057" p="195.23 167.02"/>
+<n id="1058" p="183.11 121.36"/>
+<b id="1059" B="1050" E="1058"/>
+<b id="1060" B="1058" E="1053"/>
+<b id="1061" B="1053" E="1054" Order="2"/>
+<b id="1062" B="1054" E="1055"/>
+<b id="1063" B="1055" E="1056" Order="2"/>
+<b id="1064" B="1056" E="1057"/>
+<b id="1065" B="1057" E="1052" Order="2"/>
+<b id="1066" B="1053" E="1052"/>
+<b id="1067" B="1052" E="1051"/>
+<b id="1068" B="1050" E="1051"/>
 </fragment>
-<arrow id="1086" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="237.65 37.56 0" Tail3D="133.04 37.56 0"/>
-<t id="1081" p="177.69 30.56" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">TFA (20 equiv)</s></t>
-<t id="1082" p="177.69 52.56" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">CH2Cl2, rt, 1 h</s></t>
-<t id="1083" p="257.91 41.56" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
-<t id="1084" p="0.00 102.56" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Give the mechanism as each intermediate in order, ending with the product. [5]</s></t>
-<t id="1085" p="0.00 121.56" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
-<arrow id="1087" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="143.05 159.78 0" Tail3D="96.99 159.78 0"/>
+<arrow id="1074" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="189.27 29.22 0" Tail3D="84.66 29.22 0"/>
+<t id="1069" p="129.31 22.22" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">TFA (20 equiv)</s></t>
+<t id="1070" p="129.31 44.22" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">CH2Cl2, rt, 1 h</s></t>
+<t id="1071" p="209.54 33.22" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1072" p="0.00 90.61" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Give the mechanism as each intermediate in order, ending with the product. [5]</s></t>
+<t id="1073" p="0.00 109.61" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<arrow id="1075" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="143.05 147.83 0" Tail3D="96.99 147.83 0"/>
 </page></CDXML>

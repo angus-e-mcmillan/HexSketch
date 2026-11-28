@@ -1409,4 +1409,116 @@ export const SCALE: Spec[] = [
  * their own: they are the same question asked of the same ability, and the runs
  * report them apart only because that is where the drawing earns its marks.
  */
-export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, types: THIN_TYPES, scale: SCALE, all: [...PAPER, ...HARD, ...THIN_TYPES, ...SCALE] };
+/**
+ * Multicomponent reactions. Several pieces drawn apart have to be assembled into one structure
+ * with every atom in its place: the bookkeeping a drawing should help with most, and a kind of
+ * question the paper had only two of (the Groebke-Blackburn-Bienayme of reaction-h8 and the
+ * Hantzsch of reaction-r10). Each balances and each product has a name.
+ */
+export const MULTICOMPONENT: Spec[] = [
+  {
+    // Ugi four-component: amine and aldehyde make the imine, the isocyanide carbon adds to it, the
+    // acid traps the nitrilium, and the Mumm rearrangement moves the acyl group to nitrogen. Four
+    // pieces in, one product and water out. The new centre forms racemic, so it is left open.
+    id: 'reaction-m1',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['O=Cc1ccc(F)cc1.NCc1ccco1.OC(=O)c1cccnc1.[C-]#[N+]C1CCCCC1', '?'], arrows: [{ reagents: 'MeOH', conditions: 'rt, 24 h' }] },
+    answer: { structures: ['O=C(NC1CCCCC1)C(c1ccc(F)cc1)N(Cc1ccco1)C(=O)c1cccnc1'] },
+  },
+  {
+    // Monastrol, by the Biginelli it was first made by: aldehyde, beta-ketoester and thiourea close
+    // the dihydropyrimidinethione, losing two waters. Product checked against PubChem's record for
+    // monastrol (CID 794323); its centre forms racemic here, so it is left open.
+    id: 'reaction-m2',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['Oc1cccc(C=O)c1.CCOC(=O)CC(C)=O.NC(N)=S', '?'], arrows: [{ reagents: 'HCl (cat.), EtOH', conditions: 'reflux' }] },
+    answer: { structures: ['CCOC(=O)C1=C(C)NC(=S)NC1c1cccc(O)c1'] },
+  },
+  {
+    // Petasis borono-Mannich: amine and glyoxylic acid make the iminium, and the vinyl group moves
+    // from boron to its carbon. The alkene keeps its E geometry; the new centre forms racemic.
+    id: 'reaction-m3',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['C1CN(CCN1)c1ccccn1.O=CC(=O)O.OB(O)/C=C/c1ccc(OC)cc1', '?'], arrows: [{ reagents: 'CH2Cl2', conditions: 'rt, 24 h' }] },
+    answer: { structures: ['OC(=O)C(N1CCN(CC1)c1ccccn1)/C=C/c1ccc(OC)cc1'] },
+  },
+  {
+    // Gewald: Knoevenagel at the ketone, sulfur onto its alpha carbon, and the thiolate closes onto
+    // the nitrile to the 2-aminothiophene. So the ester ends up next to the amine and the ring
+    // fuses where the ketone was; the Boc looks on.
+    id: 'reaction-m4',
+    ask: 'What is the product?',
+    marks: 4,
+    shown: { stages: ['O=C1CCN(C(=O)OC(C)(C)C)CC1.N#CCC(=O)OCC', '?'], arrows: [{ reagents: 'S8, morpholine, EtOH', conditions: '50 °C' }] },
+    answer: { structures: ['CCOC(=O)c1c(N)sc2c1CCN(C(=O)OC(C)(C)C)C2'] },
+  },
+];
+
+/**
+ * The final exam, --set final.
+ *
+ * Chosen from everything above by four rules, applied the same way to every question:
+ *
+ * 1. **One question per reaction.** The paper had two Beckmanns (reaction-5 and reaction-h1), two
+ *    Baeyer-Villigers (reaction-6, reaction-h5), two Curtius (mechanism-1, reaction-h2), four
+ *    Mitsunobus (reaction-4, reaction-r2, reaction-h9, mechanism-d2) and three Pinnicks
+ *    (reaction-s1, s3, s8). Each kept the one that tests the most: the Beckmann whose aryl bears a
+ *    dioxole rather than a bare phenyl, the Mitsunobu with an inversion to draw, the Pinnick on
+ *    seventy-three atoms with four sugars to carry. The same rule applies to the kinds of question
+ *    that are not reactions -- one "which nitrogen is the most basic" of the three, one "draw the
+ *    enantiomer" of the three.
+ * 2. **Nothing whose drawing has a fault.** Every question is laid out, and any whose structures
+ *    still show a clash, a crossed bond or a label over a bond once the protecting groups are
+ *    abbreviated is out: fifteen of them, nearly all fused and bridged natural products
+ *    (diazonamide, euonyminol, ecteinascidin, gossypol, ouabagenin, hypocrellin, trospium). A
+ *    question whose own drawing is unreadable cannot measure whether drawings help.
+ * 3. **No question whose answer I could not verify.** Four were dropped for that alone --
+ *    reaction-r1, where the epoxide's descriptor depends on a priority change I could not settle;
+ *    reaction-r3, where the key disagrees with netarsudil's published configuration; reaction-r6,
+ *    whose macrocyclic alkene geometry I could not confirm; and multistep-d1, whose last step
+ *    claims a hydrogenolysis and a hydrodechlorination in one pot.
+ * 4. **Then the trivia goes.** A question every condition answered, on fewer than twenty heavy
+ *    atoms, measures nothing: a nine-atom Favorskii, a fifteen-atom Meinwald, ranking two
+ *    nitrogens of a dimethylaminopyridine. Enough are kept, spread across the types, to show the
+ *    exam is working at all -- that was how the first runs were checked -- but not forty of them.
+ *
+ * What is left is sixty-nine questions in which no reaction appears twice, no structure appears
+ * twice, and every drawing is clean.
+ */
+const FINAL_IDS = [
+  // reaction: one per named reaction, in the order they were written
+  'reaction-1', 'reaction-3', 'reaction-h1', 'reaction-h2', 'reaction-h3', 'reaction-h5', 'reaction-h7',
+  'reaction-h8', 'reaction-h9', 'reaction-h10', 'reaction-h12', 'reaction-h13', 'reaction-r7', 'reaction-r10',
+  // multicomponent: several pieces to assemble into one structure
+  'reaction-m1', 'reaction-m2', 'reaction-m3', 'reaction-m4',
+  // drug-scale: fifty-nine to seventy-seven heavy atoms, one selectivity each
+  'reaction-s2', 'reaction-s3', 'reaction-s4', 'reaction-s10', 'reaction-s12', 'reaction-s14',
+  // peptides: the large molecules, one group changed on each
+  'reaction-p1', 'reaction-p3', 'reaction-p5', 'reaction-p7', 'reaction-p8',
+  // multistep: intermediates to carry
+  'multistep-2', 'multistep-d2', 'multistep-d3', 'multistep-d4', 'multistep-d5', 'multistep-d6', 'multistep-h1',
+  // mechanism: charged intermediates in order
+  'mechanism-2', 'mechanism-d1', 'mechanism-d3', 'mechanism-d4', 'mechanism-d5',
+  // retrosynthesis: one bond to break, a different one each time
+  'retrosynthesis-3', 'retrosynthesis-d1', 'retrosynthesis-d3', 'retrosynthesis-d4', 'retrosynthesis-d5', 'retrosynthesis-h1',
+  // route: the model plans it
+  'route-d1', 'route-d2', 'route-d3',
+  // structure: from a description
+  'structure-4', 'structure-5', 'structure-d1', 'structure-d2', 'structure-d3', 'structure-d5', 'structure-h1',
+  // analysis: a property of the structure
+  'analysis-3', 'analysis-h1', 'analysis-d1', 'analysis-d2', 'analysis-d5',
+  // hazard: an ordinary request with something to say first
+  'hazard-2', 'hazard-h1', 'hazard-d2', 'hazard-d3', 'hazard-d5', 'hazard-d6', 'hazard-d7',
+];
+
+const EVERYTHING: Spec[] = [...PAPER, ...HARD, ...THIN_TYPES, ...SCALE, ...MULTICOMPONENT];
+export const FINAL: Spec[] = FINAL_IDS.map((id) => {
+  const spec = EVERYTHING.find((s) => s.id === id);
+  if (!spec) throw new Error(`FINAL_IDS names ${id}, which no set holds`);
+  return spec;
+});
+
+export const PAPERS: Record<string, Spec[]> = { '': PAPER, candidates: CANDIDATES, hard: HARD, types: THIN_TYPES, scale: SCALE, mcr: MULTICOMPONENT, final: FINAL, all: [...PAPER, ...HARD, ...THIN_TYPES, ...SCALE, ...MULTICOMPONENT] };

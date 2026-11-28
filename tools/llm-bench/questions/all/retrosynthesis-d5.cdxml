@@ -188,43 +188,37 @@
 <b id="1179" B="1143" E="1144" Order="2"/>
 </fragment>
 <fragment id="1180">
-<n id="1181" p="271.34 385.86"/>
-<n id="1182" p="265.65 368.34" Element="14" NumHydrogens="0"/>
-<n id="1183" p="259.95 350.81" Element="7"/>
-<n id="1184" p="242.43 345.12"/>
-<n id="1185" p="242.43 326.70"/>
-<n id="1186" p="226.47 317.48"/>
-<n id="1187" p="210.52 326.70"/>
-<n id="1188" p="210.52 345.12"/>
-<n id="1189" p="194.56 354.33" Element="17"/>
-<n id="1190" p="194.56 317.48" Element="17"/>
-<n id="1191" p="259.95 321.00" Element="7"/>
-<n id="1192" p="226.47 354.33"/>
-<n id="1193" p="270.78 335.91"/>
-<n id="1194" p="289.21 335.91" Element="35"/>
-<n id="1195" p="248.12 374.03"/>
-<n id="1196" p="283.17 362.64"/>
-<b id="1197" B="1181" E="1182"/>
-<b id="1198" B="1182" E="1196"/>
-<b id="1199" B="1182" E="1195"/>
-<b id="1200" B="1182" E="1183"/>
-<b id="1201" B="1183" E="1193"/>
-<b id="1202" B="1193" E="1194"/>
-<b id="1203" B="1193" E="1191" Order="2"/>
-<b id="1204" B="1191" E="1185"/>
-<b id="1205" B="1185" E="1186" Order="2"/>
-<b id="1206" B="1186" E="1187"/>
-<b id="1207" B="1187" E="1190"/>
-<b id="1208" B="1187" E="1188" Order="2"/>
-<b id="1209" B="1188" E="1189"/>
-<b id="1210" B="1188" E="1192"/>
-<b id="1211" B="1192" E="1184" Order="2"/>
-<b id="1212" B="1185" E="1184"/>
-<b id="1213" B="1183" E="1184"/>
+<n id="1181" p="265.65 368.34" NodeType="Nickname"><t><s font="3" size="11.00" face="97">TMS</s></t></n>
+<n id="1182" p="259.95 350.81" Element="7"/>
+<n id="1183" p="242.43 345.12"/>
+<n id="1184" p="242.43 326.70"/>
+<n id="1185" p="226.47 317.48"/>
+<n id="1186" p="210.52 326.70"/>
+<n id="1187" p="210.52 345.12"/>
+<n id="1188" p="194.56 354.33" Element="17"/>
+<n id="1189" p="194.56 317.48" Element="17"/>
+<n id="1190" p="259.95 321.00" Element="7"/>
+<n id="1191" p="226.47 354.33"/>
+<n id="1192" p="270.78 335.91"/>
+<n id="1193" p="289.21 335.91" Element="35"/>
+<b id="1194" B="1181" E="1182"/>
+<b id="1195" B="1182" E="1192"/>
+<b id="1196" B="1192" E="1193"/>
+<b id="1197" B="1192" E="1190" Order="2"/>
+<b id="1198" B="1190" E="1184"/>
+<b id="1199" B="1184" E="1185" Order="2"/>
+<b id="1200" B="1185" E="1186"/>
+<b id="1201" B="1186" E="1189"/>
+<b id="1202" B="1186" E="1187" Order="2"/>
+<b id="1203" B="1187" E="1188"/>
+<b id="1204" B="1187" E="1191"/>
+<b id="1205" B="1191" E="1183" Order="2"/>
+<b id="1206" B="1184" E="1183"/>
+<b id="1207" B="1182" E="1183"/>
 </fragment>
-<arrow id="1218" FillType="None" ArrowheadHead="Full" ArrowheadType="Hollow" HeadSize="600" ArrowheadCenterSize="600" ArrowheadWidth="150" ArrowShaftSpacing="600" Head3D="251.52 55.39 0" Tail3D="205.46 55.39 0"/>
-<t id="1214" p="271.79 59.39" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
-<t id="1215" p="0.00 142.89" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Give the two starting materials for a one-step synthesis of this compound. [5]</s></t>
-<t id="1216" p="0.00 161.89" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
-<t id="1217" p="0.00 302.75" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
+<arrow id="1212" FillType="None" ArrowheadHead="Full" ArrowheadType="Hollow" HeadSize="600" ArrowheadCenterSize="600" ArrowheadWidth="150" ArrowShaftSpacing="600" Head3D="251.52 55.39 0" Tail3D="205.46 55.39 0"/>
+<t id="1208" p="271.79 59.39" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1209" p="0.00 142.89" LineHeight="auto"><s font="3" size="10.00" face="0">Q: Give the two starting materials for a one-step synthesis of this compound. [5]</s></t>
+<t id="1210" p="0.00 161.89" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1211" p="0.00 302.75" LineHeight="auto"><s font="3" size="10.00" face="0">Also accept</s></t>
 </page></CDXML>

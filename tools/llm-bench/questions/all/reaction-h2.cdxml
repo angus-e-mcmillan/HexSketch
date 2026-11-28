@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="4.95 22.77 131.70 227.31" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="4.95 22.77 91.34 201.23" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
@@ -34,47 +34,35 @@
 <b id="1028" B="1005" E="1006"/>
 </fragment>
 <fragment id="1029">
-<n id="1030" p="131.70 214.28"/>
-<n id="1031" p="113.91 209.51"/>
-<n id="1032" p="96.11 204.74" Element="8"/>
-<n id="1033" p="91.34 186.94"/>
-<n id="1034" p="73.54 182.17" Element="7"/>
-<n id="1035" p="68.77 164.38"/>
-<n id="1036" p="52.82 173.59"/>
-<n id="1037" p="52.82 192.01"/>
-<n id="1038" p="36.86 201.23"/>
-<n id="1039" p="20.90 192.01"/>
-<n id="1040" p="4.95 201.23" Element="9"/>
-<n id="1041" p="20.90 173.59"/>
-<n id="1042" p="36.86 164.38"/>
-<n id="1043" p="77.99 148.42"/>
-<n id="1044" p="87.20 164.38"/>
-<n id="1045" p="104.37 173.91" Element="8"/>
-<n id="1046" p="118.68 191.71"/>
-<n id="1047" p="109.14 227.31"/>
-<b id="1048" B="1030" E="1031"/>
-<b id="1049" B="1031" E="1047"/>
-<b id="1050" B="1031" E="1046"/>
-<b id="1051" B="1031" E="1032"/>
-<b id="1052" B="1032" E="1033"/>
-<b id="1053" B="1033" E="1045" Order="2"/>
+<n id="1030" p="91.34 186.94" NodeType="Nickname"><t><s font="3" size="11.00" face="97">Boc</s></t></n>
+<n id="1031" p="73.54 182.17" Element="7"/>
+<n id="1032" p="68.77 164.38"/>
+<n id="1033" p="52.82 173.59"/>
+<n id="1034" p="52.82 192.01"/>
+<n id="1035" p="36.86 201.23"/>
+<n id="1036" p="20.90 192.01"/>
+<n id="1037" p="4.95 201.23" Element="9"/>
+<n id="1038" p="20.90 173.59"/>
+<n id="1039" p="36.86 164.38"/>
+<n id="1040" p="77.99 148.42"/>
+<n id="1041" p="87.20 164.38"/>
+<b id="1042" B="1030" E="1031"/>
+<b id="1043" B="1031" E="1032"/>
+<b id="1044" B="1032" E="1041"/>
+<b id="1045" B="1041" E="1040"/>
+<b id="1046" B="1032" E="1040"/>
+<b id="1047" B="1032" E="1033"/>
+<b id="1048" B="1033" E="1039" Order="2"/>
+<b id="1049" B="1039" E="1038"/>
+<b id="1050" B="1038" E="1036" Order="2"/>
+<b id="1051" B="1036" E="1037"/>
+<b id="1052" B="1036" E="1035"/>
+<b id="1053" B="1035" E="1034" Order="2"/>
 <b id="1054" B="1033" E="1034"/>
-<b id="1055" B="1034" E="1035"/>
-<b id="1056" B="1035" E="1044"/>
-<b id="1057" B="1044" E="1043"/>
-<b id="1058" B="1035" E="1043"/>
-<b id="1059" B="1035" E="1036"/>
-<b id="1060" B="1036" E="1042" Order="2"/>
-<b id="1061" B="1042" E="1041"/>
-<b id="1062" B="1041" E="1039" Order="2"/>
-<b id="1063" B="1039" E="1040"/>
-<b id="1064" B="1039" E="1038"/>
-<b id="1065" B="1038" E="1037" Order="2"/>
-<b id="1066" B="1036" E="1037"/>
 </fragment>
-<arrow id="1071" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="207.74 52.00 0" Tail3D="108.63 52.00 0"/>
-<t id="1067" p="150.53 7.50" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">i. DPPA, Et3N,&#10;toluene, 90 °C&#10;ii. t-BuOH,&#10;reflux</s></t>
-<t id="1068" p="228.01 56.00" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
-<t id="1069" p="0.00 118.89" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [4]</s></t>
-<t id="1070" p="0.00 137.89" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<arrow id="1059" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="207.74 52.00 0" Tail3D="108.63 52.00 0"/>
+<t id="1055" p="150.53 7.50" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">i. DPPA, Et3N,&#10;toluene, 90 °C&#10;ii. t-BuOH,&#10;reflux</s></t>
+<t id="1056" p="228.01 56.00" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1057" p="0.00 118.89" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [4]</s></t>
+<t id="1058" p="0.00 137.89" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
 </page></CDXML>

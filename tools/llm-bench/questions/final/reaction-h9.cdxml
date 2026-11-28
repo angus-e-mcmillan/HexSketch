@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="5.56 7.26 145.01 231.66" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="85.34 7.26"/>
+<n id="1003" p="85.34 25.68" NumHydrogens="1"/>
+<n id="1004" p="69.39 34.89"/>
+<n id="1005" p="69.39 53.32"/>
+<n id="1006" p="53.43 62.53"/>
+<n id="1007" p="37.47 53.32"/>
+<n id="1008" p="21.52 62.53"/>
+<n id="1009" p="5.56 71.74" Element="7"/>
+<n id="1010" p="37.47 34.89"/>
+<n id="1011" p="53.43 25.68"/>
+<n id="1012" p="101.30 34.89" Element="8"/>
+<b id="1013" B="1002" E="1003" Display="WedgedHashEnd"/>
+<b id="1014" B="1003" E="1012"/>
+<b id="1015" B="1003" E="1004"/>
+<b id="1016" B="1004" E="1011" Order="2"/>
+<b id="1017" B="1011" E="1010"/>
+<b id="1018" B="1010" E="1007" Order="2"/>
+<b id="1019" B="1007" E="1006"/>
+<b id="1020" B="1006" E="1005" Order="2"/>
+<b id="1021" B="1004" E="1005"/>
+<b id="1022" B="1007" E="1008"/>
+<b id="1023" B="1008" E="1009" Order="3"/>
+</fragment>
+<fragment id="1024">
+<n id="1025" p="106.90 142.95"/>
+<n id="1026" p="97.68 158.91" NumHydrogens="1"/>
+<n id="1027" p="79.26 158.91"/>
+<n id="1028" p="70.05 174.86"/>
+<n id="1029" p="51.62 174.86"/>
+<n id="1030" p="42.41 158.91"/>
+<n id="1031" p="23.98 158.91"/>
+<n id="1032" p="5.56 158.91" Element="7"/>
+<n id="1033" p="51.62 142.95"/>
+<n id="1034" p="70.05 142.95"/>
+<n id="1035" p="106.90 174.86" Element="7"/>
+<n id="1036" p="125.22 176.79"/>
+<n id="1037" p="137.55 163.10" Element="8"/>
+<n id="1038" p="129.05 194.81"/>
+<n id="1039" p="113.10 204.02"/>
+<n id="1040" p="113.10 222.45"/>
+<n id="1041" p="129.05 231.66"/>
+<n id="1042" p="145.01 222.45"/>
+<n id="1043" p="145.01 204.02"/>
+<n id="1044" p="99.40 191.69"/>
+<n id="1045" p="81.38 195.53" Element="8"/>
+<b id="1046" B="1025" E="1026" Display="WedgeEnd"/>
+<b id="1047" B="1026" E="1035"/>
+<b id="1048" B="1035" E="1044"/>
+<b id="1049" B="1044" E="1045" Order="2"/>
+<b id="1050" B="1044" E="1039"/>
+<b id="1051" B="1039" E="1040" Order="2"/>
+<b id="1052" B="1040" E="1041"/>
+<b id="1053" B="1041" E="1042" Order="2"/>
+<b id="1054" B="1042" E="1043"/>
+<b id="1055" B="1043" E="1038" Order="2"/>
+<b id="1056" B="1039" E="1038"/>
+<b id="1057" B="1038" E="1036"/>
+<b id="1058" B="1035" E="1036"/>
+<b id="1059" B="1036" E="1037" Order="2"/>
+<b id="1060" B="1026" E="1027"/>
+<b id="1061" B="1027" E="1034" Order="2"/>
+<b id="1062" B="1034" E="1033"/>
+<b id="1063" B="1033" E="1030" Order="2"/>
+<b id="1064" B="1030" E="1029"/>
+<b id="1065" B="1029" E="1028" Order="2"/>
+<b id="1066" B="1027" E="1028"/>
+<b id="1067" B="1030" E="1031"/>
+<b id="1068" B="1031" E="1032" Order="3"/>
+</fragment>
+<arrow id="1073" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="231.68 39.50 0" Tail3D="121.57 39.50 0"/>
+<t id="1069" p="168.97 7.50" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">phthalimide,&#10;PPh3, DIAD, THF,&#10;0 °C to rt</s></t>
+<t id="1070" p="251.94 43.50" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1071" p="0.00 109.40" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product, with its stereochemistry? [4]</s></t>
+<t id="1072" p="0.00 128.40" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+</page></CDXML>

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
-<CDXML CreationProgram="HexSketch" BoundingBox="5.07 5.73 280.06 219.86" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<CDXML CreationProgram="HexSketch" BoundingBox="5.07 5.73 232.19 201.44" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
 <colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
 <fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
 <page id="1000" BoundingBox="0 0 540 720">
@@ -38,96 +38,72 @@
 <b id="1032" B="1006" E="1007"/>
 </fragment>
 <fragment id="1033">
-<n id="1034" p="184.32 19.55"/>
-<n id="1035" p="200.28 28.77"/>
-<n id="1036" p="216.23 37.98" Element="8"/>
+<n id="1034" p="184.32 19.55" NodeType="Nickname"><t><s font="3" size="11.00" face="97">Boc</s></t></n>
+<n id="1035" p="200.28 28.77" Element="7"/>
+<n id="1036" p="216.23 19.55"/>
 <n id="1037" p="232.19 28.77"/>
-<n id="1038" p="248.15 37.98" Element="7"/>
-<n id="1039" p="264.10 28.77"/>
-<n id="1040" p="280.06 37.98"/>
-<n id="1041" p="280.06 56.40" Element="7"/>
-<n id="1042" p="264.10 65.62"/>
-<n id="1043" p="248.15 56.40"/>
-<n id="1044" p="232.19 10.34" Element="8"/>
-<n id="1045" p="209.49 12.81"/>
-<n id="1046" p="191.06 44.72"/>
-<b id="1047" B="1034" E="1035"/>
-<b id="1048" B="1035" E="1046"/>
-<b id="1049" B="1035" E="1045"/>
-<b id="1050" B="1035" E="1036"/>
-<b id="1051" B="1036" E="1037"/>
-<b id="1052" B="1037" E="1044" Order="2"/>
-<b id="1053" B="1037" E="1038"/>
-<b id="1054" B="1038" E="1043"/>
-<b id="1055" B="1043" E="1042"/>
-<b id="1056" B="1042" E="1041"/>
-<b id="1057" B="1041" E="1040"/>
-<b id="1058" B="1040" E="1039"/>
-<b id="1059" B="1038" E="1039"/>
+<n id="1038" p="232.19 47.19" Element="7"/>
+<n id="1039" p="216.23 56.40"/>
+<n id="1040" p="200.28 47.19"/>
+<b id="1041" B="1034" E="1035"/>
+<b id="1042" B="1035" E="1040"/>
+<b id="1043" B="1040" E="1039"/>
+<b id="1044" B="1039" E="1038"/>
+<b id="1045" B="1038" E="1037"/>
+<b id="1046" B="1037" E="1036"/>
+<b id="1047" B="1035" E="1036"/>
 </fragment>
-<fragment id="1060">
-<n id="1061" p="13.81 146.16"/>
-<n id="1062" p="29.77 155.38"/>
-<n id="1063" p="45.72 164.59" Element="8"/>
-<n id="1064" p="61.68 155.38"/>
-<n id="1065" p="77.64 164.59" Element="7"/>
-<n id="1066" p="93.59 155.38"/>
-<n id="1067" p="109.55 164.59"/>
-<n id="1068" p="109.55 183.01" Element="7"/>
-<n id="1069" p="125.51 192.23"/>
-<n id="1070" p="141.46 183.01" Element="7"/>
-<n id="1071" p="157.42 192.23"/>
-<n id="1072" p="173.38 183.01"/>
-<n id="1073" p="173.38 164.59"/>
-<n id="1074" p="189.33 155.38"/>
-<n id="1075" p="205.29 164.59"/>
-<n id="1076" p="221.25 155.38" Element="8"/>
-<n id="1077" p="237.20 164.59"/>
-<n id="1078" p="205.29 183.01"/>
-<n id="1079" p="189.33 192.23"/>
-<n id="1080" p="157.42 210.65"/>
-<n id="1081" p="141.46 219.86"/>
-<n id="1082" p="125.51 210.65" Element="7"/>
-<n id="1083" p="93.59 192.23"/>
-<n id="1084" p="77.64 183.01"/>
-<n id="1085" p="61.68 136.95" Element="8"/>
-<n id="1086" p="38.98 139.42"/>
-<n id="1087" p="20.55 171.33"/>
-<b id="1088" B="1061" E="1062"/>
-<b id="1089" B="1062" E="1087"/>
-<b id="1090" B="1062" E="1086"/>
-<b id="1091" B="1062" E="1063"/>
-<b id="1092" B="1063" E="1064"/>
-<b id="1093" B="1064" E="1085" Order="2"/>
-<b id="1094" B="1064" E="1065"/>
-<b id="1095" B="1065" E="1084"/>
-<b id="1096" B="1084" E="1083"/>
-<b id="1097" B="1083" E="1068"/>
-<b id="1098" B="1068" E="1067"/>
-<b id="1099" B="1067" E="1066"/>
-<b id="1100" B="1065" E="1066"/>
-<b id="1101" B="1068" E="1069"/>
-<b id="1102" B="1069" E="1082" Order="2"/>
-<b id="1103" B="1082" E="1081"/>
-<b id="1104" B="1081" E="1080" Order="2"/>
-<b id="1105" B="1080" E="1071"/>
-<b id="1106" B="1071" E="1070" Order="2"/>
-<b id="1107" B="1069" E="1070"/>
-<b id="1108" B="1071" E="1072"/>
-<b id="1109" B="1072" E="1079" Order="2"/>
-<b id="1110" B="1079" E="1078"/>
-<b id="1111" B="1078" E="1075" Order="2"/>
-<b id="1112" B="1075" E="1076"/>
-<b id="1113" B="1076" E="1077"/>
-<b id="1114" B="1075" E="1074"/>
-<b id="1115" B="1074" E="1073" Order="2"/>
-<b id="1116" B="1072" E="1073"/>
+<fragment id="1048">
+<n id="1049" p="19.31 136.95" NodeType="Nickname"><t><s font="3" size="11.00" face="97">Boc</s></t></n>
+<n id="1050" p="35.27 146.16" Element="7"/>
+<n id="1051" p="51.22 136.95"/>
+<n id="1052" p="67.18 146.16"/>
+<n id="1053" p="67.18 164.59" Element="7"/>
+<n id="1054" p="83.14 173.80"/>
+<n id="1055" p="99.09 164.59" Element="7"/>
+<n id="1056" p="115.05 173.80"/>
+<n id="1057" p="131.01 164.59"/>
+<n id="1058" p="131.01 146.16"/>
+<n id="1059" p="146.96 136.95"/>
+<n id="1060" p="162.92 146.16"/>
+<n id="1061" p="178.88 136.95" Element="8"/>
+<n id="1062" p="194.83 146.16"/>
+<n id="1063" p="162.92 164.59"/>
+<n id="1064" p="146.96 173.80"/>
+<n id="1065" p="115.05 192.23"/>
+<n id="1066" p="99.09 201.44"/>
+<n id="1067" p="83.14 192.23" Element="7"/>
+<n id="1068" p="51.22 173.80"/>
+<n id="1069" p="35.27 164.59"/>
+<b id="1070" B="1049" E="1050"/>
+<b id="1071" B="1050" E="1069"/>
+<b id="1072" B="1069" E="1068"/>
+<b id="1073" B="1068" E="1053"/>
+<b id="1074" B="1053" E="1052"/>
+<b id="1075" B="1052" E="1051"/>
+<b id="1076" B="1050" E="1051"/>
+<b id="1077" B="1053" E="1054"/>
+<b id="1078" B="1054" E="1067" Order="2"/>
+<b id="1079" B="1067" E="1066"/>
+<b id="1080" B="1066" E="1065" Order="2"/>
+<b id="1081" B="1065" E="1056"/>
+<b id="1082" B="1056" E="1055" Order="2"/>
+<b id="1083" B="1054" E="1055"/>
+<b id="1084" B="1056" E="1057"/>
+<b id="1085" B="1057" E="1064" Order="2"/>
+<b id="1086" B="1064" E="1063"/>
+<b id="1087" B="1063" E="1060" Order="2"/>
+<b id="1088" B="1060" E="1061"/>
+<b id="1089" B="1061" E="1062"/>
+<b id="1090" B="1060" E="1059"/>
+<b id="1091" B="1059" E="1058" Order="2"/>
+<b id="1092" B="1057" E="1058"/>
 </fragment>
-<t id="1117" p="158.52 41.48" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">+</s></t>
-<arrow id="1123" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="404.94 37.98 0" Tail3D="300.33 37.98 0"/>
-<t id="1118" p="344.98 30.98" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">DIPEA (2 equiv)</s></t>
-<t id="1119" p="344.98 52.98" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">NMP, 120 °C,&#10;16 h</s></t>
-<t id="1120" p="425.20 41.98" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
-<t id="1121" p="0.00 103.22" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [4]</s></t>
-<t id="1122" p="0.00 122.22" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+<t id="1093" p="158.52 41.48" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">+</s></t>
+<arrow id="1099" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="357.07 37.98 0" Tail3D="252.46 37.98 0"/>
+<t id="1094" p="297.11 30.98" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">DIPEA (2 equiv)</s></t>
+<t id="1095" p="297.11 52.98" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">NMP, 120 °C,&#10;16 h</s></t>
+<t id="1096" p="377.33 41.98" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1097" p="0.00 103.22" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [4]</s></t>
+<t id="1098" p="0.00 122.22" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
 </page></CDXML>

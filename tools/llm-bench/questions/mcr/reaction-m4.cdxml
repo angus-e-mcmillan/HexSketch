@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE CDXML SYSTEM "http://www.cambridgesoft.com/xml/cdxml.dtd" >
+<CDXML CreationProgram="HexSketch" BoundingBox="5.38 8.57 213.62 192.13" LabelFont="3" LabelSize="11.00" LabelFace="97" CaptionFont="3" CaptionSize="10.00" HashSpacing="2.49" MarginWidth="1.59" LineWidth="1.53" BoldWidth="2.41" BondLength="18.43" BondSpacing="18.00" ChainAngle="120.00" ShowTerminalCarbonLabels="no" HideImplicitHydrogens="no" InterpretChemically="yes" color="0" bgcolor="1">
+<colortable><color r="1" g="1" b="1"/><color r="0" g="0" b="0"/><color r="0.8941" g="0.9137" b="0.9529"/><color r="0.7843" g="0.8353" b="0.8118"/><color r="0.6667" g="0.7412" b="0.7098"/><color r="0.4902" g="0.6314" b="0.5725"/><color r="0.4039" g="0.5686" b="0.502"/><color r="0.2941" g="0.5098" b="0.4235"/><color r="0.9216" g="0.8667" b="0.8902"/><color r="0.8863" g="0.7922" b="0.8275"/><color r="0.7569" g="0.5804" b="0.6471"/><color r="0.6784" g="0.4784" b="0.5529"/><color r="0.651" g="0.3765" b="0.4784"/><color r="0.7882" g="0.7922" b="0.8431"/><color r="0.6745" g="0.6784" b="0.749"/><color r="0.4941" g="0.5059" b="0.6431"/><color r="0.3333" g="0.3412" b="0.5216"/></colortable>
+<fonttable><font id="3" charset="iso-8859-1" name="Helvetica"/></fonttable>
+<page id="1000" BoundingBox="0 0 540 720">
+<fragment id="1001">
+<n id="1002" p="5.38 8.57" Element="8"/>
+<n id="1003" p="21.34 17.79"/>
+<n id="1004" p="37.30 8.57"/>
+<n id="1005" p="53.25 17.79"/>
+<n id="1006" p="53.25 36.21" Element="7"/>
+<n id="1007" p="69.21 45.43" NodeType="Nickname"><t><s font="3" size="11.00" face="97">Boc</s></t></n>
+<n id="1008" p="37.30 45.43"/>
+<n id="1009" p="21.34 36.21"/>
+<b id="1010" B="1002" E="1003" Order="2"/>
+<b id="1011" B="1003" E="1009"/>
+<b id="1012" B="1009" E="1008"/>
+<b id="1013" B="1008" E="1006"/>
+<b id="1014" B="1006" E="1007"/>
+<b id="1015" B="1006" E="1005"/>
+<b id="1016" B="1005" E="1004"/>
+<b id="1017" B="1003" E="1004"/>
+</fragment>
+<fragment id="1018">
+<n id="1019" p="120.80 40.22" Element="7"/>
+<n id="1020" p="135.53 29.15"/>
+<n id="1021" p="150.26 18.09"/>
+<n id="1022" p="167.21 25.31"/>
+<n id="1023" p="181.94 14.24" Element="8"/>
+<n id="1024" p="198.89 21.47"/>
+<n id="1025" p="213.62 10.40"/>
+<n id="1026" p="169.43 43.60" Element="8"/>
+<b id="1027" B="1019" E="1020" Order="3"/>
+<b id="1028" B="1020" E="1021"/>
+<b id="1029" B="1021" E="1022"/>
+<b id="1030" B="1022" E="1026" Order="2"/>
+<b id="1031" B="1022" E="1023"/>
+<b id="1032" B="1023" E="1024"/>
+<b id="1033" B="1024" E="1025"/>
+</fragment>
+<fragment id="1034">
+<n id="1035" p="6.17 192.13"/>
+<n id="1036" p="11.86 174.60"/>
+<n id="1037" p="29.89 170.77" Element="8"/>
+<n id="1038" p="35.58 153.25"/>
+<n id="1039" p="53.60 149.42"/>
+<n id="1040" p="67.29 161.75"/>
+<n id="1041" p="67.29 180.17"/>
+<n id="1042" p="83.25 189.39"/>
+<n id="1043" p="99.21 180.17" Element="7"/>
+<n id="1044" p="99.21 161.75"/>
+<n id="1045" p="115.16 189.39" NodeType="Nickname"><t><s font="3" size="11.00" face="97">Boc</s></t></n>
+<n id="1046" p="83.25 152.54"/>
+<n id="1047" p="79.42 134.51" Element="16"/>
+<n id="1048" p="61.10 132.59"/>
+<n id="1049" p="51.88 116.63" Element="7"/>
+<n id="1050" p="23.25 139.56" Element="8"/>
+<b id="1051" B="1035" E="1036"/>
+<b id="1052" B="1036" E="1037"/>
+<b id="1053" B="1037" E="1038"/>
+<b id="1054" B="1038" E="1050" Order="2"/>
+<b id="1055" B="1038" E="1039"/>
+<b id="1056" B="1039" E="1048" Order="2"/>
+<b id="1057" B="1048" E="1049"/>
+<b id="1058" B="1048" E="1047"/>
+<b id="1059" B="1047" E="1046"/>
+<b id="1060" B="1046" E="1040" Order="2"/>
+<b id="1061" B="1039" E="1040"/>
+<b id="1062" B="1040" E="1041"/>
+<b id="1063" B="1041" E="1042"/>
+<b id="1064" B="1042" E="1043"/>
+<b id="1065" B="1043" E="1045"/>
+<b id="1066" B="1043" E="1044"/>
+<b id="1067" B="1046" E="1044"/>
+</fragment>
+<t id="1068" p="95.00 30.50" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">+</s></t>
+<arrow id="1074" FillType="None" ArrowheadHead="Full" ArrowheadType="Solid" HeadSize="1000" ArrowheadCenterSize="875" ArrowheadWidth="250" Head3D="338.50 27.00 0" Tail3D="233.89 27.00 0"/>
+<t id="1069" p="278.54 7.50" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">S8, morpholine,&#10;EtOH</s></t>
+<t id="1070" p="278.54 42.00" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="10.00" face="96">50 °C</s></t>
+<t id="1071" p="358.77 31.00" Justification="Center" CaptionJustification="Center" LineHeight="auto"><s font="3" size="16.00" face="0">?</s></t>
+<t id="1072" p="0.00 83.08" LineHeight="auto"><s font="3" size="10.00" face="0">Q: What is the product? [4]</s></t>
+<t id="1073" p="0.00 102.08" LineHeight="auto"><s font="3" size="10.00" face="0">Answer</s></t>
+</page></CDXML>
