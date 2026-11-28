@@ -1,8 +1,11 @@
 # LLM benchmark
 
 Does HexSketch make a model's chemistry more reliable? Each question is a
-drawing a chemist would make. It is put to a model twice -- through OpenRouter,
-for any model, or inside Claude Code, for Claude's own:
+drawing a chemist would make, and every question is asked three ways: with the
+structures as SMILES, with them named, and drawn in HexSketch. The first two are
+the typed channels a chemist would really use, and which one you pick changes
+the answer, so the comparison is three-way rather than with-and-without. Models
+are reached through OpenRouter, or inside Claude Code for Claude's own:
 
 | Condition | How the question reaches the model | How it answers |
 |---|---|---|
@@ -52,25 +55,77 @@ to know which the drawing is being compared against.
 
 ## What is measured
 
-**The exam is `--set all`: 117 questions and 476 marks over eight types.** That
-is the one to run. The four sets it is made of are kept because past runs quote
-them and because each answers a narrower question, and they are described next.
+**The exam is `--set final`: 69 questions and 285 marks over eight types.** That
+is the one to run. It is cut from the 121 questions of `--set all` by five
+rules, in order:
 
-The paper is 100 marks over seven types of question (`questions/`); `--set hard`
-is 29 harder questions: ten reactions from a chemist's own ChemDraw drawings,
-taken from published total and process syntheses, with the products they drew
-as the answers; six more ending at a drug whose structure PubChem confirms; and
-the rest on less common chemistry. `--set types` is 39 questions and 170 marks
-on the types the paper is thinnest on -- eight multistep sequences, six
-mechanisms, five retrosyntheses, three routes, five structures, five analyses
-and seven hazards -- every one of them a step somebody published, taken from
+1. **One question per reaction.** Seven reactions had twenty questions between
+   them in `all`, where seven would do. Counted from the specs:
+
+   | | in `all` | in `final` |
+   |---|---|---|
+   | Beckmann (oxime, TsCl) | `reaction-5`, `reaction-h1` | `reaction-h1` |
+   | Baeyer-Villiger (aryl ketone, mCPBA) | `reaction-6`, `reaction-h5` | `reaction-h5` |
+   | Curtius (DPPA) | `mechanism-1`, `reaction-h2` | `reaction-h2` |
+   | Mitsunobu | `reaction-4`, `reaction-h9`, `reaction-r2`, `mechanism-d2` | `reaction-h9` |
+   | Pinnick | `reaction-s1`, `reaction-s3`, `reaction-s8`, `multistep-d7` | `reaction-s3` |
+   | which nitrogen is most basic | `analysis-1`, `analysis-h1`, `analysis-d3` | `analysis-h1` |
+   | draw the enantiomer | `structure-1`, `structure-h2`, `structure-d1` | `structure-d1` |
+
+   The pairs are not variations on a theme, they are the same question with a
+   different substituent: both Beckmanns are an acetophenone oxime with TsCl,
+   one on a bare phenyl and one on a dioxole, and both Baeyer-Villigers are a
+   methoxyacetophenone where the electron-rich aryl migrates. Where a reaction
+   appeared more than once the instance that tests most was kept -- the Beckmann
+   on the dioxole, the Pinnick on 73 atoms with four sugars to carry -- and the
+   rest went.
+2. **One question per structure.** No structure of six atoms or more is in two
+   questions, matched atom-to-atom rather than by SMILES string, so the same
+   compound written two ways cannot slip through. `test/final.test.ts` holds
+   this.
+3. **Nothing whose drawing has a fault.** Every one of the 69 lays out with no
+   clash, no crossed bond and no label over a bond, checked per connected
+   component by `faults()` in `layout.ts`. Fifteen questions were dropped for
+   this, nearly all fused natural products the layout engine cannot yet place
+   (diazonamide, euonyminol, ecteinascidin, gossypol, ouabagenin). A question
+   whose drawing is unreadable measures the layout engine, not the channel.
+4. **Nothing whose answer could not be verified.** Four went for this, two of
+   them stereochemical disagreements the key lost (`reaction-r3`'s key conflicts
+   with netarsudil's published configuration).
+5. **Then the trivia goes.** A question every condition already answered, on
+   fewer than twenty heavy atoms, measures nothing: a nine-atom Favorskii, a
+   fifteen-atom Meinwald, ranking the two nitrogens of a dimethylaminopyridine.
+   Enough are kept, spread across the types, to show the exam is working at all
+   -- that is how the first runs were checked -- but not forty of them.
+
+Of the 121, thirteen went for rule 1, fifteen for rule 3, four for rule 4, and
+the remaining twenty for rules 2 and 5. The same five rules are written at `FINAL_IDS`
+in [paper.ts](paper.ts), beside the list of ids they produced.
+
+The five sets it is cut from are kept because past runs quote them and because
+each answers a narrower question. The paper (`--set` with no name) is 100 marks
+over seven types (`questions/`); `--set hard` is 29 harder questions: ten
+reactions from a chemist's own ChemDraw drawings, taken from published total and
+process syntheses, with the products they drew as the answers; six more ending
+at a drug whose structure PubChem confirms; and the rest on less common
+chemistry. `--set types` is 39 questions and 170 marks on the types the paper is
+thinnest on -- eight multistep sequences, six mechanisms, five retrosyntheses,
+three routes, five structures, five analyses and seven hazards -- every one of
+them a step somebody published, taken from
 [Chemistry by Design](#chemistry-by-design) and checked before it was written
 down. `--set scale` is 23 draw-the-product reactions and 92 marks at the size
 where bookkeeping fails: fifteen mined forward reactions whose products run from
 52 to 90 heavy atoms, and eight peptides, built rather than mined and the
-questions the drawing helps most with. `--set all` is the four together, 117
-questions and 476 marks. Each run reports the **score** in each condition (marks
-for right answers, overall and per type), and for every answer, automatically:
+questions the drawing helps most with. `--set mcr` is four multicomponent
+reactions -- Ugi, Biginelli, Petasis, Gewald -- the kind the other sets had
+almost none of; each balances with the by-product it should lose, and the
+Biginelli's product is PubChem's monastrol. `--set all` is the five together,
+121 questions and 492 marks, and is what `final` selects from. (The full-exam
+result below was measured on `all` before the multicomponent questions joined
+it, so it reports 117 and 476.)
+
+Each run reports the **score** in each condition (marks for right answers,
+overall and per type), and for every answer, automatically:
 
 | Measure | The question it answers |
 |---|---|
@@ -95,12 +150,27 @@ drawn from there; a question may also be drawn by hand in HexSketch. See
 [questions/README.md](questions/README.md). Then:
 
 ```sh
-npm run llm-bench:author   # draw the paper from paper.ts
-npm run llm-bench:prep
+npm run llm-bench:author -- --set final   # draw them from paper.ts
+npm run llm-bench:prep -- --set final
 ```
 
-checks them and writes `questions.jsonl`, and `questions/questions.html` to
-proofread them.
+checks them and writes `questions-final.jsonl`, and
+`questions/final/questions.html` to proofread them: each question's drawing, the
+key, and what every one of the three channels sends, side by side. The author
+refuses to write a drawing that does not read back as the spec, so a question
+that survives both commands is one whose drawing and key agree.
+
+Two things the author does that matter for what the exam measures. Protecting
+groups are drawn **abbreviated** (TIPS, TBS, Boc, Cbz, Fmoc, Trt, PMB...), as a
+chemist draws them, because a TIPS ether written out is nine carbons and a
+silicon crowding the page and was most of the clashes; the reader expands every
+label again, so the SMILES, the names, the spec check and the marking all still
+see every atom, and an atom with a map number is never hidden inside a label.
+And a double bond whose geometry the spec does not state is **drawn crossed**,
+the mark for "E/Z not specified": drawn plain it would hand the drawing a fact
+the SMILES and the name never had -- an oxime drawn E tells you which group
+migrates in the Beckmann -- and would turn the key into a demand a typed answer
+could not meet.
 
 ### Chemistry by Design
 
@@ -459,7 +529,7 @@ npm run llm-bench -- --model MODEL_ID --provider anthropic --repeats 1
 | `--only` | | Question ids, e.g. `reaction-1` |
 | `--effort` | `medium` | `reasoning.effort`; `none` for a model without thinking |
 | `--max-tokens` | 32000 | The same for every model |
-| `--set` | the paper | Another set of questions: `questions/NAME/`, built with `npm run llm-bench:prep -- --set NAME` (candidates being tried out, say) |
+| `--set` | the paper | Which questions to ask: `final` for the exam, or `hard`, `types`, `scale`, `mcr`, `all`, or any `questions/NAME/` built with `npm run llm-bench:prep -- --set NAME` (candidates being tried out, say) |
 | `--like-website` | | The HexSketch condition asks as hexsketch.com does: low effort, at most 4,096 tokens a turn for Claude and 16,384 for other models, thinking not sent back |
 | `--max-rounds` | 12 | Tool rounds before the model must answer |
 | `--concurrency` | 4 | Questions in flight at once |

@@ -1460,27 +1460,30 @@ export const MULTICOMPONENT: Spec[] = [
 /**
  * The final exam, --set final.
  *
- * Chosen from everything above by four rules, applied the same way to every question:
+ * Chosen from everything above by five rules, applied the same way to every question:
  *
  * 1. **One question per reaction.** The paper had two Beckmanns (reaction-5 and reaction-h1), two
  *    Baeyer-Villigers (reaction-6, reaction-h5), two Curtius (mechanism-1, reaction-h2), four
- *    Mitsunobus (reaction-4, reaction-r2, reaction-h9, mechanism-d2) and three Pinnicks
- *    (reaction-s1, s3, s8). Each kept the one that tests the most: the Beckmann whose aryl bears a
- *    dioxole rather than a bare phenyl, the Mitsunobu with an inversion to draw, the Pinnick on
+ *    Mitsunobus (reaction-4, reaction-r2, reaction-h9, mechanism-d2) and four Pinnicks
+ *    (reaction-s1, s3, s8, multistep-d7). Each kept the one that tests the most: the Beckmann whose
+ *    aryl bears a dioxole rather than a bare phenyl, the Mitsunobu with an inversion to draw, the Pinnick on
  *    seventy-three atoms with four sugars to carry. The same rule applies to the kinds of question
  *    that are not reactions -- one "which nitrogen is the most basic" of the three, one "draw the
  *    enantiomer" of the three.
- * 2. **Nothing whose drawing has a fault.** Every question is laid out, and any whose structures
+ * 2. **One question per structure.** No structure of six heavy atoms or more appears in two
+ *    questions, compared atom to atom rather than as written SMILES, so the same compound written
+ *    two ways cannot slip through. test/final.test.ts holds this rule and rule 3.
+ * 3. **Nothing whose drawing has a fault.** Every question is laid out, and any whose structures
  *    still show a clash, a crossed bond or a label over a bond once the protecting groups are
  *    abbreviated is out: fifteen of them, nearly all fused and bridged natural products
  *    (diazonamide, euonyminol, ecteinascidin, gossypol, ouabagenin, hypocrellin, trospium). A
  *    question whose own drawing is unreadable cannot measure whether drawings help.
- * 3. **No question whose answer I could not verify.** Four were dropped for that alone --
+ * 4. **No question whose answer I could not verify.** Four were dropped for that alone --
  *    reaction-r1, where the epoxide's descriptor depends on a priority change I could not settle;
  *    reaction-r3, where the key disagrees with netarsudil's published configuration; reaction-r6,
  *    whose macrocyclic alkene geometry I could not confirm; and multistep-d1, whose last step
  *    claims a hydrogenolysis and a hydrodechlorination in one pot.
- * 4. **Then the trivia goes.** A question every condition answered, on fewer than twenty heavy
+ * 5. **Then the trivia goes.** A question every condition answered, on fewer than twenty heavy
  *    atoms, measures nothing: a nine-atom Favorskii, a fifteen-atom Meinwald, ranking two
  *    nitrogens of a dimethylaminopyridine. Enough are kept, spread across the types, to show the
  *    exam is working at all -- that was how the first runs were checked -- but not forty of them.
